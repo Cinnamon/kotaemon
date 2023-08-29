@@ -1,3 +1,31 @@
+import os
+import sys
+
+import pytest
+
+
+@pytest.fixture
+def clean_artifacts_for_telemetry():
+    try:
+        del sys.modules["kotaemon"]
+    except KeyError:
+        pass
+
+    try:
+        del sys.modules["haystack"]
+    except KeyError:
+        pass
+
+    try:
+        del sys.modules["haystack.telemetry"]
+    except KeyError:
+        pass
+
+    if "HAYSTACK_TELEMETRY_ENABLED" in os.environ:
+        del os.environ["HAYSTACK_TELEMETRY_ENABLED"]
+
+
+@pytest.mark.usefixtures("clean_artifacts_for_telemetry")
 def test_disable_telemetry_import_haystack_first():
     """Test that telemetry is disabled when kotaemon lib is initiated after"""
     import os
@@ -10,6 +38,7 @@ def test_disable_telemetry_import_haystack_first():
     assert os.environ.get("HAYSTACK_TELEMETRY_ENABLED", "True") == "False"
 
 
+@pytest.mark.usefixtures("clean_artifacts_for_telemetry")
 def test_disable_telemetry_import_haystack_after_kotaemon():
     """Test that telemetry is disabled when kotaemon lib is initiated before"""
     import os

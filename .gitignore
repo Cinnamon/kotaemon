@@ -448,4 +448,6 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+.theflow/
+
 # End of https://www.toptal.com/developers/gitignore/api/python,linux,macos,windows,vim,emacs,visualstudiocode,pycharm

@@ -28,17 +28,23 @@ setuptools.setup(
     url="https://github.com/Cinnamon/kotaemon/",
     packages=setuptools.find_packages(exclude=("tests", "tests.*")),
     install_requires=[
-        "farm-haystack"
+        "farm-haystack==1.19.0",
+        "langchain",
+        "theflow",
     ],
     extras_require={
         "dev": [
+            "ipython",
             "pytest",
             "pre-commit",
             "black",
             "flake8",
             "sphinx",
             "coverage",
-        ]
+
+            # optional dependency needed for test
+            "openai"
+        ],
     },
     entry_points={"console_scripts": ["kh=kotaemon.cli:main"]},
     python_requires=">=3",
