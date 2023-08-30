@@ -1,0 +1,1 @@
+"""Get config from Pipeline"""
