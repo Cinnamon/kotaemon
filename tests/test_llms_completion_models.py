@@ -1,10 +1,10 @@
 from unittest.mock import patch
 
-from langchain.llms import AzureOpenAI as AzureOpenAILC, OpenAI as OpenAILC
+from langchain.llms import AzureOpenAI as AzureOpenAILC
+from langchain.llms import OpenAI as OpenAILC
 
-from kotaemon.llms.completions.openai import AzureOpenAI, OpenAI
 from kotaemon.llms.base import LLMInterface
-
+from kotaemon.llms.completions.openai import AzureOpenAI, OpenAI
 
 _openai_completion_response = {
     "id": "cmpl-7qyNoIo6gRSCJR0hi8o3ZKBH4RkJ0",
@@ -41,7 +41,9 @@ def test_azureopenai_model(openai_completion):
     openai_completion.assert_called()
 
     output = model("hello world")
-    assert isinstance(output, LLMInterface), "Output for single text is not LLMInterface"
+    assert isinstance(
+        output, LLMInterface
+    ), "Output for single text is not LLMInterface"
 
 
 @patch(
@@ -67,4 +69,6 @@ def test_openai_model(openai_completion):
     openai_completion.assert_called()
 
     output = model("hello world")
-    assert isinstance(output, LLMInterface), "Output for single text is not LLMInterface"
+    assert isinstance(
+        output, LLMInterface
+    ), "Output for single text is not LLMInterface"

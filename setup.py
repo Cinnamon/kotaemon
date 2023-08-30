@@ -41,9 +41,8 @@ setuptools.setup(
             "flake8",
             "sphinx",
             "coverage",
-
             # optional dependency needed for test
-            "openai"
+            "openai",
         ],
     },
     entry_points={"console_scripts": ["kh=kotaemon.cli:main"]},

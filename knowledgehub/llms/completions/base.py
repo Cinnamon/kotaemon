@@ -1,7 +1,7 @@
-from typing import Type
+from typing import List, Type
 
-from theflow.base import Param
 from langchain.schema.language_model import BaseLanguageModel
+from theflow.base import Param
 
 from ...components import BaseComponent
 from ..base import LLMInterface
@@ -41,7 +41,7 @@ class LangchainLLM(LLM):
             logits=[],
         )
 
-    def run_batch_raw(self, text: list[str]) -> list[LLMInterface]:
+    def run_batch_raw(self, text: List[str]) -> List[LLMInterface]:
         outputs = []
         for each_text in text:
             outputs.append(self.run_raw(each_text))
@@ -50,7 +50,7 @@ class LangchainLLM(LLM):
     def run_document(self, text: str) -> LLMInterface:
         return self.run_raw(text)
 
-    def run_batch_document(self, text: list[str]) -> list[LLMInterface]:
+    def run_batch_document(self, text: List[str]) -> List[LLMInterface]:
         return self.run_batch_raw(text)
 
     def is_document(self, text) -> bool:
