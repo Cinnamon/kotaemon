@@ -31,6 +31,9 @@ setuptools.setup(
         "farm-haystack==1.19.0",
         "langchain",
         "theflow",
+        "llama-index",
+        "llama-hub",
+        "nltk",
     ],
     extras_require={
         "dev": [
