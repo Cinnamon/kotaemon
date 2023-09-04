@@ -1,9 +1,9 @@
 from abc import abstractmethod
 
-from theflow.base import Composable
+from theflow.base import Compose
 
 
-class BaseComponent(Composable):
+class BaseComponent(Compose):
     """Base class for component
 
     A component is a class that can be used to compose a pipeline. To use the
