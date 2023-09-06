@@ -47,15 +47,19 @@ pip install kotaemon@git+ssh://git@github.com/Cinnamon/kotaemon.git
 
 ### Credential sharing
 
-This repo uses [ssh-secret](https://sobolevn.me/git-secret/) to share credentials, which internally uses `gpg` to encrypt and decrypt secret files.
+This repo uses [git-secret](https://sobolevn.me/git-secret/) to share credentials, which internally uses `gpg` to encrypt and decrypt secret files.
 
 #### Install git-secret
 
 Please follow the [official guide](https://sobolevn.me/git-secret/installation) to install git-secret.
 
+For Windows users, see [For Windows users](#for-windows-users).
+
+For users who don't have sudo privilege to install packages, follow the `Manual Installation` in the [official guide](https://sobolevn.me/git-secret/installation) and set `PREFIX` to a path that you have access to. And please don't forget to add `PREFIX` to your `PATH`.
+
 #### Gaining access
 
-In order to gain access to the secret files, you must provide your gpg public file to anyone who has access and ask them to ask your key to the keyring. For a quick tutorial on generating your gpg key pair, you can refer to the `Using gpg` section from the [ssh-secret main page](https://sobolevn.me/git-secret/).
+In order to gain access to the secret files, you must provide your gpg public file to anyone who has access and ask them to ask your key to the keyring. For a quick tutorial on generating your gpg key pair, you can refer to the `Using gpg` section from the [git-secret main page](https://sobolevn.me/git-secret/).
 
 #### Decrypt the secret file
 
@@ -73,7 +77,7 @@ git-secret reveal [filename]
 
 #### For Windows users
 
-ssh-secret is currently not available for Windows, thus the easiest way is to use it in WSL (please use the latest version of WSL2). From there you have 2 options:
+git-secret is currently not available for Windows, thus the easiest way is to use it in WSL (please use the latest version of WSL2). From there you have 2 options:
 
 1. Using the gpg of WSL.
 
@@ -89,28 +93,12 @@ ssh-secret is currently not available for Windows, thus the easiest way is to us
 
      This enables all permissions for user owner.
 
-2. Using the gpg of Windows but with ssh-secret from WSL.
+2. Using the gpg of Windows but with git-secret from WSL.
 
-   For those who use Windows as the main environment, having to switch back and forth between Windows and WSL will be inconvenient. You can instead stay within your Windows environment and apply some tricks to use `ssh-secret` from WSL.
+   For those who use Windows as the main environment, having to switch back and forth between Windows and WSL will be inconvenient. You can instead stay within your Windows environment and apply some tricks to use `git-secret` from WSL.
 
    - Install and setup `gpg` on Windows.
-   - Install `ssh-secret` on WSL.
-   - Make WSL use the `gpg` executable from Windows. This can be done by alias `gpg` to your Windows executable `gpg.exe` file. Add this content to your startup script:
-
-     ```shell
-     # Create ~/bin if it doesn't exist
-     [ ! -d "$HOME/bin" ] && mkdir "$HOME/bin"
-
-     # link windows executable
-     ln -snf "$(which gpg.exe)" "$HOME/bin/gpg"
-
-     # Prepend $HOME/bin to PATH
-     if [[ ":$PATH:" == *":$HOME/bin:"* ]]; then
-         export PATH="$HOME/bin:$PATH"
-     fi
-     ```
-
-   - Now in Windows, you can invoke `ssh-secret` using `wsl ssh-secret`.
+   - Install `git-secret` on WSL. Now in Windows, you can invoke `git-secret` using `wsl git-secret`.
    - Alternatively you can setup alias in CMD to shorten the syntax. Please refer to [this SO answer](https://stackoverflow.com/a/65823225) for the instruction. Some recommended aliases are:
 
      ```bat
@@ -122,6 +110,10 @@ ssh-secret is currently not available for Windows, thus the easiest way is to us
      DOSKEY git-secret=wsl git-secret $*
      DOSKEY gs=wsl git-secret $*
      ```
+
+     Now you can invoke `git-secret` in CMD using `git-secret` or `gs`.
+
+     - For Powershell users, similar behaviours can be achieved using `Set-Alias` and `profile.ps1`. Please refer this [SO thread](https://stackoverflow.com/questions/61081434/how-do-i-create-a-permanent-alias-file-in-powershell-core) as an example.
 
 ### Code base structure
 
