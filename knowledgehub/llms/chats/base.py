@@ -30,8 +30,8 @@ class LangchainChatLLM(ChatLLM):
                 self._kwargs[param] = params.pop(param)
         super().__init__(**params)
 
-    @Param.decorate()
-    def agent(self):
+    @Param.decorate(no_cache=True)
+    def agent(self) -> BaseLanguageModel:
         return self._lc_class(**self._kwargs)
 
     def run_raw(self, text: str) -> LLMInterface:
@@ -43,7 +43,7 @@ class LangchainChatLLM(ChatLLM):
         return self.run_batch_document(inputs)
 
     def run_document(self, text: List[Message]) -> LLMInterface:
-        pred = self.agent.generate([text])
+        pred = self.agent.generate([text])  # type: ignore
         return LLMInterface(
             text=[each.text for each in pred.generations[0]],
             completion_tokens=pred.llm_output["token_usage"]["completion_tokens"],
