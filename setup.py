@@ -46,6 +46,7 @@ setuptools.setup(
             "coverage",
             # optional dependency needed for test
             "openai",
+            "chromadb",
         ],
     },
     entry_points={"console_scripts": ["kh=kotaemon.cli:main"]},

@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import List, Type
 
 from langchain.embeddings.base import Embeddings as LCEmbeddings
@@ -7,11 +8,37 @@ from ..components import BaseComponent
 from ..documents.base import Document
 
 
-class Embeddings(BaseComponent):
-    ...
+class BaseEmbeddings(BaseComponent):
+    @abstractmethod
+    def run_raw(self, text: str) -> List[float]:
+        ...
+
+    @abstractmethod
+    def run_batch_raw(self, text: List[str]) -> List[List[float]]:
+        ...
+
+    @abstractmethod
+    def run_document(self, text: Document) -> List[float]:
+        ...
+
+    @abstractmethod
+    def run_batch_document(self, text: List[Document]) -> List[List[float]]:
+        ...
+
+    def is_document(self, text) -> bool:
+        if isinstance(text, Document):
+            return True
+        elif isinstance(text, List) and isinstance(text[0], Document):
+            return True
+        return False
+
+    def is_batch(self, text) -> bool:
+        if isinstance(text, list):
+            return True
+        return False
 
 
-class LangchainEmbeddings(Embeddings):
+class LangchainEmbeddings(BaseEmbeddings):
     _lc_class: Type[LCEmbeddings]
 
     def __init__(self, **params):
@@ -46,17 +73,5 @@ class LangchainEmbeddings(Embeddings):
     def run_document(self, text: Document) -> List[float]:
         return self.agent.embed_query(text.text)  # type: ignore
 
-    def run_batch_document(self, text: List[Document]):
+    def run_batch_document(self, text: List[Document]) -> List[List[float]]:
         return self.agent.embed_documents([each.text for each in text])  # type: ignore
-
-    def is_document(self, text) -> bool:
-        if isinstance(text, Document):
-            return True
-        elif isinstance(text, List) and isinstance(text[0], Document):
-            return True
-        return False
-
-    def is_batch(self, text) -> bool:
-        if isinstance(text, list):
-            return True
-        return False
