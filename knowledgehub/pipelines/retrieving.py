@@ -2,7 +2,7 @@ from typing import List
 
 from theflow import Node, Param
 
-from ..components import BaseComponent
+from ..base import BaseComponent
 from ..documents.base import Document
 from ..embeddings import BaseEmbeddings
 from ..vectorstores import BaseVectorStore

@@ -3,7 +3,7 @@ from typing import List, Type
 from langchain.schema.language_model import BaseLanguageModel
 from theflow.base import Param
 
-from ...components import BaseComponent
+from ...base import BaseComponent
 from ..base import LLMInterface
 
 

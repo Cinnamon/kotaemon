@@ -15,7 +15,7 @@ class Document(BaseDocument):
         )
         return document
 
-    def to_haystack_format(self) -> HaystackDocument:
+    def to_haystack_format(self) -> "HaystackDocument":
         """Convert struct to Haystack document format."""
         metadata = self.metadata or {}
         text = self.text

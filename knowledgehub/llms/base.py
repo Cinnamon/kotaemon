@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List
 
-from ..components import BaseComponent
+from ..base import BaseComponent
 
 
 @dataclass

@@ -4,7 +4,7 @@ from langchain.schema.language_model import BaseLanguageModel
 from langchain.schema.messages import BaseMessage, HumanMessage
 from theflow.base import Param
 
-from ...components import BaseComponent
+from ...base import BaseComponent
 from ..base import LLMInterface
 
 Message = TypeVar("Message", bound=BaseMessage)

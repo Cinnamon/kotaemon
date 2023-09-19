@@ -4,7 +4,7 @@ from typing import List, Type
 from langchain.schema.embeddings import Embeddings as LCEmbeddings
 from theflow import Param
 
-from ..components import BaseComponent
+from ..base import BaseComponent
 from ..documents.base import Document
 
 
