@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import List, Type
 
-from langchain.embeddings.base import Embeddings as LCEmbeddings
+from langchain.schema.embeddings import Embeddings as LCEmbeddings
 from theflow import Param
 
 from ..components import BaseComponent
