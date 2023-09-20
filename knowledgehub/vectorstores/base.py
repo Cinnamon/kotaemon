@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional, Tuple, Type, Union
 
+from llama_index.schema import NodeRelationship, RelatedNodeInfo
 from llama_index.vector_stores.types import BasePydanticVectorStore
 from llama_index.vector_stores.types import VectorStore as LIVectorStore
 from llama_index.vector_stores.types import VectorStoreQuery
@@ -118,6 +119,9 @@ class LlamaIndexVectorStore(BaseVectorStore):
         if ids is not None:
             for node, id in zip(nodes, ids):
                 node.id_ = id
+                node.relationships = {
+                    NodeRelationship.SOURCE: RelatedNodeInfo(node_id=id)
+                }
 
         return self._client.add(nodes=nodes)  # type: ignore
 

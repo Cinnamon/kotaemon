@@ -1,5 +1,7 @@
+import json
+
 from kotaemon.documents.base import Document
-from kotaemon.vectorstores import ChromaVectorStore
+from kotaemon.vectorstores import ChromaVectorStore, InMemoryVectorStore
 
 
 class TestChromaVectorStore:
@@ -59,3 +61,41 @@ class TestChromaVectorStore:
 
         _, _, out_ids = db.query(embedding=[0.42, 0.52, 0.53], top_k=1)
         assert out_ids == ["b"]
+
+
+class TestSimpleVectorStore:
+    def test_add(self):
+        """Test that add func adds correctly."""
+
+        embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
+        metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
+        ids = ["1", "2"]
+        db = InMemoryVectorStore()
+
+        output = db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
+        assert output == ids, "Excepted output to be the same as ids"
+
+    def test_save_load_delete(self, tmp_path):
+        """Test that delete func deletes correctly."""
+        embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]]
+        metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 5, "b": 6}]
+        ids = ["1", "2", "3"]
+        db = InMemoryVectorStore()
+        db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
+        db.delete(["3"])
+        db.save(save_path=tmp_path / "test_save_load_delete.json")
+        f = open(tmp_path / "test_save_load_delete.json")
+        data = json.load(f)
+        assert (
+            "1" and "2" in data["text_id_to_ref_doc_id"]
+        ), "persist function does not save data completely"
+        assert (
+            "3" not in data["text_id_to_ref_doc_id"]
+        ), "delete function does not delete data completely"
+        db2 = InMemoryVectorStore()
+        output = db2.load(load_path=tmp_path / "test_save_load_delete.json")
+        assert output.get("2") == [
+            0.4,
+            0.5,
+            0.6,
+        ], "persist function does not load data completely"
