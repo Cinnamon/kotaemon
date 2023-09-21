@@ -34,6 +34,7 @@ setuptools.setup(
         "llama-index",
         "llama-hub",
         "nltk",
+        "gradio",
     ],
     extras_require={
         "dev": [

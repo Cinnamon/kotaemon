@@ -1,9 +1,11 @@
 import json
 from pathlib import Path
+from typing import cast
 
 import pytest
 from openai.api_resources.embedding import Embedding
 
+from kotaemon.docstores import InMemoryDocumentStore
 from kotaemon.documents.base import Document
 from kotaemon.embeddings.openai import AzureOpenAIEmbeddings
 from kotaemon.pipelines.indexing import IndexVectorStoreFromDocumentPipeline
@@ -21,6 +23,7 @@ def mock_openai_embedding(monkeypatch):
 
 def test_indexing(mock_openai_embedding, tmp_path):
     db = ChromaVectorStore(path=str(tmp_path))
+    doc_store = InMemoryDocumentStore()
     embedding = AzureOpenAIEmbeddings(
         model="text-embedding-ada-002",
         deployment="embedding-deployment",
@@ -29,15 +32,19 @@ def test_indexing(mock_openai_embedding, tmp_path):
     )
 
     pipeline = IndexVectorStoreFromDocumentPipeline(
-        vector_store=db, embedding=embedding
+        vector_store=db, embedding=embedding, doc_store=doc_store
     )
+    pipeline.doc_store = cast(InMemoryDocumentStore, pipeline.doc_store)
     assert pipeline.vector_store._collection.count() == 0, "Expected empty collection"
+    assert len(pipeline.doc_store._store) == 0, "Expected empty doc store"
     pipeline(text=Document(text="Hello world"))
     assert pipeline.vector_store._collection.count() == 1, "Index 1 item"
+    assert len(pipeline.doc_store._store) == 1, "Expected 1 document"
 
 
 def test_retrieving(mock_openai_embedding, tmp_path):
     db = ChromaVectorStore(path=str(tmp_path))
+    doc_store = InMemoryDocumentStore()
     embedding = AzureOpenAIEmbeddings(
         model="text-embedding-ada-002",
         deployment="embedding-deployment",
@@ -46,14 +53,14 @@ def test_retrieving(mock_openai_embedding, tmp_path):
     )
 
     index_pipeline = IndexVectorStoreFromDocumentPipeline(
-        vector_store=db, embedding=embedding
+        vector_store=db, embedding=embedding, doc_store=doc_store
     )
     retrieval_pipeline = RetrieveDocumentFromVectorStorePipeline(
-        vector_store=db, embedding=embedding
+        vector_store=db, doc_store=doc_store, embedding=embedding
     )
 
     index_pipeline(text=Document(text="Hello world"))
     output = retrieval_pipeline(text=["Hello world", "Hello world"])
 
-    assert len(output) == 2, "Expected 2 results"
-    assert output[0] == output[1], "Expected identical results"
+    assert len(output) == 2, "Expect 2 results"
+    assert output[0] == output[1], "Expect identical results"

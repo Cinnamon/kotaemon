@@ -144,8 +144,8 @@ class LlamaIndexVectorStore(BaseVectorStore):
                 query_embedding=embedding,
                 similarity_top_k=top_k,
                 node_ids=ids,
+                **kwargs,
             ),
-            **kwargs,
         )
 
         embeddings = []

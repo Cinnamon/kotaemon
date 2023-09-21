@@ -1,4 +1,4 @@
 from .base import BaseDocumentStore
-from .simple import InMemoryDocumentStore
+from .in_memory import InMemoryDocumentStore
 
 __all__ = ["BaseDocumentStore", "InMemoryDocumentStore"]

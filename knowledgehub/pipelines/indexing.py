@@ -1,8 +1,10 @@
-from typing import List
+import uuid
+from typing import List, Optional
 
 from theflow import Node, Param
 
 from ..base import BaseComponent
+from ..docstores import BaseDocumentStore
 from ..documents.base import Document
 from ..embeddings import BaseEmbeddings
 from ..vectorstores import BaseVectorStore
@@ -18,21 +20,30 @@ class IndexVectorStoreFromDocumentPipeline(BaseComponent):
     """
 
     vector_store: Param[BaseVectorStore] = Param()
+    doc_store: Optional[BaseDocumentStore] = None
     embedding: Node[BaseEmbeddings] = Node()
-    # TODO: populate to document store as well when it's finished
+
     # TODO: refer to llama_index's storage as well
 
     def run_raw(self, text: str) -> None:
-        self.vector_store.add([self.embedding(text)])
+        document = Document(text=text, id_=str(uuid.uuid4()))
+        self.run_batch_document([document])
 
     def run_batch_raw(self, text: List[str]) -> None:
-        self.vector_store.add(self.embedding(text))
+        documents = [Document(t, id_=str(uuid.uuid4())) for t in text]
+        self.run_batch_document(documents)
 
     def run_document(self, text: Document) -> None:
-        self.vector_store.add([self.embedding(text)])
+        self.run_batch_document([text])
 
     def run_batch_document(self, text: List[Document]) -> None:
-        self.vector_store.add(self.embedding(text))
+        embeddings = self.embedding(text)
+        self.vector_store.add(
+            embeddings=embeddings,
+            ids=[t.id_ for t in text],
+        )
+        if self.doc_store:
+            self.doc_store.add(text)
 
     def is_document(self, text) -> bool:
         if isinstance(text, Document):

@@ -25,7 +25,7 @@ repos:
     rev: 4.0.1
     hooks:
       - id: flake8
-        args: ["--max-line-length", "88"]
+        args: ["--max-line-length", "88", "--extend-ignore", "E203"]
   - repo: https://github.com/myint/autoflake
     rev: v1.4
     hooks:
@@ -47,4 +47,5 @@ repos:
     rev: "v1.5.1"
     hooks:
       - id: mypy
+        additional_dependencies: [types-PyYAML==6.0.12.11]
         args: ["--check-untyped-defs", "--ignore-missing-imports"]

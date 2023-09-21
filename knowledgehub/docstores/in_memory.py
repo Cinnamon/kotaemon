@@ -10,7 +10,7 @@ class InMemoryDocumentStore(BaseDocumentStore):
     """Simple memory document store that store document in a dictionary"""
 
     def __init__(self):
-        self.store = {}
+        self._store = {}
 
     def add(
         self,
@@ -32,20 +32,20 @@ class InMemoryDocumentStore(BaseDocumentStore):
             docs = [docs]
 
         for doc_id, doc in zip(doc_ids, docs):
-            if doc_id in self.store and not exist_ok:
+            if doc_id in self._store and not exist_ok:
                 raise ValueError(f"Document with id {doc_id} already exist")
-            self.store[doc_id] = doc
+            self._store[doc_id] = doc
 
     def get(self, ids: Union[List[str], str]) -> List[Document]:
         """Get document by id"""
         if not isinstance(ids, list):
             ids = [ids]
 
-        return [self.store[doc_id] for doc_id in ids]
+        return [self._store[doc_id] for doc_id in ids]
 
     def get_all(self) -> dict:
         """Get all documents"""
-        return self.store
+        return self._store
 
     def delete(self, ids: Union[List[str], str]):
         """Delete document by id"""
@@ -53,11 +53,11 @@ class InMemoryDocumentStore(BaseDocumentStore):
             ids = [ids]
 
         for doc_id in ids:
-            del self.store[doc_id]
+            del self._store[doc_id]
 
     def save(self, path: Union[str, Path]):
         """Save document to path"""
-        store = {key: value.to_dict() for key, value in self.store.items()}
+        store = {key: value.to_dict() for key, value in self._store.items()}
         with open(path, "w") as f:
             json.dump(store, f)
 
@@ -65,4 +65,4 @@ class InMemoryDocumentStore(BaseDocumentStore):
         """Load document store from path"""
         with open(path) as f:
             store = json.load(f)
-        self.store = {key: Document.from_dict(value) for key, value in store.items()}
+        self._store = {key: Document.from_dict(value) for key, value in store.items()}
