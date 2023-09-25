@@ -22,6 +22,9 @@ class Document(BaseDocument):
         text = self.text
         return HaystackDocument(content=text, meta=metadata)
 
+    def __str__(self):
+        return self.text
+
 
 class RetrievedDocument(Document):
     """Subclass of Document with retrieval-related information

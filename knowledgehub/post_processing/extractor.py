@@ -6,7 +6,8 @@ from kotaemon.documents.base import Document
 
 
 class RegexExtractor(BaseComponent):
-    """Simple class for extracting text from a document using a regex pattern.
+    """
+    Simple class for extracting text from a document using a regex pattern.
 
     Args:
         pattern (str): The regex pattern to use.
