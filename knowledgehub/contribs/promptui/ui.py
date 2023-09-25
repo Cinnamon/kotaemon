@@ -1,13 +1,20 @@
+import pickle
+from datetime import datetime
+from pathlib import Path
 from typing import Union
 
 import gradio as gr
 import yaml
+from theflow.storage import storage
 from theflow.utils.modules import import_dotted_string
 
 from kotaemon.contribs.promptui.base import COMPONENTS_CLASS, SUPPORTED_COMPONENTS
+from kotaemon.contribs.promptui.export import export
 
 USAGE_INSTRUCTION = """In case of errors, you can:
 
+- PromptUI instruction:
+    https://github.com/Cinnamon/kotaemon/wiki/Utilities#prompt-engineering-ui
 - Create bug fix and make PR at: https://github.com/Cinnamon/kotaemon
 - Ping any of @john @tadashi @ian @jacky in Slack channel #llm-productization"""
 
@@ -73,6 +80,8 @@ def construct_ui(config, func_run, func_export) -> gr.Blocks:
 
         outputs.append(component)
 
+    exported_file = gr.File(label="Output file", show_label=True)
+
     temp = gr.Tab
     with gr.Blocks(analytics_enabled=False, title="Welcome to PromptUI") as demo:
         with gr.Accordion(label="Usage", open=False):
@@ -80,8 +89,10 @@ def construct_ui(config, func_run, func_export) -> gr.Blocks:
         with gr.Row():
             run_btn = gr.Button("Run")
             run_btn.click(func_run, inputs=inputs + params, outputs=outputs)
-            export_btn = gr.Button("Export")
-            export_btn.click(func_export, inputs=None, outputs=None)
+            export_btn = gr.Button(
+                "Export (Result will be in Exported file next to Output)"
+            )
+            export_btn.click(func_export, inputs=None, outputs=exported_file)
         with gr.Row():
             with gr.Column():
                 with temp("Inputs"):
@@ -91,8 +102,11 @@ def construct_ui(config, func_run, func_export) -> gr.Blocks:
                     for component in params:
                         component.render()
             with gr.Column():
-                for component in outputs:
-                    component.render()
+                with temp("Outputs"):
+                    for component in outputs:
+                        component.render()
+                with temp("Exported file"):
+                    exported_file.render()
 
     return demo
 
@@ -102,6 +116,10 @@ def build_pipeline_ui(config: dict, pipeline_def):
     inputs_name = list(config.get("inputs", {}).keys())
     params_name = list(config.get("params", {}).keys())
     outputs_def = config.get("outputs", [])
+
+    output_dir: Path = Path(storage.url(pipeline_def().config.store_result))
+    exported_dir = output_dir.parent / "exported"
+    exported_dir.mkdir(parents=True, exist_ok=True)
 
     def run_func(*args):
         inputs = {
@@ -113,6 +131,13 @@ def build_pipeline_ui(config: dict, pipeline_def):
         pipeline = pipeline_def()
         pipeline.set(params)
         pipeline(**inputs)
+        with storage.open(
+            storage.url(
+                pipeline.config.store_result, pipeline.last_run.id(), "params.pkl"
+            ),
+            "wb",
+        ) as f:
+            pickle.dump(params, f)
         if outputs_def:
             outputs = []
             for output_def in outputs_def:
@@ -122,8 +147,20 @@ def build_pipeline_ui(config: dict, pipeline_def):
                 outputs.append(output)
             return outputs
 
-    # TODO: export_func is None for now
-    return construct_ui(config, run_func, None)
+    def export_func():
+        name = (
+            f"{pipeline_def.__module__}.{pipeline_def.__name__}_{datetime.now()}.xlsx"
+        )
+        path = str(exported_dir / name)
+        gr.Info(f"Begin exporting {name}...")
+        try:
+            export(config=config, pipeline_def=pipeline_def, output_path=path)
+        except Exception as e:
+            raise gr.Error(f"Failed to export. Please contact project's AIR: {e}")
+        gr.Info(f"Exported {name}. Please go to the `Exported file` tab to download")
+        return path
+
+    return construct_ui(config, run_func, export_func)
 
 
 def build_from_dict(config: Union[str, dict]):
@@ -147,5 +184,7 @@ def build_from_dict(config: Union[str, dict]):
         demo = demos[0]
     else:
         demo = gr.TabbedInterface(demos, list(config_dict.keys()))
+
+    demo.queue()
 
     return demo

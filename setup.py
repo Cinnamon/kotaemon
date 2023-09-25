@@ -35,6 +35,7 @@ setuptools.setup(
         "llama-hub",
         "nltk",
         "gradio",
+        "openpyxl",
     ],
     extras_require={
         "dev": [
