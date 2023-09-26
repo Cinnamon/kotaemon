@@ -47,5 +47,5 @@ repos:
     rev: "v1.5.1"
     hooks:
       - id: mypy
-        additional_dependencies: [types-PyYAML==6.0.12.11]
+        additional_dependencies: [types-PyYAML==6.0.12.11, "types-requests"]
         args: ["--check-untyped-defs", "--ignore-missing-imports"]
