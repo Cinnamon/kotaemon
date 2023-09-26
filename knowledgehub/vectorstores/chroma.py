@@ -54,3 +54,21 @@ class ChromaVectorStore(LlamaIndexVectorStore):
             kwargs: meant for vectorstore-specific parameters
         """
         self._client._collection.delete(ids=ids)
+
+    def delete_collection(self, collection_name: Optional[str] = None):
+        """Delete entire collection under specified name from vector stores
+
+        Args:
+            collection_name: Name of the collection to delete
+        """
+        # a rather ugly chain call but it do the job of finding
+        # original chromadb client and call delete_collection() method
+        if collection_name is None:
+            collection_name = self._client.client.name
+        self._client.client._client.delete_collection(collection_name)
+
+    def save(self, *args, **kwargs):
+        pass
+
+    def load(self, *args, **kwargs):
+        pass

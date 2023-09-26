@@ -53,19 +53,6 @@ class BaseVectorStore(ABC):
         """
         ...
 
-    # @abstractmethod
-    # def update(self, *args, **kwargs):
-    #     ...
-
-    # @abstractmethod
-    # def persist(self, *args, **kwargs):
-    #     ...
-
-    # @classmethod
-    # @abstractmethod
-    # def load(self, *args, **kwargs):
-    #     ...
-
     @abstractmethod
     def query(
         self,
@@ -84,6 +71,14 @@ class BaseVectorStore(ABC):
             the matched embeddings, the similarity scores, and the ids
         """
         ...
+
+    @abstractmethod
+    def load(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def save(self, *args, **kwargs):
+        pass
 
 
 class LlamaIndexVectorStore(BaseVectorStore):

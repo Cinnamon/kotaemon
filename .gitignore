@@ -456,3 +456,4 @@ logs/
 credentials.txt
 
 S.gpg-agent*
+.vscode/settings.json
