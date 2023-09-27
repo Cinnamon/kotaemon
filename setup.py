@@ -26,7 +26,12 @@ setuptools.setup(
     long_description=read("README.md"),
     long_description_content_type="text/markdown",
     url="https://github.com/Cinnamon/kotaemon/",
-    packages=setuptools.find_packages(exclude=("tests", "tests.*")),
+    packages=setuptools.find_packages(
+        exclude=("tests", "tests.*", "examples", "examples.*")
+    ),
+    dependencies=[
+        "click >= 8.1.7",
+    ],
     install_requires=[
         "farm-haystack==1.19.0",
         "langchain",
