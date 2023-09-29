@@ -54,6 +54,8 @@ setuptools.setup(
             # optional dependency needed for test
             "openai",
             "chromadb",
+            "wikipedia",
+            "googlesearch-python",
         ],
     },
     entry_points={"console_scripts": ["kh=kotaemon.cli:main"]},
