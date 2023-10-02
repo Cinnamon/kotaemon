@@ -11,7 +11,17 @@ Message = TypeVar("Message", bound=BaseMessage)
 
 
 class ChatLLM(BaseComponent):
-    ...
+    def flow(self):
+        if self.inflow is None:
+            raise ValueError("No inflow provided.")
+
+        if not isinstance(self.inflow, BaseComponent):
+            raise ValueError(
+                f"inflow must be a BaseComponent, found {type(self.inflow)}"
+            )
+
+        text = self.inflow.flow().text
+        return self.__call__(text)
 
 
 class LangchainChatLLM(ChatLLM):
@@ -44,8 +54,10 @@ class LangchainChatLLM(ChatLLM):
 
     def run_document(self, text: List[Message], **kwargs) -> LLMInterface:
         pred = self.agent.generate([text], **kwargs)  # type: ignore
+        all_text = [each.text for each in pred.generations[0]]
         return LLMInterface(
-            text=[each.text for each in pred.generations[0]],
+            text=all_text[0] if len(all_text) > 0 else "",
+            candidates=all_text,
             completion_tokens=pred.llm_output["token_usage"]["completion_tokens"],
             total_tokens=pred.llm_output["token_usage"]["total_tokens"],
             prompt_tokens=pred.llm_output["token_usage"]["prompt_tokens"],

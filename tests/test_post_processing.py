@@ -30,9 +30,11 @@ def test_is_batch(regex_extractor):
 
 def test_run_raw(regex_extractor):
     output = regex_extractor("This is a test. 123")
+    output = [each.text for each in output]
     assert output == ["123"]
 
 
 def test_run_batch_raw(regex_extractor):
     output = regex_extractor(["This is a test. 123", "456"])
+    output = [[each.text for each in batch] for batch in output]
     assert output == [["123"], ["456"]]

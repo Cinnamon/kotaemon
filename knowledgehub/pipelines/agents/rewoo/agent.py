@@ -245,7 +245,7 @@ class RewooAgent(BaseAgent):
 
         # Plan
         planner_output = planner(instruction)
-        plannner_text_output = planner_output.text[0]
+        plannner_text_output = planner_output.text
         plan_to_es, plans = self._parse_plan_map(plannner_text_output)
         planner_evidences, evidence_level = self._parse_planner_evidences(
             plannner_text_output
@@ -263,7 +263,7 @@ class RewooAgent(BaseAgent):
 
         # Solve
         solver_output = solver(instruction, worker_log)
-        solver_output_text = solver_output.text[0]
+        solver_output_text = solver_output.text
 
         return AgentOutput(
             output=solver_output_text, cost=total_cost, token_usage=total_token

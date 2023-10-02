@@ -162,7 +162,7 @@ class ReactAgent(BaseAgent):
             prompt = self._compose_prompt(instruction)
             logging.info(f"Prompt: {prompt}")
             response = self.llm(prompt, stop=["Observation:"])  # type: ignore
-            response_text = response.text[0]
+            response_text = response.text
             logging.info(f"Response: {response_text}")
             action_step = self._parse_output(response_text)
             if action_step is None:

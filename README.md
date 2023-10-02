@@ -47,7 +47,12 @@ pip install kotaemon@git+ssh://git@github.com/Cinnamon/kotaemon.git
 
 ### Credential sharing
 
-This repo uses [git-secret](https://sobolevn.me/git-secret/) to share credentials, which internally uses `gpg` to encrypt and decrypt secret files.
+This repo uses [git-secret](https://sobolevn.me/git-secret/) to share credentials, which
+internally uses `gpg` to encrypt and decrypt secret files.
+
+This repo uses `python-dotenv` to manage credentials stored as enviroment variable.
+Please note that the use of `python-dotenv` and credentials are for development
+purposes only. Thus, it should not be used in the main source code (i.e. `kotaemon/` and `tests/`), but can be used in `examples/`.
 
 #### Install git-secret
 
@@ -63,13 +68,13 @@ In order to gain access to the secret files, you must provide your gpg public fi
 
 #### Decrypt the secret file
 
-The credentials are encrypted in the `credentials.txt.secret` file. To print the decrypted content to stdout, run
+The credentials are encrypted in the `.env.secret` file. To print the decrypted content to stdout, run
 
 ```shell
 git-secret cat [filename]
 ```
 
-Or to get the decrypted `credentials.txt` file, run
+Or to get the decrypted `.env` file, run
 
 ```shell
 git-secret reveal [filename]

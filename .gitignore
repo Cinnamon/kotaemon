@@ -453,7 +453,7 @@ $RECYCLE.BIN/
 logs/
 .gitsecret/keys/random_seed
 !*.secret
-credentials.txt
+.env
 
 S.gpg-agent*
 .vscode/settings.json

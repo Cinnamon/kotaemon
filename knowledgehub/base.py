@@ -16,6 +16,19 @@ class BaseComponent(Compose):
         - is_batch: check if input is batch
     """
 
+    inflow = None
+
+    def flow(self):
+        if self.inflow is None:
+            raise ValueError("No inflow provided.")
+
+        if not isinstance(self.inflow, BaseComponent):
+            raise ValueError(
+                f"inflow must be a BaseComponent, found {type(self.inflow)}"
+            )
+
+        return self.__call__(self.inflow.flow())
+
     @abstractmethod
     def run_raw(self, *args, **kwargs):
         ...

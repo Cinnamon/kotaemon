@@ -1,25 +1,13 @@
-from dataclasses import dataclass, field
 from typing import List
 
-from ..base import BaseComponent
+from pydantic import Field
+
+from kotaemon.documents.base import Document
 
 
-@dataclass
-class LLMInterface:
-    text: List[str]
+class LLMInterface(Document):
+    candidates: List[str]
     completion_tokens: int = -1
     total_tokens: int = -1
     prompt_tokens: int = -1
-    logits: List[List[float]] = field(default_factory=list)
-
-
-class PromptTemplate(BaseComponent):
-    pass
-
-
-class Extract(BaseComponent):
-    pass
-
-
-class PromptNode(BaseComponent):
-    pass
+    logits: List[List[float]] = Field(default_factory=list)

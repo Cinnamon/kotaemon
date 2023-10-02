@@ -50,9 +50,9 @@ class RegexExtractor(BaseComponent):
         if not output_map:
             return text
 
-        return output_map.get(text, text)
+        return str(output_map.get(text, text))
 
-    def run_raw(self, text: str) -> List[str]:
+    def run_raw(self, text: str) -> List[Document]:
         """
         Runs the raw text through the static pattern and output mapping, returning a
             list of strings.
@@ -66,9 +66,12 @@ class RegexExtractor(BaseComponent):
         output = self.run_raw_static(self.pattern, text)
         output = [self.map_output(text, self.output_map) for text in output]
 
-        return output
+        return [
+            Document(text=text, metadata={"origin": "RegexExtractor"})
+            for text in output
+        ]
 
-    def run_batch_raw(self, text_batch: List[str]) -> List[List[str]]:
+    def run_batch_raw(self, text_batch: List[str]) -> List[List[Document]]:
         """
         Runs a batch of raw text inputs through the `run_raw()` method and returns the
             output for each input.
@@ -95,13 +98,7 @@ class RegexExtractor(BaseComponent):
         Returns:
             List[Document]: A list of extracted documents.
         """
-        texts = self.run_raw(document.text)
-        output = [
-            Document(text=text, metadata={**document.metadata, "RegexExtractor": True})
-            for text in texts
-        ]
-
-        return output
+        return self.run_raw(document.text)
 
     def run_batch_document(
         self, document_batch: List[Document]

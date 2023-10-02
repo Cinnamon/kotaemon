@@ -56,6 +56,8 @@ setuptools.setup(
             "chromadb",
             "wikipedia",
             "googlesearch-python",
+            "python-dotenv",
+            "pytest-mock",
         ],
     },
     entry_points={"console_scripts": ["kh=kotaemon.cli:main"]},

@@ -33,8 +33,10 @@ class LangchainLLM(LLM):
 
     def run_raw(self, text: str) -> LLMInterface:
         pred = self.agent.generate([text])
+        all_text = [each.text for each in pred.generations[0]]
         return LLMInterface(
-            text=[each.text for each in pred.generations[0]],
+            text=all_text[0] if len(all_text) > 0 else "",
+            candidates=all_text,
             completion_tokens=pred.llm_output["token_usage"]["completion_tokens"],
             total_tokens=pred.llm_output["token_usage"]["total_tokens"],
             prompt_tokens=pred.llm_output["token_usage"]["prompt_tokens"],
