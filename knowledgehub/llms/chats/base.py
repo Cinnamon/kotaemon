@@ -34,16 +34,16 @@ class LangchainChatLLM(ChatLLM):
     def agent(self) -> BaseLanguageModel:
         return self._lc_class(**self._kwargs)
 
-    def run_raw(self, text: str) -> LLMInterface:
+    def run_raw(self, text: str, **kwargs) -> LLMInterface:
         message = HumanMessage(content=text)
-        return self.run_document([message])
+        return self.run_document([message], **kwargs)
 
-    def run_batch_raw(self, text: List[str]) -> List[LLMInterface]:
+    def run_batch_raw(self, text: List[str], **kwargs) -> List[LLMInterface]:
         inputs = [[HumanMessage(content=each)] for each in text]
-        return self.run_batch_document(inputs)
+        return self.run_batch_document(inputs, **kwargs)
 
-    def run_document(self, text: List[Message]) -> LLMInterface:
-        pred = self.agent.generate([text])  # type: ignore
+    def run_document(self, text: List[Message], **kwargs) -> LLMInterface:
+        pred = self.agent.generate([text], **kwargs)  # type: ignore
         return LLMInterface(
             text=[each.text for each in pred.generations[0]],
             completion_tokens=pred.llm_output["token_usage"]["completion_tokens"],
@@ -52,20 +52,22 @@ class LangchainChatLLM(ChatLLM):
             logits=[],
         )
 
-    def run_batch_document(self, text: List[List[Message]]) -> List[LLMInterface]:
+    def run_batch_document(
+        self, text: List[List[Message]], **kwargs
+    ) -> List[LLMInterface]:
         outputs = []
         for each_text in text:
-            outputs.append(self.run_document(each_text))
+            outputs.append(self.run_document(each_text, **kwargs))
         return outputs
 
-    def is_document(self, text) -> bool:
+    def is_document(self, text, **kwargs) -> bool:
         if isinstance(text, str):
             return False
         elif isinstance(text, List) and isinstance(text[0], str):
             return False
         return True
 
-    def is_batch(self, text) -> bool:
+    def is_batch(self, text, **kwargs) -> bool:
         if isinstance(text, str):
             return False
         elif isinstance(text, List):

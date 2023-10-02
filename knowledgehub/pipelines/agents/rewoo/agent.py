@@ -21,7 +21,7 @@ class RewooAgent(BaseAgent):
     Implementing ReWOO paradigm https://arxiv.org/pdf/2305.18323.pdf"""
 
     name: str = "RewooAgent"
-    type: AgentType = AgentType.rewoo
+    agent_type: AgentType = AgentType.rewoo
     description: str = "RewooAgent for answering multi-step reasoning questions"
     llm: Union[BaseLLM, Dict[str, BaseLLM]]  # {"Planner": xxx, "Solver": xxx}
     prompt_template: Dict[

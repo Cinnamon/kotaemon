@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 from pydantic import BaseModel
 
@@ -50,7 +50,7 @@ class AgentOutput(BaseModel):
 class BaseAgent(BaseTool):
     name: str
     """Name of the agent."""
-    type: AgentType
+    agent_type: AgentType
     """Agent type, must be one of AgentType"""
     description: str
     """Description used to tell the model how/when/why to use the agent.
@@ -59,7 +59,7 @@ class BaseAgent(BaseTool):
     llm: Union[BaseLLM, Dict[str, BaseLLM]]
     """Specify LLM to be used in the model, cam be a dict to supply different
     LLMs to multiple purposes in the agent"""
-    prompt_template: Union[PromptTemplate, Dict[str, PromptTemplate]]
+    prompt_template: Optional[Union[PromptTemplate, Dict[str, PromptTemplate]]]
     """A prompt template or a dict to supply different prompt to the agent
     """
     plugins: List[BaseTool]
