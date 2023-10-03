@@ -1,0 +1,23 @@
+.gitattributes text eol=lf
+.gitignore text eol=lf
+*.build text eol=lf
+*.c text eol=lf
+*.cmake text eol=lf
+*.cpp text eol=lf
+*.csv text eol=lf
+*.f text eol=lf
+*.f90 text eol=lf
+*.for text eol=lf
+*.grc text eol=lf
+*.h text eol=lf
+*.ipynb text eol=lf
+*.m text eol=lf
+*.md text eol=lf
+*.pas text eol=lf
+*.py text eol=lf
+*.rst text eol=lf
+*.sh text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+Makefile text eol=lf
+*.html linguist-documentation

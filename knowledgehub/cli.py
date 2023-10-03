@@ -3,9 +3,6 @@ import os
 import click
 import yaml
 
-from kotaemon.contribs.promptui.config import export_pipeline_to_config
-from kotaemon.contribs.promptui.ui import build_from_dict
-
 
 # check if the output is not a .yml file -> raise error
 def check_config_format(config):
@@ -39,6 +36,8 @@ def export(export_path, output):
 
     from theflow.utils.modules import import_dotted_string
 
+    from kotaemon.contribs.promptui.config import export_pipeline_to_config
+
     sys.path.append(os.getcwd())
     cls = import_dotted_string(export_path, safe=False)
     export_pipeline_to_config(cls, output)
@@ -48,8 +47,20 @@ def export(export_path, output):
 @promptui.command()
 @click.argument("run_path", required=False, default="promptui.yml")
 def run(run_path):
+
+    from kotaemon.contribs.promptui.ui import build_from_dict
+
     build_from_dict(run_path)
     check_config_format(run_path)
+
+
+@main.command()
+def start_project():
+
+    os.system(
+        "cookiecutter https://github.com/Cinnamon/kotaemon.git"
+        "--directory='templates/project-default'"
+    )
 
 
 if __name__ == "__main__":

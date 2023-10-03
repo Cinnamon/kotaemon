@@ -29,18 +29,16 @@ setuptools.setup(
     packages=setuptools.find_packages(
         exclude=("tests", "tests.*", "examples", "examples.*")
     ),
-    dependencies=[
-        "click >= 8.1.7",
-    ],
     install_requires=[
         "farm-haystack==1.19.0",
         "langchain",
         "theflow",
         "llama-index",
         "llama-hub",
-        "nltk",
         "gradio",
         "openpyxl",
+        "cookiecutter",
+        "click",
     ],
     extras_require={
         "dev": [
