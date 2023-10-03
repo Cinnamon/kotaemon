@@ -31,7 +31,6 @@ main.add_command(promptui)
 @click.argument("export_path", nargs=1)
 @click.option("--output", default="promptui.yml", required=False)
 def export(export_path, output):
-
     import sys
 
     from theflow.utils.modules import import_dotted_string
@@ -47,7 +46,6 @@ def export(export_path, output):
 @promptui.command()
 @click.argument("run_path", required=False, default="promptui.yml")
 def run(run_path):
-
     from kotaemon.contribs.promptui.ui import build_from_dict
 
     build_from_dict(run_path)
@@ -55,11 +53,26 @@ def run(run_path):
 
 
 @main.command()
-def start_project():
+@click.option(
+    "--template",
+    default="project-default",
+    required=False,
+    help="Template name",
+    show_default=True,
+)
+def start_project(template):
+    """Start a project from a template.
 
+    Important: the value for --template corresponds to the name of the template folder,
+    which is located at https://github.com/Cinnamon/kotaemon/tree/main/templates
+    The default value is "project-default", which should work when you are starting a
+    client project.
+    """
+
+    print("Retrieving template...")
     os.system(
-        "cookiecutter https://github.com/Cinnamon/kotaemon.git"
-        "--directory='templates/project-default'"
+        "cookiecutter git@github.com:Cinnamon/kotaemon.git "
+        f"--directory='templates/{template}'"
     )
 
 
