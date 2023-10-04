@@ -1,5 +1,4 @@
-import warnings
-from typing import Union
+from typing import Callable, Union
 
 from kotaemon.base import BaseComponent
 from kotaemon.documents.base import Document
@@ -39,14 +38,7 @@ class BasePromptComponent(BaseComponent):
         Returns:
             None
         """
-        provided_keys = set(kwargs.keys())
-        expected_keys = self.template.placeholders
-
-        redundant_keys = provided_keys - expected_keys
-        if redundant_keys:
-            warnings.warn(
-                f"Keys provided but not in template: {redundant_keys}", UserWarning
-            )
+        self.template.check_redundant_kwargs(**kwargs)
 
     def __check_unset_placeholders(self):
         """
@@ -62,15 +54,7 @@ class BasePromptComponent(BaseComponent):
         Returns:
             None
         """
-        expected_keys = self.template.placeholders
-
-        missing_keys = []
-        for key in expected_keys:
-            if key not in self.__dict__:
-                missing_keys.append(key)
-
-        if missing_keys:
-            raise ValueError(f"\nMissing keys in template: {missing_keys}")
+        self.template.check_missing_kwargs(**self.__dict__)
 
     def __validate_value_type(self, **kwargs):
         """
@@ -88,14 +72,12 @@ class BasePromptComponent(BaseComponent):
         """
         type_error = []
         for k, v in kwargs.items():
-            if not isinstance(v, (str, int, Document, BaseComponent)):
-                if isinstance(v, int):
-                    kwargs[k] = str(v)
+            if not isinstance(v, (str, int, Document, Callable)):  # type: ignore
                 type_error.append((k, type(v)))
 
         if type_error:
             raise ValueError(
-                "Type of values must be either int, str, Document, BaseComponent, "
+                "Type of values must be either int, str, Document, Callable, "
                 f"found unsupported type for (key, type): {type_error}"
             )
 
@@ -138,15 +120,18 @@ class BasePromptComponent(BaseComponent):
         kwargs = {}
         for k in self.template.placeholders:
             v = getattr(self, k)
-            if isinstance(v, BaseComponent):
+
+            # if get a callable, execute to get its output
+            if isinstance(v, Callable):  # type: ignore[arg-type]
                 v = v()
+
             if isinstance(v, list):
                 v = str([__prepare(k, each) for each in v])
             elif isinstance(v, (str, int, Document)):
                 v = __prepare(k, v)
             else:
                 raise ValueError(
-                    f"Unsupported type {type(v)} for template value of key {k}"
+                    f"Unsupported type {type(v)} for template value of key `{k}`"
                 )
             kwargs[k] = v
 

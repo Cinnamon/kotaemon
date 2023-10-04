@@ -50,7 +50,7 @@ pip install kotaemon@git+ssh://git@github.com/Cinnamon/kotaemon.git
 This repo uses [git-secret](https://sobolevn.me/git-secret/) to share credentials, which
 internally uses `gpg` to encrypt and decrypt secret files.
 
-This repo uses `python-dotenv` to manage credentials stored as enviroment variable.
+This repo uses `python-dotenv` to manage credentials stored as environment variable.
 Please note that the use of `python-dotenv` and credentials are for development
 purposes only. Thus, it should not be used in the main source code (i.e. `kotaemon/` and `tests/`), but can be used in `examples/`.
 

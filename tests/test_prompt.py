@@ -24,7 +24,7 @@ def test_set_attributes():
 def test_check_redundant_kwargs():
     template = PromptTemplate("Hello, {name}!")
     prompt = BasePromptComponent(template, name="Alice")
-    with pytest.warns(UserWarning, match="Keys provided but not in template: {'age'}"):
+    with pytest.warns(UserWarning, match="Keys provided but not in template: age"):
         prompt._BasePromptComponent__check_redundant_kwargs(name="Alice", age=30)
 
 
