@@ -116,8 +116,8 @@ class TestInMemoryVectorStore:
             "3" not in data["text_id_to_ref_doc_id"]
         ), "delete function does not delete data completely"
         db2 = InMemoryVectorStore()
-        output = db2.load(load_path=tmp_path / "test_save_load_delete.json")
-        assert output.get("2") == [
+        db2.load(load_path=tmp_path / "test_save_load_delete.json")
+        assert db2.get("2") == [
             0.4,
             0.5,
             0.6,

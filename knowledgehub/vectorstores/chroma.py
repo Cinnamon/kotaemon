@@ -67,6 +67,9 @@ class ChromaVectorStore(LlamaIndexVectorStore):
             collection_name = self._client.client.name
         self._client.client._client.delete_collection(collection_name)
 
+    def count(self) -> int:
+        return self._collection.count()
+
     def save(self, *args, **kwargs):
         pass
 

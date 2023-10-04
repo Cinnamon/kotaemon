@@ -44,9 +44,7 @@ class InMemoryVectorStore(LlamaIndexVectorStore):
         """
         self._client.persist(persist_path=save_path, fs=fs)
 
-    def load(
-        self, load_path: str, fs: Optional[fsspec.AbstractFileSystem] = None
-    ) -> "InMemoryVectorStore":
+    def load(self, load_path: str, fs: Optional[fsspec.AbstractFileSystem] = None):
 
         """Create a SimpleKVStore from a load directory.
 
@@ -54,4 +52,4 @@ class InMemoryVectorStore(LlamaIndexVectorStore):
             load_path: Path of loading vector.
             fs: An abstract super-class for pythonic file-systems
         """
-        return self._client.from_persist_path(persist_path=load_path, fs=fs)
+        self._client = self._client.from_persist_path(persist_path=load_path, fs=fs)

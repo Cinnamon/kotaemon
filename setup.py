@@ -53,6 +53,7 @@ setuptools.setup(
             "openai",
             "chromadb",
             "wikipedia",
+            "duckduckgo-search",
             "googlesearch-python",
             "python-dotenv",
             "pytest-mock",
