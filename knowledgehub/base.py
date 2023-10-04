@@ -8,12 +8,13 @@ class BaseComponent(Compose):
 
     A component is a class that can be used to compose a pipeline. To use the
     component, you should implement the following methods:
-        - run_raw: run on raw input
-        - run_batch_raw: run on batch of raw input
-        - run_document: run on document
-        - run_batch_document: run on batch of documents
-        - is_document: check if input is document
-        - is_batch: check if input is batch
+
+    - run_raw: run on raw input
+    - run_batch_raw: run on batch of raw input
+    - run_document: run on document
+    - run_batch_document: run on batch of documents
+    - is_document: check if input is document
+    - is_batch: check if input is batch
     """
 
     inflow = None

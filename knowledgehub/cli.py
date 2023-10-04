@@ -53,6 +53,29 @@ def run(run_path):
 
 
 @main.command()
+@click.argument("module", required=True)
+@click.option(
+    "--output", default="docs.md", required=False, help="The output markdown file"
+)
+@click.option(
+    "--separation-level", required=False, default=1, help="Organize markdown layout"
+)
+def makedoc(module, output, separation_level):
+    """Make documentation for module `module`
+
+    Example:
+
+        \b
+        # Make component documentation for kotaemon library
+        $ kh makedoc kotaemon
+    """
+    from kotaemon.contribs.docs import make_doc
+
+    make_doc(module, output, separation_level)
+    print(f"Documentation exported to {output}")
+
+
+@main.command()
 @click.option(
     "--template",
     default="project-default",

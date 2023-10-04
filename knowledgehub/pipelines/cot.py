@@ -15,7 +15,7 @@ class Thought(BaseComponent):
     value is the value.
     - Output: an output dictionary
 
-    ##### Usage:
+    _**Usage:**_
 
     Create and run a thought:
 
@@ -80,6 +80,7 @@ class Thought(BaseComponent):
 
     @Node.decorate(depends_on="prompt")
     def prompt_template(self):
+        """Automatically wrap around param prompt. Can ignore"""
         return BasePromptComponent(self.prompt)
 
     def run(self, **kwargs) -> dict:
@@ -104,7 +105,7 @@ class ManualSequentialChainOfThought(BaseComponent):
     `kotaemon.pipelines.cot.Thought`. Please refer that section for
     Thought's detail. This section is about chaining thought together.
 
-    ##### Usage:
+    _**Usage:**_
 
     **Create and run a chain of thought without "+" operator:**
 
