@@ -57,6 +57,7 @@ setuptools.setup(
             "googlesearch-python",
             "python-dotenv",
             "pytest-mock",
+            "unstructured[pdf]",
         ],
     },
     entry_points={"console_scripts": ["kh=kotaemon.cli:main"]},

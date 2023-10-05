@@ -21,7 +21,7 @@ def mock_openai_embedding(monkeypatch):
     monkeypatch.setattr(Embedding, "create", lambda *args, **kwargs: openai_embedding)
 
 
-def test_google_tool():
+def test_google_tool(mock_google_search):
     tool = GoogleSearchTool()
     assert tool.name
     assert tool.description

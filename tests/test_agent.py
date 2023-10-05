@@ -135,7 +135,7 @@ def llm():
     "openai.api_resources.chat_completion.ChatCompletion.create",
     side_effect=_openai_chat_completion_responses_rewoo,
 )
-def test_rewoo_agent(openai_completion, llm):
+def test_rewoo_agent(openai_completion, llm, mock_google_search):
     plugins = [
         GoogleSearchTool(),
         WikipediaTool(),
@@ -153,7 +153,7 @@ def test_rewoo_agent(openai_completion, llm):
     "openai.api_resources.chat_completion.ChatCompletion.create",
     side_effect=_openai_chat_completion_responses_react,
 )
-def test_react_agent(openai_completion, llm):
+def test_react_agent(openai_completion, llm, mock_google_search):
     plugins = [
         GoogleSearchTool(),
         WikipediaTool(),
@@ -170,7 +170,7 @@ def test_react_agent(openai_completion, llm):
     "openai.api_resources.chat_completion.ChatCompletion.create",
     side_effect=_openai_chat_completion_responses_react,
 )
-def test_react_agent_langchain(openai_completion, llm):
+def test_react_agent_langchain(openai_completion, llm, mock_google_search):
     from langchain.agents import AgentType, initialize_agent
 
     plugins = [
