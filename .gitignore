@@ -458,3 +458,4 @@ logs/
 
 S.gpg-agent*
 .vscode/settings.json
+examples/example1/assets

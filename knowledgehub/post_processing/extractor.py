@@ -1,8 +1,18 @@
 import re
-from typing import Dict, List
+from typing import Callable, Dict, List, Union
+
+from theflow import Param
 
 from kotaemon.base import BaseComponent
 from kotaemon.documents.base import Document
+
+
+class ExtractorOutput(Document):
+    """
+    Represents the output of an extractor.
+    """
+
+    matches: List[str]
 
 
 class RegexExtractor(BaseComponent):
@@ -10,13 +20,23 @@ class RegexExtractor(BaseComponent):
     Simple class for extracting text from a document using a regex pattern.
 
     Args:
-        pattern (str): The regex pattern to use.
+        pattern (List[str]): The regex pattern(s) to use.
         output_map (dict, optional): A mapping from extracted text to the
             desired output. Defaults to None.
     """
 
-    pattern: str
-    output_map: Dict[str, str] = {}
+    class Config:
+        middleware_switches = {"theflow.middleware.CachingMiddleware": False}
+
+    pattern: List[str]
+    output_map: Union[Dict[str, str], Callable[[str], str]] = Param(
+        default_callback=lambda *_: {}
+    )
+
+    def __init__(self, pattern: Union[str, List[str]], **kwargs):
+        if isinstance(pattern, str):
+            pattern = [pattern]
+        super().__init__(pattern=pattern, **kwargs)
 
     @staticmethod
     def run_raw_static(pattern: str, text: str) -> List[str]:
@@ -50,28 +70,34 @@ class RegexExtractor(BaseComponent):
         if not output_map:
             return text
 
-        return str(output_map.get(text, text))
+        if isinstance(output_map, dict):
+            return output_map.get(text, text)
 
-    def run_raw(self, text: str) -> List[Document]:
+        return output_map(text)
+
+    def run_raw(self, text: str) -> ExtractorOutput:
         """
-        Runs the raw text through the static pattern and output mapping, returning a
-            list of strings.
+        Matches the raw text against the pattern and rans the output mapping, returning
+            an instance of ExtractorOutput.
 
         Args:
             text (str): The raw text to be processed.
 
         Returns:
-            List[str]: The processed output as a list of strings.
+            ExtractorOutput: The processed output as a list of ExtractorOutput.
         """
-        output = self.run_raw_static(self.pattern, text)
+        output = sum(
+            [self.run_raw_static(p, text) for p in self.pattern], []
+        )  # type: List[str]
         output = [self.map_output(text, self.output_map) for text in output]
 
-        return [
-            Document(text=text, metadata={"origin": "RegexExtractor"})
-            for text in output
-        ]
+        return ExtractorOutput(
+            text=output[0] if output else "",
+            matches=output,
+            metadata={"origin": "RegexExtractor"},
+        )
 
-    def run_batch_raw(self, text_batch: List[str]) -> List[List[Document]]:
+    def run_batch_raw(self, text_batch: List[str]) -> List[ExtractorOutput]:
         """
         Runs a batch of raw text inputs through the `run_raw()` method and returns the
             output for each input.
@@ -80,29 +106,28 @@ class RegexExtractor(BaseComponent):
             text_batch (List[str]): A list of raw text inputs to process.
 
         Returns:
-            List[List[str]]: A list of lists containing the output for each input in the
+            List[ExtractorOutput]: A list containing the output for each input in the
                 batch.
         """
         batch_output = [self.run_raw(each_text) for each_text in text_batch]
 
         return batch_output
 
-    def run_document(self, document: Document) -> List[Document]:
+    def run_document(self, document: Document) -> ExtractorOutput:
         """
-        Run the document through the regex extractor and return a list of extracted
-            documents.
+        Run the document through the regex extractor and return an extracted document.
 
         Args:
             document (Document): The input document.
 
         Returns:
-            List[Document]: A list of extracted documents.
+            ExtractorOutput: The extracted content.
         """
         return self.run_raw(document.text)
 
     def run_batch_document(
         self, document_batch: List[Document]
-    ) -> List[List[Document]]:
+    ) -> List[ExtractorOutput]:
         """
         Runs a batch of documents through the `run_document` function and returns the
             output for each document.
@@ -113,15 +138,15 @@ class RegexExtractor(BaseComponent):
                 batch of documents to process.
 
         Returns:
-            List[List[Document]]: A list of lists where each inner list contains the
-                output Document for each input Document in the batch.
+            List[ExtractorOutput]: A list  contains the output ExtractorOutput for each
+                input Document in the batch.
 
         Example:
             document1 = Document(...)
             document2 = Document(...)
             document_batch = [document1, document2]
             batch_output = self.run_batch_document(document_batch)
-            # batch_output will be [[output1_document1, ...], [output1_document2, ...]]
+            # batch_output will be [output1_document1, output1_document2]
         """
 
         batch_output = [
@@ -162,3 +187,22 @@ class RegexExtractor(BaseComponent):
             return True
 
         return False
+
+
+class FirstMatchRegexExtractor(RegexExtractor):
+    pattern: List[str]
+
+    def run_raw(self, text: str) -> ExtractorOutput:
+        for p in self.pattern:
+            output = self.run_raw_static(p, text)
+            if output:
+                output = [self.map_output(text, self.output_map) for text in output]
+                return ExtractorOutput(
+                    text=output[0],
+                    matches=output,
+                    metadata={"origin": "FirstMatchRegexExtractor"},
+                )
+
+        return ExtractorOutput(
+            text=None, matches=[], metadata={"origin": "FirstMatchRegexExtractor"}
+        )

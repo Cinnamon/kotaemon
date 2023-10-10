@@ -15,6 +15,9 @@ class BasePromptComponent(BaseComponent):
             given template.
     """
 
+    class Config:
+        middleware_switches = {"theflow.middleware.CachingMiddleware": False}
+
     def __init__(self, template: Union[str, PromptTemplate], **kwargs):
         super().__init__()
         self.template = (

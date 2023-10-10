@@ -14,8 +14,8 @@ def regex_extractor():
 def test_run_document(regex_extractor):
     document = Document(text="This is a test. 1 2 3")
     extracted_document = regex_extractor(document)
-    extracted_texts = [each.text for each in extracted_document]
-    assert extracted_texts == ["One", "Two", "Three"]
+    assert extracted_document.text == "One"
+    assert extracted_document.matches == ["One", "Two", "Three"]
 
 
 def test_is_document(regex_extractor):
@@ -30,11 +30,13 @@ def test_is_batch(regex_extractor):
 
 def test_run_raw(regex_extractor):
     output = regex_extractor("This is a test. 123")
-    output = [each.text for each in output]
-    assert output == ["123"]
+    assert output.text == "123"
+    assert output.matches == ["123"]
 
 
 def test_run_batch_raw(regex_extractor):
     output = regex_extractor(["This is a test. 123", "456"])
-    output = [[each.text for each in batch] for batch in output]
-    assert output == [["123"], ["456"]]
+    extracted_text = [each.text for each in output]
+    extracted_matches = [each.matches for each in output]
+    assert extracted_text == ["123", "456"]
+    assert extracted_matches == [["123"], ["456"]]

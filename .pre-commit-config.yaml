@@ -48,5 +48,10 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies: [types-PyYAML==6.0.12.11, "types-requests"]
-        args: ["--check-untyped-defs", "--ignore-missing-imports"]
+        args:
+          [
+            "--check-untyped-defs",
+            "--ignore-missing-imports",
+            "--new-type-inference",
+          ]
         exclude: "^templates/"
