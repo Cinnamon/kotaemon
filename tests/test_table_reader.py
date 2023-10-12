@@ -11,14 +11,17 @@ input_file_excel = Path(__file__).parent / "resources" / "dummy.xlsx"
 
 @pytest.fixture
 def fullocr_output():
-    with open(Path(__file__).parent / "resources" / "fullocr_sample_output.json") as f:
+    with open(
+        Path(__file__).parent / "resources" / "fullocr_sample_output.json",
+        encoding="utf-8",
+    ) as f:
         fullocr = json.load(f)
     return fullocr
 
 
 @pytest.fixture
 def mathpix_output():
-    with open(Path(__file__).parent / "resources" / "policy.md") as f:
+    with open(Path(__file__).parent / "resources" / "policy.md", encoding="utf-8") as f:
         content = f.read()
     return content
 

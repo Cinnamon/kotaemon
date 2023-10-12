@@ -8,25 +8,53 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
+        include:
+          - os: ubuntu-latest
+            ACTIVATE_ENV: ". env/bin/activate"
+            GITHUB_OUTPUT: "$GITHUB_OUTPUT"
+          # - os: windows-latest
+          #   ACTIVATE_ENV: env/Scripts/activate.ps1
+          #   GITHUB_OUTPUT: "$env:GITHUB_OUTPUT"
+
     name: unit testing with python ${{ matrix.python-version }}
     steps:
       - name: Clone the repo
         uses: actions/checkout@v3
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }} on ${{ runner.os }}
         uses: actions/setup-python@v4
+        id: setup_python
         with:
           python-version: ${{ matrix.python-version }}
           architecture: x64
-      - name: Display Python version
-        run: python -c "import sys; print(sys.version)"
-      - name: Install dependencies
+      - name: Get package version
+        id: get-package-version
         run: |
+          echo "version=$(python setup.py --version)" | tee -a ${{ matrix.GITHUB_OUTPUT }}
+      - name: Try to restore env from ${{ runner.os }}-py${{ matrix.python-version }}-v${{ steps.get-package-version.outputs.version }}
+        id: restore-env
+        uses: actions/cache/restore@v3
+        with:
+          path: env
+          key: ${{ runner.os }}-py${{ matrix.python-version }}-v${{ steps.get-package-version.outputs.version }}
+      - name: Create new env if no cache hit
+        if: steps.restore-env.outputs.cache-hit != 'true'
+        run: |
+          python -m venv env
+          ${{ matrix.ACTIVATE_ENV }}
           python -m pip install --upgrade pip
           pip install -e .[dev]
+      - name: Cache new env for key ${{ steps.restore-env.outputs.cache-primary-key }}
+        if: steps.restore-env.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v3
+        with:
+          path: env
+          key: ${{ steps.restore-env.outputs.cache-primary-key }}
       - name: Test with pytest
         run: |
-          pytest
+          ${{ matrix.ACTIVATE_ENV }}
+          python -m pytest
