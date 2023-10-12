@@ -39,6 +39,7 @@ setuptools.setup(
         "openpyxl",
         "cookiecutter",
         "click",
+        "pandas",
     ],
     extras_require={
         "dev": [

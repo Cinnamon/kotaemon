@@ -11,6 +11,8 @@ from theflow.utils.modules import import_dotted_string
 
 from kotaemon.base import BaseComponent
 
+from .logs import ResultLog
+
 
 def from_log_to_dict(pipeline_cls: Type[BaseComponent], log_config: dict) -> dict:
     """Export the log to panda dataframes
@@ -26,10 +28,13 @@ def from_log_to_dict(pipeline_cls: Type[BaseComponent], log_config: dict) -> dic
     pipeline_log_path = storage.url(pipeline_cls().config.store_result)
     dirs = list(sorted([f.path for f in os.scandir(pipeline_log_path) if f.is_dir()]))
 
+    # get resultlog callback
+    resultlog = getattr(pipeline_cls, "_promptui_resultlog", ResultLog)
+    allowed_resultlog_callbacks = {i for i in dir(resultlog) if not i.startswith("__")}
+
     ids = []
     params: Dict[str, List[Any]] = {}
-    inputs: Dict[str, List[Any]] = {}
-    outputs: Dict[str, List[Any]] = {}
+    logged_infos: Dict[str, List[Any]] = {}
 
     for idx, each_dir in enumerate(dirs):
         ids.append(str(Path(each_dir).name))
@@ -44,34 +49,29 @@ def from_log_to_dict(pipeline_cls: Type[BaseComponent], log_config: dict) -> dic
                     params[key] = [None] * len(dirs)
                 params[key][idx] = value
 
+        # get the progress
         progress_file = os.path.join(each_dir, "progress.pkl")
         if os.path.exists(progress_file):
             with open(progress_file, "rb") as f:
                 progress = pickle.load(f)
 
-            # get the inputs
-            for each_input in log_config["inputs"]:
-                name = each_input["name"]
-                step = each_input["step"]
-                if name not in inputs:
-                    inputs[name] = [None] * len(dirs)
-                variable = each_input.get("variable", "")
-                if variable:
-                    inputs[name][idx] = progress[step]["input"]["kwargs"][variable]
+            for name, col_info in log_config.items():
+                step = col_info["step"]
+                getter = col_info.get("getter", None)
+                if name not in logged_infos:
+                    logged_infos[name] = [None] * len(dirs)
+
+                info = progress[step]
+                if getter:
+                    if getter in allowed_resultlog_callbacks:
+                        info = getattr(resultlog, getter)(info)
                 else:
-                    inputs[name][idx] = progress[step]["input"]
+                    implicit_name = f"get_{name}"
+                    if implicit_name in allowed_resultlog_callbacks:
+                        info = getattr(resultlog, implicit_name)(info)
+                logged_infos[name][idx] = info
 
-            # get the outputs
-            for each_output in log_config["outputs"]:
-                name = each_output["name"]
-                step = each_output["step"]
-                if name not in outputs:
-                    outputs[name] = [None] * len(dirs)
-                outputs[name][idx] = progress[step]["output"]
-                if each_output.get("item", ""):
-                    outputs[name][idx] = outputs[name][each_output["item"]]
-
-    return {"ids": ids, **params, **inputs, **outputs}
+    return {"ids": ids, **params, **logged_infos}
 
 
 def export(config: dict, pipeline_def, output_path):

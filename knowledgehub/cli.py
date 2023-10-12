@@ -29,8 +29,9 @@ main.add_command(promptui)
 
 @promptui.command()
 @click.argument("export_path", nargs=1)
-@click.option("--output", default="promptui.yml", required=False)
+@click.option("--output", default="promptui.yml", show_default=True, required=False)
 def export(export_path, output):
+    """Export a pipeline to a config file"""
     import sys
 
     from theflow.utils.modules import import_dotted_string
@@ -45,11 +46,119 @@ def export(export_path, output):
 
 @promptui.command()
 @click.argument("run_path", required=False, default="promptui.yml")
-def run(run_path):
+@click.option(
+    "--share",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Share the app through Gradio. Requires --username to enable authentication.",
+)
+@click.option(
+    "--username",
+    required=False,
+    help="Username for the user. If not provided, the promptui will not have "
+    "authentication.",
+)
+@click.option(
+    "--password",
+    required=False,
+    help="Password for the user. If not provided, will be prompted.",
+)
+@click.option(
+    "--appname",
+    required=False,
+    default="The share app subdomain. Requires --share and --username",
+)
+@click.option(
+    "--port",
+    required=False,
+    help="Port to run the app. If not provided, will $GRADIO_SERVER_PORT (7860)",
+)
+def run(run_path, share, username, password, appname, port):
+    """Run the UI from a config file
+
+    Examples:
+
+        \b
+        # Run with default config file
+        $ kh promptui run
+
+        \b
+        # Run with username and password supplied
+        $ kh promptui run --username admin --password password
+
+        \b
+        # Run with username and prompted password
+        $ kh promptui run --username admin
+
+        # Run and share to promptui
+        # kh promptui run --username admin --password password --share --appname hey \
+                --port 7861
+    """
+    import sys
+
     from kotaemon.contribs.promptui.ui import build_from_dict
 
-    build_from_dict(run_path)
+    sys.path.append(os.getcwd())
+
     check_config_format(run_path)
+    demo = build_from_dict(run_path)
+
+    params: dict = {}
+    if username is not None:
+        if password is not None:
+            auth = (username, password)
+        else:
+            auth = (username, click.prompt("Password", hide_input=True))
+        params["auth"] = auth
+
+    port = int(port) if port else int(os.getenv("GRADIO_SERVER_PORT", "7860"))
+    params["server_port"] = port
+
+    if share:
+        if username is None:
+            raise ValueError(
+                "Username must be provided to enable authentication for sharing"
+            )
+        if appname:
+            command = [
+                "frpc",
+                "http",
+                "-l",
+                str(port),
+                "-i",
+                "127.0.0.1",
+                "--uc",
+                "--sd",
+                str(appname),
+                "-n",
+                str(appname + username),
+                "--server_addr",
+                "35.92.162.75:7000",
+                "--token",
+                "Wz807/DyC;#t;#/",
+                "--disable_log_color",
+            ]
+            import atexit
+            import subprocess
+
+            proc = subprocess.Popen(
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+
+            def kill_proc():
+                if proc is not None:
+                    print(f"Killing tunnel: https://{appname}.promptui.dm.cinnamon.is")
+                    proc.terminate()
+
+            atexit.register(kill_proc)
+
+            print(f"App is shared at https://{appname}.promptui.dm.cinnamon.is")
+        else:
+            params["share"] = True
+            print("App is shared at Gradio")
+
+    demo.launch(**params)
 
 
 @main.command()

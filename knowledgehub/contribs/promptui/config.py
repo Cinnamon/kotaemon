@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional, Type, Union
 import yaml
 
 from ...base import BaseComponent
+from ...chatbot import BaseChatBot
 from .base import DEFAULT_COMPONENT_BY_TYPES
 
 
@@ -47,8 +48,10 @@ def handle_param(param: dict) -> dict:
     if default is not None:
         params["value"] = default
 
-    type_: str = type(default).__name__ if default is not None else ""
-    ui_component = DEFAULT_COMPONENT_BY_TYPES.get(type_, "text")
+    ui_component = param.get("component_ui", "")
+    if not ui_component:
+        type_: str = type(default).__name__ if default is not None else ""
+        ui_component = DEFAULT_COMPONENT_BY_TYPES.get(type_, "text")
 
     return {
         "component": ui_component,
@@ -62,9 +65,13 @@ def handle_node(node: dict) -> dict:
     for name, param_def in node.get("params", {}).items():
         if isinstance(param_def["default_callback"], str):
             continue
+        if param_def.get("ignore_ui", False):
+            continue
         config[name] = handle_param(param_def)
     for name, node_def in node.get("nodes", {}).items():
         if isinstance(node_def["default_callback"], str):
+            continue
+        if node_def.get("ignore_ui", False):
             continue
         for key, value in handle_node(node_def["default"]).items():
             config[f"{name}.{key}"] = value
@@ -113,13 +120,52 @@ def export_pipeline_to_config(
         pipeline = pipeline()
 
     pipeline_def = pipeline.describe()
-    config = {
-        f"{pipeline.__module__}.{pipeline.__class__.__name__}": {
+    ui_type = "chat" if isinstance(pipeline, BaseChatBot) else "simple"
+    if ui_type == "chat":
+        params = {f".bot.{k}": v for k, v in handle_node(pipeline_def).items()}
+        params["system_message"] = {"component": "text", "params": {"value": ""}}
+        config_obj: dict = {
+            "ui-type": ui_type,
+            "params": params,
+            "inputs": {},
+            "outputs": [],
+            "logs": {
+                "full_pipeline": {
+                    "input": {
+                        "step": ".",
+                        "getter": "_get_input",
+                    },
+                    "output": {
+                        "step": ".",
+                        "getter": "_get_output",
+                    },
+                    "preference": {
+                        "step": "preference",
+                    },
+                }
+            },
+        }
+    else:
+        config_obj = {
+            "ui-type": ui_type,
             "params": handle_node(pipeline_def),
             "inputs": handle_input(pipeline),
-            "outputs": [{"step": ".", "component": "text"}],
+            "outputs": [{"step": ".", "getter": "_get_output", "component": "text"}],
+            "logs": {
+                "full_pipeline": {
+                    "input": {
+                        "step": ".",
+                        "getter": "_get_input",
+                    },
+                    "output": {
+                        "step": ".",
+                        "getter": "_get_output",
+                    },
+                },
+            },
         }
-    }
+
+    config = {f"{pipeline.__module__}.{pipeline.__class__.__name__}": config_obj}
     if path is not None:
         old_config = config
         if Path(path).is_file():
@@ -127,6 +173,6 @@ def export_pipeline_to_config(
                 old_config = yaml.safe_load(f)
                 old_config.update(config)
         with open(path, "w") as f:
-            yaml.safe_dump(old_config, f)
+            yaml.safe_dump(old_config, f, sort_keys=False)
 
     return config

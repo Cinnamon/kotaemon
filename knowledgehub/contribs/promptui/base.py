@@ -18,3 +18,26 @@ DEFAULT_COMPONENT_BY_TYPES = {
     "float": "number",
     "list": "dropdown",
 }
+
+
+def get_component(component_def: dict) -> gr.components.Component:
+    """Get the component based on component definition"""
+    component_cls = None
+
+    if "component" in component_def:
+        component = component_def["component"]
+        if component not in SUPPORTED_COMPONENTS:
+            raise ValueError(
+                f"Unsupported UI component: {component}. "
+                f"Must be one of {SUPPORTED_COMPONENTS}"
+            )
+
+        component_cls = COMPONENTS_CLASS[component]
+    else:
+        raise ValueError(
+            f"Cannot decide the component from {component_def}. "
+            "Please specify `component` with 1 of the following "
+            f"values: {SUPPORTED_COMPONENTS}"
+        )
+
+    return component_cls(**component_def.get("params", {}))
