@@ -146,11 +146,14 @@ def export_pipeline_to_config(
             },
         }
     else:
+        outputs = [{"step": ".", "getter": "_get_output", "component": "text"}]
+        if hasattr(pipeline, "_promptui_outputs"):
+            outputs = pipeline._promptui_outputs
         config_obj = {
             "ui-type": ui_type,
             "params": handle_node(pipeline_def),
             "inputs": handle_input(pipeline),
-            "outputs": [{"step": ".", "getter": "_get_output", "component": "text"}],
+            "outputs": outputs,
             "logs": {
                 "full_pipeline": {
                     "input": {
