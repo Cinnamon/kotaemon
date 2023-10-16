@@ -7,17 +7,23 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  unit-test:
+    if: ${{ !cancelled() }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
         include:
           - os: ubuntu-latest
+            shell: bash
             ACTIVATE_ENV: ". env/bin/activate"
             GITHUB_OUTPUT: "$GITHUB_OUTPUT"
           # - os: windows-latest
+          #   shell: pwsh
           #   ACTIVATE_ENV: env/Scripts/activate.ps1
           #   GITHUB_OUTPUT: "$env:GITHUB_OUTPUT"
 
@@ -25,36 +31,68 @@ jobs:
     steps:
       - name: Clone the repo
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Get Head Commit Message
+        id: get-head-commit-message
+        run: echo "message=$(git show -s --format=%s)" | tee -a ${{ matrix.GITHUB_OUTPUT }}
+
+      - name: Check ignore caching
+        id: check-ignore-cache
+        run: |
+          ignore_cache=${{ contains(steps.get-head-commit-message.outputs.message, '[ignore cache]') }}
+          echo "check=$ignore_cache" | tee -a ${{ matrix.GITHUB_OUTPUT }}
+
       - name: Set up Python ${{ matrix.python-version }} on ${{ runner.os }}
         uses: actions/setup-python@v4
         id: setup_python
         with:
           python-version: ${{ matrix.python-version }}
           architecture: x64
-      - name: Get package version
-        id: get-package-version
+
+      - name: Get cache key
+        id: get-cache-key
         run: |
-          echo "version=$(python setup.py --version)" | tee -a ${{ matrix.GITHUB_OUTPUT }}
-      - name: Try to restore env from ${{ runner.os }}-py${{ matrix.python-version }}-v${{ steps.get-package-version.outputs.version }}
-        id: restore-env
+          package_version=$(python setup.py --version)
+          cache_key="${{ runner.os }}-py${{ matrix.python-version }}-v${package_version}"
+          echo "key=$cache_key" | tee -a ${{ matrix.GITHUB_OUTPUT }}
+
+      - name: Try to restore dependencies from ${{ steps.get-cache-key.outputs.key }}
+        id: restore-dependencies
+        if: steps.check-ignore-cache.outputs.check != 'true'
         uses: actions/cache/restore@v3
         with:
-          path: env
-          key: ${{ runner.os }}-py${{ matrix.python-version }}-v${{ steps.get-package-version.outputs.version }}
-      - name: Create new env if no cache hit
-        if: steps.restore-env.outputs.cache-hit != 'true'
+          path: ${{ env.pythonLocation }}
+          key: ${{ steps.get-cache-key.outputs.key }}
+          restore-keys: ${{ runner.os }}-py${{ matrix.python-version }}
+
+      - name: Check cache hit
+        id: check-cache-hit
         run: |
-          python -m venv env
-          ${{ matrix.ACTIVATE_ENV }}
+          echo "cache-hit=${{ steps.restore-dependencies.outputs.cache-hit }}"
+          echo "cache-matched-key=${{ steps.restore-dependencies.outputs.cache-matched-key }}"
+          cache_hit=${{ steps.restore-dependencies.outputs.cache-primary-key == steps.restore-dependencies.outputs.cache-matched-key }}
+          echo "check=$cache_hit" | tee -a ${{ matrix.GITHUB_OUTPUT }}
+
+      - name: Install dependencies if ignore caching or no cache hit
+        if: |
+          steps.check-ignore-cache.outputs.check == 'true' ||
+          steps.check-cache-hit.outputs.check != 'true'
+        run: |
           python -m pip install --upgrade pip
           pip install -e .[dev]
-      - name: Cache new env for key ${{ steps.restore-env.outputs.cache-primary-key }}
-        if: steps.restore-env.outputs.cache-hit != 'true'
+
+      - name: New dependencies cache for key ${{ steps.restore-dependencies.outputs.cache-primary-key }}
+        if: |
+          steps.check-ignore-cache.outputs.check != 'true' &&
+          steps.check-cache-hit.outputs.check != 'true'
         uses: actions/cache/save@v3
         with:
-          path: env
-          key: ${{ steps.restore-env.outputs.cache-primary-key }}
+          path: ${{ env.pythonLocation }}
+          key: ${{ steps.restore-dependencies.outputs.cache-primary-key }}
+
       - name: Test with pytest
         run: |
-          ${{ matrix.ACTIVATE_ENV }}
-          python -m pytest
+          pip show pytest
+          pytest
