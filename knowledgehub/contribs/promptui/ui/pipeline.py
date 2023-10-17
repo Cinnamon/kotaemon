@@ -106,12 +106,16 @@ def construct_pipeline_ui(
             export_btn.click(func_export, inputs=None, outputs=exported_file)
         with gr.Row():
             with gr.Column():
-                with temp("Params"):
-                    for component in params:
-                        component.render()
-                with temp("Inputs"):
-                    for component in inputs:
-                        component.render()
+                if params:
+                    with temp("Params"):
+                        for component in params:
+                            component.render()
+                if inputs:
+                    with temp("Inputs"):
+                        for component in inputs:
+                            component.render()
+                if not params and not inputs:
+                    gr.Text("No params or inputs")
             with gr.Column():
                 with temp("Outputs"):
                     for component in outputs:

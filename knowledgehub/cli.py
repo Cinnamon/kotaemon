@@ -67,7 +67,7 @@ def export(export_path, output):
 @click.option(
     "--appname",
     required=False,
-    default="The share app subdomain. Requires --share and --username",
+    help="The share app subdomain. Requires --share and --username",
 )
 @click.option(
     "--port",
@@ -121,39 +121,13 @@ def run(run_path, share, username, password, appname, port):
                 "Username must be provided to enable authentication for sharing"
             )
         if appname:
-            command = [
-                "frpc",
-                "http",
-                "-l",
-                str(port),
-                "-i",
-                "127.0.0.1",
-                "--uc",
-                "--sd",
-                str(appname),
-                "-n",
-                str(appname + username),
-                "--server_addr",
-                "35.92.162.75:7000",
-                "--token",
-                "Wz807/DyC;#t;#/",
-                "--disable_log_color",
-            ]
-            import atexit
-            import subprocess
+            from kotaemon.contribs.promptui.tunnel import Tunnel
 
-            proc = subprocess.Popen(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            tunnel = Tunnel(
+                appname=str(appname), username=str(username), local_port=port
             )
-
-            def kill_proc():
-                if proc is not None:
-                    print(f"Killing tunnel: https://{appname}.promptui.dm.cinnamon.is")
-                    proc.terminate()
-
-            atexit.register(kill_proc)
-
-            print(f"App is shared at https://{appname}.promptui.dm.cinnamon.is")
+            url = tunnel.run()
+            print(f"App is shared at {url}")
         else:
             params["share"] = True
             print("App is shared at Gradio")
