@@ -16,7 +16,6 @@ class TestPromptConfig:
         assert "text" in config["inputs"], "inputs should have config"
 
         assert "params" in config, "params should be in config"
-        assert "vectorstore_path" in config["params"]
         assert "llm.deployment_name" in config["params"]
         assert "llm.openai_api_base" in config["params"]
         assert "llm.openai_api_key" in config["params"]

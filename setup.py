@@ -30,7 +30,6 @@ setuptools.setup(
         exclude=("tests", "tests.*", "examples", "examples.*")
     ),
     install_requires=[
-        "farm-haystack==1.19.0",
         "langchain",
         "theflow",
         "llama-index",
@@ -59,6 +58,7 @@ setuptools.setup(
             "python-dotenv",
             "pytest-mock",
             "unstructured[pdf]",
+            "farm-haystack==1.19.0",
         ],
     },
     entry_points={"console_scripts": ["kh=kotaemon.cli:main"]},

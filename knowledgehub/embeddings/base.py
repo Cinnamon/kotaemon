@@ -56,11 +56,11 @@ class LangchainEmbeddings(BaseEmbeddings):
 
     def __setattr__(self, name, value):
         if name in self._lc_class.__fields__:
-            setattr(self.agent, name, value)
+            self._kwargs[name] = value
         else:
             super().__setattr__(name, value)
 
-    @Param.decorate(no_cache=True)
+    @Param.auto(cache=False)
     def agent(self):
         return self._lc_class(**self._kwargs)
 

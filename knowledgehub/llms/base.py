@@ -6,7 +6,7 @@ from kotaemon.documents.base import Document
 
 
 class LLMInterface(Document):
-    candidates: List[str]
+    candidates: List[str] = Field(default_factory=list)
     completion_tokens: int = -1
     total_tokens: int = -1
     prompt_tokens: int = -1

@@ -42,8 +42,9 @@ def mock_openai_embedding(monkeypatch):
 )
 def test_ingest_pipeline(patch, mock_openai_embedding, tmp_path):
     indexing_pipeline = ReaderIndexingPipeline(
-        storage=tmp_path, openai_api_key="some-key"
+        storage_path=tmp_path,
     )
+    indexing_pipeline.embedding.openai_api_key = "some-key"
     input_file_path = Path(__file__).parent / "resources/dummy.pdf"
 
     # call ingestion pipeline

@@ -13,9 +13,9 @@ class John(Base):
         primary_hue: colors.Color | str = colors.neutral,
         secondary_hue: colors.Color | str = colors.neutral,
         neutral_hue: colors.Color | str = colors.neutral,
-        spacing_size: sizes.Size | str = sizes.spacing_lg,
+        spacing_size: sizes.Size | str = sizes.spacing_sm,
         radius_size: sizes.Size | str = sizes.radius_none,
-        text_size: sizes.Size | str = sizes.text_md,
+        text_size: sizes.Size | str = sizes.text_sm,
         font: fonts.Font
         | str
         | Iterable[fonts.Font | str] = (
@@ -79,8 +79,8 @@ class John(Base):
             button_cancel_background_fill_hover="*button_primary_background_fill_hover",
             button_cancel_text_color="*button_primary_text_color",
             # Padding
-            checkbox_label_padding="*spacing_md",
-            button_large_padding="*spacing_lg",
+            checkbox_label_padding="*spacing_sm",
+            button_large_padding="*spacing_sm",
             button_small_padding="*spacing_sm",
             # Borders
             block_border_width="0px",
@@ -91,5 +91,5 @@ class John(Base):
             # Block Labels
             block_title_text_weight="600",
             block_label_text_weight="600",
-            block_label_text_size="*text_md",
+            block_label_text_size="*text_sm",
         )

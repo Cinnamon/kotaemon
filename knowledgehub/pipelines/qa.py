@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List
 
 from theflow import Node, Param
+from theflow.utils.modules import ObjectInitDeclaration as _
 
 from kotaemon.base import BaseComponent
 from kotaemon.docstores import InMemoryDocumentStore
@@ -25,8 +26,6 @@ class QuestionAnsweringPipeline(BaseComponent):
 
     storage_path: Path = Path("./storage")
     retrieval_top_k: int = 3
-    openai_api_base: str = "https://bleh-dummy-2.openai.azure.com/"
-    openai_api_key: str = os.environ.get("OPENAI_API_KEY", "")
     file_name_list: List[str]
     """List of filename, incombination with storage_path to
     create persistent path of vectorstore"""
@@ -35,37 +34,27 @@ class QuestionAnsweringPipeline(BaseComponent):
         "The context is: \n{context}\nAnswer: "
     )
 
-    @Node.decorate(depends_on=["openai_api_base", "openai_api_key"])
-    def llm(self):
-        return AzureChatOpenAI(
-            openai_api_base="https://bleh-dummy-2.openai.azure.com/",
-            openai_api_key=self.openai_api_key,
-            openai_api_version="2023-03-15-preview",
-            deployment_name="dummy-q2-gpt35",
-            temperature=0,
-            request_timeout=60,
-        )
+    llm: AzureChatOpenAI = AzureChatOpenAI.withx(
+        openai_api_base="https://bleh-dummy-2.openai.azure.com/",
+        openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
+        openai_api_version="2023-03-15-preview",
+        deployment_name="dummy-q2-gpt35",
+        temperature=0,
+        request_timeout=60,
+    )
 
-    @Param.decorate()
-    def vector_store(self):
-        return InMemoryVectorStore()
+    vector_store: Param[InMemoryVectorStore] = Param(_(InMemoryVectorStore))
+    doc_store: Param[InMemoryDocumentStore] = Param(_(InMemoryDocumentStore))
 
-    @Param.decorate()
-    def doc_store(self):
-        doc_store = InMemoryDocumentStore()
-        return doc_store
+    embedding: AzureOpenAIEmbeddings = AzureOpenAIEmbeddings.withx(
+        model="text-embedding-ada-002",
+        deployment="dummy-q2-text-embedding",
+        openai_api_base="https://bleh-dummy-2.openai.azure.com/",
+        openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
+    )
 
-    @Node.decorate(depends_on=["openai_api_base", "openai_api_key"])
-    def embedding(self):
-        return AzureOpenAIEmbeddings(
-            model="text-embedding-ada-002",
-            deployment="dummy-q2-text-embedding",
-            openai_api_base=self.openai_api_base,
-            openai_api_key=self.openai_api_key,
-        )
-
-    @Node.decorate(depends_on=["doc_store", "vector_store", "embedding"])
-    def retrieving_pipeline(self):
+    @Node.default()
+    def retrieving_pipeline(self) -> RetrieveDocumentFromVectorStorePipeline:
         retrieving_pipeline = RetrieveDocumentFromVectorStorePipeline(
             vector_store=self.vector_store,
             doc_store=self.doc_store,

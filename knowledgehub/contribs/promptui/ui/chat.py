@@ -8,6 +8,9 @@ from theflow.storage import storage
 from kotaemon.chatbot import ChatConversation
 from kotaemon.contribs.promptui.base import get_component
 from kotaemon.contribs.promptui.export import export
+from kotaemon.contribs.promptui.ui.blocks import ChatBlock
+
+from ..logs import ResultLog
 
 USAGE_INSTRUCTION = """## How to use:
 
@@ -87,8 +90,10 @@ def construct_chat_ui(
         outputs.append(component)
 
     sess = gr.State(value=None)
-    chatbot = gr.Chatbot(label="Chatbot")
-    chat = gr.ChatInterface(func_chat, chatbot=chatbot, additional_inputs=[sess])
+    chatbot = gr.Chatbot(label="Chatbot", show_copy_button=True)
+    chat = ChatBlock(
+        func_chat, chatbot=chatbot, additional_inputs=[sess], additional_outputs=outputs
+    )
     param_state = gr.Textbox(interactive=False)
 
     with gr.Blocks(analytics_enabled=False, title="Welcome to PromptUI") as demo:
@@ -106,6 +111,7 @@ def construct_chat_ui(
                     chat.saved_input,
                     param_state,
                     sess,
+                    *outputs,
                 ],
             )
             with gr.Accordion(label="End chat", open=False):
@@ -162,6 +168,9 @@ def build_chat_ui(config, pipeline_def):
     exported_dir = output_dir.parent / "exported"
     exported_dir.mkdir(parents=True, exist_ok=True)
 
+    resultlog = getattr(pipeline_def, "_promptui_resultlog", ResultLog)
+    allowed_resultlog_callbacks = {i for i in dir(resultlog) if not i.startswith("__")}
+
     def new_chat(*args):
         """Start a new chat function
 
@@ -190,7 +199,14 @@ def build_chat_ui(config, pipeline_def):
         )
 
         gr.Info("New chat session started.")
-        return [], [], None, param_state_str, session
+        return (
+            [],
+            [],
+            None,
+            param_state_str,
+            session,
+            *[None] * len(config.get("outputs", [])),
+        )
 
     def chat(message, history, session, *args):
         """The chat interface
@@ -212,7 +228,18 @@ def build_chat_ui(config, pipeline_def):
                 "No active chat session. Please set the params and click New chat"
             )
 
-        return session(message).content
+        pred = session(message)
+        text_response = pred.content
+
+        additional_outputs = []
+        for output_def in config.get("outputs", []):
+            value = session.last_run.logs(output_def["step"])
+            getter = output_def.get("getter", None)
+            if getter and getter in allowed_resultlog_callbacks:
+                value = getattr(resultlog, getter)(value)
+            additional_outputs.append(value)
+
+        return text_response, *additional_outputs
 
     def end_chat(preference: str, save_log: bool, session):
         """End the chat session

@@ -40,7 +40,7 @@ class LangchainChatLLM(ChatLLM):
                 self._kwargs[param] = params.pop(param)
         super().__init__(**params)
 
-    @Param.decorate(no_cache=True)
+    @Param.auto(cache=False)
     def agent(self) -> BaseLanguageModel:
         return self._lc_class(**self._kwargs)
 
@@ -92,3 +92,9 @@ class LangchainChatLLM(ChatLLM):
             setattr(self.agent, name, value)
         else:
             super().__setattr__(name, value)
+
+    def __getattr__(self, name):
+        if name in self._lc_class.__fields__:
+            getattr(self.agent, name)
+        else:
+            super().__getattr__(name)

@@ -63,19 +63,19 @@ def handle_node(node: dict) -> dict:
     """Convert node definition into promptui-compliant config"""
     config = {}
     for name, param_def in node.get("params", {}).items():
-        if isinstance(param_def["default_callback"], str):
+        if isinstance(param_def["auto_callback"], str):
             continue
         if param_def.get("ignore_ui", False):
             continue
         config[name] = handle_param(param_def)
     for name, node_def in node.get("nodes", {}).items():
-        if isinstance(node_def["default_callback"], str):
+        if isinstance(node_def["auto_callback"], str):
             continue
         if node_def.get("ignore_ui", False):
             continue
         for key, value in handle_node(node_def["default"]).items():
             config[f"{name}.{key}"] = value
-        for key, value in node_def["default_kwargs"].items():
+        for key, value in node_def.get("default_kwargs", {}).items():
             config[f"{name}.{key}"] = config_from_value(value)
 
     return config
@@ -124,11 +124,14 @@ def export_pipeline_to_config(
     if ui_type == "chat":
         params = {f".bot.{k}": v for k, v in handle_node(pipeline_def).items()}
         params["system_message"] = {"component": "text", "params": {"value": ""}}
+        outputs = []
+        if hasattr(pipeline, "_promptui_outputs"):
+            outputs = pipeline._promptui_outputs
         config_obj: dict = {
             "ui-type": ui_type,
             "params": params,
             "inputs": {},
-            "outputs": [],
+            "outputs": outputs,
             "logs": {
                 "full_pipeline": {
                     "input": {

@@ -1,8 +1,10 @@
 import os
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
-from theflow import Node, Param
+from llama_index.readers.base import BaseReader
+from theflow import Node
+from theflow.utils.modules import ObjectInitDeclaration as _
 
 from kotaemon.base import BaseComponent
 from kotaemon.docstores import InMemoryDocumentStore
@@ -32,33 +34,22 @@ class ReaderIndexingPipeline(BaseComponent):
     # Expose variables for users to switch in prompt ui
     storage_path: Path = Path("./storage")
     reader_name: str = "normal"  # "normal" or "mathpix"
-    openai_api_base: str = "https://bleh-dummy-2.openai.azure.com/"
-    openai_api_key: str = os.environ.get("OPENAI_API_KEY", "")
     chunk_size: int = 1024
     chunk_overlap: int = 256
     file_name_list: List[str] = list()
+    vector_store: _[InMemoryVectorStore] = _(InMemoryVectorStore)
+    doc_store: _[InMemoryDocumentStore] = _(InMemoryDocumentStore)
 
-    @Param.decorate()
-    def vector_store(self):
-        return InMemoryVectorStore()
-
-    @Param.decorate()
-    def doc_store(self):
-        doc_store = InMemoryDocumentStore()
-        return doc_store
-
-    @Node.decorate(depends_on=["openai_api_base", "openai_api_key"])
-    def embedding(self):
-        return AzureOpenAIEmbeddings(
-            model="text-embedding-ada-002",
-            deployment="dummy-q2-text-embedding",
-            openai_api_base=self.openai_api_base,
-            openai_api_key=self.openai_api_key,
-        )
+    embedding: AzureOpenAIEmbeddings = AzureOpenAIEmbeddings.withx(
+        model="text-embedding-ada-002",
+        deployment="dummy-q2-text-embedding",
+        openai_api_base="https://bleh-dummy-2.openai.azure.com/",
+        openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
+    )
 
     def get_reader(self, input_files: List[Union[str, Path]]):
         # document parsers
-        file_extractor = {
+        file_extractor: Dict[str, BaseReader] = {
             ".xlsx": PandasExcelReader(),
         }
         if self.reader_name == "normal":
@@ -71,7 +62,7 @@ class ReaderIndexingPipeline(BaseComponent):
         )
         return main_reader
 
-    @Node.decorate(depends_on=["doc_store", "vector_store", "embedding"])
+    @Node.auto(depends_on=["doc_store", "vector_store", "embedding"])
     def indexing_vector_pipeline(self):
         return IndexVectorStoreFromDocumentPipeline(
             doc_store=self.doc_store,
@@ -79,12 +70,9 @@ class ReaderIndexingPipeline(BaseComponent):
             embedding=self.embedding,
         )
 
-    @Node.decorate(depends_on=["chunk_size", "chunk_overlap"])
-    def text_splitter(self):
-        # chunking using NodeParser from llama-index
-        return SimpleNodeParser(
-            chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap
-        )
+    text_splitter: SimpleNodeParser = SimpleNodeParser.withx(
+        chunk_size=1024, chunk_overlap=256
+    )
 
     def run(
         self,

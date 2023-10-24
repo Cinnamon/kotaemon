@@ -3,7 +3,7 @@ from pathlib import Path
 from langchain.schema import Document as LangchainDocument
 from llama_index.node_parser import SimpleNodeParser
 
-from kotaemon.documents.base import Document, HaystackDocument
+from kotaemon.documents.base import Document
 from kotaemon.loaders import AutoReader
 
 
@@ -18,10 +18,6 @@ def test_pdf_reader():
     first_doc = documents[0]
     assert isinstance(first_doc, Document)
     assert first_doc.text.lower().replace(" ", "") == "dummypdffile"
-
-    # check conversion output
-    haystack_doc = first_doc.to_haystack_format()
-    assert isinstance(haystack_doc, HaystackDocument)
 
     langchain_doc = first_doc.to_langchain_format()
     assert isinstance(langchain_doc, LangchainDocument)

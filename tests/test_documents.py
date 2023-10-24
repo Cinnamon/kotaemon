@@ -1,6 +1,6 @@
-from haystack.schema import Document as HaystackDocument
-
 from kotaemon.documents.base import Document, RetrievedDocument
+
+from .conftest import skip_when_haystack_not_installed
 
 
 def test_document_constructor_with_builtin_types():
@@ -19,7 +19,10 @@ def test_document_constructor_with_document():
     assert doc2.content == doc1.content
 
 
+@skip_when_haystack_not_installed
 def test_document_to_haystack_format():
+    from haystack.schema import Document as HaystackDocument
+
     text = "Sample text"
     metadata = {"filename": "sample.txt"}
     doc = Document(text, metadata=metadata)

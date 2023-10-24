@@ -61,6 +61,9 @@ def from_log_to_dict(pipeline_cls: Type[BaseComponent], log_config: dict) -> dic
                 if name not in logged_infos:
                     logged_infos[name] = [None] * len(dirs)
 
+                if step not in progress:
+                    continue
+
                 info = progress[step]
                 if getter:
                     if getter in allowed_resultlog_callbacks:

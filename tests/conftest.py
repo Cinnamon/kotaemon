@@ -13,3 +13,17 @@ def mock_google_search(monkeypatch):
         )
 
     monkeypatch.setattr(googlesearch, "search", result)
+
+
+def if_haystack_not_installed():
+    try:
+        import haystack  # noqa: F401
+    except ImportError:
+        return True
+    else:
+        return False
+
+
+skip_when_haystack_not_installed = pytest.mark.skipif(
+    if_haystack_not_installed(), reason="Haystack is not installed"
+)

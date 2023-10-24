@@ -1,9 +1,10 @@
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
-from haystack.schema import Document as HaystackDocument
 from llama_index.bridge.pydantic import Field
 from llama_index.schema import Document as BaseDocument
-from pyparsing import TypeVar
+
+if TYPE_CHECKING:
+    from haystack.schema import Document as HaystackDocument
 
 IO_Type = TypeVar("IO_Type", "Document", str)
 SAMPLE_TEXT = "A sample Document from kotaemon"
@@ -49,6 +50,8 @@ class Document(BaseDocument):
 
     def to_haystack_format(self) -> "HaystackDocument":
         """Convert struct to Haystack document format."""
+        from haystack.schema import Document as HaystackDocument
+
         metadata = self.metadata or {}
         text = self.text
         return HaystackDocument(content=text, meta=metadata)

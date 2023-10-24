@@ -69,8 +69,8 @@ class Thought(BaseComponent):
         "variable placeholders, that then will be subsituted with real values when "
         "this component is executed"
     )
-    llm = Node(
-        default=AzureChatOpenAI, help="The LLM model to execute the input prompt"
+    llm: Node[BaseComponent] = Node(
+        AzureChatOpenAI, help="The LLM model to execute the input prompt"
     )
     post_process: Node[Compose] = Node(
         help="The function post-processor that post-processes LLM output prediction ."
@@ -78,7 +78,7 @@ class Thought(BaseComponent):
         "a dictionary, where the key should"
     )
 
-    @Node.decorate(depends_on="prompt")
+    @Node.auto(depends_on="prompt")
     def prompt_template(self):
         """Automatically wrap around param prompt. Can ignore"""
         return BasePromptComponent(self.prompt)

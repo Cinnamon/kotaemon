@@ -32,5 +32,5 @@ class LLMTool(BaseTool):
             response = self.llm(query)
         except ValueError:
             raise ToolException("LLM Tool call failed")
-        output = response.text[0]
+        output = response.text
         return output

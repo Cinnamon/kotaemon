@@ -10,4 +10,4 @@ class SimpleRespondentChatbot(BaseChatBot):
     llm: Node[ChatLLM]
 
     def _get_message(self) -> str:
-        return self.llm(self.history).text[0]
+        return self.llm(self.history).text

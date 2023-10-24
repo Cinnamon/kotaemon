@@ -27,7 +27,7 @@ class LangchainLLM(LLM):
                 self._kwargs[param] = params.pop(param)
         super().__init__(**params)
 
-    @Param.decorate(no_cache=True)
+    @Param.auto(cache=False)
     def agent(self):
         return self._lc_class(**self._kwargs)
 

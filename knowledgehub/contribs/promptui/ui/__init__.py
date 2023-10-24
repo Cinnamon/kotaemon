@@ -26,9 +26,9 @@ def build_from_dict(config: Union[str, dict]):
     for key, value in config_dict.items():
         pipeline_def = import_dotted_string(key, safe=False)
         if value["ui-type"] == "chat":
-            demos.append(build_chat_ui(value, pipeline_def))
+            demos.append(build_chat_ui(value, pipeline_def).queue())
         else:
-            demos.append(build_pipeline_ui(value, pipeline_def))
+            demos.append(build_pipeline_ui(value, pipeline_def).queue())
     if len(demos) == 1:
         demo = demos[0]
     else:
