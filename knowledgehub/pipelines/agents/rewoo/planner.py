@@ -75,8 +75,8 @@ class Planner(BaseComponent):
         try:
             response = self.model(prompt)
             output.info("Planner run successful.")
-        except ValueError:
+        except ValueError as e:
             output.error("Planner failed to retrieve response from LLM")
-            raise ValueError("Planner failed to retrieve response from LLM")
+            raise ValueError("Planner failed to retrieve response from LLM") from e
 
         return response

@@ -3,7 +3,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from openai.api_resources.embedding import Embedding
+from openai.resources.embeddings import Embeddings
+from openai.types.chat.chat_completion import ChatCompletion
 
 from kotaemon.llms.chats.openai import AzureChatOpenAI
 from kotaemon.pipelines.ingest import ReaderIndexingPipeline
@@ -12,32 +13,37 @@ with open(Path(__file__).parent / "resources" / "embedding_openai.json") as f:
     openai_embedding = json.load(f)
 
 
-_openai_chat_completion_response = {
-    "id": "chatcmpl-7qyuw6Q1CFCpcKsMdFkmUPUa7JP2x",
-    "object": "chat.completion",
-    "created": 1692338378,
-    "model": "gpt-35-turbo",
-    "choices": [
-        {
-            "index": 0,
-            "finish_reason": "stop",
-            "message": {
-                "role": "assistant",
-                "content": "Hello! How can I assist you today?",
-            },
-        }
-    ],
-    "usage": {"completion_tokens": 9, "prompt_tokens": 10, "total_tokens": 19},
-}
+_openai_chat_completion_response = ChatCompletion.parse_obj(
+    {
+        "id": "chatcmpl-7qyuw6Q1CFCpcKsMdFkmUPUa7JP2x",
+        "object": "chat.completion",
+        "created": 1692338378,
+        "model": "gpt-35-turbo",
+        "system_fingerprint": None,
+        "choices": [
+            {
+                "index": 0,
+                "finish_reason": "stop",
+                "message": {
+                    "role": "assistant",
+                    "content": "Hello! How can I assist you today?",
+                    "function_call": None,
+                    "tool_calls": None,
+                },
+            }
+        ],
+        "usage": {"completion_tokens": 9, "prompt_tokens": 10, "total_tokens": 19},
+    }
+)
 
 
 @pytest.fixture(scope="function")
 def mock_openai_embedding(monkeypatch):
-    monkeypatch.setattr(Embedding, "create", lambda *args, **kwargs: openai_embedding)
+    monkeypatch.setattr(Embeddings, "create", lambda *args, **kwargs: openai_embedding)
 
 
 @patch(
-    "openai.api_resources.chat_completion.ChatCompletion.create",
+    "openai.resources.chat.completions.Completions.create",
     side_effect=lambda *args, **kwargs: _openai_chat_completion_response,
 )
 def test_ingest_pipeline(patch, mock_openai_embedding, tmp_path):
@@ -61,7 +67,6 @@ def test_ingest_pipeline(patch, mock_openai_embedding, tmp_path):
         openai_api_version="2023-03-15-preview",
         deployment_name="gpt35turbo",
         temperature=0,
-        request_timeout=60,
     )
     qa_pipeline = indexing_pipeline.to_qa_pipeline(llm=llm, openai_api_key="some-key")
     response = qa_pipeline("Summarize this document.")

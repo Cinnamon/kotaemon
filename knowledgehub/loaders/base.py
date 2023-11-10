@@ -8,7 +8,7 @@ from ..base import BaseComponent
 from ..documents.base import Document
 
 
-class AutoReader(BaseComponent, BaseReader):
+class AutoReader(BaseComponent):
     """General auto reader for a variety of files. (based on llama-hub)"""
 
     def __init__(self, reader_type: Union[str, Type[BaseReader]]) -> None:
@@ -31,7 +31,7 @@ class AutoReader(BaseComponent, BaseReader):
         return self.load_data(file=file, **kwargs)
 
 
-class LIBaseReader(BaseComponent, BaseReader):
+class LIBaseReader(BaseComponent):
     _reader_class: Type[BaseReader]
 
     def __init__(self, *args, **kwargs):

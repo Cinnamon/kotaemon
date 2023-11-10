@@ -2,31 +2,37 @@ from unittest.mock import patch
 
 from langchain.chat_models import AzureChatOpenAI as AzureChatOpenAILC
 from langchain.schema.messages import AIMessage, HumanMessage, SystemMessage
+from openai.types.chat.chat_completion import ChatCompletion
 
 from kotaemon.llms.base import LLMInterface
 from kotaemon.llms.chats.openai import AzureChatOpenAI
 
-_openai_chat_completion_response = {
-    "id": "chatcmpl-7qyuw6Q1CFCpcKsMdFkmUPUa7JP2x",
-    "object": "chat.completion",
-    "created": 1692338378,
-    "model": "gpt-35-turbo",
-    "choices": [
-        {
-            "index": 0,
-            "finish_reason": "stop",
-            "message": {
-                "role": "assistant",
-                "content": "Hello! How can I assist you today?",
-            },
-        }
-    ],
-    "usage": {"completion_tokens": 9, "prompt_tokens": 10, "total_tokens": 19},
-}
+_openai_chat_completion_response = ChatCompletion.parse_obj(
+    {
+        "id": "chatcmpl-7qyuw6Q1CFCpcKsMdFkmUPUa7JP2x",
+        "object": "chat.completion",
+        "created": 1692338378,
+        "model": "gpt-35-turbo",
+        "system_fingerprint": None,
+        "choices": [
+            {
+                "index": 0,
+                "finish_reason": "stop",
+                "message": {
+                    "role": "assistant",
+                    "content": "Hello! How can I assist you today?",
+                    "function_call": None,
+                    "tool_calls": None,
+                },
+            }
+        ],
+        "usage": {"completion_tokens": 9, "prompt_tokens": 10, "total_tokens": 19},
+    }
+)
 
 
 @patch(
-    "openai.api_resources.chat_completion.ChatCompletion.create",
+    "openai.resources.chat.completions.Completions.create",
     side_effect=lambda *args, **kwargs: _openai_chat_completion_response,
 )
 def test_azureopenai_model(openai_completion):
@@ -36,7 +42,6 @@ def test_azureopenai_model(openai_completion):
         openai_api_version="2023-03-15-preview",
         deployment_name="gpt35turbo",
         temperature=0,
-        request_timeout=60,
     )
     assert isinstance(
         model.agent, AzureChatOpenAILC

@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+from openai.types.chat.chat_completion import ChatCompletion
 
 from kotaemon.llms.chats.openai import AzureChatOpenAI
 from kotaemon.pipelines.agents.react import ReactAgent
@@ -14,24 +15,30 @@ from kotaemon.pipelines.tools import (
 
 FINAL_RESPONSE_TEXT = "Hello Cinnamon AI!"
 
+
 _openai_chat_completion_responses_rewoo = [
-    {
-        "id": "chatcmpl-7qyuw6Q1CFCpcKsMdFkmUPUa7JP2x",
-        "object": "chat.completion",
-        "created": 1692338378,
-        "model": "gpt-35-turbo",
-        "choices": [
-            {
-                "index": 0,
-                "finish_reason": "stop",
-                "message": {
-                    "role": "assistant",
-                    "content": text,
-                },
-            }
-        ],
-        "usage": {"completion_tokens": 9, "prompt_tokens": 10, "total_tokens": 19},
-    }
+    ChatCompletion.parse_obj(
+        {
+            "id": "chatcmpl-7qyuw6Q1CFCpcKsMdFkmUPUa7JP2x",
+            "object": "chat.completion",
+            "created": 1692338378,
+            "model": "gpt-35-turbo",
+            "system_fingerprint": None,
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "stop",
+                    "message": {
+                        "role": "assistant",
+                        "content": text,
+                        "function_call": None,
+                        "tool_calls": None,
+                    },
+                }
+            ],
+            "usage": {"completion_tokens": 9, "prompt_tokens": 10, "total_tokens": 19},
+        }
+    )
     for text in [
         (
             "#Plan1: Search for Cinnamon AI company on Google\n"
@@ -44,23 +51,28 @@ _openai_chat_completion_responses_rewoo = [
 ]
 
 _openai_chat_completion_responses_react = [
-    {
-        "id": "chatcmpl-7qyuw6Q1CFCpcKsMdFkmUPUa7JP2x",
-        "object": "chat.completion",
-        "created": 1692338378,
-        "model": "gpt-35-turbo",
-        "choices": [
-            {
-                "index": 0,
-                "finish_reason": "stop",
-                "message": {
-                    "role": "assistant",
-                    "content": text,
-                },
-            }
-        ],
-        "usage": {"completion_tokens": 9, "prompt_tokens": 10, "total_tokens": 19},
-    }
+    ChatCompletion.parse_obj(
+        {
+            "id": "chatcmpl-7qyuw6Q1CFCpcKsMdFkmUPUa7JP2x",
+            "object": "chat.completion",
+            "created": 1692338378,
+            "model": "gpt-35-turbo",
+            "system_fingerprint": None,
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "stop",
+                    "message": {
+                        "role": "assistant",
+                        "content": text,
+                        "function_call": None,
+                        "tool_calls": None,
+                    },
+                }
+            ],
+            "usage": {"completion_tokens": 9, "prompt_tokens": 10, "total_tokens": 19},
+        }
+    )
     for text in [
         (
             "I don't have prior knowledge about Cinnamon AI company, "
@@ -82,23 +94,28 @@ _openai_chat_completion_responses_react = [
 ]
 
 _openai_chat_completion_responses_react_langchain_tool = [
-    {
-        "id": "chatcmpl-7qyuw6Q1CFCpcKsMdFkmUPUa7JP2x",
-        "object": "chat.completion",
-        "created": 1692338378,
-        "model": "gpt-35-turbo",
-        "choices": [
-            {
-                "index": 0,
-                "finish_reason": "stop",
-                "message": {
-                    "role": "assistant",
-                    "content": text,
-                },
-            }
-        ],
-        "usage": {"completion_tokens": 9, "prompt_tokens": 10, "total_tokens": 19},
-    }
+    ChatCompletion.parse_obj(
+        {
+            "id": "chatcmpl-7qyuw6Q1CFCpcKsMdFkmUPUa7JP2x",
+            "object": "chat.completion",
+            "created": 1692338378,
+            "model": "gpt-35-turbo",
+            "system_fingerprint": None,
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "stop",
+                    "message": {
+                        "role": "assistant",
+                        "content": text,
+                        "function_call": None,
+                        "tool_calls": None,
+                    },
+                }
+            ],
+            "usage": {"completion_tokens": 9, "prompt_tokens": 10, "total_tokens": 19},
+        }
+    )
     for text in [
         (
             "I don't have prior knowledge about Cinnamon AI company, "
@@ -123,7 +140,7 @@ _openai_chat_completion_responses_react_langchain_tool = [
 @pytest.fixture
 def llm():
     return AzureChatOpenAI(
-        openai_api_base="https://dummy.openai.azure.com/",
+        azure_endpoint="https://dummy.openai.azure.com/",
         openai_api_key="dummy",
         openai_api_version="2023-03-15-preview",
         deployment_name="dummy-q2",
@@ -132,7 +149,7 @@ def llm():
 
 
 @patch(
-    "openai.api_resources.chat_completion.ChatCompletion.create",
+    "openai.resources.chat.completions.Completions.create",
     side_effect=_openai_chat_completion_responses_rewoo,
 )
 def test_rewoo_agent(openai_completion, llm, mock_google_search):
@@ -150,7 +167,7 @@ def test_rewoo_agent(openai_completion, llm, mock_google_search):
 
 
 @patch(
-    "openai.api_resources.chat_completion.ChatCompletion.create",
+    "openai.resources.chat.completions.Completions.create",
     side_effect=_openai_chat_completion_responses_react,
 )
 def test_react_agent(openai_completion, llm, mock_google_search):
@@ -167,7 +184,7 @@ def test_react_agent(openai_completion, llm, mock_google_search):
 
 
 @patch(
-    "openai.api_resources.chat_completion.ChatCompletion.create",
+    "openai.resources.chat.completions.Completions.create",
     side_effect=_openai_chat_completion_responses_react,
 )
 def test_react_agent_langchain(openai_completion, llm, mock_google_search):
@@ -191,7 +208,7 @@ def test_react_agent_langchain(openai_completion, llm, mock_google_search):
 
 
 @patch(
-    "openai.api_resources.chat_completion.ChatCompletion.create",
+    "openai.resources.chat.completions.Completions.create",
     side_effect=_openai_chat_completion_responses_react_langchain_tool,
 )
 def test_react_agent_with_langchain_tools(openai_completion, llm):

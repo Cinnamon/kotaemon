@@ -1,32 +1,39 @@
 from unittest.mock import patch
 
+from openai.types.chat.chat_completion import ChatCompletion
+
 from kotaemon.llms.chats.openai import AzureChatOpenAI
 from kotaemon.pipelines.cot import ManualSequentialChainOfThought, Thought
 
 _openai_chat_completion_response = [
-    {
-        "id": "chatcmpl-7qyuw6Q1CFCpcKsMdFkmUPUa7JP2x",
-        "object": "chat.completion",
-        "created": 1692338378,
-        "model": "gpt-35-turbo",
-        "choices": [
-            {
-                "index": 0,
-                "finish_reason": "stop",
-                "message": {
-                    "role": "assistant",
-                    "content": text,
-                },
-            }
-        ],
-        "usage": {"completion_tokens": 9, "prompt_tokens": 10, "total_tokens": 19},
-    }
+    ChatCompletion.parse_obj(
+        {
+            "id": "chatcmpl-7qyuw6Q1CFCpcKsMdFkmUPUa7JP2x",
+            "object": "chat.completion",
+            "created": 1692338378,
+            "model": "gpt-35-turbo",
+            "system_fingerprint": None,
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "stop",
+                    "message": {
+                        "role": "assistant",
+                        "content": text,
+                        "function_call": None,
+                        "tool_calls": None,
+                    },
+                }
+            ],
+            "usage": {"completion_tokens": 9, "prompt_tokens": 10, "total_tokens": 19},
+        }
+    )
     for text in ["Bonjour", "こんにちは (Konnichiwa)"]
 ]
 
 
 @patch(
-    "openai.api_resources.chat_completion.ChatCompletion.create",
+    "openai.resources.chat.completions.Completions.create",
     side_effect=_openai_chat_completion_response,
 )
 def test_cot_plus_operator(openai_completion):
@@ -58,7 +65,7 @@ def test_cot_plus_operator(openai_completion):
 
 
 @patch(
-    "openai.api_resources.chat_completion.ChatCompletion.create",
+    "openai.resources.chat.completions.Completions.create",
     side_effect=_openai_chat_completion_response,
 )
 def test_cot_manual(openai_completion):
@@ -88,7 +95,7 @@ def test_cot_manual(openai_completion):
 
 
 @patch(
-    "openai.api_resources.chat_completion.ChatCompletion.create",
+    "openai.resources.chat.completions.Completions.create",
     side_effect=_openai_chat_completion_response,
 )
 def test_cot_with_termination_callback(openai_completion):

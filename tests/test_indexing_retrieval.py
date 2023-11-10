@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import cast
 
 import pytest
-from openai.api_resources.embedding import Embedding
+from openai.resources.embeddings import Embeddings
 
 from kotaemon.docstores import InMemoryDocumentStore
 from kotaemon.documents.base import Document
@@ -18,7 +18,7 @@ with open(Path(__file__).parent / "resources" / "embedding_openai.json") as f:
 
 @pytest.fixture(scope="function")
 def mock_openai_embedding(monkeypatch):
-    monkeypatch.setattr(Embedding, "create", lambda *args, **kwargs: openai_embedding)
+    monkeypatch.setattr(Embeddings, "create", lambda *args, **kwargs: openai_embedding)
 
 
 def test_indexing(mock_openai_embedding, tmp_path):

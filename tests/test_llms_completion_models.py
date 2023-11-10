@@ -2,24 +2,33 @@ from unittest.mock import patch
 
 from langchain.llms import AzureOpenAI as AzureOpenAILC
 from langchain.llms import OpenAI as OpenAILC
+from openai.types.completion import Completion
 
 from kotaemon.llms.base import LLMInterface
 from kotaemon.llms.completions.openai import AzureOpenAI, OpenAI
 
-_openai_completion_response = {
-    "id": "cmpl-7qyNoIo6gRSCJR0hi8o3ZKBH4RkJ0",
-    "object": "sample text_completion",
-    "created": 1392751226,
-    "model": "gpt-35-turbo",
-    "choices": [
-        {"text": "completion", "index": 0, "finish_reason": "length", "logprobs": None}
-    ],
-    "usage": {"completion_tokens": 20, "prompt_tokens": 2, "total_tokens": 22},
-}
+_openai_completion_response = Completion.parse_obj(
+    {
+        "id": "cmpl-7qyNoIo6gRSCJR0hi8o3ZKBH4RkJ0",
+        "object": "text_completion",
+        "created": 1392751226,
+        "model": "gpt-35-turbo",
+        "system_fingerprint": None,
+        "choices": [
+            {
+                "text": "completion",
+                "index": 0,
+                "finish_reason": "length",
+                "logprobs": None,
+            }
+        ],
+        "usage": {"completion_tokens": 20, "prompt_tokens": 2, "total_tokens": 22},
+    }
+)
 
 
 @patch(
-    "openai.api_resources.completion.Completion.create",
+    "openai.resources.completions.Completions.create",
     side_effect=lambda *args, **kwargs: _openai_completion_response,
 )
 def test_azureopenai_model(openai_completion):
@@ -47,7 +56,7 @@ def test_azureopenai_model(openai_completion):
 
 
 @patch(
-    "openai.api_resources.completion.Completion.create",
+    "openai.resources.completions.Completions.create",
     side_effect=lambda *args, **kwargs: _openai_completion_response,
 )
 def test_openai_model(openai_completion):
