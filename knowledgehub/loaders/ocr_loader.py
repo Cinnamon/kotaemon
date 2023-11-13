@@ -7,78 +7,81 @@ from llama_index.readers.base import BaseReader
 
 from kotaemon.documents import Document
 
-from .utils.table import (
-    extract_tables_from_csv_string,
-    get_table_from_ocr,
-    strip_special_chars_markdown,
-)
+from .utils.pdf_ocr import parse_ocr_output, read_pdf_unstructured
+from .utils.table import strip_special_chars_markdown
 
 DEFAULT_OCR_ENDPOINT = "http://127.0.0.1:8000/v2/ai/infer/"
 
 
 class OCRReader(BaseReader):
-    def __init__(self, endpoint: str = DEFAULT_OCR_ENDPOINT):
+    def __init__(self, endpoint: str = DEFAULT_OCR_ENDPOINT, use_ocr=True):
         """Init the OCR reader with OCR endpoint (FullOCR pipeline)
 
         Args:
             endpoint: URL to FullOCR endpoint. Defaults to OCR_ENDPOINT.
+            use_ocr: whether to use OCR to read text
+                (e.g: from images, tables) in the PDF
         """
         super().__init__()
         self.ocr_endpoint = endpoint
+        self.use_ocr = use_ocr
 
     def load_data(
         self,
-        file: Path,
+        file_path: Path,
         **kwargs,
     ) -> List[Document]:
+        """Load data using OCR reader
 
+        Args:
+            file_path (Path): Path to PDF file
+            debug_path (Path): Path to store debug image output
+            artifact_path (Path): Path to OCR endpoints artifacts directory
+
+        Returns:
+            List[Document]: list of documents extracted from the PDF file
+        """
         # create input params for the requests
-        content = open(file, "rb")
+        content = open(file_path, "rb")
         files = {"input": content}
-        data = {"job_id": uuid4()}
+        data = {"job_id": uuid4(), "table_only": not self.use_ocr}
 
-        # init list of output documents
-        documents = []
-        all_table_csv_list = []
-        all_non_table_texts = []
+        debug_path = kwargs.pop("debug_path", None)
+        artifact_path = kwargs.pop("artifact_path", None)
 
         # call the API from FullOCR endpoint
         if "response_content" in kwargs:
             # overriding response content if specified
-            results = kwargs["response_content"]
+            ocr_results = kwargs["response_content"]
         else:
             # call original API
             resp = requests.post(url=self.ocr_endpoint, files=files, data=data)
-            results = resp.json()["result"]
+            ocr_results = resp.json()["result"]
 
-        for _id, each in enumerate(results):
-            csv_content = each["csv_string"]
-            table = each["json"]["table"]
-            ocr = each["json"]["ocr"]
-
-            # using helper function to extract list of table texts from FullOCR output
-            table_texts = get_table_from_ocr(ocr, table)
-            # extract the formatted CSV table from specified text
-            csv_list, non_table_text = extract_tables_from_csv_string(
-                csv_content, table_texts
-            )
-            all_table_csv_list.extend([(csv, _id) for csv in csv_list])
-            all_non_table_texts.append((non_table_text, _id))
+        # read PDF through normal reader (unstructured)
+        pdf_page_items = read_pdf_unstructured(file_path)
+        # merge PDF text output with OCR output
+        tables, texts = parse_ocr_output(
+            ocr_results,
+            pdf_page_items,
+            debug_path=debug_path,
+            artifact_path=artifact_path,
+        )
 
         # create output Document with metadata from table
         documents = [
             Document(
-                text=strip_special_chars_markdown(csv),
+                text=strip_special_chars_markdown(table_text),
                 metadata={
-                    "table_origin": csv,
+                    "table_origin": table_text,
                     "type": "table",
                     "page_label": page_id + 1,
-                    "source": file.name,
+                    "source": file_path.name,
                 },
                 metadata_template="",
                 metadata_seperator="",
             )
-            for csv, page_id in all_table_csv_list
+            for page_id, table_text in tables
         ]
         # create Document from non-table text
         documents.extend(
@@ -87,10 +90,10 @@ class OCRReader(BaseReader):
                     text=non_table_text,
                     metadata={
                         "page_label": page_id + 1,
-                        "source": file.name,
+                        "source": file_path.name,
                     },
                 )
-                for non_table_text, page_id in all_non_table_texts
+                for page_id, non_table_text in texts
             ]
         )
 

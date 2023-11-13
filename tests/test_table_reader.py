@@ -5,7 +5,7 @@ import pytest
 
 from kotaemon.loaders import MathpixPDFReader, OCRReader, PandasExcelReader
 
-input_file = Path(__file__).parent / "resources" / "dummy.pdf"
+input_file = Path(__file__).parent / "resources" / "table.pdf"
 input_file_excel = Path(__file__).parent / "resources" / "dummy.xlsx"
 
 
@@ -30,7 +30,7 @@ def test_ocr_reader(fullocr_output):
     reader = OCRReader()
     documents = reader.load_data(input_file, response_content=fullocr_output)
     table_docs = [doc for doc in documents if doc.metadata.get("type", "") == "table"]
-    assert len(table_docs) == 4
+    assert len(table_docs) == 2
 
 
 def test_mathpix_reader(mathpix_output):

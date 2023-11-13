@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import List
 
-from theflow import Node, Param
+from theflow import Node
 from theflow.utils.modules import ObjectInitDeclaration as _
 
 from kotaemon.base import BaseComponent
@@ -43,8 +43,8 @@ class QuestionAnsweringPipeline(BaseComponent):
         request_timeout=60,
     )
 
-    vector_store: Param[InMemoryVectorStore] = Param(_(InMemoryVectorStore))
-    doc_store: Param[InMemoryDocumentStore] = Param(_(InMemoryDocumentStore))
+    vector_store: _[InMemoryVectorStore] = _(InMemoryVectorStore)
+    doc_store: _[InMemoryDocumentStore] = _(InMemoryDocumentStore)
 
     embedding: AzureOpenAIEmbeddings = AzureOpenAIEmbeddings.withx(
         model="text-embedding-ada-002",

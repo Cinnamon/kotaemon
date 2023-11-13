@@ -70,9 +70,11 @@ class ReaderIndexingPipeline(BaseComponent):
             embedding=self.embedding,
         )
 
-    text_splitter: SimpleNodeParser = SimpleNodeParser.withx(
-        chunk_size=1024, chunk_overlap=256
-    )
+    @Node.auto(depends_on=["chunk_size", "chunk_overlap"])
+    def text_splitter(self) -> SimpleNodeParser:
+        return SimpleNodeParser(
+            chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap
+        )
 
     def run(
         self,
