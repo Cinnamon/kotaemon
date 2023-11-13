@@ -54,12 +54,6 @@ def test_azureopenai_model(openai_completion):
     ), "Output for single text is not LLMInterface"
     openai_completion.assert_called()
 
-    # test for list[str] input - batch mode
-    output = model(["hello world"])
-    assert isinstance(output, list), "Output for batch string is not a list"
-    assert isinstance(output[0], LLMInterface), "Output for text is not LLMInterface"
-    openai_completion.assert_called()
-
     # test for list[message] input - stream mode
     messages = [
         SystemMessage(content="You are a philosohper"),
@@ -72,10 +66,4 @@ def test_azureopenai_model(openai_completion):
     assert isinstance(
         output, LLMInterface
     ), "Output for single text is not LLMInterface"
-    openai_completion.assert_called()
-
-    # test for list[list[message]] input - batch mode
-    output = model([messages])
-    assert isinstance(output, list), "Output for batch string is not a list"
-    assert isinstance(output[0], LLMInterface), "Output for text is not LLMInterface"
     openai_completion.assert_called()

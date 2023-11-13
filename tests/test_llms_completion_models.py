@@ -44,11 +44,6 @@ def test_azureopenai_model(openai_completion):
         model.agent, AzureOpenAILC
     ), "Agent not wrapped in Langchain's AzureOpenAI"
 
-    output = model(["hello world"])
-    assert isinstance(output, list), "Output for batch is not a list"
-    assert isinstance(output[0], LLMInterface), "Output for text is not LLMInterface"
-    openai_completion.assert_called()
-
     output = model("hello world")
     assert isinstance(
         output, LLMInterface
@@ -71,11 +66,6 @@ def test_openai_model(openai_completion):
     assert isinstance(
         model.agent, OpenAILC
     ), "Agent is not wrapped in Langchain's OpenAI"
-
-    output = model(["hello world"])
-    assert isinstance(output, list), "Output for batch is not a list"
-    assert isinstance(output[0], LLMInterface), "Output for text is not LLMInterface"
-    openai_completion.assert_called()
 
     output = model("hello world")
     assert isinstance(

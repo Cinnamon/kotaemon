@@ -1,4 +1,7 @@
+from copy import deepcopy
+
 import pytest
+from openai.types.chat.chat_completion import ChatCompletion
 
 from kotaemon.composite import (
     GatedBranchingPipeline,
@@ -10,6 +13,29 @@ from kotaemon.llms.chats.openai import AzureChatOpenAI
 from kotaemon.post_processing.extractor import RegexExtractor
 from kotaemon.prompt.base import BasePromptComponent
 
+_openai_chat_completion_response = ChatCompletion.parse_obj(
+    {
+        "id": "chatcmpl-7qyuw6Q1CFCpcKsMdFkmUPUa7JP2x",
+        "object": "chat.completion",
+        "created": 1692338378,
+        "model": "gpt-35-turbo",
+        "system_fingerprint": None,
+        "choices": [
+            {
+                "index": 0,
+                "finish_reason": "stop",
+                "message": {
+                    "role": "assistant",
+                    "content": "This is a test 123",
+                    "finish_reason": "length",
+                    "logprobs": None,
+                },
+            }
+        ],
+        "usage": {"completion_tokens": 9, "prompt_tokens": 10, "total_tokens": 19},
+    }
+)
+
 
 @pytest.fixture
 def mock_llm():
@@ -19,7 +45,6 @@ def mock_llm():
         openai_api_version="OPENAI_API_VERSION",
         deployment_name="dummy-q2-gpt35",
         temperature=0,
-        request_timeout=600,
     )
 
 
@@ -61,11 +86,12 @@ def mock_gated_linear_pipeline_negative(mock_prompt, mock_llm, mock_post_process
 
 
 def test_simple_linear_pipeline_run(mocker, mock_simple_linear_pipeline):
-    openai_mocker = mocker.patch.object(
-        AzureChatOpenAI, "run", return_value="This is a test 123"
+    openai_mocker = mocker.patch(
+        "openai.resources.chat.completions.Completions.create",
+        return_value=_openai_chat_completion_response,
     )
 
-    result = mock_simple_linear_pipeline.run(value="abc")
+    result = mock_simple_linear_pipeline(value="abc")
 
     assert result.text == "123"
     assert openai_mocker.call_count == 1
@@ -74,11 +100,12 @@ def test_simple_linear_pipeline_run(mocker, mock_simple_linear_pipeline):
 def test_gated_linear_pipeline_run_positive(
     mocker, mock_gated_linear_pipeline_positive
 ):
-    openai_mocker = mocker.patch.object(
-        AzureChatOpenAI, "run", return_value="This is a test 123."
+    openai_mocker = mocker.patch(
+        "openai.resources.chat.completions.Completions.create",
+        return_value=_openai_chat_completion_response,
     )
 
-    result = mock_gated_linear_pipeline_positive.run(
+    result = mock_gated_linear_pipeline_positive(
         value="abc", condition_text="positive condition"
     )
 
@@ -89,11 +116,12 @@ def test_gated_linear_pipeline_run_positive(
 def test_gated_linear_pipeline_run_negative(
     mocker, mock_gated_linear_pipeline_positive
 ):
-    openai_mocker = mocker.patch.object(
-        AzureChatOpenAI, "run", return_value="This is a test 123."
+    openai_mocker = mocker.patch(
+        "openai.resources.chat.completions.Completions.create",
+        return_value=_openai_chat_completion_response,
     )
 
-    result = mock_gated_linear_pipeline_positive.run(
+    result = mock_gated_linear_pipeline_positive(
         value="abc", condition_text="negative condition"
     )
 
@@ -102,14 +130,14 @@ def test_gated_linear_pipeline_run_negative(
 
 
 def test_simple_branching_pipeline_run(mocker, mock_simple_linear_pipeline):
-    openai_mocker = mocker.patch.object(
-        AzureChatOpenAI,
-        "run",
-        side_effect=[
-            "This is a test 123.",
-            "a quick brown fox",
-            "jumps over the lazy dog 456",
-        ],
+    response0: ChatCompletion = _openai_chat_completion_response
+    response1: ChatCompletion = deepcopy(_openai_chat_completion_response)
+    response1.choices[0].message.content = "a quick brown fox"
+    response2: ChatCompletion = deepcopy(_openai_chat_completion_response)
+    response2.choices[0].message.content = "jumps over the lazy dog 456"
+    openai_mocker = mocker.patch(
+        "openai.resources.chat.completions.Completions.create",
+        side_effect=[response0, response1, response2],
     )
     pipeline = SimpleBranchingPipeline()
     for _ in range(3):
@@ -126,8 +154,11 @@ def test_simple_branching_pipeline_run(mocker, mock_simple_linear_pipeline):
 def test_simple_gated_branching_pipeline_run(
     mocker, mock_gated_linear_pipeline_positive, mock_gated_linear_pipeline_negative
 ):
-    openai_mocker = mocker.patch.object(
-        AzureChatOpenAI, "run", return_value="a quick brown fox"
+    response0: ChatCompletion = deepcopy(_openai_chat_completion_response)
+    response0.choices[0].message.content = "a quick brown fox"
+    openai_mocker = mocker.patch(
+        "openai.resources.chat.completions.Completions.create",
+        return_value=response0,
     )
     pipeline = GatedBranchingPipeline()
 

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from abc import abstractmethod
-from typing import List, Type
+from typing import Type
 
 from langchain.schema.embeddings import Embeddings as LCEmbeddings
 from theflow import Param
@@ -10,32 +12,10 @@ from ..documents.base import Document
 
 class BaseEmbeddings(BaseComponent):
     @abstractmethod
-    def run_raw(self, text: str) -> List[float]:
+    def run(
+        self, text: str | list[str] | Document | list[Document]
+    ) -> list[list[float]]:
         ...
-
-    @abstractmethod
-    def run_batch_raw(self, text: List[str]) -> List[List[float]]:
-        ...
-
-    @abstractmethod
-    def run_document(self, text: Document) -> List[float]:
-        ...
-
-    @abstractmethod
-    def run_batch_document(self, text: List[Document]) -> List[List[float]]:
-        ...
-
-    def is_document(self, text) -> bool:
-        if isinstance(text, Document):
-            return True
-        elif isinstance(text, List) and isinstance(text[0], Document):
-            return True
-        return False
-
-    def is_batch(self, text) -> bool:
-        if isinstance(text, list):
-            return True
-        return False
 
 
 class LangchainEmbeddings(BaseEmbeddings):
@@ -64,14 +44,19 @@ class LangchainEmbeddings(BaseEmbeddings):
     def agent(self):
         return self._lc_class(**self._kwargs)
 
-    def run_raw(self, text: str) -> List[float]:
-        return self.agent.embed_query(text)  # type: ignore
+    def run(self, text) -> list[list[float]]:
+        input_: list[str] = []
+        if not isinstance(text, list):
+            text = [text]
 
-    def run_batch_raw(self, text: List[str]) -> List[List[float]]:
-        return self.agent.embed_documents(text)  # type: ignore
+        for item in text:
+            if isinstance(item, str):
+                input_.append(item)
+            elif isinstance(item, Document):
+                input_.append(item.text)
+            else:
+                raise ValueError(
+                    f"Invalid input type {type(item)}, should be str or Document"
+                )
 
-    def run_document(self, text: Document) -> List[float]:
-        return self.agent.embed_query(text.text)  # type: ignore
-
-    def run_batch_document(self, text: List[Document]) -> List[List[float]]:
-        return self.agent.embed_documents([each.text for each in text])  # type: ignore
+        return self.agent.embed_documents(input_)

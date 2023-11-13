@@ -92,7 +92,7 @@ class BaseTool(BaseComponent):
         """Convert this tool to Langchain format to use with its agent"""
         return LCTool(name=self.name, description=self.description, func=self.run)
 
-    def run_raw(
+    def run(
         self,
         tool_input: Union[str, Dict],
         verbose: Optional[bool] = None,
@@ -109,23 +109,6 @@ class BaseTool(BaseComponent):
             return observation
         else:
             return observation
-
-    def run_document(self, *args, **kwargs):
-        pass
-
-    def run_batch_raw(self, *args, **kwargs):
-        pass
-
-    def run_batch_document(self, *args, **kwargs):
-        pass
-
-    def is_document(self, *args, **kwargs) -> bool:
-        """Tool does not support processing document"""
-        return False
-
-    def is_batch(self, *args, **kwargs) -> bool:
-        """Tool does not support processing batch"""
-        return False
 
     @classmethod
     def from_langchain_format(cls, langchain_tool: LCTool) -> "BaseTool":

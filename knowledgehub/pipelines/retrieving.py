@@ -1,6 +1,6 @@
-from abc import abstractmethod
+from __future__ import annotations
+
 from pathlib import Path
-from typing import List, Union
 
 from theflow import Node, Param
 
@@ -14,31 +14,7 @@ VECTOR_STORE_FNAME = "vectorstore"
 DOC_STORE_FNAME = "docstore"
 
 
-class BaseRetrieval(BaseComponent):
-    """Define the base interface of a retrieval pipeline"""
-
-    @abstractmethod
-    def run_raw(self, text: str, top_k: int = 1) -> List[RetrievedDocument]:
-        ...
-
-    @abstractmethod
-    def run_batch_raw(
-        self, text: List[str], top_k: int = 1
-    ) -> List[List[RetrievedDocument]]:
-        ...
-
-    @abstractmethod
-    def run_document(self, text: Document, top_k: int = 1) -> List[RetrievedDocument]:
-        ...
-
-    @abstractmethod
-    def run_batch_document(
-        self, text: List[Document], top_k: int = 1
-    ) -> List[List[RetrievedDocument]]:
-        ...
-
-
-class RetrieveDocumentFromVectorStorePipeline(BaseRetrieval):
+class RetrieveDocumentFromVectorStorePipeline(BaseComponent):
     """Retrieve list of documents from vector store"""
 
     vector_store: Param[BaseVectorStore] = Param()
@@ -46,53 +22,33 @@ class RetrieveDocumentFromVectorStorePipeline(BaseRetrieval):
     embedding: Node[BaseEmbeddings] = Node()
     # TODO: refer to llama_index's storage as well
 
-    def run_raw(self, text: str, top_k: int = 1) -> List[RetrievedDocument]:
-        return self.run_batch_raw([text], top_k=top_k)[0]
+    def run(self, text: str | Document, top_k: int = 1) -> list[RetrievedDocument]:
+        """Retrieve a list of documents from vector store
 
-    def run_batch_raw(
-        self, text: List[str], top_k: int = 1
-    ) -> List[List[RetrievedDocument]]:
+        Args:
+            text: the text to retrieve similar documents
+
+        Returns:
+            list[RetrievedDocument]: list of retrieved documents
+        """
         if self.doc_store is None:
             raise ValueError(
                 "doc_store is not provided. Please provide a doc_store to "
                 "retrieve the documents"
             )
 
-        result = []
-        for each_text in text:
-            emb = self.embedding(each_text)
-            _, scores, ids = self.vector_store.query(embedding=emb, top_k=top_k)
-            docs = self.doc_store.get(ids)
-            each_result = [
-                RetrievedDocument(**doc.to_dict(), score=score)
-                for doc, score in zip(docs, scores)
-            ]
-            result.append(each_result)
+        emb: list[float] = self.embedding(text)[0]
+        _, scores, ids = self.vector_store.query(embedding=emb, top_k=top_k)
+        docs = self.doc_store.get(ids)
+        result = [
+            RetrievedDocument(**doc.to_dict(), score=score)
+            for doc, score in zip(docs, scores)
+        ]
         return result
-
-    def run_document(self, text: Document, top_k: int = 1) -> List[RetrievedDocument]:
-        return self.run_raw(text.text, top_k)
-
-    def run_batch_document(
-        self, text: List[Document], top_k: int = 1
-    ) -> List[List[RetrievedDocument]]:
-        return self.run_batch_raw(text=[t.text for t in text], top_k=top_k)
-
-    def is_document(self, text, *args, **kwargs) -> bool:
-        if isinstance(text, Document):
-            return True
-        elif isinstance(text, List) and isinstance(text[0], Document):
-            return True
-        return False
-
-    def is_batch(self, text, *args, **kwargs) -> bool:
-        if isinstance(text, list):
-            return True
-        return False
 
     def save(
         self,
-        path: Union[str, Path],
+        path: str | Path,
         vectorstore_fname: str = VECTOR_STORE_FNAME,
         docstore_fname: str = DOC_STORE_FNAME,
     ):
@@ -109,7 +65,7 @@ class RetrieveDocumentFromVectorStorePipeline(BaseRetrieval):
 
     def load(
         self,
-        path: Union[str, Path],
+        path: str | Path,
         vectorstore_fname: str = VECTOR_STORE_FNAME,
         docstore_fname: str = DOC_STORE_FNAME,
     ):

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import re
-from typing import Callable, Dict, List, Union
+from typing import Callable
 
 from theflow import Param
 
@@ -12,7 +14,7 @@ class ExtractorOutput(Document):
     Represents the output of an extractor.
     """
 
-    matches: List[str]
+    matches: list[str]
 
 
 class RegexExtractor(BaseComponent):
@@ -28,18 +30,18 @@ class RegexExtractor(BaseComponent):
     class Config:
         middleware_switches = {"theflow.middleware.CachingMiddleware": False}
 
-    pattern: List[str]
-    output_map: Union[Dict[str, str], Callable[[str], str]] = Param(
+    pattern: list[str]
+    output_map: dict[str, str] | Callable[[str], str] = Param(
         default_callback=lambda *_: {}
     )
 
-    def __init__(self, pattern: Union[str, List[str]], **kwargs):
+    def __init__(self, pattern: str | list[str], **kwargs):
         if isinstance(pattern, str):
             pattern = [pattern]
         super().__init__(pattern=pattern, **kwargs)
 
     @staticmethod
-    def run_raw_static(pattern: str, text: str) -> List[str]:
+    def run_raw_static(pattern: str, text: str) -> list[str]:
         """
         Finds all non-overlapping occurrences of a pattern in a string.
 
@@ -86,9 +88,9 @@ class RegexExtractor(BaseComponent):
         Returns:
             ExtractorOutput: The processed output as a list of ExtractorOutput.
         """
-        output = sum(
+        output: list[str] = sum(
             [self.run_raw_static(p, text) for p in self.pattern], []
-        )  # type: List[str]
+        )
         output = [self.map_output(text, self.output_map) for text in output]
 
         return ExtractorOutput(
@@ -97,100 +99,48 @@ class RegexExtractor(BaseComponent):
             metadata={"origin": "RegexExtractor"},
         )
 
-    def run_batch_raw(self, text_batch: List[str]) -> List[ExtractorOutput]:
-        """
-        Runs a batch of raw text inputs through the `run_raw()` method and returns the
-            output for each input.
+    def run(
+        self, text: str | list[str] | Document | list[Document]
+    ) -> list[ExtractorOutput]:
+        """Match the input against a pattern and return the output for each input
 
         Parameters:
-            text_batch (List[str]): A list of raw text inputs to process.
+            text: contains the input string to be processed
 
         Returns:
-            List[ExtractorOutput]: A list containing the output for each input in the
-                batch.
-        """
-        batch_output = [self.run_raw(each_text) for each_text in text_batch]
-
-        return batch_output
-
-    def run_document(self, document: Document) -> ExtractorOutput:
-        """
-        Run the document through the regex extractor and return an extracted document.
-
-        Args:
-            document (Document): The input document.
-
-        Returns:
-            ExtractorOutput: The extracted content.
-        """
-        return self.run_raw(document.text)
-
-    def run_batch_document(
-        self, document_batch: List[Document]
-    ) -> List[ExtractorOutput]:
-        """
-        Runs a batch of documents through the `run_document` function and returns the
-            output for each document.
-
-
-        Parameters:
-            document_batch (List[Document]): A list of Document objects representing the
-                batch of documents to process.
-
-        Returns:
-            List[ExtractorOutput]: A list  contains the output ExtractorOutput for each
-                input Document in the batch.
+            A list contains the output ExtractorOutput for each input
 
         Example:
             document1 = Document(...)
             document2 = Document(...)
             document_batch = [document1, document2]
-            batch_output = self.run_batch_document(document_batch)
+            batch_output = self(document_batch)
             # batch_output will be [output1_document1, output1_document2]
         """
+        # TODO: this conversion seems common
+        input_: list[str] = []
+        if not isinstance(text, list):
+            text = [text]
 
-        batch_output = [
-            self.run_document(each_document) for each_document in document_batch
-        ]
+        for item in text:
+            if isinstance(item, str):
+                input_.append(item)
+            elif isinstance(item, Document):
+                input_.append(item.text)
+            else:
+                raise ValueError(
+                    f"Invalid input type {type(item)}, should be str or Document"
+                )
 
-        return batch_output
+        output = []
+        for each_input in input_:
+            output.append(self.run_raw(each_input))
 
-    def is_document(self, text) -> bool:
-        """
-        Check if the given text is an instance of the Document class.
-
-        Args:
-            text: The text to check.
-
-        Returns:
-            bool: True if the text is an instance of Document, False otherwise.
-        """
-        if isinstance(text, Document):
-            return True
-
-        return False
-
-    def is_batch(self, text) -> bool:
-        """
-        Check if the given text is a batch of documents.
-
-        Parameters:
-            text (List): The text to be checked.
-
-        Returns:
-            bool: True if the text is a batch of documents, False otherwise.
-        """
-        if not isinstance(text, List):
-            return False
-
-        if len(set(self.is_document(each_text) for each_text in text)) <= 1:
-            return True
-
-        return False
+        return output
 
 
 class FirstMatchRegexExtractor(RegexExtractor):
-    pattern: List[str]
+    pattern: list[str]
 
     def run_raw(self, text: str) -> ExtractorOutput:
         for p in self.pattern:

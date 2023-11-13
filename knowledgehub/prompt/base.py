@@ -174,23 +174,5 @@ class BasePromptComponent(BaseComponent):
         text = self.template.populate(**prepared_kwargs)
         return Document(text=text, metadata={"origin": "PromptComponent"})
 
-    def run_raw(self, *args, **kwargs):
-        pass
-
-    def run_batch_raw(self, *args, **kwargs):
-        pass
-
-    def run_document(self, *args, **kwargs):
-        pass
-
-    def run_batch_document(self, *args, **kwargs):
-        pass
-
-    def is_document(self, *args, **kwargs):
-        pass
-
-    def is_batch(self, *args, **kwargs):
-        pass
-
     def flow(self):
         return self.__call__()

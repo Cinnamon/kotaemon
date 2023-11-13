@@ -70,7 +70,7 @@ class SimpleLinearPipeline(BaseComponent):
         prompt = self.prompt(**prompt_kwargs)
         llm_output = self.llm(prompt.text, **llm_kwargs)
         if self.post_processor is not None:
-            final_output = self.post_processor(llm_output, **post_processor_kwargs)
+            final_output = self.post_processor(llm_output, **post_processor_kwargs)[0]
         else:
             final_output = llm_output
 
@@ -143,7 +143,7 @@ class GatedLinearPipeline(SimpleLinearPipeline):
         if condition_text is None:
             raise ValueError("`condition_text` must be provided")
 
-        if self.condition(condition_text):
+        if self.condition(condition_text)[0]:
             return super().run(
                 llm_kwargs=llm_kwargs,
                 post_processor_kwargs=post_processor_kwargs,

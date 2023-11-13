@@ -1,10 +1,13 @@
-from typing import List, Type
+import logging
+from typing import Type
 
-from langchain.schema.language_model import BaseLanguageModel
+from langchain.llms.base import BaseLLM
 from theflow.base import Param
 
 from ...base import BaseComponent
 from ..base import LLMInterface
+
+logger = logging.getLogger(__name__)
 
 
 class LLM(BaseComponent):
@@ -12,7 +15,7 @@ class LLM(BaseComponent):
 
 
 class LangchainLLM(LLM):
-    _lc_class: Type[BaseLanguageModel]
+    _lc_class: Type[BaseLLM]
 
     def __init__(self, **params):
         if self._lc_class is None:
@@ -31,38 +34,33 @@ class LangchainLLM(LLM):
     def agent(self):
         return self._lc_class(**self._kwargs)
 
-    def run_raw(self, text: str) -> LLMInterface:
+    def run(self, text: str) -> LLMInterface:
         pred = self.agent.generate([text])
         all_text = [each.text for each in pred.generations[0]]
+
+        completion_tokens, total_tokens, prompt_tokens = 0, 0, 0
+        try:
+            if pred.llm_output is not None:
+                completion_tokens = pred.llm_output["token_usage"]["completion_tokens"]
+                total_tokens = pred.llm_output["token_usage"]["total_tokens"]
+                prompt_tokens = pred.llm_output["token_usage"]["prompt_tokens"]
+        except Exception:
+            logger.warning(
+                f"Cannot get token usage from LLM output for {self._lc_class.__name__}"
+            )
+
         return LLMInterface(
             text=all_text[0] if len(all_text) > 0 else "",
             candidates=all_text,
-            completion_tokens=pred.llm_output["token_usage"]["completion_tokens"],
-            total_tokens=pred.llm_output["token_usage"]["total_tokens"],
-            prompt_tokens=pred.llm_output["token_usage"]["prompt_tokens"],
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            prompt_tokens=prompt_tokens,
             logits=[],
         )
 
-    def run_batch_raw(self, text: List[str]) -> List[LLMInterface]:
-        outputs = []
-        for each_text in text:
-            outputs.append(self.run_raw(each_text))
-        return outputs
-
-    def run_document(self, text: str) -> LLMInterface:
-        return self.run_raw(text)
-
-    def run_batch_document(self, text: List[str]) -> List[LLMInterface]:
-        return self.run_batch_raw(text)
-
-    def is_document(self, text) -> bool:
-        return False
-
-    def is_batch(self, text) -> bool:
-        return False if isinstance(text, str) else True
-
     def __setattr__(self, name, value):
         if name in self._lc_class.__fields__:
+            self._kwargs[name] = value
             setattr(self.agent, name, value)
         else:
             super().__setattr__(name, value)

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import uuid
 from pathlib import Path
-from typing import List, Union
 
 from theflow import Node, Param
 
@@ -26,44 +27,34 @@ class IndexVectorStoreFromDocumentPipeline(BaseComponent):
     vector_store: Param[BaseVectorStore] = Param()
     doc_store: Param[BaseDocumentStore] = Param()
     embedding: Node[BaseEmbeddings] = Node()
-
     # TODO: refer to llama_index's storage as well
 
-    def run_raw(self, text: str) -> None:
-        document = Document(text=text, id_=str(uuid.uuid4()))
-        self.run_batch_document([document])
+    def run(self, text: str | list[str] | Document | list[Document]) -> None:
+        input_: list[Document] = []
+        if not isinstance(text, list):
+            text = [text]
 
-    def run_batch_raw(self, text: List[str]) -> None:
-        documents = [Document(text=t, id_=str(uuid.uuid4())) for t in text]
-        self.run_batch_document(documents)
+        for item in text:
+            if isinstance(item, str):
+                input_.append(Document(text=item, id_=str(uuid.uuid4())))
+            elif isinstance(item, Document):
+                input_.append(item)
+            else:
+                raise ValueError(
+                    f"Invalid input type {type(item)}, should be str or Document"
+                )
 
-    def run_document(self, text: Document) -> None:
-        self.run_batch_document([text])
-
-    def run_batch_document(self, text: List[Document]) -> None:
-        embeddings = self.embedding(text)
+        embeddings = self.embedding(input_)
         self.vector_store.add(
             embeddings=embeddings,
-            ids=[t.id_ for t in text],
+            ids=[t.id_ for t in input_],
         )
         if self.doc_store:
-            self.doc_store.add(text)
-
-    def is_document(self, text) -> bool:
-        if isinstance(text, Document):
-            return True
-        elif isinstance(text, List) and isinstance(text[0], Document):
-            return True
-        return False
-
-    def is_batch(self, text) -> bool:
-        if isinstance(text, list):
-            return True
-        return False
+            self.doc_store.add(input_)
 
     def save(
         self,
-        path: Union[str, Path],
+        path: str | Path,
         vectorstore_fname: str = VECTOR_STORE_FNAME,
         docstore_fname: str = DOC_STORE_FNAME,
     ):
@@ -80,7 +71,7 @@ class IndexVectorStoreFromDocumentPipeline(BaseComponent):
 
     def load(
         self,
-        path: Union[str, Path],
+        path: str | Path,
         vectorstore_fname: str = VECTOR_STORE_FNAME,
         docstore_fname: str = DOC_STORE_FNAME,
     ):

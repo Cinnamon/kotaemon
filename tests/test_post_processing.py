@@ -13,23 +13,13 @@ def regex_extractor():
 
 def test_run_document(regex_extractor):
     document = Document(text="This is a test. 1 2 3")
-    extracted_document = regex_extractor(document)
+    extracted_document = regex_extractor(document)[0]
     assert extracted_document.text == "One"
     assert extracted_document.matches == ["One", "Two", "Three"]
 
 
-def test_is_document(regex_extractor):
-    assert regex_extractor.is_document(Document(text="Test"))
-    assert not regex_extractor.is_document("Test")
-
-
-def test_is_batch(regex_extractor):
-    assert regex_extractor.is_batch([Document(text="Test")])
-    assert not regex_extractor.is_batch(Document(text="Test"))
-
-
 def test_run_raw(regex_extractor):
-    output = regex_extractor("This is a test. 123")
+    output = regex_extractor("This is a test. 123")[0]
     assert output.text == "123"
     assert output.matches == ["123"]
 

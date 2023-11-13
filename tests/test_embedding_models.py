@@ -26,7 +26,8 @@ def test_azureopenai_embeddings_raw(openai_embedding_call):
     )
     output = model("Hello world")
     assert isinstance(output, list)
-    assert isinstance(output[0], float)
+    assert isinstance(output[0], list)
+    assert isinstance(output[0][0], float)
     openai_embedding_call.assert_called()
 
 
@@ -53,8 +54,8 @@ def test_azureopenai_embeddings_batch_raw(openai_embedding_call):
     side_effect=lambda *args, **kwargs: None,
 )
 @patch(
-    "langchain.embeddings.huggingface.HuggingFaceBgeEmbeddings.embed_query",
-    side_effect=lambda *args, **kwargs: [1.0, 2.1, 3.2],
+    "langchain.embeddings.huggingface.HuggingFaceBgeEmbeddings.embed_documents",
+    side_effect=lambda *args, **kwargs: [[1.0, 2.1, 3.2]],
 )
 def test_huggingface_embddings(
     langchain_huggingface_embedding_call, sentence_transformers_init
@@ -67,21 +68,23 @@ def test_huggingface_embddings(
 
     output = model("Hello World")
     assert isinstance(output, list)
-    assert isinstance(output[0], float)
+    assert isinstance(output[0], list)
+    assert isinstance(output[0][0], float)
     sentence_transformers_init.assert_called()
     langchain_huggingface_embedding_call.assert_called()
 
 
 @patch(
-    "langchain.embeddings.cohere.CohereEmbeddings.embed_query",
-    side_effect=lambda *args, **kwargs: [1.0, 2.1, 3.2],
+    "langchain.embeddings.cohere.CohereEmbeddings.embed_documents",
+    side_effect=lambda *args, **kwargs: [[1.0, 2.1, 3.2]],
 )
-def test_cohere_embddings(langchain_cohere_embedding_call):
+def test_cohere_embeddings(langchain_cohere_embedding_call):
     model = CohereEmbdeddings(
         model="embed-english-light-v2.0", cohere_api_key="my-api-key"
     )
 
     output = model("Hello World")
     assert isinstance(output, list)
-    assert isinstance(output[0], float)
+    assert isinstance(output[0], list)
+    assert isinstance(output[0][0], float)
     langchain_cohere_embedding_call.assert_called()

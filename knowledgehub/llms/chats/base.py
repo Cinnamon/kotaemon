@@ -1,13 +1,16 @@
-from typing import List, Type, TypeVar
+from __future__ import annotations
 
-from langchain.schema.language_model import BaseLanguageModel
+import logging
+from typing import Type
+
+from langchain.chat_models.base import BaseChatModel
 from langchain.schema.messages import BaseMessage, HumanMessage
 from theflow.base import Param
 
 from ...base import BaseComponent
 from ..base import LLMInterface
 
-Message = TypeVar("Message", bound=BaseMessage)
+logger = logging.getLogger(__name__)
 
 
 class ChatLLM(BaseComponent):
@@ -25,7 +28,7 @@ class ChatLLM(BaseComponent):
 
 
 class LangchainChatLLM(ChatLLM):
-    _lc_class: Type[BaseLanguageModel]
+    _lc_class: Type[BaseChatModel]
 
     def __init__(self, **params):
         if self._lc_class is None:
@@ -41,60 +44,62 @@ class LangchainChatLLM(ChatLLM):
         super().__init__(**params)
 
     @Param.auto(cache=False)
-    def agent(self) -> BaseLanguageModel:
+    def agent(self) -> BaseChatModel:
         return self._lc_class(**self._kwargs)
 
-    def run_raw(self, text: str, **kwargs) -> LLMInterface:
-        message = HumanMessage(content=text)
-        return self.run_document([message], **kwargs)
+    def run(
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+    ) -> LLMInterface:
+        """Generate response from messages
 
-    def run_batch_raw(self, text: List[str], **kwargs) -> List[LLMInterface]:
-        inputs = [[HumanMessage(content=each)] for each in text]
-        return self.run_batch_document(inputs, **kwargs)
+        Args:
+            messages: history of messages to generate response from
+            **kwargs: additional arguments to pass to the langchain chat model
 
-    def run_document(self, text: List[Message], **kwargs) -> LLMInterface:
-        pred = self.agent.generate([text], **kwargs)  # type: ignore
+        Returns:
+            LLMInterface: generated response
+        """
+        input_: list[BaseMessage] = []
+
+        if isinstance(messages, str):
+            input_ = [HumanMessage(content=messages)]
+        elif isinstance(messages, BaseMessage):
+            input_ = [messages]
+        else:
+            input_ = messages
+
+        pred = self.agent.generate(messages=[input_], **kwargs)
         all_text = [each.text for each in pred.generations[0]]
+
+        completion_tokens, total_tokens, prompt_tokens = 0, 0, 0
+        try:
+            if pred.llm_output is not None:
+                completion_tokens = pred.llm_output["token_usage"]["completion_tokens"]
+                total_tokens = pred.llm_output["token_usage"]["total_tokens"]
+                prompt_tokens = pred.llm_output["token_usage"]["prompt_tokens"]
+        except Exception:
+            logger.warning(
+                f"Cannot get token usage from LLM output for {self._lc_class.__name__}"
+            )
+
         return LLMInterface(
             text=all_text[0] if len(all_text) > 0 else "",
             candidates=all_text,
-            completion_tokens=pred.llm_output["token_usage"]["completion_tokens"],
-            total_tokens=pred.llm_output["token_usage"]["total_tokens"],
-            prompt_tokens=pred.llm_output["token_usage"]["prompt_tokens"],
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            prompt_tokens=prompt_tokens,
             logits=[],
         )
 
-    def run_batch_document(
-        self, text: List[List[Message]], **kwargs
-    ) -> List[LLMInterface]:
-        outputs = []
-        for each_text in text:
-            outputs.append(self.run_document(each_text, **kwargs))
-        return outputs
-
-    def is_document(self, text, **kwargs) -> bool:
-        if isinstance(text, str):
-            return False
-        elif isinstance(text, List) and isinstance(text[0], str):
-            return False
-        return True
-
-    def is_batch(self, text, **kwargs) -> bool:
-        if isinstance(text, str):
-            return False
-        elif isinstance(text, List):
-            if isinstance(text[0], BaseMessage):
-                return False
-        return True
-
     def __setattr__(self, name, value):
         if name in self._lc_class.__fields__:
+            self._kwargs[name] = value
             setattr(self.agent, name, value)
         else:
             super().__setattr__(name, value)
 
     def __getattr__(self, name):
         if name in self._lc_class.__fields__:
-            getattr(self.agent, name)
-        else:
-            super().__getattr__(name)
+            return getattr(self.agent, name)
+
+        return super().__getattr__(name)  # type: ignore

@@ -59,6 +59,7 @@ class BaseVectorStore(ABC):
         embedding: List[float],
         top_k: int = 1,
         ids: Optional[List[str]] = None,
+        **kwargs,
     ) -> Tuple[List[List[float]], List[float], List[str]]:
         """Return the top k most similar vector embeddings
 

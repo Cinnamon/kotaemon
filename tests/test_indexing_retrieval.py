@@ -60,7 +60,8 @@ def test_retrieving(mock_openai_embedding, tmp_path):
     )
 
     index_pipeline(text=Document(text="Hello world"))
-    output = retrieval_pipeline(text=["Hello world", "Hello world"])
+    output = retrieval_pipeline(text="Hello world")
+    output1 = retrieval_pipeline(text="Hello world")
 
-    assert len(output) == 2, "Expect 2 results"
-    assert output[0] == output[1], "Expect identical results"
+    assert len(output) == 1, "Expect 1 results"
+    assert output == output1, "Expect identical results"

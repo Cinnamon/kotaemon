@@ -54,7 +54,7 @@ def test_run():
 
     result = prompt()
 
-    assert result.text == "str = Alice, int = 30, doc = Helloo, Alice!, comp = One"
+    assert result.text == "str = Alice, int = 30, doc = Helloo, Alice!, comp = ['One']"
 
 
 def test_set_method():
