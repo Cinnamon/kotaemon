@@ -5,7 +5,7 @@ from uuid import uuid4
 import requests
 from llama_index.readers.base import BaseReader
 
-from kotaemon.documents import Document
+from kotaemon.base import Document
 
 from .utils.pdf_ocr import parse_ocr_output, read_pdf_unstructured
 from .utils.table import strip_special_chars_markdown

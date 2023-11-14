@@ -3,7 +3,7 @@ from pathlib import Path
 from langchain.schema import Document as LangchainDocument
 from llama_index.node_parser import SimpleNodeParser
 
-from kotaemon.documents.base import Document
+from kotaemon.base import Document
 from kotaemon.loaders import AutoReader
 
 

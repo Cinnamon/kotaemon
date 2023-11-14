@@ -1,7 +1,7 @@
 from typing import Any, Callable, Optional, Union
 
 from kotaemon.base import BaseComponent
-from kotaemon.documents.base import Document, IO_Type
+from kotaemon.base.schema import Document, IO_Type
 from kotaemon.llms.chats.base import ChatLLM
 from kotaemon.llms.completions.base import LLM
 from kotaemon.prompt.base import BasePromptComponent

@@ -5,8 +5,8 @@ from typing import cast
 import pytest
 from openai.resources.embeddings import Embeddings
 
+from kotaemon.base import Document
 from kotaemon.docstores import InMemoryDocumentStore
-from kotaemon.documents.base import Document
 from kotaemon.embeddings.openai import AzureOpenAIEmbeddings
 from kotaemon.pipelines.indexing import IndexVectorStoreFromDocumentPipeline
 from kotaemon.pipelines.retrieving import RetrieveDocumentFromVectorStorePipeline

@@ -5,7 +5,7 @@ from langchain.schema.messages import AIMessage, SystemMessage
 from theflow import Param, SessionCompose
 
 from ..base import BaseComponent
-from ..llms.base import LLMInterface
+from ..base.schema import LLMInterface
 from ..llms.chats.base import BaseMessage, HumanMessage
 
 

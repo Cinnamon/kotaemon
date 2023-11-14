@@ -2,9 +2,8 @@ from typing import List, Optional
 
 from theflow import Param
 
-from kotaemon.base import BaseComponent
+from kotaemon.base import BaseComponent, Document
 from kotaemon.composite.linear import GatedLinearPipeline
-from kotaemon.documents.base import Document
 
 
 class SimpleBranchingPipeline(BaseComponent):

@@ -1,4 +1,4 @@
-from kotaemon.documents.base import Document, RetrievedDocument
+from kotaemon.base.schema import Document, RetrievedDocument
 
 from .conftest import skip_when_haystack_not_installed
 

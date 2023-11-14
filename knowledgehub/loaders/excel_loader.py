@@ -8,7 +8,7 @@ from typing import Any, List, Optional, Union
 
 from llama_index.readers.base import BaseReader
 
-from kotaemon.documents import Document
+from kotaemon.base import Document
 
 
 class PandasExcelReader(BaseReader):

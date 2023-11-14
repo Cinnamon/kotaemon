@@ -4,8 +4,7 @@ from typing import Any, List, Type, Union
 from llama_index import SimpleDirectoryReader, download_loader
 from llama_index.readers.base import BaseReader
 
-from ..base import BaseComponent
-from ..documents.base import Document
+from ..base import BaseComponent, Document
 
 
 class AutoReader(BaseComponent):

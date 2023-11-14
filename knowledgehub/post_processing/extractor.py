@@ -5,16 +5,8 @@ from typing import Callable
 
 from theflow import Param
 
-from kotaemon.base import BaseComponent
-from kotaemon.documents.base import Document
-
-
-class ExtractorOutput(Document):
-    """
-    Represents the output of an extractor.
-    """
-
-    matches: list[str]
+from kotaemon.base import BaseComponent, Document
+from kotaemon.base.schema import ExtractorOutput
 
 
 class RegexExtractor(BaseComponent):

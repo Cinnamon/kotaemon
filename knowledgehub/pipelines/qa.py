@@ -6,8 +6,8 @@ from theflow import Node
 from theflow.utils.modules import ObjectInitDeclaration as _
 
 from kotaemon.base import BaseComponent
+from kotaemon.base.schema import RetrievedDocument
 from kotaemon.docstores import InMemoryDocumentStore
-from kotaemon.documents.base import RetrievedDocument
 from kotaemon.embeddings import AzureOpenAIEmbeddings
 from kotaemon.llms.chats.openai import AzureChatOpenAI
 from kotaemon.pipelines.agents import BaseAgent

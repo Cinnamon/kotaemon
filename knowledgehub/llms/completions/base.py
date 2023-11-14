@@ -5,7 +5,7 @@ from langchain.llms.base import BaseLLM
 from theflow.base import Param
 
 from ...base import BaseComponent
-from ..base import LLMInterface
+from ...base.schema import LLMInterface
 
 logger = logging.getLogger(__name__)
 

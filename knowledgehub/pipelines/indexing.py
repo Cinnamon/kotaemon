@@ -5,9 +5,8 @@ from pathlib import Path
 
 from theflow import Node, Param
 
-from ..base import BaseComponent
+from ..base import BaseComponent, Document
 from ..docstores import BaseDocumentStore
-from ..documents.base import Document
 from ..embeddings import BaseEmbeddings
 from ..vectorstores import BaseVectorStore
 

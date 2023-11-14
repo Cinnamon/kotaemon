@@ -8,7 +8,7 @@ import requests
 from langchain.utils import get_from_dict_or_env
 from llama_index.readers.base import BaseReader
 
-from kotaemon.documents import Document
+from kotaemon.base import Document
 
 from .utils.table import parse_markdown_text_to_tables, strip_special_chars_markdown
 

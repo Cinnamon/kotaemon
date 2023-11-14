@@ -1,6 +1,6 @@
 import json
 
-from kotaemon.documents.base import Document
+from kotaemon.base import Document
 from kotaemon.vectorstores import ChromaVectorStore, InMemoryVectorStore
 
 

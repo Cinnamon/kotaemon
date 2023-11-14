@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
 from llama_index.bridge.pydantic import Field
@@ -72,3 +74,19 @@ class RetrievedDocument(Document):
 
     score: float = Field(default=0.0)
     retrieval_metadata: dict = Field(default={})
+
+
+class LLMInterface(Document):
+    candidates: list[str] = Field(default_factory=list)
+    completion_tokens: int = -1
+    total_tokens: int = -1
+    prompt_tokens: int = -1
+    logits: list[list[float]] = Field(default_factory=list)
+
+
+class ExtractorOutput(Document):
+    """
+    Represents the output of an extractor.
+    """
+
+    matches: list[str]

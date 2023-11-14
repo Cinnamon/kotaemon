@@ -4,7 +4,7 @@ from langchain.llms import AzureOpenAI as AzureOpenAILC
 from langchain.llms import OpenAI as OpenAILC
 from openai.types.completion import Completion
 
-from kotaemon.llms.base import LLMInterface
+from kotaemon.base.schema import LLMInterface
 from kotaemon.llms.completions.openai import AzureOpenAI, OpenAI
 
 _openai_completion_response = Completion.parse_obj(

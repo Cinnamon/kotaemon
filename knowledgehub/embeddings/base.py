@@ -6,8 +6,7 @@ from typing import Type
 from langchain.schema.embeddings import Embeddings as LCEmbeddings
 from theflow import Param
 
-from ..base import BaseComponent
-from ..documents.base import Document
+from ..base import BaseComponent, Document
 
 
 class BaseEmbeddings(BaseComponent):

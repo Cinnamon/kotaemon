@@ -4,9 +4,7 @@ from llama_index.node_parser import SimpleNodeParser as LISimpleNodeParser
 from llama_index.node_parser.interface import NodeParser
 from llama_index.text_splitter import TokenTextSplitter
 
-from kotaemon.base import BaseComponent
-
-from ..documents.base import Document
+from ..base import BaseComponent, Document
 
 __all__ = ["TokenTextSplitter"]
 

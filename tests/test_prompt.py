@@ -1,6 +1,6 @@
 import pytest
 
-from kotaemon.documents.base import Document
+from kotaemon.base import Document
 from kotaemon.post_processing.extractor import RegexExtractor
 from kotaemon.prompt.base import BasePromptComponent
 from kotaemon.prompt.template import PromptTemplate
