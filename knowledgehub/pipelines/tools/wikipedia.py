@@ -52,7 +52,8 @@ class WikipediaTool(BaseTool):
     description = (
         "Search engine from Wikipedia, retrieving relevant wiki page. "
         "Useful when you need to get holistic knowledge about people, "
-        "places, companies, historical events, or other subjects."
+        "places, companies, historical events, or other subjects. "
+        "Input should be a search query."
     )
     args_schema: Optional[Type[BaseModel]] = WikipediaArgs
     doc_store: Any = None

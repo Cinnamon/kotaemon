@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Optional
 
 from theflow import Node, Param
 
@@ -20,17 +21,24 @@ class RetrieveDocumentFromVectorStorePipeline(BaseComponent):
     vector_store: Param[BaseVectorStore] = Param()
     doc_store: Param[BaseDocumentStore] = Param()
     embedding: Node[BaseEmbeddings] = Node()
+    top_k: int = 1
     # TODO: refer to llama_index's storage as well
 
-    def run(self, text: str | Document, top_k: int = 1) -> list[RetrievedDocument]:
+    def run(
+        self, text: str | Document, top_k: Optional[int] = None
+    ) -> list[RetrievedDocument]:
         """Retrieve a list of documents from vector store
 
         Args:
             text: the text to retrieve similar documents
+            top_k: number of top similar documents to return
 
         Returns:
             list[RetrievedDocument]: list of retrieved documents
         """
+        if top_k is None:
+            top_k = self.top_k
+
         if self.doc_store is None:
             raise ValueError(
                 "doc_store is not provided. Please provide a doc_store to "

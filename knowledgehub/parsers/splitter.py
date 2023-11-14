@@ -1,5 +1,8 @@
 from typing import Any, List, Sequence, Type
 
+from llama_index.node_parser import (
+    SentenceWindowNodeParser as LISentenceWindowNodeParser,
+)
 from llama_index.node_parser import SimpleNodeParser as LISimpleNodeParser
 from llama_index.node_parser.interface import NodeParser
 from llama_index.text_splitter import TokenTextSplitter
@@ -61,3 +64,7 @@ class SimpleNodeParser(LINodeParser):
             chunk_size=chunk_size, chunk_overlap=chunk_overlap
         )
         super().__init__(*args, **kwargs)
+
+
+class SentenceWindowNodeParser(LINodeParser):
+    _parser_class = LISentenceWindowNodeParser

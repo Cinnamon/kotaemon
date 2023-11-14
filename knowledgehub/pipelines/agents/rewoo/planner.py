@@ -4,7 +4,7 @@ from ....base import BaseComponent
 from ....llms import PromptTemplate
 from ..base import BaseLLM, BaseTool
 from ..output.base import BaseScratchPad
-from .prompt import zero_shot_planner_prompt
+from .prompt import few_shot_planner_prompt, zero_shot_planner_prompt
 
 
 class Planner(BaseComponent):
@@ -56,7 +56,7 @@ class Planner(BaseComponent):
                 )
         else:
             if self.examples is not None:
-                return zero_shot_planner_prompt.populate(
+                return few_shot_planner_prompt.populate(
                     tool_description=worker_desctription,
                     fewshot=fewshot,
                     task=instruction,

@@ -4,7 +4,7 @@ from kotaemon.llms import PromptTemplate
 
 zero_shot_react_prompt = PromptTemplate(
     template="""Answer the following questions as best you can. You have access to the following tools:
-{tool_description}.
+{tool_description}
 Use the following format:
 
 Question: the input question you must answer

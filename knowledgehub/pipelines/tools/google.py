@@ -1,5 +1,6 @@
 from typing import AnyStr, Optional, Type
 
+from langchain.utilities import SerpAPIWrapper
 from pydantic import BaseModel, Field
 
 from .base import BaseTool
@@ -33,3 +34,18 @@ class GoogleSearchTool(BaseTool):
             )
 
         return output
+
+
+class SerpTool(BaseTool):
+    name = "google_search"
+    description = (
+        "Worker that searches results from Google. Useful when you need to find short "
+        "and succinct answers about a specific topic. Input should be a search query."
+    )
+    args_schema: Optional[Type[BaseModel]] = GoogleSearchArgs
+
+    def _run_tool(self, query: AnyStr) -> str:
+        tool = SerpAPIWrapper()
+        evidence = tool.run(query)
+
+        return evidence

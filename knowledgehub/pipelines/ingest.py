@@ -7,19 +7,20 @@ from theflow import Node
 from theflow.utils.modules import ObjectInitDeclaration as _
 
 from kotaemon.base import BaseComponent
-from kotaemon.docstores import InMemoryDocumentStore
+from kotaemon.docstores import BaseDocumentStore, InMemoryDocumentStore
 from kotaemon.embeddings import AzureOpenAIEmbeddings
 from kotaemon.loaders import (
     AutoReader,
     DirectoryReader,
     MathpixPDFReader,
+    OCRReader,
     PandasExcelReader,
 )
 from kotaemon.parsers.splitter import SimpleNodeParser
 from kotaemon.pipelines.agents import BaseAgent
 from kotaemon.pipelines.indexing import IndexVectorStoreFromDocumentPipeline
 from kotaemon.pipelines.retrieving import RetrieveDocumentFromVectorStorePipeline
-from kotaemon.vectorstores import InMemoryVectorStore
+from kotaemon.vectorstores import BaseVectorStore, InMemoryVectorStore
 
 from .qa import AgentQAPipeline, QuestionAnsweringPipeline
 from .utils import file_names_to_collection_name
@@ -33,12 +34,11 @@ class ReaderIndexingPipeline(BaseComponent):
 
     # Expose variables for users to switch in prompt ui
     storage_path: Path = Path("./storage")
-    reader_name: str = "normal"  # "normal" or "mathpix"
+    reader_name: str = "normal"  # "normal", "mathpix" or "ocr"
     chunk_size: int = 1024
     chunk_overlap: int = 256
-    file_name_list: List[str] = list()
-    vector_store: _[InMemoryVectorStore] = _(InMemoryVectorStore)
-    doc_store: _[InMemoryDocumentStore] = _(InMemoryDocumentStore)
+    vector_store: _[BaseVectorStore] = _(InMemoryVectorStore)
+    doc_store: _[BaseDocumentStore] = _(InMemoryDocumentStore)
 
     embedding: AzureOpenAIEmbeddings = AzureOpenAIEmbeddings.withx(
         model="text-embedding-ada-002",
@@ -54,6 +54,8 @@ class ReaderIndexingPipeline(BaseComponent):
         }
         if self.reader_name == "normal":
             file_extractor[".pdf"] = AutoReader("UnstructuredReader")
+        elif self.reader_name == "ocr":
+            file_extractor[".pdf"] = OCRReader()
         else:
             file_extractor[".pdf"] = MathpixPDFReader()
         main_reader = DirectoryReader(
@@ -105,11 +107,12 @@ class ReaderIndexingPipeline(BaseComponent):
         else:
             self.indexing_vector_pipeline.load(file_storage_path)
 
-    def to_retrieving_pipeline(self):
+    def to_retrieving_pipeline(self, top_k=3):
         retrieving_pipeline = RetrieveDocumentFromVectorStorePipeline(
             vector_store=self.vector_store,
             doc_store=self.doc_store,
             embedding=self.embedding,
+            top_k=top_k,
         )
         return retrieving_pipeline
 
@@ -118,7 +121,7 @@ class ReaderIndexingPipeline(BaseComponent):
             storage_path=self.storage_path,
             file_name_list=self.file_name_list,
             vector_store=self.vector_store,
-            doc_score=self.doc_store,
+            doc_store=self.doc_store,
             embedding=self.embedding,
             llm=llm,
             **kwargs
@@ -130,7 +133,7 @@ class ReaderIndexingPipeline(BaseComponent):
             storage_path=self.storage_path,
             file_name_list=self.file_name_list,
             vector_store=self.vector_store,
-            doc_score=self.doc_store,
+            doc_store=self.doc_store,
             embedding=self.embedding,
             agent=agent,
             **kwargs
