@@ -4,8 +4,8 @@ from typing import List
 from theflow import Compose, Node, Param
 
 from kotaemon.base import BaseComponent
+from kotaemon.llms import BasePromptComponent
 from kotaemon.llms.chats.openai import AzureChatOpenAI
-from kotaemon.prompt.base import BasePromptComponent
 
 
 class Thought(BaseComponent):

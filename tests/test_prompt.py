@@ -1,9 +1,8 @@
 import pytest
 
 from kotaemon.base import Document
+from kotaemon.llms import BasePromptComponent, PromptTemplate
 from kotaemon.post_processing.extractor import RegexExtractor
-from kotaemon.prompt.base import BasePromptComponent
-from kotaemon.prompt.template import PromptTemplate
 
 
 def test_set_attributes():

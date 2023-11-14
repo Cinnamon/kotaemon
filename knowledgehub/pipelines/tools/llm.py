@@ -2,9 +2,7 @@ from typing import AnyStr, Optional, Type, Union
 
 from pydantic import BaseModel, Field
 
-from kotaemon.llms.chats.base import ChatLLM
-from kotaemon.llms.chats.openai import AzureChatOpenAI
-from kotaemon.llms.completions.base import LLM
+from kotaemon.llms import LLM, AzureChatOpenAI, ChatLLM
 
 from .base import BaseTool, ToolException
 

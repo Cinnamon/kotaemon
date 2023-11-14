@@ -3,10 +3,10 @@ from typing import Dict, List, Optional, Union
 
 from pydantic import BaseModel
 
+from kotaemon.llms import PromptTemplate
 from kotaemon.llms.chats.base import ChatLLM
 from kotaemon.llms.completions.base import LLM
 from kotaemon.pipelines.tools import BaseTool
-from kotaemon.prompt.template import PromptTemplate
 
 BaseLLM = Union[ChatLLM, LLM]
 

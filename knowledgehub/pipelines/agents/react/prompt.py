@@ -1,6 +1,6 @@
 # flake8: noqa
 
-from kotaemon.prompt.template import PromptTemplate
+from kotaemon.llms import PromptTemplate
 
 zero_shot_react_prompt = PromptTemplate(
     template="""Answer the following questions as best you can. You have access to the following tools:

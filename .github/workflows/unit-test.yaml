@@ -65,6 +65,7 @@ jobs:
         with:
           path: ${{ env.pythonLocation }}
           key: ${{ steps.get-cache-key.outputs.key }}
+          # could using cache of previous ver to reuse unchanged packages
           restore-keys: ${{ runner.os }}-py${{ matrix.python-version }}
 
       - name: Check cache hit
@@ -81,7 +82,7 @@ jobs:
           steps.check-cache-hit.outputs.check != 'true'
         run: |
           python -m pip install --upgrade pip
-          pip install --ignore-installed -e .[dev]
+          pip install -U --upgrade-strategy eager -e .[dev]
 
       - name: New dependencies cache for key ${{ steps.restore-dependencies.outputs.cache-primary-key }}
         if: |

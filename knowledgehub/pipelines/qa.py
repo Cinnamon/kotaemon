@@ -9,11 +9,11 @@ from kotaemon.base import BaseComponent
 from kotaemon.base.schema import RetrievedDocument
 from kotaemon.docstores import InMemoryDocumentStore
 from kotaemon.embeddings import AzureOpenAIEmbeddings
+from kotaemon.llms import PromptTemplate
 from kotaemon.llms.chats.openai import AzureChatOpenAI
 from kotaemon.pipelines.agents import BaseAgent
 from kotaemon.pipelines.retrieving import RetrieveDocumentFromVectorStorePipeline
 from kotaemon.pipelines.tools import ComponentTool
-from kotaemon.prompt.template import PromptTemplate
 from kotaemon.vectorstores import InMemoryVectorStore
 
 from .utils import file_names_to_collection_name

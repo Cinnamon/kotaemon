@@ -2,9 +2,7 @@ from typing import Any, Callable, Optional, Union
 
 from kotaemon.base import BaseComponent
 from kotaemon.base.schema import Document, IO_Type
-from kotaemon.llms.chats.base import ChatLLM
-from kotaemon.llms.completions.base import LLM
-from kotaemon.prompt.base import BasePromptComponent
+from kotaemon.llms import LLM, BasePromptComponent, ChatLLM
 
 
 class SimpleLinearPipeline(BaseComponent):
@@ -22,7 +20,7 @@ class SimpleLinearPipeline(BaseComponent):
 
     Example Usage:
         from kotaemon.llms.chats.openai import AzureChatOpenAI
-        from kotaemon.prompt.base import BasePromptComponent
+        from kotaemon.llms import BasePromptComponent
 
         def identity(x):
             return x
@@ -89,7 +87,7 @@ class GatedLinearPipeline(SimpleLinearPipeline):
     Example Usage:
         from kotaemon.llms.chats.openai import AzureChatOpenAI
         from kotaemon.post_processing.extractor import RegexExtractor
-        from kotaemon.prompt.base import BasePromptComponent
+        from kotaemon.llms import BasePromptComponent
 
         def identity(x):
             return x

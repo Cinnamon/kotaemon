@@ -5,9 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from pydantic import BaseModel, create_model
 
-from kotaemon.llms.chats.base import ChatLLM
-from kotaemon.llms.completions.base import LLM
-from kotaemon.prompt.template import PromptTemplate
+from kotaemon.llms import LLM, ChatLLM, PromptTemplate
 
 from ..base import AgentOutput, AgentType, BaseAgent, BaseLLM, BaseTool
 from ..output.base import BaseScratchPad

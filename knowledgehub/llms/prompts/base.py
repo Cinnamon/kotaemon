@@ -1,7 +1,7 @@
 from typing import Callable, Union
 
-from kotaemon.base import BaseComponent, Document
-from kotaemon.prompt.template import PromptTemplate
+from ...base import BaseComponent, Document
+from .template import PromptTemplate
 
 
 class BasePromptComponent(BaseComponent):

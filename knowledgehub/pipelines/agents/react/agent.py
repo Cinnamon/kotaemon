@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple, Type, Union
 
 from pydantic import BaseModel, create_model
 
-from kotaemon.prompt.template import PromptTemplate
+from kotaemon.llms import PromptTemplate
 
 from ..base import AgentOutput, AgentType, BaseAgent, BaseLLM, BaseTool
 from ..output.base import AgentAction, AgentFinish

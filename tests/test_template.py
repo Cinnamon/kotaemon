@@ -1,6 +1,6 @@
 import pytest
 
-from kotaemon.prompt.template import PromptTemplate
+from kotaemon.llms import PromptTemplate
 
 
 def test_prompt_template_creation():

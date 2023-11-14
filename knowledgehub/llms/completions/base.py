@@ -64,7 +64,3 @@ class LangchainLLM(LLM):
             setattr(self.agent, name, value)
         else:
             super().__setattr__(name, value)
-
-
-class LLMChat(BaseComponent):
-    pass

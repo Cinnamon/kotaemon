@@ -9,9 +9,9 @@ from kotaemon.composite import (
     SimpleBranchingPipeline,
     SimpleLinearPipeline,
 )
+from kotaemon.llms import BasePromptComponent
 from kotaemon.llms.chats.openai import AzureChatOpenAI
 from kotaemon.post_processing.extractor import RegexExtractor
-from kotaemon.prompt.base import BasePromptComponent
 
 _openai_chat_completion_response = ChatCompletion.parse_obj(
     {

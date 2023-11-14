@@ -1,7 +1,7 @@
 from typing import Any, List, Optional, Union
 
 from kotaemon.base import BaseComponent
-from kotaemon.prompt.template import PromptTemplate
+from kotaemon.llms import PromptTemplate
 
 from ..base import BaseLLM
 from ..output.base import BaseScratchPad

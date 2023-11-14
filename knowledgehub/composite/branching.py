@@ -17,7 +17,7 @@ class SimpleBranchingPipeline(BaseComponent):
         from kotaemon.composite import GatedLinearPipeline
         from kotaemon.llms.chats.openai import AzureChatOpenAI
         from kotaemon.post_processing.extractor import RegexExtractor
-        from kotaemon.prompt.base import BasePromptComponent
+        from kotaemon.llms import BasePromptComponent
 
         def identity(x):
             return x
@@ -90,7 +90,7 @@ class GatedBranchingPipeline(SimpleBranchingPipeline):
         from kotaemon.composite import GatedLinearPipeline
         from kotaemon.llms.chats.openai import AzureChatOpenAI
         from kotaemon.post_processing.extractor import RegexExtractor
-        from kotaemon.prompt.base import BasePromptComponent
+        from kotaemon.llms import BasePromptComponent
 
         def identity(x):
             return x
@@ -150,9 +150,9 @@ class GatedBranchingPipeline(SimpleBranchingPipeline):
 if __name__ == "__main__":
     import dotenv
 
+    from kotaemon.llms import BasePromptComponent
     from kotaemon.llms.chats.openai import AzureChatOpenAI
     from kotaemon.post_processing.extractor import RegexExtractor
-    from kotaemon.prompt.base import BasePromptComponent
 
     def identity(x):
         return x

@@ -1,6 +1,6 @@
 # flake8: noqa
 
-from kotaemon.prompt.template import PromptTemplate
+from kotaemon.llms import PromptTemplate
 
 zero_shot_planner_prompt = PromptTemplate(
     template="""You are an AI agent who makes step-by-step plans to solve a problem under the help of external tools.
