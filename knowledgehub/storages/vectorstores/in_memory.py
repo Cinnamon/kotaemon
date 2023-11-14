@@ -6,7 +6,7 @@ import fsspec
 from llama_index.vector_stores import SimpleVectorStore as LISimpleVectorStore
 from llama_index.vector_stores.simple import SimpleVectorStoreData
 
-from kotaemon.vectorstores.base import LlamaIndexVectorStore
+from .base import LlamaIndexVectorStore
 
 
 class InMemoryVectorStore(LlamaIndexVectorStore):

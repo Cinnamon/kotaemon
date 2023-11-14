@@ -5,12 +5,11 @@ import pytest
 from openai.resources.embeddings import Embeddings
 
 from kotaemon.base import Document
-from kotaemon.docstores import InMemoryDocumentStore
 from kotaemon.embeddings.openai import AzureOpenAIEmbeddings
 from kotaemon.pipelines.indexing import IndexVectorStoreFromDocumentPipeline
 from kotaemon.pipelines.retrieving import RetrieveDocumentFromVectorStorePipeline
 from kotaemon.pipelines.tools import ComponentTool, GoogleSearchTool, WikipediaTool
-from kotaemon.vectorstores import ChromaVectorStore
+from kotaemon.storages import ChromaVectorStore, InMemoryDocumentStore
 
 with open(Path(__file__).parent / "resources" / "embedding_openai.json") as f:
     openai_embedding = json.load(f)

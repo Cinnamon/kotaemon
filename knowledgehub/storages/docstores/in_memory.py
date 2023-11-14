@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import List, Optional, Union
 
-from ..base import Document
+from ...base import Document
 from .base import BaseDocumentStore
 
 

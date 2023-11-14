@@ -6,9 +6,8 @@ from pathlib import Path
 from theflow import Node, Param
 
 from ..base import BaseComponent, Document
-from ..docstores import BaseDocumentStore
 from ..embeddings import BaseEmbeddings
-from ..vectorstores import BaseVectorStore
+from ..storages import BaseDocumentStore, BaseVectorStore
 
 VECTOR_STORE_FNAME = "vectorstore"
 DOC_STORE_FNAME = "docstore"

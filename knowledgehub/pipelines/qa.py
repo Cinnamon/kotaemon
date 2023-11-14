@@ -7,14 +7,18 @@ from theflow.utils.modules import ObjectInitDeclaration as _
 
 from kotaemon.base import BaseComponent
 from kotaemon.base.schema import RetrievedDocument
-from kotaemon.docstores import BaseDocumentStore, InMemoryDocumentStore
 from kotaemon.embeddings import AzureOpenAIEmbeddings
 from kotaemon.llms import PromptTemplate
 from kotaemon.llms.chats.openai import AzureChatOpenAI
 from kotaemon.pipelines.agents import BaseAgent
 from kotaemon.pipelines.retrieving import RetrieveDocumentFromVectorStorePipeline
 from kotaemon.pipelines.tools import ComponentTool
-from kotaemon.vectorstores import BaseVectorStore, InMemoryVectorStore
+from kotaemon.storages import (
+    BaseDocumentStore,
+    BaseVectorStore,
+    InMemoryDocumentStore,
+    InMemoryVectorStore,
+)
 
 from .utils import file_names_to_collection_name
 

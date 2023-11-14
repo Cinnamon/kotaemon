@@ -1,7 +1,7 @@
 import pytest
 
 from kotaemon.base import Document
-from kotaemon.docstores import InMemoryDocumentStore
+from kotaemon.storages import InMemoryDocumentStore
 
 
 def test_simple_document_store_base_interfaces(tmp_path):

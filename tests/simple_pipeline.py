@@ -7,7 +7,7 @@ from kotaemon.base import BaseComponent
 from kotaemon.embeddings import AzureOpenAIEmbeddings
 from kotaemon.llms.completions.openai import AzureOpenAI
 from kotaemon.pipelines.retrieving import RetrieveDocumentFromVectorStorePipeline
-from kotaemon.vectorstores import ChromaVectorStore
+from kotaemon.storages import ChromaVectorStore
 
 
 class Pipeline(BaseComponent):

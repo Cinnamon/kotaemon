@@ -7,7 +7,6 @@ from theflow import Node
 from theflow.utils.modules import ObjectInitDeclaration as _
 
 from kotaemon.base import BaseComponent
-from kotaemon.docstores import BaseDocumentStore, InMemoryDocumentStore
 from kotaemon.embeddings import AzureOpenAIEmbeddings
 from kotaemon.loaders import (
     AutoReader,
@@ -20,7 +19,12 @@ from kotaemon.parsers.splitter import SimpleNodeParser
 from kotaemon.pipelines.agents import BaseAgent
 from kotaemon.pipelines.indexing import IndexVectorStoreFromDocumentPipeline
 from kotaemon.pipelines.retrieving import RetrieveDocumentFromVectorStorePipeline
-from kotaemon.vectorstores import BaseVectorStore, InMemoryVectorStore
+from kotaemon.storages import (
+    BaseDocumentStore,
+    BaseVectorStore,
+    InMemoryDocumentStore,
+    InMemoryVectorStore,
+)
 
 from .qa import AgentQAPipeline, QuestionAnsweringPipeline
 from .utils import file_names_to_collection_name

@@ -6,7 +6,7 @@ from llama_index.vector_stores.types import BasePydanticVectorStore
 from llama_index.vector_stores.types import VectorStore as LIVectorStore
 from llama_index.vector_stores.types import VectorStoreQuery
 
-from ..base import Document
+from ...base import Document
 
 
 class BaseVectorStore(ABC):

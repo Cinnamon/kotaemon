@@ -1,7 +1,7 @@
 import json
 
 from kotaemon.base import Document
-from kotaemon.vectorstores import ChromaVectorStore, InMemoryVectorStore
+from kotaemon.storages import ChromaVectorStore, InMemoryVectorStore
 
 
 class TestChromaVectorStore:

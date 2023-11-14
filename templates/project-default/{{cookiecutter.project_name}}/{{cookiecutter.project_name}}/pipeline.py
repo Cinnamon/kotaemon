@@ -5,12 +5,11 @@ from theflow import Param
 from theflow.utils.modules import ObjectInitDeclaration as _
 
 from kotaemon.base import BaseComponent
-from kotaemon.docstores import InMemoryDocumentStore
 from kotaemon.embeddings import AzureOpenAIEmbeddings
 from kotaemon.llms.completions.openai import AzureOpenAI
 from kotaemon.pipelines.indexing import IndexVectorStoreFromDocumentPipeline
 from kotaemon.pipelines.retrieving import RetrieveDocumentFromVectorStorePipeline
-from kotaemon.vectorstores import ChromaVectorStore
+from kotaemon.storages import ChromaVectorStore, InMemoryDocumentStore
 
 
 class QuestionAnsweringPipeline(BaseComponent):

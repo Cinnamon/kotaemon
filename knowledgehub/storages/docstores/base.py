@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Optional, Union
 
-from ..base import Document
+from ...base import Document
 
 
 class BaseDocumentStore(ABC):
