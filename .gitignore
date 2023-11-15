@@ -446,6 +446,9 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# PDF files
+*.pdf
+
 .theflow/
 
 # End of https://www.toptal.com/developers/gitignore/api/python,linux,macos,windows,vim,emacs,visualstudiocode,pycharm
@@ -459,3 +462,4 @@ logs/
 S.gpg-agent*
 .vscode/settings.json
 examples/example1/assets
+storage/*

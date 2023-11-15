@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
 
 from theflow import Node, Param
 
@@ -9,6 +9,7 @@ from ..base import BaseComponent
 from ..base.schema import Document, RetrievedDocument
 from ..embeddings import BaseEmbeddings
 from ..storages import BaseDocumentStore, BaseVectorStore
+from .reranking import BaseRerankingPipeline
 
 VECTOR_STORE_FNAME = "vectorstore"
 DOC_STORE_FNAME = "docstore"
@@ -20,6 +21,7 @@ class RetrieveDocumentFromVectorStorePipeline(BaseComponent):
     vector_store: Param[BaseVectorStore] = Param()
     doc_store: Param[BaseDocumentStore] = Param()
     embedding: Node[BaseEmbeddings] = Node()
+    rerankers: Sequence[BaseRerankingPipeline] = []
     top_k: int = 1
     # TODO: refer to llama_index's storage as well
 
@@ -51,6 +53,11 @@ class RetrieveDocumentFromVectorStorePipeline(BaseComponent):
             RetrievedDocument(**doc.to_dict(), score=score)
             for doc, score in zip(docs, scores)
         ]
+        # use additional reranker to re-order the document list
+        if self.rerankers:
+            for reranker in self.rerankers:
+                result = reranker(documents=result, query=text)
+
         return result
 
     def save(
