@@ -3,15 +3,15 @@ from copy import deepcopy
 import pytest
 from openai.types.chat.chat_completion import ChatCompletion
 
-from kotaemon.composite import (
+from kotaemon.llms import (
+    AzureChatOpenAI,
+    BasePromptComponent,
     GatedBranchingPipeline,
     GatedLinearPipeline,
     SimpleBranchingPipeline,
     SimpleLinearPipeline,
 )
-from kotaemon.llms import BasePromptComponent
-from kotaemon.llms.chats.openai import AzureChatOpenAI
-from kotaemon.post_processing.extractor import RegexExtractor
+from kotaemon.parsers import RegexExtractor
 
 _openai_chat_completion_response = ChatCompletion.parse_obj(
     {

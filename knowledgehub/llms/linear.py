@@ -1,8 +1,10 @@
 from typing import Any, Callable, Optional, Union
 
-from kotaemon.base import BaseComponent
-from kotaemon.base.schema import Document, IO_Type
-from kotaemon.llms import LLM, BasePromptComponent, ChatLLM
+from ..base import BaseComponent
+from ..base.schema import Document, IO_Type
+from .chats import ChatLLM
+from .completions import LLM
+from .prompts import BasePromptComponent
 
 
 class SimpleLinearPipeline(BaseComponent):
@@ -86,8 +88,8 @@ class GatedLinearPipeline(SimpleLinearPipeline):
 
     Example Usage:
         from kotaemon.llms.chats.openai import AzureChatOpenAI
-        from kotaemon.post_processing.extractor import RegexExtractor
         from kotaemon.llms import BasePromptComponent
+        from kotaemon.parsers import RegexExtractor
 
         def identity(x):
             return x

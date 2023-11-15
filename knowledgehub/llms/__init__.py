@@ -1,8 +1,9 @@
 from langchain.schema.messages import AIMessage, SystemMessage
 
-from .chats import AzureChatOpenAI, ChatLLM
-from .chats.base import BaseMessage, HumanMessage
+from .branching import GatedBranchingPipeline, SimpleBranchingPipeline
+from .chats import AzureChatOpenAI, BaseMessage, ChatLLM, HumanMessage
 from .completions import LLM, AzureOpenAI, OpenAI
+from .linear import GatedLinearPipeline, SimpleLinearPipeline
 from .prompts import BasePromptComponent, PromptTemplate
 
 __all__ = [
@@ -20,4 +21,9 @@ __all__ = [
     # prompt-specific components
     "BasePromptComponent",
     "PromptTemplate",
+    # strategies
+    "SimpleLinearPipeline",
+    "GatedLinearPipeline",
+    "SimpleBranchingPipeline",
+    "GatedBranchingPipeline",
 ]

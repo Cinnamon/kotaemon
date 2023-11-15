@@ -1,7 +1,7 @@
 import pytest
 
 from kotaemon.base import Document
-from kotaemon.post_processing.extractor import RegexExtractor
+from kotaemon.parsers import RegexExtractor
 
 
 @pytest.fixture

@@ -9,6 +9,7 @@ from theflow.utils.modules import ObjectInitDeclaration as _
 
 from kotaemon.base import BaseComponent
 from kotaemon.embeddings import AzureOpenAIEmbeddings
+from kotaemon.indexing.splitters import SimpleNodeParser
 from kotaemon.loaders import (
     AutoReader,
     DirectoryReader,
@@ -16,7 +17,6 @@ from kotaemon.loaders import (
     OCRReader,
     PandasExcelReader,
 )
-from kotaemon.parsers.splitter import SimpleNodeParser
 from kotaemon.pipelines.agents import BaseAgent
 from kotaemon.pipelines.indexing import IndexVectorStoreFromDocumentPipeline
 from kotaemon.pipelines.reranking import BaseRerankingPipeline

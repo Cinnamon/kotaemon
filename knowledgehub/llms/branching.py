@@ -2,8 +2,8 @@ from typing import List, Optional
 
 from theflow import Param
 
-from kotaemon.base import BaseComponent, Document
-from kotaemon.composite.linear import GatedLinearPipeline
+from ..base import BaseComponent, Document
+from .linear import GatedLinearPipeline
 
 
 class SimpleBranchingPipeline(BaseComponent):
@@ -14,10 +14,12 @@ class SimpleBranchingPipeline(BaseComponent):
         branches (List[BaseComponent]): The list of branches to be executed.
 
     Example Usage:
-        from kotaemon.composite import GatedLinearPipeline
-        from kotaemon.llms.chats.openai import AzureChatOpenAI
-        from kotaemon.post_processing.extractor import RegexExtractor
-        from kotaemon.llms import BasePromptComponent
+        from kotaemon.llms import (
+            AzureChatOpenAI,
+            BasePromptComponent,
+            GatedLinearPipeline,
+        )
+        from kotaemon.parsers import RegexExtractor
 
         def identity(x):
             return x
@@ -87,10 +89,12 @@ class GatedBranchingPipeline(SimpleBranchingPipeline):
         branches (List[BaseComponent]): The list of branches to be executed.
 
     Example Usage:
-        from kotaemon.composite import GatedLinearPipeline
-        from kotaemon.llms.chats.openai import AzureChatOpenAI
-        from kotaemon.post_processing.extractor import RegexExtractor
-        from kotaemon.llms import BasePromptComponent
+        from kotaemon.llms import (
+            AzureChatOpenAI,
+            BasePromptComponent,
+            GatedLinearPipeline,
+        )
+        from kotaemon.parsers import RegexExtractor
 
         def identity(x):
             return x
@@ -152,7 +156,7 @@ if __name__ == "__main__":
 
     from kotaemon.llms import BasePromptComponent
     from kotaemon.llms.chats.openai import AzureChatOpenAI
-    from kotaemon.post_processing.extractor import RegexExtractor
+    from kotaemon.parsers import RegexExtractor
 
     def identity(x):
         return x
