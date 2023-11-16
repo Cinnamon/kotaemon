@@ -14,7 +14,7 @@ from kotaemon.base import Document
 class PandasExcelReader(BaseReader):
     r"""Pandas-based CSV parser.
 
-    Parses CSVs using the separator detection from Pandas `read_csv`function.
+    Parses CSVs using the separator detection from Pandas `read_csv` function.
     If special parameters are required, use the `pandas_config` dict.
 
     Args:
@@ -31,12 +31,14 @@ class PandasExcelReader(BaseReader):
         *args: Any,
         pandas_config: Optional[dict] = None,
         row_joiner: str = "\n",
+        col_joiner: str = " ",
         **kwargs: Any,
     ) -> None:
         """Init params."""
         super().__init__(*args, **kwargs)
         self._pandas_config = pandas_config or {}
         self._row_joiner = row_joiner if row_joiner else "\n"
+        self._col_joiner = col_joiner if col_joiner else " "
 
     def load_data(
         self,
@@ -88,7 +90,9 @@ class PandasExcelReader(BaseReader):
 
         output = [
             Document(
-                text=self._row_joiner.join(" ".join(sublist) for sublist in text_list),
+                text=self._row_joiner.join(
+                    self._col_joiner.join(sublist) for sublist in text_list
+                ),
                 metadata={"source": file.stem},
             )
         ]
