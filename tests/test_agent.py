@@ -163,7 +163,7 @@ def test_rewoo_agent(openai_completion, llm, mock_google_search):
 
     response = agent("Tell me about Cinnamon AI company")
     openai_completion.assert_called()
-    assert response.output == FINAL_RESPONSE_TEXT
+    assert response.text == FINAL_RESPONSE_TEXT
 
 
 @patch(
@@ -180,7 +180,7 @@ def test_react_agent(openai_completion, llm, mock_google_search):
 
     response = agent("Tell me about Cinnamon AI company")
     openai_completion.assert_called()
-    assert response.output == FINAL_RESPONSE_TEXT
+    assert response.text == FINAL_RESPONSE_TEXT
 
 
 @patch(
@@ -224,4 +224,4 @@ def test_react_agent_with_langchain_tools(openai_completion, llm):
 
     response = agent("Tell me about Cinnamon AI company")
     openai_completion.assert_called()
-    assert response.output == FINAL_RESPONSE_TEXT
+    assert response.text == FINAL_RESPONSE_TEXT

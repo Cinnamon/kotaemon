@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
+from langchain.schema.messages import AIMessage
 from llama_index.bridge.pydantic import Field
 from llama_index.schema import Document as BaseDocument
 
@@ -82,6 +83,7 @@ class LLMInterface(Document):
     total_tokens: int = -1
     prompt_tokens: int = -1
     logits: list[list[float]] = Field(default_factory=list)
+    messages: list[AIMessage] = Field(default_factory=list)
 
 
 class ExtractorOutput(Document):

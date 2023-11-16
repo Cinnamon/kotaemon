@@ -70,6 +70,7 @@ class LangchainChatLLM(ChatLLM):
 
         pred = self.agent.generate(messages=[input_], **kwargs)
         all_text = [each.text for each in pred.generations[0]]
+        all_messages = [each.message for each in pred.generations[0]]
 
         completion_tokens, total_tokens, prompt_tokens = 0, 0, 0
         try:
@@ -88,6 +89,7 @@ class LangchainChatLLM(ChatLLM):
             completion_tokens=completion_tokens,
             total_tokens=total_tokens,
             prompt_tokens=prompt_tokens,
+            messages=all_messages,
             logits=[],
         )
 

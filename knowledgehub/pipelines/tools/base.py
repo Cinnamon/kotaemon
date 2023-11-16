@@ -103,7 +103,8 @@ class BaseTool(BaseComponent):
         # TODO (verbose_): Add logging
         try:
             tool_args, tool_kwargs = self._to_args_and_kwargs(parsed_input)
-            observation = self._run_tool(*tool_args, **tool_kwargs)
+            call_kwargs = {**kwargs, **tool_kwargs}
+            observation = self._run_tool(*tool_args, **call_kwargs)
         except ToolException as e:
             observation = self._handle_tool_error(e)
             return observation

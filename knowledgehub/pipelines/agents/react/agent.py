@@ -4,9 +4,10 @@ from typing import Dict, List, Optional, Tuple, Type, Union
 
 from pydantic import BaseModel, create_model
 
+from kotaemon.base.schema import Document
 from kotaemon.llms import PromptTemplate
 
-from ..base import AgentOutput, AgentType, BaseAgent, BaseLLM, BaseTool
+from ..base import AgentType, BaseAgent, BaseLLM, BaseTool
 from ..output.base import AgentAction, AgentFinish
 
 FINAL_ANSWER_ACTION = "Final Answer:"
@@ -183,6 +184,11 @@ class ReactAgent(BaseAgent):
             if is_finished_chain:
                 break
 
-        return AgentOutput(
-            output=response_text, cost=total_cost, token_usage=total_token
+        return Document(
+            text=response_text,
+            metadata={
+                "agent": "react",
+                "cost": total_cost,
+                "usage": total_token,
+            },
         )

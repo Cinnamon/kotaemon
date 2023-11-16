@@ -5,7 +5,9 @@ from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from pydantic import BaseModel, create_model
 
+from kotaemon.base.schema import Document
 from kotaemon.llms import LLM, ChatLLM, PromptTemplate
+from kotaemon.pipelines.citation import CitationPipeline
 
 from ..base import AgentOutput, AgentType, BaseAgent, BaseLLM, BaseTool
 from ..output.base import BaseScratchPad
@@ -28,7 +30,7 @@ class RewooAgent(BaseAgent):
     plugins: List[BaseTool] = list()
     examples: Dict[str, Union[str, List[str]]] = dict()
     args_schema: Optional[Type[BaseModel]] = create_model(
-        "ReactArgsSchema", instruction=(str, ...)
+        "RewooArgsSchema", instruction=(str, ...)
     )
 
     def _get_llms(self):
@@ -218,7 +220,7 @@ class RewooAgent(BaseAgent):
             if p.name == name:
                 return p
 
-    def _run_tool(self, instruction: str) -> AgentOutput:
+    def _run_tool(self, instruction: str, use_citation: bool = False) -> Document:
         """
         Run the agent with a given instruction.
         """
@@ -262,7 +264,18 @@ class RewooAgent(BaseAgent):
         # Solve
         solver_output = solver(instruction, worker_log)
         solver_output_text = solver_output.text
+        if use_citation:
+            citation_pipeline = CitationPipeline(llm=solver_llm)
+            citation = citation_pipeline(context=worker_log, question=instruction)
+        else:
+            citation = None
 
-        return AgentOutput(
-            output=solver_output_text, cost=total_cost, token_usage=total_token
+        return Document(
+            text=solver_output_text,
+            metadata={
+                "agent": "react",
+                "cost": total_cost,
+                "usage": total_token,
+                "citation": citation,
+            },
         )
