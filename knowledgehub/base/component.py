@@ -1,9 +1,9 @@
 from abc import abstractmethod
 
-from theflow.base import Compose
+from theflow.base import Function
 
 
-class BaseComponent(Compose):
+class BaseComponent(Function):
     """A component is a class that can be used to compose a pipeline
 
     Benefits of component:

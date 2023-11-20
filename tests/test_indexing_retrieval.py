@@ -34,6 +34,7 @@ def test_indexing(mock_openai_embedding, tmp_path):
         vector_store=db, embedding=embedding, doc_store=doc_store
     )
     pipeline.doc_store = cast(InMemoryDocumentStore, pipeline.doc_store)
+    pipeline.vector_store = cast(ChromaVectorStore, pipeline.vector_store)
     assert pipeline.vector_store._collection.count() == 0, "Expected empty collection"
     assert len(pipeline.doc_store._store) == 0, "Expected empty doc store"
     pipeline(text=Document(text="Hello world"))

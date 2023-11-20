@@ -1,7 +1,7 @@
 import inspect
 from collections import defaultdict
 
-from theflow.utils.documentation import get_compose_documentation_from_module
+from theflow.utils.documentation import get_function_documentation_from_module
 
 
 def from_definition_to_markdown(definition: dict) -> str:
@@ -38,7 +38,7 @@ def from_definition_to_markdown(definition: dict) -> str:
 
 
 def make_doc(module: str, output: str, separation_level: int):
-    """Run exporting from compose to markdown
+    """Run exporting components to markdown
 
     Args:
         module (str): module name
@@ -46,7 +46,7 @@ def make_doc(module: str, output: str, separation_level: int):
         separation_level (int): level of separation
     """
     documentation = sorted(
-        get_compose_documentation_from_module(module).items(), key=lambda x: x[0]
+        get_function_documentation_from_module(module).items(), key=lambda x: x[0]
     )
 
     entries = defaultdict(list)

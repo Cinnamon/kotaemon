@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
 
 from langchain.agents import Tool as LCTool
@@ -51,13 +50,13 @@ class BaseTool(BaseComponent):
                 return {k: v for k, v in result.dict().items() if k in tool_input}
         return tool_input
 
-    @abstractmethod
     def _run_tool(
         self,
         *args: Any,
         **kwargs: Any,
     ) -> Any:
         """Call tool."""
+        raise NotImplementedError(f"_run_tool is not implemented for {self.name}")
 
     def _to_args_and_kwargs(self, tool_input: Union[str, Dict]) -> Tuple[Tuple, Dict]:
         # For backwards compatibility, if run_input is a string,

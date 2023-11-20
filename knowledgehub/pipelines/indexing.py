@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import uuid
 from pathlib import Path
-
-from theflow import Node, Param
+from typing import cast
 
 from ..base import BaseComponent, Document
 from ..embeddings import BaseEmbeddings
@@ -22,9 +21,9 @@ class IndexVectorStoreFromDocumentPipeline(BaseComponent):
         - List of texts
     """
 
-    vector_store: Param[BaseVectorStore] = Param()
-    doc_store: Param[BaseDocumentStore] = Param()
-    embedding: Node[BaseEmbeddings] = Node()
+    vector_store: BaseVectorStore
+    doc_store: BaseDocumentStore
+    embedding: BaseEmbeddings
     # TODO: refer to llama_index's storage as well
 
     def run(self, text: str | list[str] | Document | list[Document]) -> None:
@@ -32,7 +31,7 @@ class IndexVectorStoreFromDocumentPipeline(BaseComponent):
         if not isinstance(text, list):
             text = [text]
 
-        for item in text:
+        for item in cast(list, text):
             if isinstance(item, str):
                 input_.append(Document(text=item, id_=str(uuid.uuid4())))
             elif isinstance(item, Document):

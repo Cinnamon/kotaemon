@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import List, Optional
 
 from langchain.schema.messages import AIMessage, SystemMessage
-from theflow import Param, SessionCompose
+from theflow import SessionFunction
 
 from ..base import BaseComponent
 from ..base.schema import LLMInterface
@@ -20,7 +20,7 @@ def session_chat_storage(obj):
     return obj._store_result
 
 
-class ChatConversation(SessionCompose):
+class ChatConversation(SessionFunction):
     """Base implementation of a chat bot component
 
     A chatbot component should:
@@ -31,7 +31,7 @@ class ChatConversation(SessionCompose):
     class Config:
         store_result = session_chat_storage
 
-    system_message: Param[str] = Param(default="")
+    system_message: str = ""
     bot: BaseChatBot
 
     def __init__(self, *args, **kwargs):

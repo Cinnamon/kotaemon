@@ -1,10 +1,10 @@
 from copy import deepcopy
-from typing import List
+from typing import Callable, List
 
-from theflow import Compose, Node, Param
+from theflow import Function, Node, Param
 
 from kotaemon.base import BaseComponent
-from kotaemon.llms import BasePromptComponent
+from kotaemon.llms import LLM, BasePromptComponent
 from kotaemon.llms.chats.openai import AzureChatOpenAI
 
 
@@ -64,15 +64,13 @@ class Thought(BaseComponent):
     is created.
     """
 
-    prompt: Param[str] = Param(
+    prompt: str = Param(
         help="The prompt template string. This prompt template has Python-like "
         "variable placeholders, that then will be subsituted with real values when "
         "this component is executed"
     )
-    llm: Node[BaseComponent] = Node(
-        AzureChatOpenAI, help="The LLM model to execute the input prompt"
-    )
-    post_process: Node[Compose] = Node(
+    llm: LLM = Node(AzureChatOpenAI, help="The LLM model to execute the input prompt")
+    post_process: Function = Node(
         help="The function post-processor that post-processes LLM output prediction ."
         "It should take a string as input (this is the LLM output text) and return "
         "a dictionary, where the key should"
@@ -139,11 +137,11 @@ class ManualSequentialChainOfThought(BaseComponent):
     returns False.
     """
 
-    thoughts: Param[List[Thought]] = Param(
+    thoughts: List[Thought] = Param(
         default_callback=lambda *_: [], help="List of Thought"
     )
-    llm: Param = Param(help="The LLM model to use (base of kotaemon.llms.LLM)")
-    terminate: Param = Param(
+    llm: LLM = Param(help="The LLM model to use (base of kotaemon.llms.LLM)")
+    terminate: Callable = Param(
         default=lambda _: False,
         help="Callback on terminate condition. Default to always return False",
     )

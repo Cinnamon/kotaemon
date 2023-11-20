@@ -32,7 +32,7 @@ setuptools.setup(
     install_requires=[
         "langchain",
         "theflow",
-        "llama-index",
+        "llama-index>=0.9.0",
         "llama-hub",
         "gradio",
         "openpyxl",

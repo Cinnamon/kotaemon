@@ -35,3 +35,6 @@ class Pipeline(BaseComponent):
     def run_raw(self, text: str) -> str:
         matched_texts: List[str] = self.retrieving_pipeline(text)
         return self.llm("\n".join(matched_texts)).text
+
+    def run(self):
+        ...
