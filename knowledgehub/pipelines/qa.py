@@ -49,14 +49,14 @@ class QuestionAnsweringPipeline(BaseComponent):
         request_timeout=60,
     )
 
-    vector_store: _[BaseVectorStore] = _(InMemoryVectorStore)
-    doc_store: _[BaseDocumentStore] = _(InMemoryDocumentStore)
+    vector_store: BaseVectorStore = _(InMemoryVectorStore)
+    doc_store: BaseDocumentStore = _(InMemoryDocumentStore)
     rerankers: Sequence[BaseRerankingPipeline] = []
 
     embedding: AzureOpenAIEmbeddings = AzureOpenAIEmbeddings.withx(
         model="text-embedding-ada-002",
         deployment="dummy-q2-text-embedding",
-        azure_endpoint="https://bleh-dummy-2.openai.azure.com/",
+        azure_endpoint="https://bleh-dummy.openai.azure.com/",
         openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
     )
 
@@ -137,8 +137,9 @@ class AgentQAPipeline(QuestionAnsweringPipeline):
             component=self.retrieving_pipeline,
         )
         if search_tool not in self.agent.plugins:
-            self.agent.plugins.append(search_tool)
+            self.agent.add_tools([search_tool])
 
     def run(self, question: str, use_citation: bool = False) -> Document:
-        answer = self.agent(question, use_citation=use_citation)
+        kwargs = {"use_citation": use_citation} if use_citation else {}
+        answer = self.agent(question, **kwargs)
         return answer

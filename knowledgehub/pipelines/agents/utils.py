@@ -1,12 +1,12 @@
-from .base import AgentOutput
+from ...base import Document
 
 
 def get_plugin_response_content(output) -> str:
     """
     Wrapper for AgentOutput content return
     """
-    if isinstance(output, AgentOutput):
-        return output.output
+    if isinstance(output, Document):
+        return output.text
     else:
         return str(output)
 

@@ -1,8 +1,6 @@
 from enum import Enum
 from typing import Dict, List, Optional, Union
 
-from pydantic import BaseModel
-
 from kotaemon.llms import PromptTemplate
 from kotaemon.llms.chats.base import ChatLLM
 from kotaemon.llms.completions.base import LLM
@@ -17,10 +15,12 @@ class AgentType(Enum):
     """
 
     openai = "openai"
+    openai_multi = "openai_multi"
+    openai_tool = "openai_tool"
+    self_ask = "self_ask"
     react = "react"
     rewoo = "rewoo"
     vanilla = "vanilla"
-    openai_memory = "openai_memory"
 
     @staticmethod
     def get_agent_class(_type: "AgentType"):
@@ -35,16 +35,6 @@ class AgentType(Enum):
             return RewooAgent
         else:
             raise ValueError(f"Unknown agent type: {_type}")
-
-
-class AgentOutput(BaseModel):
-    """
-    Pydantic model for agent output.
-    """
-
-    output: str
-    cost: float
-    token_usage: int
 
 
 class BaseAgent(BaseTool):
@@ -62,6 +52,10 @@ class BaseAgent(BaseTool):
     prompt_template: Optional[Union[PromptTemplate, Dict[str, PromptTemplate]]]
     """A prompt template or a dict to supply different prompt to the agent
     """
-    plugins: List[BaseTool]
+    plugins: List[BaseTool] = []
     """List of plugins / tools to be used in the agent
     """
+
+    def add_tools(self, tools: List[BaseTool]) -> None:
+        """Helper method to add tools and update agent state if needed"""
+        self.plugins.extend(tools)

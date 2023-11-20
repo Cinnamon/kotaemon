@@ -9,7 +9,7 @@ from kotaemon.base.schema import Document
 from kotaemon.llms import LLM, ChatLLM, PromptTemplate
 from kotaemon.pipelines.citation import CitationPipeline
 
-from ..base import AgentOutput, AgentType, BaseAgent, BaseLLM, BaseTool
+from ..base import AgentType, BaseAgent, BaseLLM, BaseTool
 from ..output.base import BaseScratchPad
 from ..utils import get_plugin_response_content
 from .planner import Planner
@@ -28,7 +28,9 @@ class RewooAgent(BaseAgent):
         str, PromptTemplate
     ] = dict()  # {"Planner": xxx, "Solver": xxx}
     plugins: List[BaseTool] = list()
-    examples: Dict[str, Union[str, List[str]]] = dict()
+    examples: Dict[
+        str, Union[str, List[str]]
+    ] = dict()  # {"Planner": xxx, "Solver": xxx}
     args_schema: Optional[Type[BaseModel]] = create_model(
         "RewooArgsSchema", instruction=(str, ...)
     )
@@ -156,10 +158,6 @@ class RewooAgent(BaseAgent):
                 if selected_plugin is None:
                     raise ValueError("Invalid plugin detected")
                 tool_response = selected_plugin(tool_input)
-                # cumulate agent-as-plugin costs and tokens.
-                if isinstance(tool_response, AgentOutput):
-                    result["plugin_cost"] = tool_response.cost
-                    result["plugin_token"] = tool_response.token_usage
                 result["evidence"] = get_plugin_response_content(tool_response)
             except ValueError:
                 result["evidence"] = "No evidence found."

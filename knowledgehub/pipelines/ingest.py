@@ -43,14 +43,14 @@ class ReaderIndexingPipeline(BaseComponent):
     reader_name: str = "normal"  # "normal", "mathpix" or "ocr"
     chunk_size: int = 1024
     chunk_overlap: int = 256
-    vector_store: _[BaseVectorStore] = _(InMemoryVectorStore)
-    doc_store: _[BaseDocumentStore] = _(InMemoryDocumentStore)
+    vector_store: BaseVectorStore = _(InMemoryVectorStore)
+    doc_store: BaseDocumentStore = _(InMemoryDocumentStore)
     doc_parsers: List[DocParser] = []
 
     embedding: AzureOpenAIEmbeddings = AzureOpenAIEmbeddings.withx(
         model="text-embedding-ada-002",
         deployment="dummy-q2-text-embedding",
-        azure_endpoint="https://bleh-dummy-2.openai.azure.com/",
+        azure_endpoint="https://bleh-dummy.openai.azure.com/",
         openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
         chunk_size=16,
     )

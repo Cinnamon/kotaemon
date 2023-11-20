@@ -4,6 +4,8 @@ import pytest
 from openai.types.chat.chat_completion import ChatCompletion
 
 from kotaemon.llms.chats.openai import AzureChatOpenAI
+from kotaemon.pipelines.agents.base import AgentType
+from kotaemon.pipelines.agents.langchain import LangchainAgent
 from kotaemon.pipelines.agents.react import ReactAgent
 from kotaemon.pipelines.agents.rewoo import RewooAgent
 from kotaemon.pipelines.tools import (
@@ -13,7 +15,7 @@ from kotaemon.pipelines.tools import (
     WikipediaTool,
 )
 
-FINAL_RESPONSE_TEXT = "Hello Cinnamon AI!"
+FINAL_RESPONSE_TEXT = "Final Answer: Hello Cinnamon AI!"
 
 
 _openai_chat_completion_responses_rewoo = [
@@ -199,8 +201,28 @@ def test_react_agent_langchain(openai_completion, llm, mock_google_search):
     agent = initialize_agent(
         langchain_plugins,
         llm.agent,
-        agent=AgentType.OPENAI_FUNCTIONS,
+        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
         verbose=True,
+    )
+    response = agent("Tell me about Cinnamon AI company")
+    openai_completion.assert_called()
+    assert response
+
+
+@patch(
+    "openai.resources.chat.completions.Completions.create",
+    side_effect=_openai_chat_completion_responses_react,
+)
+def test_wrapper_agent_langchain(openai_completion, llm, mock_google_search):
+    plugins = [
+        GoogleSearchTool(),
+        WikipediaTool(),
+        LLMTool(llm=llm),
+    ]
+    agent = LangchainAgent(
+        llm=llm,
+        plugins=plugins,
+        agent_type=AgentType.react,
     )
     response = agent("Tell me about Cinnamon AI company")
     openai_completion.assert_called()

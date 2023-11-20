@@ -73,6 +73,7 @@ class Planner(BaseComponent):
         output.debug(f"Prompt: {prompt}")
         try:
             response = self.model(prompt)
+            self.log_progress(".planner", response=response)
             output.info("Planner run successful.")
         except ValueError as e:
             output.error("Planner failed to retrieve response from LLM")
