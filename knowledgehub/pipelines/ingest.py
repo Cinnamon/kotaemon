@@ -2,14 +2,14 @@ import os
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Union
 
-from llama_index.node_parser.extractors import MetadataExtractor
 from llama_index.readers.base import BaseReader
 from theflow import Node
 from theflow.utils.modules import ObjectInitDeclaration as _
 
 from kotaemon.base import BaseComponent
 from kotaemon.embeddings import AzureOpenAIEmbeddings
-from kotaemon.indexing.splitters import SimpleNodeParser
+from kotaemon.indexing.doc_parsers import LIDocParser as DocParser
+from kotaemon.indexing.doc_parsers import TokenSplitter
 from kotaemon.loaders import (
     AutoReader,
     DirectoryReader,
@@ -45,7 +45,7 @@ class ReaderIndexingPipeline(BaseComponent):
     chunk_overlap: int = 256
     vector_store: _[BaseVectorStore] = _(InMemoryVectorStore)
     doc_store: _[BaseDocumentStore] = _(InMemoryDocumentStore)
-    metadata_extractor: Optional[MetadataExtractor] = None
+    doc_parsers: List[DocParser] = []
 
     embedding: AzureOpenAIEmbeddings = AzureOpenAIEmbeddings.withx(
         model="text-embedding-ada-002",
@@ -81,11 +81,10 @@ class ReaderIndexingPipeline(BaseComponent):
         )
 
     @Node.auto(depends_on=["chunk_size", "chunk_overlap"])
-    def text_splitter(self) -> SimpleNodeParser:
-        return SimpleNodeParser(
+    def text_splitter(self) -> TokenSplitter:
+        return TokenSplitter(
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
-            metadata_extractor=self.metadata_extractor,
         )
 
     def run(
@@ -110,6 +109,11 @@ class ReaderIndexingPipeline(BaseComponent):
             documents = self.get_reader(input_files=file_path_list)()
             nodes = self.text_splitter(documents)
             self.log_progress(".num_docs", num_docs=len(nodes))
+
+            # document parsers call
+            if self.doc_parsers:
+                for parser in self.doc_parsers:
+                    nodes = parser(nodes)
 
             self.indexing_vector_pipeline(nodes)
             # persist right after indexing
