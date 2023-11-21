@@ -153,7 +153,12 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
 
     def delete(self, ids: Union[List[str], str]):
         """Delete document by id"""
-        raise NotImplementedError("Delete by-id is a Work-in-Progress.")
+        if not isinstance(ids, list):
+            ids = [ids]
+
+        query = {"query": {"terms": {"_id": ids}}}
+        self.client.delete_by_query(index=self.index_name, body=query)
+        self.client.indices.refresh(index=self.index_name)
 
     def save(self, path: Union[str, Path]):
         """Save document to path"""

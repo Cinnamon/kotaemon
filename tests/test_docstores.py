@@ -176,6 +176,34 @@ _elastic_search_responses = [
             },
         },
     ),
+    # delete
+    (
+        meta_success,
+        {
+            "took": 10,
+            "timed_out": False,
+            "total": 1,
+            "deleted": 1,
+            "batches": 1,
+            "version_conflicts": 0,
+            "noops": 0,
+            "retries": {"bulk": 0, "search": 0},
+            "throttled_millis": 0,
+            "requests_per_second": -1.0,
+            "throttled_until_millis": 0,
+            "failures": [],
+        },
+    ),
+    # check exists
+    (
+        meta_success,
+        {"_shards": {"total": 2, "successful": 1, "failed": 0}},
+    ),
+    # count
+    (
+        meta_success,
+        [{"epoch": "1700549363", "timestamp": "06:49:23", "count": "2"}],
+    ),
 ]
 
 
@@ -259,5 +287,9 @@ def test_elastic_document_store(elastic_api):
 
     docs = store.query("text")
     assert len(docs) == 3, "Document store query() failed"
+
+    # delete test
+    store.delete(first_doc.doc_id)
+    assert store.count() == 2, "Document store delete() failed"
 
     elastic_api.assert_called()
