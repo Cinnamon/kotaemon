@@ -1,7 +1,182 @@
+from unittest.mock import patch
+
 import pytest
+from elastic_transport import ApiResponseMeta
 
 from kotaemon.base import Document
-from kotaemon.storages import InMemoryDocumentStore
+from kotaemon.storages import ElasticsearchDocumentStore, InMemoryDocumentStore
+
+meta_success = ApiResponseMeta(
+    status=200,
+    http_version="1.1",
+    headers={"x-elastic-product": "Elasticsearch"},
+    duration=1.0,
+    node=None,
+)
+meta_fail = ApiResponseMeta(
+    status=404,
+    http_version="1.1",
+    headers={"x-elastic-product": "Elasticsearch"},
+    duration=1.0,
+    node=None,
+)
+_elastic_search_responses = [
+    # check exist
+    (meta_fail, None),
+    # create index
+    (
+        meta_success,
+        {"acknowledged": True, "shards_acknowledged": True, "index": "test"},
+    ),
+    # count API
+    (
+        meta_success,
+        [{"epoch": "1700474422", "timestamp": "10:00:22", "count": "0"}],
+    ),
+    # add documents
+    (
+        meta_success,
+        {
+            "took": 50,
+            "errors": False,
+            "items": [
+                {
+                    "index": {
+                        "_index": "test",
+                        "_id": "a3774dab-b8f1-43ba-adb8-842cb7a76eeb",
+                        "_version": 1,
+                        "result": "created",
+                        "_shards": {"total": 2, "successful": 1, "failed": 0},
+                        "_seq_no": 0,
+                        "_primary_term": 1,
+                        "status": 201,
+                    }
+                },
+                {
+                    "index": {
+                        "_index": "test",
+                        "_id": "b44f5593-7587-4f91-afd0-5736e5bd5bfe",
+                        "_version": 1,
+                        "result": "created",
+                        "_shards": {"total": 2, "successful": 1, "failed": 0},
+                        "_seq_no": 1,
+                        "_primary_term": 1,
+                        "status": 201,
+                    }
+                },
+                {
+                    "index": {
+                        "_index": "test",
+                        "_id": "13ae7825-eef9-4214-a164-983c2e6bbeaa",
+                        "_version": 1,
+                        "result": "created",
+                        "_shards": {"total": 2, "successful": 1, "failed": 0},
+                        "_seq_no": 2,
+                        "_primary_term": 1,
+                        "status": 201,
+                    }
+                },
+            ],
+        },
+    ),
+    # check exist
+    (
+        meta_success,
+        {"_shards": {"total": 2, "successful": 1, "failed": 0}},
+    ),
+    # count
+    (
+        meta_success,
+        [{"epoch": "1700474422", "timestamp": "10:00:22", "count": "3"}],
+    ),
+    # get_all
+    (
+        meta_success,
+        {
+            "took": 1,
+            "timed_out": False,
+            "_shards": {"total": 1, "successful": 1, "skipped": 0, "failed": 0},
+            "hits": {
+                "total": {"value": 3, "relation": "eq"},
+                "max_score": 1.0,
+                "hits": [
+                    {
+                        "_index": "test",
+                        "_id": "a3774dab-b8f1-43ba-adb8-842cb7a76eeb",
+                        "_score": 1.0,
+                        "_source": {"content": "Sample text 0", "metadata": {}},
+                    },
+                    {
+                        "_index": "test",
+                        "_id": "b44f5593-7587-4f91-afd0-5736e5bd5bfe",
+                        "_score": 1.0,
+                        "_source": {"content": "Sample text 1", "metadata": {}},
+                    },
+                    {
+                        "_index": "test",
+                        "_id": "13ae7825-eef9-4214-a164-983c2e6bbeaa",
+                        "_score": 1.0,
+                        "_source": {"content": "Sample text 2", "metadata": {}},
+                    },
+                ],
+            },
+        },
+    ),
+    # get by-id
+    (
+        meta_success,
+        {
+            "took": 1,
+            "timed_out": False,
+            "_shards": {"total": 1, "successful": 1, "skipped": 0, "failed": 0},
+            "hits": {
+                "total": {"value": 1, "relation": "eq"},
+                "max_score": 1.0,
+                "hits": [
+                    {
+                        "_index": "test",
+                        "_id": "a3774dab-b8f1-43ba-adb8-842cb7a76eeb",
+                        "_score": 1.0,
+                        "_source": {"content": "Sample text 0", "metadata": {}},
+                    }
+                ],
+            },
+        },
+    ),
+    # query
+    (
+        meta_success,
+        {
+            "took": 2,
+            "timed_out": False,
+            "_shards": {"total": 1, "successful": 1, "skipped": 0, "failed": 0},
+            "hits": {
+                "total": {"value": 3, "relation": "eq"},
+                "max_score": 0.13353139,
+                "hits": [
+                    {
+                        "_index": "test",
+                        "_id": "a3774dab-b8f1-43ba-adb8-842cb7a76eeb",
+                        "_score": 0.13353139,
+                        "_source": {"content": "Sample text 0", "metadata": {}},
+                    },
+                    {
+                        "_index": "test",
+                        "_id": "b44f5593-7587-4f91-afd0-5736e5bd5bfe",
+                        "_score": 0.13353139,
+                        "_source": {"content": "Sample text 1", "metadata": {}},
+                    },
+                    {
+                        "_index": "test",
+                        "_id": "13ae7825-eef9-4214-a164-983c2e6bbeaa",
+                        "_score": 0.13353139,
+                        "_source": {"content": "Sample text 2", "metadata": {}},
+                    },
+                ],
+            },
+        },
+    ),
+]
 
 
 def test_simple_document_store_base_interfaces(tmp_path):
@@ -56,3 +231,33 @@ def test_simple_document_store_base_interfaces(tmp_path):
     store2 = InMemoryDocumentStore()
     store2.load(tmp_path / "store.json")
     assert len(store2.get_all()) == 17, "Laded document store should have 17 documents"
+
+
+@patch(
+    "elastic_transport.Transport.perform_request",
+    side_effect=_elastic_search_responses,
+)
+def test_elastic_document_store(elastic_api):
+    store = ElasticsearchDocumentStore(index_name="test")
+
+    docs = [
+        Document(text=f"Sample text {idx}", meta={"meta_key": f"meta_value_{idx}"})
+        for idx in range(3)
+    ]
+
+    # Test add and get all
+    assert store.count() == 0, "Document store should be empty"
+    store.add(docs)
+    assert store.count() == 3, "Document store count should changed after adding docs"
+
+    docs = store.get_all()
+    first_doc = docs[0]
+    assert len(docs) == 3, "Document store get_all() failed"
+
+    doc_by_ids = store.get(first_doc.doc_id)
+    assert doc_by_ids[0].doc_id == first_doc.doc_id, "Document store get() failed"
+
+    docs = store.query("text")
+    assert len(docs) == 3, "Document store query() failed"
+
+    elastic_api.assert_called()

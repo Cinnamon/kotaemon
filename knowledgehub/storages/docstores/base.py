@@ -17,14 +17,13 @@ class BaseDocumentStore(ABC):
         self,
         docs: Union[Document, List[Document]],
         ids: Optional[Union[List[str], str]] = None,
-        exist_ok: bool = False,
+        **kwargs,
     ):
         """Add document into document store
 
         Args:
             docs: Document or list of documents
             ids: List of ids of the documents. Optional, if not set will use doc.doc_id
-            exist_ok: If True, will not raise error if document already exist
         """
         ...
 
@@ -34,8 +33,13 @@ class BaseDocumentStore(ABC):
         ...
 
     @abstractmethod
-    def get_all(self) -> dict:
+    def get_all(self) -> List[Document]:
         """Get all documents"""
+        ...
+
+    @abstractmethod
+    def count(self) -> int:
+        """Count number of documents"""
         ...
 
     @abstractmethod

@@ -61,6 +61,7 @@ setuptools.setup(
             "farm-haystack==1.19.0",
             "sentence_transformers",
             "cohere",
+            "elasticsearch",
             "pypdf",
         ],
     },

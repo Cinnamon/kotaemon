@@ -16,20 +16,24 @@ class InMemoryDocumentStore(BaseDocumentStore):
         self,
         docs: Union[Document, List[Document]],
         ids: Optional[Union[List[str], str]] = None,
-        exist_ok: bool = False,
+        **kwargs,
     ):
         """Add document into document store
 
         Args:
-            docs: Union[Document, List[Document]],
-            ids: Optional[Union[List[str], str]] = None,
+            docs: list of documents to add
+            ids: specify the ids of documents to add or
+                use existing doc.doc_id
+            exist_ok: raise error when duplicate doc-id
+                found in the docstore (default to False)
         """
-        doc_ids = ids if ids else [doc.doc_id for doc in docs]
-        if not isinstance(doc_ids, list):
-            doc_ids = [doc_ids]
+        exist_ok: bool = kwargs.pop("exist_ok", False)
 
+        if ids and not isinstance(ids, list):
+            ids = [ids]
         if not isinstance(docs, list):
             docs = [docs]
+        doc_ids = ids if ids else [doc.doc_id for doc in docs]
 
         for doc_id, doc in zip(doc_ids, docs):
             if doc_id in self._store and not exist_ok:
@@ -43,9 +47,13 @@ class InMemoryDocumentStore(BaseDocumentStore):
 
         return [self._store[doc_id] for doc_id in ids]
 
-    def get_all(self) -> dict:
+    def get_all(self) -> List[Document]:
         """Get all documents"""
-        return self._store
+        return list(self._store.values())
+
+    def count(self) -> int:
+        """Count number of documents"""
+        return len(self._store)
 
     def delete(self, ids: Union[List[str], str]):
         """Delete document by id"""
