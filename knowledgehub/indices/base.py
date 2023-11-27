@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Any, Sequence, Type
+from typing import Any, Type
 
 from llama_index.node_parser.interface import NodeParser
 
@@ -20,9 +20,9 @@ class DocTransformer(BaseComponent):
     @abstractmethod
     def run(
         self,
-        documents: Sequence[Document],
+        documents: list[Document],
         **kwargs,
-    ) -> Sequence[Document]:
+    ) -> list[Document]:
         ...
 
 
@@ -62,9 +62,9 @@ class LlamaIndexMixin:
 
     def run(
         self,
-        documents: Sequence[Document],
+        documents: list[Document],
         **kwargs,
-    ) -> Sequence[Document]:
+    ) -> list[Document]:
         """Run Llama-index node parser and convert the output to Document from
         kotaemon
         """

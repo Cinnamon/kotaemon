@@ -5,8 +5,9 @@ from typing import Any, Dict, Optional, Type, Union
 
 import yaml
 
-from ...base import BaseComponent
-from ...chatbot import BaseChatBot
+from kotaemon.base import BaseComponent
+from kotaemon.chatbot import BaseChatBot
+
 from .base import DEFAULT_COMPONENT_BY_TYPES
 
 

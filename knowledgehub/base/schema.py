@@ -32,6 +32,8 @@ class Document(BaseDocument):
                 kwargs["content"] = kwargs["text"]
             elif kwargs.get("embedding", None) is not None:
                 kwargs["content"] = kwargs["embedding"]
+                # default text indicating this document only contains embedding
+                kwargs["text"] = "<EMBEDDING>"
         elif isinstance(content, Document):
             kwargs = content.dict()
         else:
@@ -63,6 +65,17 @@ class Document(BaseDocument):
 
     def __str__(self):
         return str(self.content)
+
+
+class DocumentWithEmbedding(Document):
+    """Subclass of Document which must contains embedding
+
+    Use this if you want to enforce component's IOs to must contain embedding.
+    """
+
+    def __init__(self, embedding: list[float], *args, **kwargs):
+        kwargs["embedding"] = embedding
+        super().__init__(*args, **kwargs)
 
 
 class BaseMessage(Document):

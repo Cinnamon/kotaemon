@@ -6,14 +6,14 @@ from typing import Type
 from langchain.schema.embeddings import Embeddings as LCEmbeddings
 from theflow import Param
 
-from ..base import BaseComponent, Document
+from kotaemon.base import BaseComponent, Document, DocumentWithEmbedding
 
 
 class BaseEmbeddings(BaseComponent):
     @abstractmethod
     def run(
         self, text: str | list[str] | Document | list[Document]
-    ) -> list[list[float]]:
+    ) -> list[DocumentWithEmbedding]:
         ...
 
 
@@ -43,7 +43,7 @@ class LangchainEmbeddings(BaseEmbeddings):
     def agent(self):
         return self._lc_class(**self._kwargs)
 
-    def run(self, text) -> list[list[float]]:
+    def run(self, text):
         input_: list[str] = []
         if not isinstance(text, list):
             text = [text]
@@ -58,4 +58,9 @@ class LangchainEmbeddings(BaseEmbeddings):
                     f"Invalid input type {type(item)}, should be str or Document"
                 )
 
-        return self.agent.embed_documents(input_)
+        embeddings = self.agent.embed_documents(input_)
+
+        return [
+            DocumentWithEmbedding(text=each_text, embedding=each_embedding)
+            for each_text, each_embedding in zip(input_, embeddings)
+        ]

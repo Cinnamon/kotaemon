@@ -6,10 +6,7 @@ from typing import Type
 from langchain.chat_models.base import BaseChatModel
 from theflow.base import Param
 
-from kotaemon.base.schema import BaseMessage, HumanMessage
-
-from ...base import BaseComponent
-from ...base.schema import LLMInterface
+from kotaemon.base import BaseComponent, BaseMessage, HumanMessage, LLMInterface
 
 logger = logging.getLogger(__name__)
 

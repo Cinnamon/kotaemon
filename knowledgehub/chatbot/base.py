@@ -3,11 +3,8 @@ from typing import List, Optional
 
 from theflow import SessionFunction
 
-from kotaemon.base.schema import AIMessage, SystemMessage
-
-from ..base import BaseComponent
-from ..base.schema import LLMInterface
-from ..llms.chats.base import BaseMessage, HumanMessage
+from kotaemon.base import BaseComponent, LLMInterface
+from kotaemon.base.schema import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 
 class BaseChatBot(BaseComponent):

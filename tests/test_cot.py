@@ -56,7 +56,7 @@ def test_cot_plus_operator(openai_completion):
     )
     thought = thought1 + thought2
     output = thought(word="hello", language="French")
-    assert output == {
+    assert output.content == {
         "word": "hello",
         "language": "French",
         "translated": "Bonjour",
@@ -86,7 +86,7 @@ def test_cot_manual(openai_completion):
     )
     thought = ManualSequentialChainOfThought(thoughts=[thought1, thought2], llm=llm)
     output = thought(word="hello", language="French")
-    assert output == {
+    assert output.content == {
         "word": "hello",
         "language": "French",
         "translated": "Bonjour",
@@ -120,7 +120,7 @@ def test_cot_with_termination_callback(openai_completion):
         terminate=lambda d: True if d.get("translated", "") == "Bonjour" else False,
     )
     output = thought(word="hallo", language="French")
-    assert output == {
+    assert output.content == {
         "word": "hallo",
         "language": "French",
         "translated": "Bonjour",

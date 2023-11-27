@@ -2,6 +2,8 @@ from abc import abstractmethod
 
 from theflow.base import Function
 
+from kotaemon.base.schema import Document
+
 
 class BaseComponent(Function):
     """A component is a class that can be used to compose a pipeline
@@ -30,7 +32,6 @@ class BaseComponent(Function):
         return self.__call__(self.inflow.flow())
 
     @abstractmethod
-    def run(self, *args, **kwargs):
-        # enforce output type to be compatible with Document
+    def run(self, *args, **kwargs) -> Document | list[Document] | None:
         """Run the component."""
         ...

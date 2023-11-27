@@ -6,7 +6,7 @@ from llama_index.vector_stores.types import BasePydanticVectorStore
 from llama_index.vector_stores.types import VectorStore as LIVectorStore
 from llama_index.vector_stores.types import VectorStoreQuery
 
-from ...base import Document
+from kotaemon.base import Document, DocumentWithEmbedding
 
 
 class BaseVectorStore(ABC):
@@ -17,7 +17,7 @@ class BaseVectorStore(ABC):
     @abstractmethod
     def add(
         self,
-        embeddings: List[List[float]],
+        embeddings: List[List[float]] | List[DocumentWithEmbedding],
         metadatas: Optional[List[dict]] = None,
         ids: Optional[List[str]] = None,
     ) -> List[str]:
@@ -104,11 +104,16 @@ class LlamaIndexVectorStore(BaseVectorStore):
 
     def add(
         self,
-        embeddings: List[List[float]],
+        embeddings: List[List[float]] | List[DocumentWithEmbedding],
         metadatas: Optional[List[dict]] = None,
         ids: Optional[List[str]] = None,
     ):
-        nodes = [Document(embedding=embedding) for embedding in embeddings]
+        if isinstance(embeddings[0], list):
+            nodes = [
+                DocumentWithEmbedding(embedding=embedding) for embedding in embeddings
+            ]
+        else:
+            nodes = embeddings  # type: ignore
         if metadatas is not None:
             for node, metadata in zip(nodes, metadatas):
                 node.metadata = metadata
@@ -119,10 +124,10 @@ class LlamaIndexVectorStore(BaseVectorStore):
                     NodeRelationship.SOURCE: RelatedNodeInfo(node_id=id)
                 }
 
-        return self._client.add(nodes=nodes)  # type: ignore
+        return self._client.add(nodes=nodes)
 
     def add_from_docs(self, docs: List[Document]):
-        return self._client.add(nodes=docs)  # type: ignore
+        return self._client.add(nodes=docs)
 
     def delete(self, ids: List[str], **kwargs):
         for id_ in ids:

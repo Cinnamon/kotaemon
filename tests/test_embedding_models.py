@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+from kotaemon.base import Document
 from kotaemon.embeddings.cohere import CohereEmbdeddings
 from kotaemon.embeddings.huggingface import HuggingFaceEmbeddings
 from kotaemon.embeddings.openai import AzureOpenAIEmbeddings
@@ -26,8 +27,9 @@ def test_azureopenai_embeddings_raw(openai_embedding_call):
     )
     output = model("Hello world")
     assert isinstance(output, list)
-    assert isinstance(output[0], list)
-    assert isinstance(output[0][0], float)
+    assert isinstance(output[0], Document)
+    assert isinstance(output[0].embedding, list)
+    assert isinstance(output[0].embedding[0], float)
     openai_embedding_call.assert_called()
 
 
@@ -44,8 +46,9 @@ def test_azureopenai_embeddings_batch_raw(openai_embedding_call):
     )
     output = model(["Hello world", "Goodbye world"])
     assert isinstance(output, list)
-    assert isinstance(output[0], list)
-    assert isinstance(output[0][0], float)
+    assert isinstance(output[0], Document)
+    assert isinstance(output[0].embedding, list)
+    assert isinstance(output[0].embedding[0], float)
     openai_embedding_call.assert_called()
 
 
@@ -68,8 +71,9 @@ def test_huggingface_embddings(
 
     output = model("Hello World")
     assert isinstance(output, list)
-    assert isinstance(output[0], list)
-    assert isinstance(output[0][0], float)
+    assert isinstance(output[0], Document)
+    assert isinstance(output[0].embedding, list)
+    assert isinstance(output[0].embedding[0], float)
     sentence_transformers_init.assert_called()
     langchain_huggingface_embedding_call.assert_called()
 
@@ -85,6 +89,7 @@ def test_cohere_embeddings(langchain_cohere_embedding_call):
 
     output = model("Hello World")
     assert isinstance(output, list)
-    assert isinstance(output[0], list)
-    assert isinstance(output[0][0], float)
+    assert isinstance(output[0], Document)
+    assert isinstance(output[0].embedding, list)
+    assert isinstance(output[0].embedding[0], float)
     langchain_cohere_embedding_call.assert_called()

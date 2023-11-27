@@ -3,12 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional, Sequence
 
+from kotaemon.base import BaseComponent, Document, RetrievedDocument
+from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.indices.rankings import BaseReranking
-
-from ..base import BaseComponent
-from ..base.schema import Document, RetrievedDocument
-from ..embeddings import BaseEmbeddings
-from ..storages import BaseDocumentStore, BaseVectorStore
+from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 VECTOR_STORE_FNAME = "vectorstore"
 DOC_STORE_FNAME = "docstore"
@@ -45,7 +43,7 @@ class RetrieveDocumentFromVectorStorePipeline(BaseComponent):
                 "retrieve the documents"
             )
 
-        emb: list[float] = self.embedding(text)[0]
+        emb: list[float] = self.embedding(text)[0].embedding
         _, scores, ids = self.vector_store.query(embedding=emb, top_k=top_k)
         docs = self.doc_store.get(ids)
         result = [
