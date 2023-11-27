@@ -8,11 +8,11 @@ from theflow.utils.modules import ObjectInitDeclaration as _
 from kotaemon.base import BaseComponent
 from kotaemon.base.schema import Document, RetrievedDocument
 from kotaemon.embeddings import AzureOpenAIEmbeddings
+from kotaemon.indices.rankings import BaseReranking
 from kotaemon.llms import PromptTemplate
 from kotaemon.llms.chats.openai import AzureChatOpenAI
 from kotaemon.pipelines.agents import BaseAgent
 from kotaemon.pipelines.citation import CitationPipeline
-from kotaemon.pipelines.reranking import BaseRerankingPipeline
 from kotaemon.pipelines.retrieving import RetrieveDocumentFromVectorStorePipeline
 from kotaemon.pipelines.tools import ComponentTool
 from kotaemon.storages import (
@@ -51,7 +51,7 @@ class QuestionAnsweringPipeline(BaseComponent):
 
     vector_store: BaseVectorStore = _(InMemoryVectorStore)
     doc_store: BaseDocumentStore = _(InMemoryDocumentStore)
-    rerankers: Sequence[BaseRerankingPipeline] = []
+    rerankers: Sequence[BaseReranking] = []
 
     embedding: AzureOpenAIEmbeddings = AzureOpenAIEmbeddings.withx(
         model="text-embedding-ada-002",

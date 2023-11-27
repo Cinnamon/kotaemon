@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from pathlib import Path
-from typing import cast
+from typing import Optional, cast
 
 from ..base import BaseComponent, Document
 from ..embeddings import BaseEmbeddings
@@ -22,7 +22,7 @@ class IndexVectorStoreFromDocumentPipeline(BaseComponent):
     """
 
     vector_store: BaseVectorStore
-    doc_store: BaseDocumentStore
+    doc_store: Optional[BaseDocumentStore] = None
     embedding: BaseEmbeddings
     # TODO: refer to llama_index's storage as well
 
@@ -64,7 +64,8 @@ class IndexVectorStoreFromDocumentPipeline(BaseComponent):
         if isinstance(path, str):
             path = Path(path)
         self.vector_store.save(path / vectorstore_fname)
-        self.doc_store.save(path / docstore_fname)
+        if self.doc_store:
+            self.doc_store.save(path / docstore_fname)
 
     def load(
         self,
@@ -76,4 +77,5 @@ class IndexVectorStoreFromDocumentPipeline(BaseComponent):
         if isinstance(path, str):
             path = Path(path)
         self.vector_store.load(path / vectorstore_fname)
-        self.doc_store.load(path / docstore_fname)
+        if self.doc_store:
+            self.doc_store.load(path / docstore_fname)

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Optional, Sequence
 
 from llama_index.readers.base import BaseReader
 from theflow import Node
@@ -8,8 +10,9 @@ from theflow.utils.modules import ObjectInitDeclaration as _
 
 from kotaemon.base import BaseComponent
 from kotaemon.embeddings import AzureOpenAIEmbeddings
-from kotaemon.indexing.doc_parsers import LIDocParser as DocParser
-from kotaemon.indexing.doc_parsers import TokenSplitter
+from kotaemon.indices.extractors import BaseDocParser
+from kotaemon.indices.rankings import BaseReranking
+from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.loaders import (
     AutoReader,
     DirectoryReader,
@@ -19,7 +22,6 @@ from kotaemon.loaders import (
 )
 from kotaemon.pipelines.agents import BaseAgent
 from kotaemon.pipelines.indexing import IndexVectorStoreFromDocumentPipeline
-from kotaemon.pipelines.reranking import BaseRerankingPipeline
 from kotaemon.pipelines.retrieving import RetrieveDocumentFromVectorStorePipeline
 from kotaemon.storages import (
     BaseDocumentStore,
@@ -45,7 +47,7 @@ class ReaderIndexingPipeline(BaseComponent):
     chunk_overlap: int = 256
     vector_store: BaseVectorStore = _(InMemoryVectorStore)
     doc_store: BaseDocumentStore = _(InMemoryDocumentStore)
-    doc_parsers: List[DocParser] = []
+    doc_parsers: list[BaseDocParser] = []
 
     embedding: AzureOpenAIEmbeddings = AzureOpenAIEmbeddings.withx(
         model="text-embedding-ada-002",
@@ -55,9 +57,9 @@ class ReaderIndexingPipeline(BaseComponent):
         chunk_size=16,
     )
 
-    def get_reader(self, input_files: List[Union[str, Path]]):
+    def get_reader(self, input_files: list[str | Path]):
         # document parsers
-        file_extractor: Dict[str, BaseReader] = {
+        file_extractor: dict[str, BaseReader | AutoReader] = {
             ".xlsx": PandasExcelReader(),
         }
         if self.reader_name == "normal":
@@ -89,7 +91,7 @@ class ReaderIndexingPipeline(BaseComponent):
 
     def run(
         self,
-        file_path_list: Union[List[Union[str, Path]], Union[str, Path]],
+        file_path_list: list[str | Path] | str | Path,
         force_reindex: Optional[bool] = False,
     ):
         self.storage_path.mkdir(exist_ok=True)
@@ -121,9 +123,7 @@ class ReaderIndexingPipeline(BaseComponent):
         else:
             self.indexing_vector_pipeline.load(file_storage_path)
 
-    def to_retrieving_pipeline(
-        self, top_k=3, rerankers: Sequence[BaseRerankingPipeline] = []
-    ):
+    def to_retrieving_pipeline(self, top_k=3, rerankers: Sequence[BaseReranking] = []):
         retrieving_pipeline = RetrieveDocumentFromVectorStorePipeline(
             vector_store=self.vector_store,
             doc_store=self.doc_store,
@@ -141,7 +141,7 @@ class ReaderIndexingPipeline(BaseComponent):
             doc_store=self.doc_store,
             embedding=self.embedding,
             llm=llm,
-            **kwargs
+            **kwargs,
         )
         return qa_pipeline
 
@@ -153,7 +153,7 @@ class ReaderIndexingPipeline(BaseComponent):
             doc_store=self.doc_store,
             embedding=self.embedding,
             agent=agent,
-            **kwargs
+            **kwargs,
         )
         agent_pipeline.add_search_tool()
         return agent_pipeline

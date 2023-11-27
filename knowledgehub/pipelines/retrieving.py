@@ -3,11 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional, Sequence
 
+from kotaemon.indices.rankings import BaseReranking
+
 from ..base import BaseComponent
 from ..base.schema import Document, RetrievedDocument
 from ..embeddings import BaseEmbeddings
 from ..storages import BaseDocumentStore, BaseVectorStore
-from .reranking import BaseRerankingPipeline
 
 VECTOR_STORE_FNAME = "vectorstore"
 DOC_STORE_FNAME = "docstore"
@@ -19,7 +20,7 @@ class RetrieveDocumentFromVectorStorePipeline(BaseComponent):
     vector_store: BaseVectorStore
     doc_store: BaseDocumentStore
     embedding: BaseEmbeddings
-    rerankers: Sequence[BaseRerankingPipeline] = []
+    rerankers: Sequence[BaseReranking] = []
     top_k: int = 1
     # TODO: refer to llama_index's storage as well
 

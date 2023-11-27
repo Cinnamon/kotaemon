@@ -1,61 +1,17 @@
-import os
-from abc import abstractmethod
+from __future__ import annotations
+
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Optional, Union
+from typing import Union
 
 from langchain.output_parsers.boolean import BooleanOutputParser
 
-from ..base import BaseComponent
-from ..base.schema import Document
-from ..llms import PromptTemplate
-from ..llms.chats.base import ChatLLM
-from ..llms.completions.base import LLM
+from ...base import Document
+from ...llms import PromptTemplate
+from ...llms.chats.base import ChatLLM
+from ...llms.completions.base import LLM
+from .base import BaseReranking
 
 BaseLLM = Union[ChatLLM, LLM]
-
-
-class BaseRerankingPipeline(BaseComponent):
-    @abstractmethod
-    def run(self, documents: List[Document], query: str) -> List[Document]:
-        """Main method to transform list of documents
-        (re-ranking, filtering, etc)"""
-        ...
-
-
-class CohereReranking(BaseRerankingPipeline):
-    model_name: str = "rerank-multilingual-v2.0"
-    cohere_api_key: Optional[str] = None
-    top_k: int = 1
-
-    def run(self, documents: List[Document], query: str) -> List[Document]:
-        """Use Cohere Reranker model to re-order documents
-        with their relevance score"""
-        try:
-            import cohere
-        except ImportError:
-            raise ImportError(
-                "Please install Cohere " "`pip install cohere` to use Cohere Reranking"
-            )
-
-        cohere_api_key = (
-            self.cohere_api_key if self.cohere_api_key else os.environ["COHERE_API_KEY"]
-        )
-        cohere_client = cohere.Client(cohere_api_key)
-
-        # output documents
-        compressed_docs = []
-        if len(documents) > 0:  # to avoid empty api call
-            _docs = [d.content for d in documents]
-            results = cohere_client.rerank(
-                model=self.model_name, query=query, documents=_docs, top_n=self.top_k
-            )
-            for r in results:
-                doc = documents[r.index]
-                doc.metadata["relevance_score"] = r.relevance_score
-                compressed_docs.append(doc)
-
-        return compressed_docs
-
 
 RERANK_PROMPT_TEMPLATE = """Given the following question and context,
 return YES if the context is relevant to the question and NO if it isn't.
@@ -68,7 +24,7 @@ return YES if the context is relevant to the question and NO if it isn't.
 > Relevant (YES / NO):"""
 
 
-class LLMReranking(BaseRerankingPipeline):
+class LLMReranking(BaseReranking):
     llm: BaseLLM
     prompt_template: PromptTemplate = PromptTemplate(template=RERANK_PROMPT_TEMPLATE)
     top_k: int = 3
@@ -76,9 +32,9 @@ class LLMReranking(BaseRerankingPipeline):
 
     def run(
         self,
-        documents: List[Document],
+        documents: list[Document],
         query: str,
-    ) -> List[Document]:
+    ) -> list[Document]:
         """Filter down documents based on their relevance to the query."""
         filtered_docs = []
         output_parser = BooleanOutputParser()

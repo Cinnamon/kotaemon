@@ -4,8 +4,8 @@ import pytest
 from openai.types.chat.chat_completion import ChatCompletion
 
 from kotaemon.base import Document
+from kotaemon.indices.rankings import LLMReranking
 from kotaemon.llms.chats.openai import AzureChatOpenAI
-from kotaemon.pipelines.reranking import LLMReranking
 
 _openai_chat_completion_responses = [
     ChatCompletion.parse_obj(
