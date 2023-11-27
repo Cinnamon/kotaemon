@@ -4,8 +4,9 @@ import logging
 from typing import Type
 
 from langchain.chat_models.base import BaseChatModel
-from langchain.schema.messages import BaseMessage, HumanMessage
 from theflow.base import Param
+
+from kotaemon.base.schema import BaseMessage, HumanMessage
 
 from ...base import BaseComponent
 from ...base.schema import LLMInterface

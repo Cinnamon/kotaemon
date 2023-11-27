@@ -1,10 +1,14 @@
 from unittest.mock import patch
 
 from langchain.chat_models import AzureChatOpenAI as AzureChatOpenAILC
-from langchain.schema.messages import AIMessage, HumanMessage, SystemMessage
 from openai.types.chat.chat_completion import ChatCompletion
 
-from kotaemon.base.schema import LLMInterface
+from kotaemon.base.schema import (
+    AIMessage,
+    HumanMessage,
+    LLMInterface,
+    SystemMessage,
+)
 from kotaemon.llms.chats.openai import AzureChatOpenAI
 
 _openai_chat_completion_response = ChatCompletion.parse_obj(

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
-from langchain.schema.messages import AIMessage
+from langchain.schema.messages import AIMessage as LCAIMessage
+from langchain.schema.messages import HumanMessage as LCHumanMessage
+from langchain.schema.messages import SystemMessage as LCSystemMessage
 from llama_index.bridge.pydantic import Field
 from llama_index.schema import Document as BaseDocument
 
@@ -63,11 +65,28 @@ class Document(BaseDocument):
         return str(self.content)
 
 
+class BaseMessage(Document):
+    def __add__(self, other: Any):
+        raise NotImplementedError
+
+
+class SystemMessage(BaseMessage, LCSystemMessage):
+    pass
+
+
+class AIMessage(BaseMessage, LCAIMessage):
+    pass
+
+
+class HumanMessage(BaseMessage, LCHumanMessage):
+    pass
+
+
 class RetrievedDocument(Document):
     """Subclass of Document with retrieval-related information
 
     Attributes:
-        score (float): score of the document (from 0.0 to 1.0)
+         score (float): score of the document (from 0.0 to 1.0)
         retrieval_metadata (dict): metadata from the retrieval process, can be used
             by different components in a retrieved pipeline to communicate with each
             other
@@ -77,7 +96,7 @@ class RetrievedDocument(Document):
     retrieval_metadata: dict = Field(default={})
 
 
-class LLMInterface(Document):
+class LLMInterface(AIMessage):
     candidates: list[str] = Field(default_factory=list)
     completion_tokens: int = -1
     total_tokens: int = -1

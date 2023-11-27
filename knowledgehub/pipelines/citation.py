@@ -1,9 +1,9 @@
 from typing import Iterator, List, Union
 
-from langchain.schema.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from kotaemon.base import BaseComponent
+from kotaemon.base.schema import HumanMessage, SystemMessage
 
 from ..llms.chats.base import ChatLLM
 from ..llms.completions.base import LLM

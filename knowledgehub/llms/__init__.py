@@ -1,7 +1,7 @@
-from langchain.schema.messages import AIMessage, SystemMessage
+from kotaemon.base.schema import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 from .branching import GatedBranchingPipeline, SimpleBranchingPipeline
-from .chats import AzureChatOpenAI, BaseMessage, ChatLLM, HumanMessage
+from .chats import AzureChatOpenAI, ChatLLM
 from .completions import LLM, AzureOpenAI, OpenAI
 from .linear import GatedLinearPipeline, SimpleLinearPipeline
 from .prompts import BasePromptComponent, PromptTemplate

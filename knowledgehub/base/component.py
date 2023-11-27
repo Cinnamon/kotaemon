@@ -31,5 +31,6 @@ class BaseComponent(Function):
 
     @abstractmethod
     def run(self, *args, **kwargs):
+        # enforce output type to be compatible with Document
         """Run the component."""
         ...

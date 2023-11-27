@@ -1,8 +1,9 @@
 from abc import abstractmethod
 from typing import List, Optional
 
-from langchain.schema.messages import AIMessage, SystemMessage
 from theflow import SessionFunction
+
+from kotaemon.base.schema import AIMessage, SystemMessage
 
 from ..base import BaseComponent
 from ..base.schema import LLMInterface
