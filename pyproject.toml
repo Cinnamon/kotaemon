@@ -1,0 +1,71 @@
+# build backand and build dependencies
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = false
+packages.find.include = ["kotaemon*"]
+packages.find.exclude = ["tests*", "env*"]
+
+# metadata and dependencies
+[project]
+name = "kotaemon"
+version = "0.3.3"
+requires-python = ">= 3.10"
+description = "Kotaemon core library for AI development."
+dependencies = [
+    "langchain",
+    "theflow",
+    "llama-index>=0.9.0",
+    "llama-hub",
+    "gradio",
+    "openpyxl",
+    "cookiecutter",
+    "click",
+    "pandas",
+]
+readme = "README.md"
+license = { text = "MIT License" }
+authors = [
+    { name = "john", email = "john@cinnamon.is" },
+    { name = "ian", email = "ian@cinnamon.is" },
+    { name = "tadashi", email = "tadashi@cinnamon.is" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ipython",
+    "pytest",
+    "pre-commit",
+    "black",
+    "flake8",
+    "sphinx",
+    "coverage",
+    "openai",
+    "chromadb",
+    "wikipedia",
+    "duckduckgo-search",
+    "googlesearch-python",
+    "python-dotenv",
+    "pytest-mock",
+    "unstructured[pdf]",
+    "farm-haystack==1.19.0",
+    "sentence_transformers",
+    "cohere",
+    "elasticsearch",
+    "pypdf",
+]
+
+[project.scripts]
+kh = "kotaemon.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Cinnamon/kotaemon/"
+Repository = "https://github.com/Cinnamon/kotaemon/"
+Documentation = "https://github.com/Cinnamon/kotaemon/wiki"

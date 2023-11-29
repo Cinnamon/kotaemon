@@ -53,8 +53,11 @@ jobs:
 
       - name: Get cache key
         id: get-cache-key
+        # using tomli so that it works on windows. From python 3.11, this can be switched to the
+        # built-in tomllib
         run: |
-          package_version=$(python setup.py --version)
+          pip install tomli
+          package_version=$(python -c "import tomli; print(tomli.load(open('pyproject.toml', 'rb'))['project']['version'])")
           cache_key="${{ runner.os }}-py${{ matrix.python-version }}-v${package_version}"
           echo "key=$cache_key" | tee -a ${{ matrix.GITHUB_OUTPUT }}
 
