@@ -1,7 +1,8 @@
 from typing import Any, List, Optional, Union
 
-from ....base import BaseComponent
-from ....llms import PromptTemplate
+from kotaemon.base import BaseComponent
+from kotaemon.llms import PromptTemplate
+
 from ..base import BaseLLM, BaseTool
 from ..output.base import BaseScratchPad
 from .prompt import few_shot_planner_prompt, zero_shot_planner_prompt

@@ -1,14 +1,13 @@
-from typing import List, Optional, Type
+from typing import List, Optional
 
 from langchain.agents import AgentType as LCAgentType
 from langchain.agents import initialize_agent
 from langchain.agents.agent import AgentExecutor as LCAgentExecutor
-from pydantic import BaseModel, create_model
 
+from kotaemon.agents.tools import BaseTool
 from kotaemon.base.schema import Document
 from kotaemon.llms.chats.base import ChatLLM
 from kotaemon.llms.completions.base import LLM
-from kotaemon.pipelines.tools import BaseTool
 
 from .base import AgentType, BaseAgent
 
@@ -19,9 +18,6 @@ class LangchainAgent(BaseAgent):
     name: str = "LangchainAgent"
     agent_type: AgentType
     description: str = "LangchainAgent for answering multi-step reasoning questions"
-    args_schema: Optional[Type[BaseModel]] = create_model(
-        "LangchainArgsSchema", instruction=(str, ...)
-    )
     AGENT_TYPE_MAP = {
         AgentType.openai: LCAgentType.OPENAI_FUNCTIONS,
         AgentType.openai_multi: LCAgentType.OPENAI_MULTI_FUNCTIONS,
@@ -69,7 +65,7 @@ class LangchainAgent(BaseAgent):
         self.update_agent_tools()
         return
 
-    def _run_tool(self, instruction: str) -> Document:
+    def run(self, instruction: str) -> Document:
         assert (
             self.agent is not None
         ), "Lanchain AgentExecutor is not correclty initialized"

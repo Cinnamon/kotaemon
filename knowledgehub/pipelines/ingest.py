@@ -8,6 +8,7 @@ from llama_index.readers.base import BaseReader
 from theflow import Node
 from theflow.utils.modules import ObjectInitDeclaration as _
 
+from kotaemon.agents import BaseAgent
 from kotaemon.base import BaseComponent
 from kotaemon.embeddings import AzureOpenAIEmbeddings
 from kotaemon.indices.extractors import BaseDocParser
@@ -20,7 +21,6 @@ from kotaemon.loaders import (
     OCRReader,
     PandasExcelReader,
 )
-from kotaemon.pipelines.agents import BaseAgent
 from kotaemon.pipelines.indexing import IndexVectorStoreFromDocumentPipeline
 from kotaemon.pipelines.retrieving import RetrieveDocumentFromVectorStorePipeline
 from kotaemon.storages import (

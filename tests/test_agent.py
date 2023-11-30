@@ -3,17 +3,12 @@ from unittest.mock import patch
 import pytest
 from openai.types.chat.chat_completion import ChatCompletion
 
+from kotaemon.agents.base import AgentType
+from kotaemon.agents.langchain import LangchainAgent
+from kotaemon.agents.react import ReactAgent
+from kotaemon.agents.rewoo import RewooAgent
+from kotaemon.agents.tools import BaseTool, GoogleSearchTool, LLMTool, WikipediaTool
 from kotaemon.llms.chats.openai import AzureChatOpenAI
-from kotaemon.pipelines.agents.base import AgentType
-from kotaemon.pipelines.agents.langchain import LangchainAgent
-from kotaemon.pipelines.agents.react import ReactAgent
-from kotaemon.pipelines.agents.rewoo import RewooAgent
-from kotaemon.pipelines.tools import (
-    BaseTool,
-    GoogleSearchTool,
-    LLMTool,
-    WikipediaTool,
-)
 
 FINAL_RESPONSE_TEXT = "Final Answer: Hello Cinnamon AI!"
 

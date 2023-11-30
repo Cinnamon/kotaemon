@@ -1,8 +1,8 @@
 import logging
 import re
-from typing import Dict, List, Optional, Tuple, Type, Union
+from typing import Optional
 
-from pydantic import BaseModel, create_model
+from theflow import Param
 
 from kotaemon.base.schema import Document
 from kotaemon.llms import PromptTemplate
@@ -22,15 +22,18 @@ class ReactAgent(BaseAgent):
     name: str = "ReactAgent"
     agent_type: AgentType = AgentType.react
     description: str = "ReactAgent for answering multi-step reasoning questions"
-    llm: Union[BaseLLM, Dict[str, BaseLLM]]
+    llm: BaseLLM | dict[str, BaseLLM]
     prompt_template: Optional[PromptTemplate] = None
-    plugins: List[BaseTool] = list()
-    examples: Dict[str, Union[str, List[str]]] = dict()
-    args_schema: Optional[Type[BaseModel]] = create_model(
-        "ReactArgsSchema", instruction=(str, ...)
+    plugins: list[BaseTool] = Param(
+        default_callback=lambda _: [], help="List of tools to be used in the agent. "
     )
-    intermediate_steps: List[Tuple[Union[AgentAction, AgentFinish], str]] = []
-    """List of AgentAction and observation (tool) output"""
+    examples: dict[str, str | list[str]] = Param(
+        default_callback=lambda _: {}, help="Examples to be used in the agent. "
+    )
+    intermediate_steps: list[tuple[AgentAction | AgentFinish, str]] = Param(
+        default_callback=lambda _: [],
+        help="List of AgentAction and observation (tool) output",
+    )
     max_iterations = 10
     strict_decode: bool = False
 
@@ -51,7 +54,7 @@ class ReactAgent(BaseAgent):
         return prompt
 
     def _construct_scratchpad(
-        self, intermediate_steps: List[Tuple[Union[AgentAction, AgentFinish], str]] = []
+        self, intermediate_steps: list[tuple[AgentAction | AgentFinish, str]] = []
     ) -> str:
         """Construct the scratchpad that lets the agent continue its thought process."""
         thoughts = ""
@@ -60,7 +63,7 @@ class ReactAgent(BaseAgent):
             thoughts += f"\nObservation: {observation}\nThought:"
         return thoughts
 
-    def _parse_output(self, text: str) -> Optional[Union[AgentAction, AgentFinish]]:
+    def _parse_output(self, text: str) -> Optional[AgentAction | AgentFinish]:
         """
         Parse text output from LLM for the next Action or Final Answer
         Using Regex to parse "Action:\n Action Input:\n" for the next Action
@@ -74,7 +77,7 @@ class ReactAgent(BaseAgent):
             r"Action\s*\d*\s*:[\s]*(.*?)[\s]*Action\s*\d*\s*Input\s*\d*\s*:[\s]*(.*)"
         )
         action_match = re.search(regex, text, re.DOTALL)
-        action_output: Optional[Union[AgentAction, AgentFinish]] = None
+        action_output: Optional[AgentAction | AgentFinish] = None
         if action_match:
             if includes_answer:
                 raise Exception(
@@ -120,7 +123,7 @@ class ReactAgent(BaseAgent):
             tool_names=tool_names,
         )
 
-    def _format_function_map(self) -> Dict[str, BaseTool]:
+    def _format_function_map(self) -> dict[str, BaseTool]:
         """Format the function map for the open AI function API.
 
         Return:

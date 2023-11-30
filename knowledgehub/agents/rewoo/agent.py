@@ -1,9 +1,9 @@
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any
 
-from pydantic import BaseModel, create_model
+from theflow import Param
 
 from kotaemon.base.schema import Document
 from kotaemon.llms import LLM, ChatLLM, PromptTemplate
@@ -23,16 +23,16 @@ class RewooAgent(BaseAgent):
     name: str = "RewooAgent"
     agent_type: AgentType = AgentType.rewoo
     description: str = "RewooAgent for answering multi-step reasoning questions"
-    llm: Union[BaseLLM, Dict[str, BaseLLM]]  # {"Planner": xxx, "Solver": xxx}
-    prompt_template: Dict[
-        str, PromptTemplate
-    ] = dict()  # {"Planner": xxx, "Solver": xxx}
-    plugins: List[BaseTool] = list()
-    examples: Dict[
-        str, Union[str, List[str]]
-    ] = dict()  # {"Planner": xxx, "Solver": xxx}
-    args_schema: Optional[Type[BaseModel]] = create_model(
-        "RewooArgsSchema", instruction=(str, ...)
+    llm: BaseLLM | dict[str, BaseLLM]  # {"Planner": xxx, "Solver": xxx}
+    prompt_template: dict[str, PromptTemplate] = Param(
+        default_callback=lambda _: {},
+        help="A dict to supply different prompt to the agent.",
+    )
+    plugins: list[BaseTool] = Param(
+        default_callback=lambda _: [], help="A list of plugins to be used in the model."
+    )
+    examples: dict[str, str | list[str]] = Param(
+        default_callback=lambda _: {}, help="Examples to be used in the agent."
     )
 
     def _get_llms(self):
@@ -49,7 +49,7 @@ class RewooAgent(BaseAgent):
 
     def _parse_plan_map(
         self, planner_response: str
-    ) -> Tuple[Dict[str, List[str]], Dict[str, str]]:
+    ) -> tuple[dict[str, list[str]], dict[str, str]]:
         """
         Parse planner output. It should be an n-to-n mapping from Plans to #Es.
         This is because sometimes LLM cannot follow the strict output format.
@@ -66,7 +66,7 @@ class RewooAgent(BaseAgent):
         This function should also return a plan map.
 
         Returns:
-            Tuple[Dict[str, List[str]], Dict[str, str]]: A list of plan map
+            tuple[Dict[str, List[str]], Dict[str, str]]: A list of plan map
         """
         valid_chunk = [
             line
@@ -74,8 +74,8 @@ class RewooAgent(BaseAgent):
             if line.startswith("#Plan") or line.startswith("#E")
         ]
 
-        plan_to_es: Dict[str, List[str]] = dict()
-        plans: Dict[str, str] = dict()
+        plan_to_es: dict[str, list[str]] = dict()
+        plans: dict[str, str] = dict()
         for line in valid_chunk:
             if line.startswith("#Plan"):
                 plan = line.split(":", 1)[0].strip()
@@ -88,7 +88,7 @@ class RewooAgent(BaseAgent):
 
     def _parse_planner_evidences(
         self, planner_response: str
-    ) -> Tuple[Dict[str, str], List[List[str]]]:
+    ) -> tuple[dict[str, str], list[list[str]]]:
         """
         Parse planner output. This should return a mapping from #E to tool call.
         It should also identify the level of each #E in dependency map.
@@ -99,11 +99,11 @@ class RewooAgent(BaseAgent):
             }, [[#E1, #E2], [#E3, #E4]]
 
         Returns:
-            Tuple[dict[str, str], List[List[str]]]:
+            tuple[dict[str, str], List[List[str]]]:
             A mapping from #E to tool call and a list of levels.
         """
-        evidences: Dict[str, str] = dict()
-        dependence: Dict[str, List[str]] = dict()
+        evidences: dict[str, str] = dict()
+        dependence: dict[str, list[str]] = dict()
         for line in planner_response.splitlines():
             if line.startswith("#E") and line[2].isdigit():
                 e, tool_call = line.split(":", 1)
@@ -134,8 +134,8 @@ class RewooAgent(BaseAgent):
     def _run_plugin(
         self,
         e: str,
-        planner_evidences: Dict[str, str],
-        worker_evidences: Dict[str, str],
+        planner_evidences: dict[str, str],
+        worker_evidences: dict[str, str],
         output=BaseScratchPad(),
     ):
         """
@@ -169,8 +169,8 @@ class RewooAgent(BaseAgent):
 
     def _get_worker_evidence(
         self,
-        planner_evidences: Dict[str, str],
-        evidences_level: List[List[str]],
+        planner_evidences: dict[str, str],
+        evidences_level: list[list[str]],
         output=BaseScratchPad(),
     ) -> Any:
         """
@@ -185,7 +185,7 @@ class RewooAgent(BaseAgent):
         Returns:
             A mapping from #E to tool call.
         """
-        worker_evidences: Dict[str, str] = dict()
+        worker_evidences: dict[str, str] = dict()
         plugin_cost, plugin_token = 0.0, 0.0
         with ThreadPoolExecutor() as pool:
             for level in evidences_level:
@@ -218,7 +218,7 @@ class RewooAgent(BaseAgent):
             if p.name == name:
                 return p
 
-    def _run_tool(self, instruction: str, use_citation: bool = False) -> Document:
+    def run(self, instruction: str, use_citation: bool = False) -> Document:
         """
         Run the agent with a given instruction.
         """

@@ -1,4 +1,4 @@
-from ...base import Document
+from kotaemon.base import Document
 
 
 def get_plugin_response_content(output) -> str:
