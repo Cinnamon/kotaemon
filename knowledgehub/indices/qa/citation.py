@@ -1,14 +1,10 @@
-from typing import Iterator, List, Union
+from typing import Iterator, List
 
 from pydantic import BaseModel, Field
 
 from kotaemon.base import BaseComponent
 from kotaemon.base.schema import HumanMessage, SystemMessage
-
-from ..llms.chats.base import ChatLLM
-from ..llms.completions.base import LLM
-
-BaseLLM = Union[ChatLLM, LLM]
+from kotaemon.llms import BaseLLM
 
 
 class FactWithEvidence(BaseModel):

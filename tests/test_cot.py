@@ -2,8 +2,8 @@ from unittest.mock import patch
 
 from openai.types.chat.chat_completion import ChatCompletion
 
-from kotaemon.llms.chats.openai import AzureChatOpenAI
-from kotaemon.pipelines.cot import ManualSequentialChainOfThought, Thought
+from kotaemon.llms import AzureChatOpenAI
+from kotaemon.llms.cot import ManualSequentialChainOfThought, Thought
 
 _openai_chat_completion_response = [
     ChatCompletion.parse_obj(

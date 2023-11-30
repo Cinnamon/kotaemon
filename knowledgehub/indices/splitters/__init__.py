@@ -1,4 +1,4 @@
-from ..base import DocTransformer, LlamaIndexMixin
+from ..base import DocTransformer, LlamaIndexDocTransformerMixin
 
 
 class BaseSplitter(DocTransformer):
@@ -7,14 +7,14 @@ class BaseSplitter(DocTransformer):
     ...
 
 
-class TokenSplitter(LlamaIndexMixin, BaseSplitter):
+class TokenSplitter(LlamaIndexDocTransformerMixin, BaseSplitter):
     def _get_li_class(self):
         from llama_index.text_splitter import TokenTextSplitter
 
         return TokenTextSplitter
 
 
-class SentenceWindowSplitter(LlamaIndexMixin, BaseSplitter):
+class SentenceWindowSplitter(LlamaIndexDocTransformerMixin, BaseSplitter):
     def _get_li_class(self):
         from llama_index.node_parser import SentenceWindowNodeParser
 

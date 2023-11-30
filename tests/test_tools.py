@@ -7,8 +7,7 @@ from openai.resources.embeddings import Embeddings
 from kotaemon.agents.tools import ComponentTool, GoogleSearchTool, WikipediaTool
 from kotaemon.base import Document
 from kotaemon.embeddings.openai import AzureOpenAIEmbeddings
-from kotaemon.pipelines.indexing import IndexVectorStoreFromDocumentPipeline
-from kotaemon.pipelines.retrieving import RetrieveDocumentFromVectorStorePipeline
+from kotaemon.indices.vectorindex import VectorIndexing, VectorRetrieval
 from kotaemon.storages import ChromaVectorStore, InMemoryDocumentStore
 
 with open(Path(__file__).parent / "resources" / "embedding_openai.json") as f:
@@ -46,10 +45,10 @@ def test_pipeline_tool(mock_openai_embedding, tmp_path):
         openai_api_key="some-key",
     )
 
-    index_pipeline = IndexVectorStoreFromDocumentPipeline(
+    index_pipeline = VectorIndexing(
         vector_store=db, embedding=embedding, doc_store=doc_store
     )
-    retrieval_pipeline = RetrieveDocumentFromVectorStorePipeline(
+    retrieval_pipeline = VectorRetrieval(
         vector_store=db, doc_store=doc_store, embedding=embedding
     )
 

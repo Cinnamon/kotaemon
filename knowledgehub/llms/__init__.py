@@ -1,3 +1,5 @@
+from typing import Union
+
 from kotaemon.base.schema import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 from .branching import GatedBranchingPipeline, SimpleBranchingPipeline
@@ -6,7 +8,11 @@ from .completions import LLM, AzureOpenAI, OpenAI
 from .linear import GatedLinearPipeline, SimpleLinearPipeline
 from .prompts import BasePromptComponent, PromptTemplate
 
+BaseLLM = Union[ChatLLM, LLM]
+
+
 __all__ = [
+    "BaseLLM",
     # chat-specific components
     "ChatLLM",
     "BaseMessage",

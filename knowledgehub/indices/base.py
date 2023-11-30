@@ -5,7 +5,7 @@ from typing import Any, Type
 
 from llama_index.node_parser.interface import NodeParser
 
-from ..base import BaseComponent, Document
+from kotaemon.base import BaseComponent, Document, RetrievedDocument
 
 
 class DocTransformer(BaseComponent):
@@ -26,7 +26,7 @@ class DocTransformer(BaseComponent):
         ...
 
 
-class LlamaIndexMixin:
+class LlamaIndexDocTransformerMixin:
     """Allow automatically wrapping a Llama-index component into kotaemon component
 
     Example:
@@ -70,3 +70,23 @@ class LlamaIndexMixin:
         """
         docs = self._obj(documents, **kwargs)  # type: ignore
         return [Document.from_dict(doc.to_dict()) for doc in docs]
+
+
+class BaseIndexing(BaseComponent):
+    """Define the base interface for indexing pipeline"""
+
+    def to_retrieval_pipeline(self, **kwargs):
+        """Convert the indexing pipeline to a retrieval pipeline"""
+        raise NotImplementedError
+
+    def to_qa_pipeline(self, **kwargs):
+        """Convert the indexing pipeline to a QA pipeline"""
+        raise NotImplementedError
+
+
+class BaseRetrieval(BaseComponent):
+    """Define the base interface for retrieval pipeline"""
+
+    @abstractmethod
+    def run(self, *args, **kwargs) -> list[RetrievedDocument]:
+        ...

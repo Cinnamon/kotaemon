@@ -6,8 +6,8 @@ from typing import Any
 from theflow import Param
 
 from kotaemon.base.schema import Document
+from kotaemon.indices.qa import CitationPipeline
 from kotaemon.llms import LLM, ChatLLM, PromptTemplate
-from kotaemon.pipelines.citation import CitationPipeline
 
 from ..base import AgentType, BaseAgent, BaseLLM, BaseTool
 from ..output.base import BaseScratchPad

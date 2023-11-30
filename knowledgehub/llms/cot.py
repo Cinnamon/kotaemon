@@ -4,8 +4,10 @@ from typing import Callable, List
 from theflow import Function, Node, Param
 
 from kotaemon.base import BaseComponent, Document
-from kotaemon.llms import LLM, BasePromptComponent
-from kotaemon.llms.chats.openai import AzureChatOpenAI
+
+from .chats import AzureChatOpenAI
+from .completions import LLM
+from .prompts import BasePromptComponent
 
 
 class Thought(BaseComponent):
@@ -146,7 +148,7 @@ class ManualSequentialChainOfThought(BaseComponent):
     thoughts: List[Thought] = Param(
         default_callback=lambda *_: [], help="List of Thought"
     )
-    llm: LLM = Param(help="The LLM model to use (base of kotaemon.llms.LLM)")
+    llm: LLM = Param(help="The LLM model to use (base of kotaemon.llms.BaseLLM)")
     terminate: Callable = Param(
         default=lambda _: False,
         help="Callback on terminate condition. Default to always return False",
