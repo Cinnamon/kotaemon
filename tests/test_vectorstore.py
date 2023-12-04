@@ -1,7 +1,12 @@
 import json
+import os
 
-from kotaemon.base import Document
-from kotaemon.storages import ChromaVectorStore, InMemoryVectorStore
+from kotaemon.base import DocumentWithEmbedding
+from kotaemon.storages import (
+    ChromaVectorStore,
+    InMemoryVectorStore,
+    SimpleFileVectorStore,
+)
 
 
 class TestChromaVectorStore:
@@ -24,11 +29,11 @@ class TestChromaVectorStore:
         embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
         metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
         documents = [
-            Document(embedding=embedding, metadata=metadata)
+            DocumentWithEmbedding(embedding=embedding, metadata=metadata)
             for embedding, metadata in zip(embeddings, metadatas)
         ]
         assert db._collection.count() == 0, "Expected empty collection"
-        output = db.add_from_docs(documents)
+        output = db.add(documents)
         assert len(output) == 2, "Expected outputing 2 ids"
         assert db._collection.count() == 2, "Expected 2 added entries"
 
@@ -69,10 +74,8 @@ class TestChromaVectorStore:
         ids = ["1", "2", "3"]
         db = ChromaVectorStore(path=str(tmp_path))
         db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
-        db.save()
 
         db2 = ChromaVectorStore(path=str(tmp_path))
-        db2.load()
         assert (
             db2._collection.count() == 3
         ), "load function does not load data completely"
@@ -122,3 +125,30 @@ class TestInMemoryVectorStore:
             0.5,
             0.6,
         ], "load function does not load data completely"
+
+
+class TestSimpleFileVectorStore:
+    def test_add_delete(self, tmp_path):
+        """Test that delete func deletes correctly."""
+        embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]]
+        metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 5, "b": 6}]
+        ids = ["1", "2", "3"]
+        db = SimpleFileVectorStore(path=tmp_path / "test_save_load_delete.json")
+        db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
+        db.delete(["3"])
+        f = open(tmp_path / "test_save_load_delete.json")
+        data = json.load(f)
+        assert (
+            "1" and "2" in data["text_id_to_ref_doc_id"]
+        ), "save function does not save data completely"
+        assert (
+            "3" not in data["text_id_to_ref_doc_id"]
+        ), "delete function does not delete data completely"
+        db2 = SimpleFileVectorStore(path=tmp_path / "test_save_load_delete.json")
+        assert db2.get("2") == [
+            0.4,
+            0.5,
+            0.6,
+        ], "load function does not load data completely"
+
+        os.remove(tmp_path / "test_save_load_delete.json")

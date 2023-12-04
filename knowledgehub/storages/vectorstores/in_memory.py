@@ -1,5 +1,4 @@
 """Simple vector store index."""
-
 from typing import Any, Optional, Type
 
 import fsspec
@@ -53,3 +52,11 @@ class InMemoryVectorStore(LlamaIndexVectorStore):
             fs: An abstract super-class for pythonic file-systems
         """
         self._client = self._client.from_persist_path(persist_path=load_path, fs=fs)
+
+    def __persist_flow__(self):
+        d = self._data.to_dict()
+        d["__type__"] = f"{self._data.__module__}.{self._data.__class__.__qualname__}"
+        return {
+            "data": d,
+            # "fs": self._fs,
+        }

@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Tuple, Type, Union
+from typing import Any, Optional
 
 from llama_index.schema import NodeRelationship, RelatedNodeInfo
 from llama_index.vector_stores.types import BasePydanticVectorStore
 from llama_index.vector_stores.types import VectorStore as LIVectorStore
 from llama_index.vector_stores.types import VectorStoreQuery
 
-from kotaemon.base import Document, DocumentWithEmbedding
+from kotaemon.base import DocumentWithEmbedding
 
 
 class BaseVectorStore(ABC):
@@ -17,10 +19,10 @@ class BaseVectorStore(ABC):
     @abstractmethod
     def add(
         self,
-        embeddings: List[List[float]] | List[DocumentWithEmbedding],
-        metadatas: Optional[List[dict]] = None,
-        ids: Optional[List[str]] = None,
-    ) -> List[str]:
+        embeddings: list[list[float]] | list[DocumentWithEmbedding],
+        metadatas: Optional[list[dict]] = None,
+        ids: Optional[list[str]] = None,
+    ) -> list[str]:
         """Add vector embeddings to vector stores
 
         Args:
@@ -35,16 +37,7 @@ class BaseVectorStore(ABC):
         ...
 
     @abstractmethod
-    def add_from_docs(self, docs: List[Document]):
-        """Add vector embeddings to vector stores
-
-        Args:
-            docs: List of Document objects
-        """
-        ...
-
-    @abstractmethod
-    def delete(self, ids: List[str], **kwargs):
+    def delete(self, ids: list[str], **kwargs):
         """Delete vector embeddings from vector stores
 
         Args:
@@ -56,11 +49,11 @@ class BaseVectorStore(ABC):
     @abstractmethod
     def query(
         self,
-        embedding: List[float],
+        embedding: list[float],
         top_k: int = 1,
-        ids: Optional[List[str]] = None,
+        ids: Optional[list[str]] = None,
         **kwargs,
-    ) -> Tuple[List[List[float]], List[float], List[str]]:
+    ) -> tuple[list[list[float]], list[float], list[str]]:
         """Return the top k most similar vector embeddings
 
         Args:
@@ -73,17 +66,9 @@ class BaseVectorStore(ABC):
         """
         ...
 
-    @abstractmethod
-    def load(self, *args, **kwargs):
-        pass
-
-    @abstractmethod
-    def save(self, *args, **kwargs):
-        pass
-
 
 class LlamaIndexVectorStore(BaseVectorStore):
-    _li_class: Type[Union[LIVectorStore, BasePydanticVectorStore]]
+    _li_class: type[LIVectorStore | BasePydanticVectorStore]
 
     def __init__(self, *args, **kwargs):
         if self._li_class is None:
@@ -104,12 +89,12 @@ class LlamaIndexVectorStore(BaseVectorStore):
 
     def add(
         self,
-        embeddings: List[List[float]] | List[DocumentWithEmbedding],
-        metadatas: Optional[List[dict]] = None,
-        ids: Optional[List[str]] = None,
+        embeddings: list[list[float]] | list[DocumentWithEmbedding],
+        metadatas: Optional[list[dict]] = None,
+        ids: Optional[list[str]] = None,
     ):
         if isinstance(embeddings[0], list):
-            nodes = [
+            nodes: list[DocumentWithEmbedding] = [
                 DocumentWithEmbedding(embedding=embedding) for embedding in embeddings
             ]
         else:
@@ -126,20 +111,17 @@ class LlamaIndexVectorStore(BaseVectorStore):
 
         return self._client.add(nodes=nodes)
 
-    def add_from_docs(self, docs: List[Document]):
-        return self._client.add(nodes=docs)
-
-    def delete(self, ids: List[str], **kwargs):
+    def delete(self, ids: list[str], **kwargs):
         for id_ in ids:
             self._client.delete(ref_doc_id=id_, **kwargs)
 
     def query(
         self,
-        embedding: List[float],
+        embedding: list[float],
         top_k: int = 1,
-        ids: Optional[List[str]] = None,
+        ids: Optional[list[str]] = None,
         **kwargs,
-    ) -> Tuple[List[List[float]], List[float], List[str]]:
+    ) -> tuple[list[list[float]], list[float], list[str]]:
         output = self._client.query(
             query=VectorStoreQuery(
                 query_embedding=embedding,

@@ -2,7 +2,8 @@ import json
 from pathlib import Path
 from typing import List, Optional, Union
 
-from ...base import Document
+from kotaemon.base import Document
+
 from .base import BaseDocumentStore
 
 
@@ -74,3 +75,6 @@ class InMemoryDocumentStore(BaseDocumentStore):
         with open(path) as f:
             store = json.load(f)
         self._store = {key: Document.from_dict(value) for key, value in store.items()}
+
+    def __persist_flow__(self):
+        return {}

@@ -1,7 +1,7 @@
-from pathlib import Path
 from typing import List, Optional, Union
 
-from ...base import Document
+from kotaemon.base import Document
+
 from .base import BaseDocumentStore
 
 MAX_DOCS_TO_GET = 10**4
@@ -27,6 +27,8 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
 
         self.elasticsearch_url = elasticsearch_url
         self.index_name = index_name
+        self.k1 = k1
+        self.b = b
 
         # Create an Elasticsearch client instance
         self.client = Elasticsearch(elasticsearch_url)
@@ -160,10 +162,10 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
         self.client.delete_by_query(index=self.index_name, body=query)
         self.client.indices.refresh(index=self.index_name)
 
-    def save(self, path: Union[str, Path]):
-        """Save document to path"""
-        # not required for ElasticDocstore
-
-    def load(self, path: Union[str, Path]):
-        """Load document store from path"""
-        # not required for ElasticDocstore
+    def __persist_flow__(self):
+        return {
+            "index_name": self.index_name,
+            "elasticsearch_url": self.elasticsearch_url,
+            "k1": self.k1,
+            "b": self.b,
+        }

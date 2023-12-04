@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-from pathlib import Path
 from typing import List, Optional, Union
 
-from ...base import Document
+from kotaemon.base import Document
 
 
 class BaseDocumentStore(ABC):
@@ -45,14 +44,4 @@ class BaseDocumentStore(ABC):
     @abstractmethod
     def delete(self, ids: Union[List[str], str]):
         """Delete document by id"""
-        ...
-
-    @abstractmethod
-    def save(self, path: Union[str, Path]):
-        """Save document to path"""
-        ...
-
-    @abstractmethod
-    def load(self, path: Union[str, Path]):
-        """Load document store from path"""
         ...

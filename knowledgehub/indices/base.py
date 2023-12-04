@@ -82,10 +82,13 @@ class LlamaIndexDocTransformerMixin:
             return self._kwargs[name]
         return getattr(self._obj, name)
 
-    def dump(self):
+    def dump(self, *args, **kwargs):
+        from theflow.utils.modules import serialize
+
+        params = {key: serialize(value) for key, value in self._kwargs.items()}
         return {
             "__type__": f"{self.__module__}.{self.__class__.__qualname__}",
-            **self._kwargs,
+            **params,
         }
 
     def run(

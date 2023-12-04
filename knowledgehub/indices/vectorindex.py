@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from pathlib import Path
 from typing import Optional, Sequence, cast
 
 from kotaemon.base import BaseComponent, Document, RetrievedDocument
@@ -68,37 +67,6 @@ class VectorIndexing(BaseIndexing):
         if self.doc_store:
             self.doc_store.add(input_)
 
-    def save(
-        self,
-        path: str | Path,
-        vectorstore_fname: str = VECTOR_STORE_FNAME,
-        docstore_fname: str = DOC_STORE_FNAME,
-    ):
-        """Save the whole state of the indexing pipeline vector store and all
-        necessary information to disk
-
-        Args:
-            path (str): path to save the state
-        """
-        if isinstance(path, str):
-            path = Path(path)
-        self.vector_store.save(path / vectorstore_fname)
-        if self.doc_store:
-            self.doc_store.save(path / docstore_fname)
-
-    def load(
-        self,
-        path: str | Path,
-        vectorstore_fname: str = VECTOR_STORE_FNAME,
-        docstore_fname: str = DOC_STORE_FNAME,
-    ):
-        """Load all information from disk to an object"""
-        if isinstance(path, str):
-            path = Path(path)
-        self.vector_store.load(path / vectorstore_fname)
-        if self.doc_store:
-            self.doc_store.load(path / docstore_fname)
-
 
 class VectorRetrieval(BaseRetrieval):
     """Retrieve list of documents from vector store"""
@@ -143,37 +111,6 @@ class VectorRetrieval(BaseRetrieval):
                 result = reranker(documents=result, query=text)
 
         return result
-
-    def save(
-        self,
-        path: str | Path,
-        vectorstore_fname: str = VECTOR_STORE_FNAME,
-        docstore_fname: str = DOC_STORE_FNAME,
-    ):
-        """Save the whole state of the indexing pipeline vector store and all
-        necessary information to disk
-
-        Args:
-            path (str): path to save the state
-        """
-        if isinstance(path, str):
-            path = Path(path)
-        self.vector_store.save(path / vectorstore_fname)
-        if self.doc_store:
-            self.doc_store.save(path / docstore_fname)
-
-    def load(
-        self,
-        path: str | Path,
-        vectorstore_fname: str = VECTOR_STORE_FNAME,
-        docstore_fname: str = DOC_STORE_FNAME,
-    ):
-        """Load all information from disk to an object"""
-        if isinstance(path, str):
-            path = Path(path)
-        self.vector_store.load(path / vectorstore_fname)
-        if self.doc_store:
-            self.doc_store.load(path / docstore_fname)
 
 
 class TextVectorQA(BaseComponent):

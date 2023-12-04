@@ -21,6 +21,17 @@ class ChromaVectorStore(LlamaIndexVectorStore):
         flat_metadata: bool = True,
         **kwargs: Any,
     ):
+        self._path = path
+        self._collection_name = collection_name
+        self._host = host
+        self._port = port
+        self._ssl = ssl
+        self._headers = headers
+        self._collection_kwargs = collection_kwargs
+        self._stores_text = stores_text
+        self._flat_metadata = flat_metadata
+        self._kwargs = kwargs
+
         try:
             import chromadb
         except ImportError:
@@ -70,8 +81,16 @@ class ChromaVectorStore(LlamaIndexVectorStore):
     def count(self) -> int:
         return self._collection.count()
 
-    def save(self, *args, **kwargs):
-        pass
-
-    def load(self, *args, **kwargs):
-        pass
+    def __persist_flow__(self):
+        return {
+            "path": self._path,
+            "collection_name": self._collection_name,
+            "host": self._host,
+            "port": self._port,
+            "ssl": self._ssl,
+            "headers": self._headers,
+            "collection_kwargs": self._collection_kwargs,
+            "stores_text": self._stores_text,
+            "flat_metadata": self._flat_metadata,
+            **self._kwargs,
+        }
