@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import os
 
-from ...base import Document
+from kotaemon.base import Document
+
 from .base import BaseReranking
 
 

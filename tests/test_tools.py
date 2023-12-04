@@ -6,7 +6,7 @@ from openai.resources.embeddings import Embeddings
 
 from kotaemon.agents.tools import ComponentTool, GoogleSearchTool, WikipediaTool
 from kotaemon.base import Document
-from kotaemon.embeddings.openai import AzureOpenAIEmbeddings
+from kotaemon.embeddings import AzureOpenAIEmbeddings
 from kotaemon.indices.vectorindex import VectorIndexing, VectorRetrieval
 from kotaemon.storages import ChromaVectorStore, InMemoryDocumentStore
 

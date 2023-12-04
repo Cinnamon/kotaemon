@@ -6,7 +6,7 @@ from theflow.utils.modules import ObjectInitDeclaration as _
 
 from kotaemon.base import BaseComponent
 from kotaemon.embeddings import AzureOpenAIEmbeddings
-from kotaemon.llms.completions.openai import AzureOpenAI
+from kotaemon.llms import AzureOpenAI
 from kotaemon.pipelines.indexing import IndexVectorStoreFromDocumentPipeline
 from kotaemon.pipelines.retrieving import RetrieveDocumentFromVectorStorePipeline
 from kotaemon.storages import ChromaVectorStore, InMemoryDocumentStore

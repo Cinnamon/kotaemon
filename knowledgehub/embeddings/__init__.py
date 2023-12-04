@@ -1,4 +1,15 @@
 from .base import BaseEmbeddings
-from .openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
+from .langchain_based import (
+    AzureOpenAIEmbeddings,
+    CohereEmbdeddings,
+    HuggingFaceEmbeddings,
+    OpenAIEmbeddings,
+)
 
-__all__ = ["BaseEmbeddings", "OpenAIEmbeddings", "AzureOpenAIEmbeddings"]
+__all__ = [
+    "BaseEmbeddings",
+    "OpenAIEmbeddings",
+    "AzureOpenAIEmbeddings",
+    "CohereEmbdeddings",
+    "HuggingFaceEmbeddings",
+]

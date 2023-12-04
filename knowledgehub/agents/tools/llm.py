@@ -21,7 +21,7 @@ class LLMTool(BaseTool):
         "are confident in solving the problem "
         "yourself. Input can be any instruction."
     )
-    llm: BaseLLM = AzureChatOpenAI()
+    llm: BaseLLM = AzureChatOpenAI.withx()
     args_schema: Optional[Type[BaseModel]] = LLMArgs
 
     def _run_tool(self, query: AnyStr) -> str:

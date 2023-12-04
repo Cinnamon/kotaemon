@@ -1,17 +1,13 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Union
 
 from langchain.output_parsers.boolean import BooleanOutputParser
 
-from ...base import Document
-from ...llms import PromptTemplate
-from ...llms.chats.base import ChatLLM
-from ...llms.completions.base import LLM
-from .base import BaseReranking
+from kotaemon.base import Document
+from kotaemon.llms import BaseLLM, PromptTemplate
 
-BaseLLM = Union[ChatLLM, LLM]
+from .base import BaseReranking
 
 RERANK_PROMPT_TEMPLATE = """Given the following question and context,
 return YES if the context is relevant to the question and NO if it isn't.

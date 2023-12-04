@@ -46,19 +46,47 @@ class LlamaIndexDocTransformerMixin:
             "Please return the relevant LlamaIndex class in _get_li_class"
         )
 
-    def __init__(self, *args, **kwargs):
-        _li_cls = self._get_li_class()
-        self._obj = _li_cls(*args, **kwargs)
+    def __init__(self, **params):
+        self._li_cls = self._get_li_class()
+        self._obj = self._li_cls(**params)
+        self._kwargs = params
         super().__init__()
+
+    def __repr__(self):
+        kwargs = []
+        for key, value_obj in self._kwargs.items():
+            value = repr(value_obj)
+            kwargs.append(f"{key}={value}")
+        kwargs_repr = ", ".join(kwargs)
+        return f"{self.__class__.__name__}({kwargs_repr})"
+
+    def __str__(self):
+        kwargs = []
+        for key, value_obj in self._kwargs.items():
+            value = str(value_obj)
+            if len(value) > 20:
+                value = f"{value[:15]}..."
+            kwargs.append(f"{key}={value}")
+        kwargs_repr = ", ".join(kwargs)
+        return f"{self.__class__.__name__}({kwargs_repr})"
 
     def __setattr__(self, name: str, value: Any) -> None:
         if name.startswith("_") or name in self._protected_keywords():
             return super().__setattr__(name, value)
 
+        self._kwargs[name] = value
         return setattr(self._obj, name, value)
 
     def __getattr__(self, name: str) -> Any:
+        if name in self._kwargs:
+            return self._kwargs[name]
         return getattr(self._obj, name)
+
+    def dump(self):
+        return {
+            "__type__": f"{self.__module__}.{self.__class__.__qualname__}",
+            **self._kwargs,
+        }
 
     def run(
         self,

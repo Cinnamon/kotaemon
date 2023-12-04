@@ -54,7 +54,7 @@ class LangchainAgent(BaseAgent):
             # reinit Langchain AgentExecutor
             self.agent = initialize_agent(
                 langchain_plugins,
-                self.llm.agent,
+                self.llm._obj,
                 agent=self.AGENT_TYPE_MAP[self.agent_type],
                 handle_parsing_errors=True,
                 verbose=True,

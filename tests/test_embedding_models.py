@@ -3,9 +3,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 from kotaemon.base import Document
-from kotaemon.embeddings.cohere import CohereEmbdeddings
-from kotaemon.embeddings.huggingface import HuggingFaceEmbeddings
-from kotaemon.embeddings.openai import AzureOpenAIEmbeddings
+from kotaemon.embeddings import (
+    AzureOpenAIEmbeddings,
+    CohereEmbdeddings,
+    HuggingFaceEmbeddings,
+)
 
 with open(Path(__file__).parent / "resources" / "embedding_openai_batch.json") as f:
     openai_embedding_batch = json.load(f)
@@ -60,7 +62,7 @@ def test_azureopenai_embeddings_batch_raw(openai_embedding_call):
     "langchain.embeddings.huggingface.HuggingFaceBgeEmbeddings.embed_documents",
     side_effect=lambda *args, **kwargs: [[1.0, 2.1, 3.2]],
 )
-def test_huggingface_embddings(
+def test_huggingface_embeddings(
     langchain_huggingface_embedding_call, sentence_transformers_init
 ):
     model = HuggingFaceEmbeddings(

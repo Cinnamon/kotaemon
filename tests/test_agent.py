@@ -8,7 +8,7 @@ from kotaemon.agents.langchain import LangchainAgent
 from kotaemon.agents.react import ReactAgent
 from kotaemon.agents.rewoo import RewooAgent
 from kotaemon.agents.tools import BaseTool, GoogleSearchTool, LLMTool, WikipediaTool
-from kotaemon.llms.chats.openai import AzureChatOpenAI
+from kotaemon.llms import AzureChatOpenAI
 
 FINAL_RESPONSE_TEXT = "Final Answer: Hello Cinnamon AI!"
 
@@ -195,7 +195,7 @@ def test_react_agent_langchain(openai_completion, llm, mock_google_search):
     langchain_plugins = [tool.to_langchain_format() for tool in plugins]
     agent = initialize_agent(
         langchain_plugins,
-        llm.agent,
+        llm._obj,
         agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
         verbose=True,
     )

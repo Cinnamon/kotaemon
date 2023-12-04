@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 
-from ...base import BaseComponent, Document
+from kotaemon.base import BaseComponent, Document
 
 
 class BaseReranking(BaseComponent):

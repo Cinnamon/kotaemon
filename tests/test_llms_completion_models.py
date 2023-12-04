@@ -5,7 +5,7 @@ from langchain.llms import OpenAI as OpenAILC
 from openai.types.completion import Completion
 
 from kotaemon.base.schema import LLMInterface
-from kotaemon.llms.completions.openai import AzureOpenAI, OpenAI
+from kotaemon.llms import AzureOpenAI, OpenAI
 
 _openai_completion_response = Completion.parse_obj(
     {
@@ -41,7 +41,7 @@ def test_azureopenai_model(openai_completion):
         request_timeout=60,
     )
     assert isinstance(
-        model.agent, AzureOpenAILC
+        model._obj, AzureOpenAILC
     ), "Agent not wrapped in Langchain's AzureOpenAI"
 
     output = model("hello world")
@@ -64,7 +64,7 @@ def test_openai_model(openai_completion):
         request_timeout=60,
     )
     assert isinstance(
-        model.agent, OpenAILC
+        model._obj, OpenAILC
     ), "Agent is not wrapped in Langchain's OpenAI"
 
     output = model("hello world")

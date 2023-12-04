@@ -9,7 +9,7 @@ from kotaemon.base.schema import (
     LLMInterface,
     SystemMessage,
 )
-from kotaemon.llms.chats.openai import AzureChatOpenAI
+from kotaemon.llms import AzureChatOpenAI
 
 _openai_chat_completion_response = ChatCompletion.parse_obj(
     {
@@ -48,7 +48,7 @@ def test_azureopenai_model(openai_completion):
         temperature=0,
     )
     assert isinstance(
-        model.agent, AzureChatOpenAILC
+        model._obj, AzureChatOpenAILC
     ), "Agent not wrapped in Langchain's AzureChatOpenAI"
 
     # test for str input - stream mode
