@@ -11,8 +11,8 @@ class GoogleSearchArgs(BaseModel):
 
 
 class GoogleSearchTool(BaseTool):
-    name = "google_search"
-    description = (
+    name: str = "google_search"
+    description: str = (
         "A search engine retrieving top search results as snippets from Google. "
         "Input should be a search query."
     )

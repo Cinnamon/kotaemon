@@ -14,8 +14,8 @@ class LLMArgs(BaseModel):
 
 
 class LLMTool(BaseTool):
-    name = "llm"
-    description = (
+    name: str = "llm"
+    description: str = (
         "A pretrained LLM like yourself. Useful when you need to act with "
         "general world knowledge and common sense. Prioritize it when you "
         "are confident in solving the problem "

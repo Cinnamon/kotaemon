@@ -114,6 +114,7 @@ class LLMInterface(AIMessage):
     completion_tokens: int = -1
     total_tokens: int = -1
     prompt_tokens: int = -1
+    total_cost: float = 0
     logits: list[list[float]] = Field(default_factory=list)
     messages: list[AIMessage] = Field(default_factory=list)
 

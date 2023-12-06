@@ -48,8 +48,8 @@ class WikipediaArgs(BaseModel):
 class WikipediaTool(BaseTool):
     """Tool that adds the capability to query the Wikipedia API."""
 
-    name = "wikipedia"
-    description = (
+    name: str = "wikipedia"
+    description: str = (
         "Search engine from Wikipedia, retrieving relevant wiki page. "
         "Useful when you need to get holistic knowledge about people, "
         "places, companies, historical events, or other subjects. "

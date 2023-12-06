@@ -11,7 +11,7 @@ packages.find.exclude = ["tests*", "env*"]
 # metadata and dependencies
 [project]
 name = "kotaemon"
-version = "0.3.3"
+version = "0.3.4"
 requires-python = ">= 3.10"
 description = "Kotaemon core library for AI development."
 dependencies = [
@@ -24,6 +24,7 @@ dependencies = [
     "cookiecutter",
     "click",
     "pandas",
+    "trogon",
 ]
 readme = "README.md"
 license = { text = "MIT License" }

@@ -4,12 +4,11 @@ from langchain.agents import AgentType as LCAgentType
 from langchain.agents import initialize_agent
 from langchain.agents.agent import AgentExecutor as LCAgentExecutor
 
-from kotaemon.agents.tools import BaseTool
-from kotaemon.base.schema import Document
-from kotaemon.llms.chats.base import ChatLLM
-from kotaemon.llms.completions.base import LLM
+from kotaemon.llms import LLM, ChatLLM
 
-from .base import AgentType, BaseAgent
+from .base import BaseAgent
+from .io import AgentOutput, AgentType
+from .tools import BaseTool
 
 
 class LangchainAgent(BaseAgent):
@@ -54,7 +53,9 @@ class LangchainAgent(BaseAgent):
             # reinit Langchain AgentExecutor
             self.agent = initialize_agent(
                 langchain_plugins,
-                self.llm._obj,
+                # TODO: could cause bugs for non-langchain llms
+                # related to https://github.com/Cinnamon/kotaemon/issues/73
+                self.llm._obj,  # type: ignore
                 agent=self.AGENT_TYPE_MAP[self.agent_type],
                 handle_parsing_errors=True,
                 verbose=True,
@@ -65,17 +66,16 @@ class LangchainAgent(BaseAgent):
         self.update_agent_tools()
         return
 
-    def run(self, instruction: str) -> Document:
+    def run(self, instruction: str) -> AgentOutput:
         assert (
             self.agent is not None
         ), "Lanchain AgentExecutor is not correclty initialized"
+
         # Langchain AgentExecutor call
         output = self.agent(instruction)["output"]
-        return Document(
+
+        return AgentOutput(
             text=output,
-            metadata={
-                "agent": "langchain",
-                "cost": 0.0,
-                "usage": 0,
-            },
+            agent_type=self.agent_type,
+            status="finished",
         )

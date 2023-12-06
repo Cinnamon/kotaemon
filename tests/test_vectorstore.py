@@ -110,8 +110,8 @@ class TestInMemoryVectorStore:
         db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
         db.delete(["3"])
         db.save(save_path=tmp_path / "test_save_load_delete.json")
-        f = open(tmp_path / "test_save_load_delete.json")
-        data = json.load(f)
+        with open(tmp_path / "test_save_load_delete.json") as f:
+            data = json.load(f)
         assert (
             "1" and "2" in data["text_id_to_ref_doc_id"]
         ), "save function does not save data completely"
@@ -136,8 +136,8 @@ class TestSimpleFileVectorStore:
         db = SimpleFileVectorStore(path=tmp_path / "test_save_load_delete.json")
         db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
         db.delete(["3"])
-        f = open(tmp_path / "test_save_load_delete.json")
-        data = json.load(f)
+        with open(tmp_path / "test_save_load_delete.json") as f:
+            data = json.load(f)
         assert (
             "1" and "2" in data["text_id_to_ref_doc_id"]
         ), "save function does not save data completely"

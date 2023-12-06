@@ -2,7 +2,12 @@ import json
 import logging
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, NamedTuple, Union
+from enum import Enum
+from typing import Any, Dict, Literal, NamedTuple, Optional, Union
+
+from pydantic import Extra
+
+from kotaemon.base import LLMInterface
 
 
 def check_log():
@@ -12,6 +17,20 @@ def check_log():
     :rtype: bool
     """
     return os.environ.get("LOG_PATH", None) is not None
+
+
+class AgentType(Enum):
+    """
+    Enumerated type for agent types.
+    """
+
+    openai = "openai"
+    openai_multi = "openai_multi"
+    openai_tool = "openai_tool"
+    self_ask = "self_ask"
+    react = "react"
+    rewoo = "rewoo"
+    vanilla = "vanilla"
 
 
 class BaseScratchPad:
@@ -217,3 +236,20 @@ class AgentFinish(NamedTuple):
 
     return_values: dict
     log: str
+
+
+class AgentOutput(LLMInterface, extra=Extra.allow):  # type: ignore [call-arg]
+    """Output from an agent.
+
+    Args:
+        text: The text output from the agent.
+        agent_type: The type of agent.
+        status: The status after executing the agent.
+        error: The error message if any.
+    """
+
+    text: str
+    type: str = "agent"
+    agent_type: AgentType
+    status: Literal["finished", "stopped", "failed"]
+    error: Optional[str] = None

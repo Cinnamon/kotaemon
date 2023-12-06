@@ -2,6 +2,7 @@ import os
 
 import click
 import yaml
+from trogon import tui
 
 
 # check if the output is not a .yml file -> raise error
@@ -14,6 +15,7 @@ def check_config_format(config):
             raise ValueError("config must be yaml format.")
 
 
+@tui(command="ui", help="Open the terminal UI")  # generate the terminal UI
 @click.group()
 def main():
     pass
@@ -56,8 +58,10 @@ def export(export_path, output):
 @click.option(
     "--username",
     required=False,
-    help="Username for the user. If not provided, the promptui will not have "
-    "authentication.",
+    help=(
+        "Username for the user. If not provided, the promptui will not have "
+        "authentication."
+    ),
 )
 @click.option(
     "--password",

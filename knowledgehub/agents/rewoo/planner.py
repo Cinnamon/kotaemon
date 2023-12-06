@@ -1,10 +1,10 @@
 from typing import Any, List, Optional, Union
 
+from kotaemon.agents.base import BaseLLM, BaseTool
+from kotaemon.agents.io import BaseScratchPad
 from kotaemon.base import BaseComponent
 from kotaemon.llms import PromptTemplate
 
-from ..base import BaseLLM, BaseTool
-from ..output.base import BaseScratchPad
 from .prompt import few_shot_planner_prompt, zero_shot_planner_prompt
 
 
