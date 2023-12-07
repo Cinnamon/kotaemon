@@ -4,7 +4,7 @@ from typing import Any, AsyncGenerator
 
 import anyio
 from gradio import ChatInterface
-from gradio.components import IOComponent, get_component_instance
+from gradio.components import Component, get_component_instance
 from gradio.events import on
 from gradio.helpers import special_args
 from gradio.routes import Request
@@ -20,7 +20,7 @@ class ChatBlock(ChatInterface):
     def __init__(
         self,
         *args,
-        additional_outputs: str | IOComponent | list[str | IOComponent] | None = None,
+        additional_outputs: str | Component | list[str | Component] | None = None,
         **kwargs,
     ):
         if additional_outputs:

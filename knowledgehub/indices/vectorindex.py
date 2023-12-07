@@ -44,7 +44,7 @@ class VectorIndexing(BaseIndexing):
             qa_pipeline=CitationQAPipeline(**kwargs),
         )
 
-    def run(self, text: str | list[str] | Document | list[Document]) -> None:
+    def run(self, text: str | list[str] | Document | list[Document]):
         input_: list[Document] = []
         if not isinstance(text, list):
             text = [text]

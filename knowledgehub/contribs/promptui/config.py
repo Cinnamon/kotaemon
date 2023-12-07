@@ -84,9 +84,7 @@ def handle_node(node: dict) -> dict:
 
 def handle_input(pipeline: Union[BaseComponent, Type[BaseComponent]]) -> dict:
     """Get the input from the pipeline"""
-    if not hasattr(pipeline, "run_raw"):
-        return {}
-    signature = inspect.signature(pipeline.run_raw)
+    signature = inspect.signature(pipeline.run)
     inputs: Dict[str, Dict] = {}
     for name, param in signature.parameters.items():
         if name in ["self", "args", "kwargs"]:

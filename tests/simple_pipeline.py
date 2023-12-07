@@ -3,7 +3,7 @@ from typing import List
 
 from theflow.utils.modules import ObjectInitDeclaration as _
 
-from kotaemon.base import BaseComponent
+from kotaemon.base import BaseComponent, LLMInterface
 from kotaemon.embeddings import AzureOpenAIEmbeddings
 from kotaemon.indices import VectorRetrieval
 from kotaemon.llms import AzureOpenAI
@@ -30,9 +30,6 @@ class Pipeline(BaseComponent):
         ),
     )
 
-    def run_raw(self, text: str) -> str:
+    def run(self, text: str) -> LLMInterface:
         matched_texts: List[str] = self.retrieving_pipeline(text)
-        return self.llm("\n".join(matched_texts)).text
-
-    def run(self):
-        ...
+        return self.llm("\n".join(matched_texts))
