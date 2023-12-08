@@ -1,8 +1,7 @@
 from typing import List, Optional
 
-from theflow import Param
+from kotaemon.base import BaseComponent, Document, Param
 
-from ..base import BaseComponent, Document
 from .linear import GatedLinearPipeline
 
 

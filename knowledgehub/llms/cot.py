@@ -1,9 +1,7 @@
 from copy import deepcopy
 from typing import Callable, List
 
-from theflow import Function, Node, Param
-
-from kotaemon.base import BaseComponent, Document
+from kotaemon.base import BaseComponent, Document, Node, Param
 
 from .chats import AzureChatOpenAI
 from .completions import LLM
@@ -74,7 +72,7 @@ class Thought(BaseComponent):
         )
     )
     llm: LLM = Node(AzureChatOpenAI, help="The LLM model to execute the input prompt")
-    post_process: Function = Node(
+    post_process: BaseComponent = Node(
         help=(
             "The function post-processor that post-processes LLM output prediction ."
             "It should take a string as input (this is the LLM output text) and return "
@@ -85,7 +83,7 @@ class Thought(BaseComponent):
     @Node.auto(depends_on="prompt")
     def prompt_template(self):
         """Automatically wrap around param prompt. Can ignore"""
-        return BasePromptComponent(self.prompt)
+        return BasePromptComponent(template=self.prompt)
 
     def run(self, **kwargs) -> Document:
         """Run the chain of thought"""

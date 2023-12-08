@@ -1,9 +1,7 @@
 import tempfile
 from typing import List
 
-from theflow.utils.modules import ObjectInitDeclaration as _
-
-from kotaemon.base import BaseComponent, LLMInterface
+from kotaemon.base import BaseComponent, LLMInterface, lazy
 from kotaemon.embeddings import AzureOpenAIEmbeddings
 from kotaemon.indices import VectorRetrieval
 from kotaemon.llms import AzureOpenAI
@@ -21,7 +19,7 @@ class Pipeline(BaseComponent):
     )
 
     retrieving_pipeline: VectorRetrieval = VectorRetrieval.withx(
-        vector_store=_(ChromaVectorStore).withx(path=str(tempfile.mkdtemp())),
+        vector_store=lazy(ChromaVectorStore).withx(path=str(tempfile.mkdtemp())),
         embedding=AzureOpenAIEmbeddings.withx(
             model="text-embedding-ada-002",
             deployment="embedding-deployment",

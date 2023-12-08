@@ -22,21 +22,21 @@ def test_set_attributes():
 
 def test_check_redundant_kwargs():
     template = PromptTemplate("Hello, {name}!")
-    prompt = BasePromptComponent(template, name="Alice")
+    prompt = BasePromptComponent(template=template, name="Alice")
     with pytest.warns(UserWarning, match="Keys provided but not in template: age"):
         prompt._BasePromptComponent__check_redundant_kwargs(name="Alice", age=30)
 
 
 def test_check_unset_placeholders():
     template = PromptTemplate("Hello, {name}! I'm {age} years old.")
-    prompt = BasePromptComponent(template, name="Alice")
+    prompt = BasePromptComponent(template=template, name="Alice")
     with pytest.raises(ValueError):
         prompt._BasePromptComponent__check_unset_placeholders()
 
 
 def test_validate_value_type():
     template = PromptTemplate("Hello, {name}!")
-    prompt = BasePromptComponent(template)
+    prompt = BasePromptComponent(template=template)
     with pytest.raises(ValueError):
         prompt._BasePromptComponent__validate_value_type(name={})
 
@@ -58,6 +58,6 @@ def test_run():
 
 def test_set_method():
     template = PromptTemplate("Hello, {name}!")
-    prompt = BasePromptComponent(template)
+    prompt = BasePromptComponent(template=template)
     prompt.set(name="Alice")
     assert prompt.name == "Alice"

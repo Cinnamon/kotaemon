@@ -1,6 +1,6 @@
 from abc import abstractmethod
 
-from theflow.base import Function
+from theflow import Function, Node, Param, lazy
 
 from kotaemon.base.schema import Document
 
@@ -35,3 +35,6 @@ class BaseComponent(Function):
     def run(self, *args, **kwargs) -> Document | list[Document] | None:
         """Run the component."""
         ...
+
+
+__all__ = ["BaseComponent", "Param", "Node", "lazy"]

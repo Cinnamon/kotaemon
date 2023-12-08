@@ -1,8 +1,6 @@
 from typing import Optional, Union
 
-from theflow import Node, Param
-
-from kotaemon.base import BaseComponent
+from kotaemon.base import BaseComponent, Node, Param
 from kotaemon.llms import BaseLLM, PromptTemplate
 
 from .io import AgentOutput, AgentType

@@ -2,11 +2,10 @@ import logging
 import re
 from typing import Optional
 
-from theflow import Param
-
 from kotaemon.agents.base import BaseAgent, BaseLLM
 from kotaemon.agents.io import AgentAction, AgentFinish, AgentOutput, AgentType
 from kotaemon.agents.tools import BaseTool
+from kotaemon.base import Param
 from kotaemon.llms import PromptTemplate
 
 FINAL_ANSWER_ACTION = "Final Answer:"

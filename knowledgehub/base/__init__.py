@@ -1,4 +1,4 @@
-from .component import BaseComponent
+from .component import BaseComponent, Node, Param, lazy
 from .schema import (
     AIMessage,
     BaseMessage,
@@ -22,4 +22,7 @@ __all__ = [
     "RetrievedDocument",
     "LLMInterface",
     "ExtractorOutput",
+    "Param",
+    "Node",
+    "lazy",
 ]

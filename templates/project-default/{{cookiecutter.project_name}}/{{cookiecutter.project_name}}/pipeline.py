@@ -1,10 +1,7 @@
 import os
 from typing import List
 
-from theflow import Node, Param
-from theflow.utils.modules import ObjectInitDeclaration as _
-
-from kotaemon.base import BaseComponent, Document, LLMInterface
+from kotaemon.base import BaseComponent, Document, LLMInterface, Node, Param, lazy
 from kotaemon.contribs.promptui.logs import ResultLog
 from kotaemon.embeddings import AzureOpenAIEmbeddings
 from kotaemon.indices import VectorIndexing, VectorRetrieval
@@ -48,8 +45,8 @@ class QuestionAnsweringPipeline(BaseComponent):
 
     retrieving_pipeline: VectorRetrieval = Node(
         VectorRetrieval.withx(
-            vector_store=_(ChromaVectorStore).withx(path="./tmp"),
-            doc_store=_(SimpleFileDocumentStore).withx(path="docstore.json"),
+            vector_store=lazy(ChromaVectorStore).withx(path="./tmp"),
+            doc_store=lazy(SimpleFileDocumentStore).withx(path="docstore.json"),
             embedding=AzureOpenAIEmbeddings.withx(
                 model="text-embedding-ada-002",
                 deployment="dummy-q2-text-embedding",
@@ -78,11 +75,11 @@ class QuestionAnsweringPipeline(BaseComponent):
 class IndexingPipeline(VectorIndexing):
 
     vector_store: ChromaVectorStore = Param(
-        _(ChromaVectorStore).withx(path="./tmp"),
+        lazy(ChromaVectorStore).withx(path="./tmp"),
         ignore_ui=True,
     )
     doc_store: SimpleFileDocumentStore = Param(
-        _(SimpleFileDocumentStore).withx(path="docstore.json"),
+        lazy(SimpleFileDocumentStore).withx(path="docstore.json"),
         ignore_ui=True,
     )
     embedding: AzureOpenAIEmbeddings = AzureOpenAIEmbeddings.withx(

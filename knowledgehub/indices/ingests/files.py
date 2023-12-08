@@ -1,9 +1,8 @@
 from pathlib import Path
 
 from llama_index.readers.base import BaseReader
-from theflow import Param
 
-from kotaemon.base import BaseComponent, Document
+from kotaemon.base import BaseComponent, Document, Param
 from kotaemon.indices.extractors import BaseDocParser
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 from kotaemon.loaders import (

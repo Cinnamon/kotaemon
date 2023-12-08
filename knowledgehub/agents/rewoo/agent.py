@@ -3,12 +3,11 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
-from theflow import Node, Param
-
 from kotaemon.agents.base import BaseAgent
 from kotaemon.agents.io import AgentOutput, AgentType, BaseScratchPad
 from kotaemon.agents.tools import BaseTool
 from kotaemon.agents.utils import get_plugin_response_content
+from kotaemon.base import Node, Param
 from kotaemon.indices.qa import CitationPipeline
 from kotaemon.llms import BaseLLM, PromptTemplate
 

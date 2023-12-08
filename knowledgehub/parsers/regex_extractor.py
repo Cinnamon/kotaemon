@@ -3,10 +3,7 @@ from __future__ import annotations
 import re
 from typing import Callable
 
-from theflow import Param
-
-from kotaemon.base import BaseComponent, Document
-from kotaemon.base.schema import ExtractorOutput
+from kotaemon.base import BaseComponent, Document, ExtractorOutput, Param
 
 
 class RegexExtractor(BaseComponent):

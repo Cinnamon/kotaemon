@@ -1,6 +1,7 @@
 from typing import Callable, Union
 
-from ...base import BaseComponent, Document
+from kotaemon.base import BaseComponent, Document
+
 from .template import PromptTemplate
 
 
@@ -16,6 +17,7 @@ class BasePromptComponent(BaseComponent):
 
     class Config:
         middleware_switches = {"theflow.middleware.CachingMiddleware": False}
+        allow_extra = True
 
     def __init__(self, template: Union[str, PromptTemplate], **kwargs):
         super().__init__()
