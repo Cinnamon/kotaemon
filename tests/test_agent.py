@@ -189,7 +189,7 @@ def test_react_agent_langchain(openai_completion, llm, mock_google_search):
     langchain_plugins = [tool.to_langchain_format() for tool in plugins]
     agent = initialize_agent(
         langchain_plugins,
-        llm._obj,
+        llm.to_langchain_format(),
         agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
         verbose=True,
     )

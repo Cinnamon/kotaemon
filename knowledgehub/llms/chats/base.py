@@ -3,11 +3,12 @@ from __future__ import annotations
 import logging
 
 from kotaemon.base import BaseComponent
+from kotaemon.llms.base import BaseLLM
 
 logger = logging.getLogger(__name__)
 
 
-class ChatLLM(BaseComponent):
+class ChatLLM(BaseLLM):
     def flow(self):
         if self.inflow is None:
             raise ValueError("No inflow provided.")

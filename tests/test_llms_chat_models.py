@@ -48,7 +48,7 @@ def test_azureopenai_model(openai_completion):
         temperature=0,
     )
     assert isinstance(
-        model._obj, AzureChatOpenAILC
+        model.to_langchain_format(), AzureChatOpenAILC
     ), "Agent not wrapped in Langchain's AzureChatOpenAI"
 
     # test for str input - stream mode

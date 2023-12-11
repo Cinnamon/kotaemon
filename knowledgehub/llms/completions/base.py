@@ -1,5 +1,5 @@
-from kotaemon.base import BaseComponent
+from kotaemon.llms.base import BaseLLM
 
 
-class LLM(BaseComponent):
+class LLM(BaseLLM):
     pass

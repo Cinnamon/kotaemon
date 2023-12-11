@@ -53,9 +53,7 @@ class LangchainAgent(BaseAgent):
             # reinit Langchain AgentExecutor
             self.agent = initialize_agent(
                 langchain_plugins,
-                # TODO: could cause bugs for non-langchain llms
-                # related to https://github.com/Cinnamon/kotaemon/issues/73
-                self.llm._obj,  # type: ignore
+                self.llm.to_langchain_format(),
                 agent=self.AGENT_TYPE_MAP[self.agent_type],
                 handle_parsing_errors=True,
                 verbose=True,

@@ -45,6 +45,9 @@ class LCCompletionMixin:
             logits=[],
         )
 
+    def to_langchain_format(self):
+        return self._obj
+
     def __repr__(self):
         kwargs = []
         for key, value_obj in self._kwargs.items():

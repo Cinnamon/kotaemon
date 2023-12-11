@@ -41,7 +41,7 @@ def test_azureopenai_model(openai_completion):
         request_timeout=60,
     )
     assert isinstance(
-        model._obj, AzureOpenAILC
+        model.to_langchain_format(), AzureOpenAILC
     ), "Agent not wrapped in Langchain's AzureOpenAI"
 
     output = model("hello world")
@@ -64,7 +64,7 @@ def test_openai_model(openai_completion):
         request_timeout=60,
     )
     assert isinstance(
-        model._obj, OpenAILC
+        model.to_langchain_format(), OpenAILC
     ), "Agent is not wrapped in Langchain's OpenAI"
 
     output = model("hello world")
