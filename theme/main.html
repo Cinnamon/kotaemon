@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block libs %}
+{{ super() }}
+{% include "partials/libs.html" ignore missing %}
+{% endblock %}
+
+<!-- {% block announce %}{% include "announce.html" ignore missing %}{% endblock %} -->
+
+<!-- {% block content %}
+  {{ super() }}
+  {% if config.theme.pymdownx and config.theme.pymdownx.sponsor %}
+  <footer class="sponsorship">
+    <hr>
+    <a href="{{config.theme.pymdownx.sponsor}}" title="Become a sponsor">
+      <span class="twemoji heart-throb-hover">
+        {% set icon = "octicons/heart-fill-16" %}
+        {% include ".icons/" ~ icon ~ ".svg" %}
+      </span>
+    </a>
+    <hr>
+  </footer>
+  {% endif %}
+{% endblock %} -->
