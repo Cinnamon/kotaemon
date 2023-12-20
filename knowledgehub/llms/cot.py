@@ -1,7 +1,9 @@
 from copy import deepcopy
 from typing import Callable, List
 
-from kotaemon.base import BaseComponent, Document, Node, Param
+from theflow import Function, Node, Param
+
+from kotaemon.base import BaseComponent, Document
 
 from .chats import AzureChatOpenAI
 from .completions import LLM
@@ -66,13 +68,13 @@ class Thought(BaseComponent):
 
     prompt: str = Param(
         help=(
-            "The prompt template string. This prompt template has Python-like "
-            "variable placeholders, that then will be subsituted with real values when "
-            "this component is executed"
+            "The prompt template string. This prompt template has Python-like variable"
+            " placeholders, that then will be substituted with real values when this"
+            " component is executed"
         )
     )
     llm: LLM = Node(AzureChatOpenAI, help="The LLM model to execute the input prompt")
-    post_process: BaseComponent = Node(
+    post_process: Function = Node(
         help=(
             "The function post-processor that post-processes LLM output prediction ."
             "It should take a string as input (this is the LLM output text) and return "
@@ -83,7 +85,7 @@ class Thought(BaseComponent):
     @Node.auto(depends_on="prompt")
     def prompt_template(self):
         """Automatically wrap around param prompt. Can ignore"""
-        return BasePromptComponent(template=self.prompt)
+        return BasePromptComponent(self.prompt)
 
     def run(self, **kwargs) -> Document:
         """Run the chain of thought"""
@@ -113,20 +115,19 @@ class ManualSequentialChainOfThought(BaseComponent):
 
     **Create and run a chain of thought without "+" operator:**
 
-    ```python
-    >> from kotaemon.pipelines.cot import Thought, ManualSequentialChainOfThought
-
-    >> llm = AzureChatOpenAI(...)
-    >> thought1 = Thought(
-           prompt="Word {word} in {language} is ",
-           post_process=lambda string: {"translated": string},
-       )
-    >> thought2 = Thought(
-            prompt="Translate {translated} to Japanese",
-            post_process=lambda string: {"output": string},
-       )
-    >> thought = ManualSequentialChainOfThought(thoughts=[thought1, thought2], llm=llm)
-    >> thought(word="hello", language="French")
+    ```pycon
+    >>> from kotaemon.pipelines.cot import Thought, ManualSequentialChainOfThought
+    >>> llm = AzureChatOpenAI(...)
+    >>> thought1 = Thought(
+    >>>    prompt="Word {word} in {language} is ",
+    >>>    post_process=lambda string: {"translated": string},
+    >>> )
+    >>> thought2 = Thought(
+    >>>     prompt="Translate {translated} to Japanese",
+    >>>     post_process=lambda string: {"output": string},
+    >>> )
+    >>> thought = ManualSequentialChainOfThought(thoughts=[thought1, thought2], llm=llm)
+    >>> thought(word="hello", language="French")
     {'word': 'hello',
      'language': 'French',
      'translated': '"Bonjour"',

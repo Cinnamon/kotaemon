@@ -1,0 +1,7 @@
+mkdocs
+mkdocstrings[python]
+mkdocs-material
+mkdocs-gen-files
+mkdocs-literate-nav
+mkdocs-git-revision-date-localized-plugin
+mkdocs-section-index

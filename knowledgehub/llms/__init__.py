@@ -4,6 +4,7 @@ from .base import BaseLLM
 from .branching import GatedBranchingPipeline, SimpleBranchingPipeline
 from .chats import AzureChatOpenAI, ChatLLM
 from .completions import LLM, AzureOpenAI, OpenAI
+from .cot import ManualSequentialChainOfThought, Thought
 from .linear import GatedLinearPipeline, SimpleLinearPipeline
 from .prompts import BasePromptComponent, PromptTemplate
 
@@ -28,4 +29,7 @@ __all__ = [
     "GatedLinearPipeline",
     "SimpleBranchingPipeline",
     "GatedBranchingPipeline",
+    # chain-of-thoughts
+    "ManualSequentialChainOfThought",
+    "Thought",
 ]

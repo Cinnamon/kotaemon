@@ -100,11 +100,14 @@ class RegexExtractor(BaseComponent):
             A list contains the output ExtractorOutput for each input
 
         Example:
-            document1 = Document(...)
-            document2 = Document(...)
-            document_batch = [document1, document2]
-            batch_output = self(document_batch)
-            # batch_output will be [output1_document1, output1_document2]
+            ```pycon
+            >>> document1 = Document(...)
+            >>> document2 = Document(...)
+            >>> document_batch = [document1, document2]
+            >>> batch_output = self(document_batch)
+            >>> print(batch_output)
+            [output1_document1, output1_document2]
+            ```
         """
         # TODO: this conversion seems common
         input_: list[str] = []

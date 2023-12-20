@@ -12,7 +12,8 @@ class SimpleBranchingPipeline(BaseComponent):
     Attributes:
         branches (List[BaseComponent]): The list of branches to be executed.
 
-    Example Usage:
+    Example:
+        ```python
         from kotaemon.llms import (
             AzureChatOpenAI,
             BasePromptComponent,
@@ -45,6 +46,7 @@ class SimpleBranchingPipeline(BaseComponent):
         print(pipeline(condition_text="1"))
         print(pipeline(condition_text="2"))
         print(pipeline(condition_text="12"))
+        ```
     """
 
     branches: List[BaseComponent] = Param(default_callback=lambda *_: [])
@@ -87,7 +89,8 @@ class GatedBranchingPipeline(SimpleBranchingPipeline):
     Attributes:
         branches (List[BaseComponent]): The list of branches to be executed.
 
-    Example Usage:
+    Example:
+        ```python
         from kotaemon.llms import (
             AzureChatOpenAI,
             BasePromptComponent,
@@ -119,6 +122,7 @@ class GatedBranchingPipeline(SimpleBranchingPipeline):
             )
         print(pipeline(condition_text="1"))
         print(pipeline(condition_text="2"))
+        ```
     """
 
     def run(self, *, condition_text: Optional[str] = None, **prompt_kwargs):
@@ -135,7 +139,7 @@ class GatedBranchingPipeline(SimpleBranchingPipeline):
             Union[OutputType, None]: The output of the first branch that satisfies the
             condition, or None if no branch satisfies the condition.
 
-        Raise:
+        Raises:
             ValueError: If condition_text is None
         """
         if condition_text is None:

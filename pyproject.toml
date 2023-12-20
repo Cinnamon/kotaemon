@@ -70,3 +70,10 @@ kh = "kotaemon.cli:main"
 Homepage = "https://github.com/Cinnamon/kotaemon/"
 Repository = "https://github.com/Cinnamon/kotaemon/"
 Documentation = "https://github.com/Cinnamon/kotaemon/wiki"
+
+[tool.codespell]
+skip = "*.js,*.css,*.map"
+# `llm` abbreviation for large language models
+ignore-words-list = "llm,fo"
+quiet-level = 3
+check-filenames = ""

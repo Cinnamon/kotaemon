@@ -22,6 +22,9 @@ class Document(BaseDocument):
     This class accept one positional argument `content` of an arbitrary type, which will
         store the raw content of the document. If specified, the class will use
         `content` to initialize the base llama_index class.
+
+    Args:
+        content: the raw content of the document.
     """
 
     content: Any
@@ -99,7 +102,7 @@ class RetrievedDocument(Document):
     """Subclass of Document with retrieval-related information
 
     Attributes:
-         score (float): score of the document (from 0.0 to 1.0)
+        score (float): score of the document (from 0.0 to 1.0)
         retrieval_metadata (dict): metadata from the retrieval process, can be used
             by different components in a retrieved pipeline to communicate with each
             other

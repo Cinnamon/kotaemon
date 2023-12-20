@@ -67,7 +67,7 @@ class LangchainAgent(BaseAgent):
     def run(self, instruction: str) -> AgentOutput:
         assert (
             self.agent is not None
-        ), "Lanchain AgentExecutor is not correclty initialized"
+        ), "Lanchain AgentExecutor is not correctly initialized"
 
         # Langchain AgentExecutor call
         output = self.agent(instruction)["output"]

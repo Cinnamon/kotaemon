@@ -34,8 +34,7 @@ def read_pdf_unstructured(input_path: Union[Path, str]):
         from unstructured.partition.auto import partition
     except ImportError:
         raise ImportError(
-            "Please install unstructured PDF reader \
-              `pip install unstructured[pdf]`"
+            "Please install unstructured PDF reader `pip install unstructured[pdf]`"
         )
 
     page_items = defaultdict(list)
@@ -60,7 +59,7 @@ def read_pdf_unstructured(input_path: Union[Path, str]):
 def merge_ocr_and_pdf_texts(
     ocr_list: List[dict], pdf_text_list: List[dict], debug_info=None
 ):
-    """Merge PDF and OCR text using IOU overlaping location
+    """Merge PDF and OCR text using IOU overlapping location
     Args:
         ocr_list: List of OCR items {"text", "box", "location"}
         pdf_text_list: List of PDF items {"text", "box", "location"}
@@ -115,7 +114,7 @@ def merge_ocr_and_pdf_texts(
 def merge_table_cell_and_ocr(
     table_list: List[dict], ocr_list: List[dict], pdf_list: List[dict], debug_info=None
 ):
-    """Merge table items with OCR text using IOU overlaping location
+    """Merge table items with OCR text using IOU overlapping location
     Args:
         table_list: List of table items
             "type": ("table", "cell", "text"), "text", "box", "location"}
@@ -123,7 +122,7 @@ def merge_table_cell_and_ocr(
         pdf_list: List of PDF items {"text", "box", "location"}
 
     Returns:
-        all_table_cells: List of tables, each of table is reprented
+        all_table_cells: List of tables, each of table is represented
             by list of cells with combined text from OCR
         not_matched_items: List of PDF text which is not overlapped by table region
     """

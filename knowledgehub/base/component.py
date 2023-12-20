@@ -6,16 +6,16 @@ from kotaemon.base.schema import Document
 
 
 class BaseComponent(Function):
-    """A component is a class that can be used to compose a pipeline
+    """A component is a class that can be used to compose a pipeline.
 
-    Benefits of component:
+    !!! tip "Benefits of component"
         - Auto caching, logging
         - Allow deployment
 
-    For each component, the spirit is:
+    !!! tip "For each component, the spirit is"
         - Tolerate multiple input types, e.g. str, Document, List[str], List[Document]
         - Enforce single output type. Hence, the output type of a component should be
-        as generic as possible.
+    as generic as possible.
     """
 
     inflow = None

@@ -1,0 +1,105 @@
+repo_name: Cinnamon/kotaemon
+repo_url: https://github.com/Cinnamon/kotaemon
+site_name: kotaemon Docs
+edit_uri: edit/main/docs/
+
+nav:
+  - Getting Started:
+      - Quick Start: index.md
+      - Overview: overview.md
+      - Contributing: contributing.md
+  - Tutorial:
+      - Data & Data Structure Components: data-components.md
+      - Creating a Component: create-a-component.md
+      - Utilities: ultilities.md
+  # generated using gen-files + literate-nav
+  - API Reference: reference/
+  - Use Cases: examples/
+  - Misc:
+      - Upload python package to private index: upload-package.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight:
+      use_pygments: true
+      anchor_linenums: true
+      line_spans: __span
+      linenums: true
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.details
+  - pymdownx.extra
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - toc:
+      permalink: true
+      title: Page contents
+
+plugins:
+  - search
+  - gen-files:
+      scripts:
+        - docs/scripts/generate_reference_docs.py
+        - docs/scripts/generate_examples_docs.py
+  - literate-nav:
+      nav_file: NAV.md
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_options:
+              ignore_init_summary: false
+            filters:
+              - "!^_"
+            members_order: source
+            separate_signature: true
+          paths: [kotaemon]
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+      fallback_to_build_date: true
+  - section-index
+
+theme:
+  features:
+    - content.action.edit
+    - content.tabs.link
+    - content.code.annotate
+    - content.code.annotations
+    - content.code.copy
+    - navigation.tabs
+    - navigation.top
+    - navigation.instant
+    - navigation.indexes
+    - toc.follow
+    - search.share
+    - search.highlight
+    - search.suggest
+  name: material
+  custom_dir: docs/theme
+  palette:
+    scheme: dracula
+    primary: deep purple
+    accent: deep purple
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+
+extra_css:
+  - extra/css/code_select.css
+  - assets/pymdownx-extras/extra-fb5a2a1c86.css
+
+extra_javascript:
+  - assets/pymdownx-extras/extra-loader-MCFnu0Wd.js
+
+validation:
+  absolute_links: warn
+  omitted_files: warn
+  unrecognized_links: warn

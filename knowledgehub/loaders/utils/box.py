@@ -93,7 +93,7 @@ def get_rect_iou(gt_box: List[tuple], pd_box: List[tuple], iou_type=0) -> int:
 
     # compute the intersection over union by taking the intersection
     # area and dividing it by the sum of prediction + ground-truth
-    # areas - the interesection area
+    # areas - the intersection area
     if iou_type == 0:
         iou = interArea / float(gt_area + pd_area - interArea)
     elif iou_type == 1:

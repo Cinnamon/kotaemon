@@ -72,7 +72,7 @@ class PromptTemplate:
                 UserWarning,
             )
 
-    def populate(self, **kwargs):
+    def populate(self, **kwargs) -> str:
         """
         Strictly populate the template with the given keyword arguments.
 
@@ -81,7 +81,7 @@ class PromptTemplate:
                       Each keyword corresponds to a placeholder in the template.
 
         Returns:
-            str: The populated template.
+            The populated template.
 
         Raises:
             ValueError: If an unknown placeholder is provided.

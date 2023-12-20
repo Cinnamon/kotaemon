@@ -34,7 +34,7 @@ class TestChromaVectorStore:
         ]
         assert db._collection.count() == 0, "Expected empty collection"
         output = db.add(documents)
-        assert len(output) == 2, "Expected outputing 2 ids"
+        assert len(output) == 2, "Expected outputting 2 ids"
         assert db._collection.count() == 2, "Expected 2 added entries"
 
     def test_delete(self, tmp_path):

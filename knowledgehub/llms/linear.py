@@ -21,6 +21,7 @@ class SimpleLinearPipeline(BaseComponent):
             post-processor component or function.
 
     Example Usage:
+        ```python
         from kotaemon.llms import AzureChatOpenAI, BasePromptComponent
 
         def identity(x):
@@ -41,6 +42,7 @@ class SimpleLinearPipeline(BaseComponent):
             post_processor=identity,
         )
         print(pipeline(word="lone"))
+        ```
     """
 
     prompt: BasePromptComponent
@@ -85,7 +87,8 @@ class GatedLinearPipeline(SimpleLinearPipeline):
         condition (Callable[[IO_Type], Any]): A callable function that represents the
             condition.
 
-    Example Usage:
+    Usage:
+        ```{.py3 title="Example Usage"}
         from kotaemon.llms import AzureChatOpenAI, BasePromptComponent
         from kotaemon.parsers import RegexExtractor
 
@@ -109,6 +112,7 @@ class GatedLinearPipeline(SimpleLinearPipeline):
         )
         print(pipeline(condition_text="some pattern", word="lone"))
         print(pipeline(condition_text="other pattern", word="lone"))
+        ```
     """
 
     condition: Callable[[IO_Type], Any]
