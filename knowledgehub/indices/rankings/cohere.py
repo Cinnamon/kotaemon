@@ -23,17 +23,18 @@ class CohereReranking(BaseReranking):
             )
 
         cohere_client = cohere.Client(self.cohere_api_key)
+        compressed_docs: list[Document] = []
 
-        # output documents
-        compressed_docs = []
-        if len(documents) > 0:  # to avoid empty api call
-            _docs = [d.content for d in documents]
-            results = cohere_client.rerank(
-                model=self.model_name, query=query, documents=_docs, top_n=self.top_k
-            )
-            for r in results:
-                doc = documents[r.index]
-                doc.metadata["relevance_score"] = r.relevance_score
-                compressed_docs.append(doc)
+        if not documents:  # to avoid empty api call
+            return compressed_docs
+
+        _docs = [d.content for d in documents]
+        results = cohere_client.rerank(
+            model=self.model_name, query=query, documents=_docs, top_n=self.top_k
+        )
+        for r in results:
+            doc = documents[r.index]
+            doc.metadata["relevance_score"] = r.relevance_score
+            compressed_docs.append(doc)
 
         return compressed_docs

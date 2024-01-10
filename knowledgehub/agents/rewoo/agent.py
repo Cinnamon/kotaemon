@@ -269,4 +269,5 @@ class RewooAgent(BaseAgent):
             total_tokens=total_token,
             total_cost=total_cost,
             citation=citation,
+            metadata={"citation": citation},
         )

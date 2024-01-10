@@ -76,7 +76,14 @@ class LlamaIndexVectorStore(BaseVectorStore):
                 "Require `_li_class` to set a VectorStore class from LlamarIndex"
             )
 
+        from dataclasses import fields
+
         self._client = self._li_class(*args, **kwargs)
+
+        self._vsq_kwargs = {_.name for _ in fields(VectorStoreQuery)}
+        for key in ["query_embedding", "similarity_top_k", "node_ids"]:
+            if key in self._vsq_kwargs:
+                self._vsq_kwargs.remove(key)
 
     def __setattr__(self, name: str, value: Any) -> None:
         if name.startswith("_"):
@@ -122,13 +129,35 @@ class LlamaIndexVectorStore(BaseVectorStore):
         ids: Optional[list[str]] = None,
         **kwargs,
     ) -> tuple[list[list[float]], list[float], list[str]]:
+        """Return the top k most similar vector embeddings
+
+        Args:
+            embedding: List of embeddings
+            top_k: Number of most similar embeddings to return
+            ids: List of ids of the embeddings to be queried
+            kwargs: extra query parameters. Depending on the name, these parameters
+                will be used when constructing the VectorStoreQuery object or when
+                performing querying of the underlying vector store.
+
+        Returns:
+            the matched embeddings, the similarity scores, and the ids
+        """
+        vsq_kwargs = {}
+        vs_kwargs = {}
+        for kwkey, kwvalue in kwargs.items():
+            if kwkey in self._vsq_kwargs:
+                vsq_kwargs[kwkey] = kwvalue
+            else:
+                vs_kwargs[kwkey] = kwvalue
+
         output = self._client.query(
             query=VectorStoreQuery(
                 query_embedding=embedding,
                 similarity_top_k=top_k,
                 node_ids=ids,
-                **kwargs,
+                **vsq_kwargs,
             ),
+            **vs_kwargs,
         )
 
         embeddings = []

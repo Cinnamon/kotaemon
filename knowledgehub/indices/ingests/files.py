@@ -11,6 +11,7 @@ from kotaemon.loaders import (
     MathpixPDFReader,
     OCRReader,
     PandasExcelReader,
+    UnstructuredReader,
 )
 
 
@@ -19,8 +20,16 @@ class DocumentIngestor(BaseComponent):
 
     Document types:
         - pdf
-        - xlsx
-        - docx
+        - xlsx, xls
+        - docx, doc
+
+    Args:
+        pdf_mode: mode for pdf extraction, one of "normal", "mathpix", "ocr"
+            - normal: parse pdf text
+            - mathpix: parse pdf text using mathpix
+            - ocr: parse pdf image using flax
+        doc_parsers: list of document parsers to parse the document
+        text_splitter: splitter to split the document into text nodes
     """
 
     pdf_mode: str = "normal"  # "normal", "mathpix", "ocr"
@@ -34,6 +43,9 @@ class DocumentIngestor(BaseComponent):
         """Get appropriate readers for the input files based on file extension"""
         file_extractor: dict[str, AutoReader | BaseReader] = {
             ".xlsx": PandasExcelReader(),
+            ".docx": UnstructuredReader(),
+            ".xls": UnstructuredReader(),
+            ".doc": UnstructuredReader(),
         }
 
         if self.pdf_mode == "normal":

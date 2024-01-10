@@ -15,14 +15,22 @@ class LCChatMixin:
             "Please return the relevant Langchain class in in _get_lc_class"
         )
 
-    def __init__(self, **params):
+    def __init__(self, stream: bool = False, **params):
         self._lc_class = self._get_lc_class()
         self._obj = self._lc_class(**params)
         self._kwargs: dict = params
+        self._stream = stream
 
         super().__init__()
 
     def run(
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+    ) -> LLMInterface:
+        if self._stream:
+            return self.stream(messages, **kwargs)  # type: ignore
+        return self.invoke(messages, **kwargs)
+
+    def invoke(
         self, messages: str | BaseMessage | list[BaseMessage], **kwargs
     ) -> LLMInterface:
         """Generate response from messages
@@ -67,6 +75,10 @@ class LCChatMixin:
             messages=all_messages,
             logits=[],
         )
+
+    def stream(self, messages: str | BaseMessage | list[BaseMessage], **kwargs):
+        for response in self._obj.stream(input=messages, **kwargs):
+            yield LLMInterface(content=response.content)
 
     def to_langchain_format(self):
         return self._obj
@@ -150,6 +162,9 @@ class AzureChatOpenAI(LCChatMixin, ChatLLM):
         )
 
     def _get_lc_class(self):
-        import langchain.chat_models
+        try:
+            from langchain_community.chat_models import AzureChatOpenAI
+        except ImportError:
+            from langchain.chat_models import AzureChatOpenAI
 
-        return langchain.chat_models.AzureChatOpenAI
+        return AzureChatOpenAI

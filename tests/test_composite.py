@@ -30,6 +30,7 @@ _openai_chat_completion_response = ChatCompletion.parse_obj(
                     "finish_reason": "length",
                     "logprobs": None,
                 },
+                "logprobs": None,
             }
         ],
         "usage": {"completion_tokens": 9, "prompt_tokens": 10, "total_tokens": 19},

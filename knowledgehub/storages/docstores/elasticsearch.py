@@ -16,6 +16,7 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
         elasticsearch_url: str = "http://localhost:9200",
         k1: float = 2.0,
         b: float = 0.75,
+        **kwargs,
     ):
         try:
             from elasticsearch import Elasticsearch
@@ -31,7 +32,7 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
         self.b = b
 
         # Create an Elasticsearch client instance
-        self.client = Elasticsearch(elasticsearch_url)
+        self.client = Elasticsearch(elasticsearch_url, **kwargs)
         self.es_bulk = bulk
         # Define the index settings and mappings
         settings = {
@@ -63,19 +64,16 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
         self,
         docs: Union[Document, List[Document]],
         ids: Optional[Union[List[str], str]] = None,
-        **kwargs
+        refresh_indices: bool = True,
+        **kwargs,
     ):
         """Add document into document store
 
         Args:
             docs: list of documents to add
-            ids: specify the ids of documents to add or
-                use existing doc.doc_id
-            refresh_indices: request Elasticsearch to update
-                its index (default to True)
+            ids: specify the ids of documents to add or use existing doc.doc_id
+            refresh_indices: request Elasticsearch to update its index (default to True)
         """
-        refresh_indices = kwargs.pop("refresh_indices", True)
-
         if ids and not isinstance(ids, list):
             ids = [ids]
         if not isinstance(docs, list):
@@ -120,7 +118,9 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
             )
         return docs
 
-    def query(self, query: str, top_k: int = 10) -> List[Document]:
+    def query(
+        self, query: str, top_k: int = 10, doc_ids: Optional[list] = None
+    ) -> List[Document]:
         """Search Elasticsearch docstore using search query (BM25)
 
         Args:
@@ -131,7 +131,9 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
         Returns:
             List[Document]: List of result documents
         """
-        query_dict = {"query": {"match": {"content": query}}, "size": top_k}
+        query_dict: dict = {"query": {"match": {"content": query}}, "size": top_k}
+        if doc_ids:
+            query_dict["query"]["match"]["_id"] = {"values": doc_ids}
         return self.query_raw(query_dict)
 
     def get(self, ids: Union[List[str], str]) -> List[Document]:

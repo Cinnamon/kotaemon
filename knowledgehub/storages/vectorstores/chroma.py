@@ -64,7 +64,7 @@ class ChromaVectorStore(LlamaIndexVectorStore):
             ids: List of ids of the embeddings to be deleted
             kwargs: meant for vectorstore-specific parameters
         """
-        self._client._collection.delete(ids=ids)
+        self._client.client.delete(ids=ids)
 
     def delete_collection(self, collection_name: Optional[str] = None):
         """Delete entire collection under specified name from vector stores

@@ -25,6 +25,7 @@ _openai_chat_completion_responses = [
                         "function_call": None,
                         "tool_calls": None,
                     },
+                    "logprobs": None,
                 }
             ],
             "usage": {"completion_tokens": 9, "prompt_tokens": 10, "total_tokens": 19},

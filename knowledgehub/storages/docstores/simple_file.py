@@ -15,6 +15,18 @@ class SimpleFileDocumentStore(InMemoryDocumentStore):
         if path is not None and Path(path).is_file():
             self.load(path)
 
+    def get(self, ids: Union[List[str], str]) -> List[Document]:
+        """Get document by id"""
+        if not isinstance(ids, list):
+            ids = [ids]
+
+        for doc_id in ids:
+            if doc_id not in self._store:
+                self.load(self._path)
+                break
+
+        return [self._store[doc_id] for doc_id in ids]
+
     def add(
         self,
         docs: Union[Document, List[Document]],

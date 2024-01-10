@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from typing import Iterator
 
 from theflow import Function, Node, Param, lazy
 
@@ -32,7 +33,9 @@ class BaseComponent(Function):
         return self.__call__(self.inflow.flow())
 
     @abstractmethod
-    def run(self, *args, **kwargs) -> Document | list[Document] | None:
+    def run(
+        self, *args, **kwargs
+    ) -> Document | list[Document] | Iterator[Document] | None:
         """Run the component."""
         ...
 

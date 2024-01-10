@@ -74,6 +74,11 @@ class InMemoryDocumentStore(BaseDocumentStore):
         """Load document store from path"""
         with open(path) as f:
             store = json.load(f)
+        # TODO: save and load aren't lossless. A Document-subclass will lose
+        # information. Need to edit the `to_dict` and `from_dict` methods in
+        # the Document class.
+        # For better query support, utilize SQLite as the default document store.
+        # Also, for portability, use SQLAlchemy for document store.
         self._store = {key: Document.from_dict(value) for key, value in store.items()}
 
     def __persist_flow__(self):

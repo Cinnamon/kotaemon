@@ -45,16 +45,12 @@ repos:
       - id: prettier
         types_or: [markdown, yaml]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.5.1"
+    rev: "v1.7.1"
     hooks:
       - id: mypy
-        additional_dependencies: [types-PyYAML==6.0.12.11, "types-requests"]
-        args:
-          [
-            "--check-untyped-defs",
-            "--ignore-missing-imports",
-            "--new-type-inference",
-          ]
+        additional_dependencies:
+          [types-PyYAML==6.0.12.11, "types-requests", "sqlmodel"]
+        args: ["--check-untyped-defs", "--ignore-missing-imports"]
         exclude: "^templates/"
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.4

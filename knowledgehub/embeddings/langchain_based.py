@@ -121,9 +121,12 @@ class OpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
         )
 
     def _get_lc_class(self):
-        import langchain.embeddings
+        try:
+            from langchain_community.embeddings import OpenAIEmbeddings
+        except ImportError:
+            from langchain.embeddings import OpenAIEmbeddings
 
-        return langchain.emebddings.OpenAIEmbeddings
+        return OpenAIEmbeddings
 
 
 class AzureOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
@@ -148,9 +151,12 @@ class AzureOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
         )
 
     def _get_lc_class(self):
-        import langchain.embeddings
+        try:
+            from langchain_community.embeddings import AzureOpenAIEmbeddings
+        except ImportError:
+            from langchain.embeddings import AzureOpenAIEmbeddings
 
-        return langchain.embeddings.AzureOpenAIEmbeddings
+        return AzureOpenAIEmbeddings
 
 
 class CohereEmbdeddings(LCEmbeddingMixin, BaseEmbeddings):
@@ -173,9 +179,12 @@ class CohereEmbdeddings(LCEmbeddingMixin, BaseEmbeddings):
         )
 
     def _get_lc_class(self):
-        import langchain.embeddings
+        try:
+            from langchain_community.embeddings import CohereEmbeddings
+        except ImportError:
+            from langchain.embeddings import CohereEmbeddings
 
-        return langchain.embeddings.CohereEmbeddings
+        return CohereEmbeddings
 
 
 class HuggingFaceEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
@@ -192,6 +201,9 @@ class HuggingFaceEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
         )
 
     def _get_lc_class(self):
-        import langchain.embeddings
+        try:
+            from langchain_community.embeddings import HuggingFaceBgeEmbeddings
+        except ImportError:
+            from langchain.embeddings import HuggingFaceBgeEmbeddings
 
-        return langchain.embeddings.HuggingFaceBgeEmbeddings
+        return HuggingFaceBgeEmbeddings

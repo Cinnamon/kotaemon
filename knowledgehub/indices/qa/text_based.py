@@ -1,6 +1,6 @@
 import os
 
-from kotaemon.base import BaseComponent, Document, RetrievedDocument
+from kotaemon.base import BaseComponent, Document, Node, RetrievedDocument
 from kotaemon.llms import AzureChatOpenAI, BaseLLM, PromptTemplate
 
 from .citation import CitationPipeline
@@ -20,6 +20,9 @@ class CitationQAPipeline(BaseComponent):
         deployment_name="dummy-q2-16k",
         temperature=0,
         request_timeout=60,
+    )
+    citation_pipeline: CitationPipeline = Node(
+        default_callback=lambda self: CitationPipeline(llm=self.llm)
     )
 
     def _format_doc_text(self, text: str) -> str:
@@ -52,9 +55,7 @@ class CitationQAPipeline(BaseComponent):
         self.log_progress(".prompt", prompt=prompt)
         answer_text = self.llm(prompt).text
         if use_citation:
-            # run citation pipeline
-            citation_pipeline = CitationPipeline(llm=self.llm)
-            citation = citation_pipeline(context=context, question=question)
+            citation = self.citation_pipeline(context=context, question=question)
         else:
             citation = None
 

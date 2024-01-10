@@ -1,12 +1,10 @@
-from typing import AnyStr, Optional, Type, Union
+from typing import AnyStr, Optional, Type
 
 from pydantic import BaseModel, Field
 
-from kotaemon.llms import LLM, AzureChatOpenAI, ChatLLM
+from kotaemon.llms import BaseLLM
 
 from .base import BaseTool, ToolException
-
-BaseLLM = Union[ChatLLM, LLM]
 
 
 class LLMArgs(BaseModel):
@@ -21,7 +19,7 @@ class LLMTool(BaseTool):
         "are confident in solving the problem "
         "yourself. Input can be any instruction."
     )
-    llm: BaseLLM = AzureChatOpenAI.withx()
+    llm: BaseLLM
     args_schema: Optional[Type[BaseModel]] = LLMArgs
 
     def _run_tool(self, query: AnyStr) -> str:

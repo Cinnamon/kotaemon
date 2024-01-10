@@ -41,7 +41,7 @@ class BaseTool(BaseComponent):
         args_schema = self.args_schema
         if isinstance(tool_input, str):
             if args_schema is not None:
-                key_ = next(iter(args_schema.__fields__.keys()))
+                key_ = next(iter(args_schema.model_fields.keys()))
                 args_schema.validate({key_: tool_input})
             return tool_input
         else:
@@ -121,9 +121,11 @@ class BaseTool(BaseComponent):
 
 
 class ComponentTool(BaseTool):
-    """
-    A Tool based on another pipeline / BaseComponent to be used
-    as its main entry point
+    """Wrapper around other BaseComponent to use it as a tool
+
+    Args:
+        component: BaseComponent-based component to wrap
+        postprocessor: Optional postprocessor for the component output
     """
 
     component: BaseComponent

@@ -23,11 +23,13 @@ class Document(BaseDocument):
         store the raw content of the document. If specified, the class will use
         `content` to initialize the base llama_index class.
 
-    Args:
-        content: the raw content of the document.
+    Attributes:
+        content: raw content of the document, can be anything
+        source: id of the source of the Document. Optional.
     """
 
     content: Any
+    source: Optional[str] = None
 
     def __init__(self, content: Optional[Any] = None, *args, **kwargs):
         if content is None:

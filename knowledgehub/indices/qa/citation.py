@@ -64,11 +64,7 @@ class CitationPipeline(BaseComponent):
 
     llm: BaseLLM
 
-    def run(
-        self,
-        context: str,
-        question: str,
-    ) -> QuestionAnswer:
+    def run(self, context: str, question: str):
         schema = QuestionAnswer.schema()
         function = {
             "name": schema["title"],

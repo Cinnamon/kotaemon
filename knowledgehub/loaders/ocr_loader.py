@@ -26,11 +26,7 @@ class OCRReader(BaseReader):
         self.ocr_endpoint = endpoint
         self.use_ocr = use_ocr
 
-    def load_data(
-        self,
-        file_path: Path,
-        **kwargs,
-    ) -> List[Document]:
+    def load_data(self, file_path: Path, **kwargs) -> List[Document]:
         """Load data using OCR reader
 
         Args:
@@ -41,22 +37,23 @@ class OCRReader(BaseReader):
         Returns:
             List[Document]: list of documents extracted from the PDF file
         """
-        # create input params for the requests
-        content = open(file_path, "rb")
-        files = {"input": content}
-        data = {"job_id": uuid4(), "table_only": not self.use_ocr}
+        file_path = Path(file_path).resolve()
+
+        with file_path.open("rb") as content:
+            files = {"input": content}
+            data = {"job_id": uuid4(), "table_only": not self.use_ocr}
+
+            # call the API from FullOCR endpoint
+            if "response_content" in kwargs:
+                # overriding response content if specified
+                ocr_results = kwargs["response_content"]
+            else:
+                # call original API
+                resp = requests.post(url=self.ocr_endpoint, files=files, data=data)
+                ocr_results = resp.json()["result"]
 
         debug_path = kwargs.pop("debug_path", None)
         artifact_path = kwargs.pop("artifact_path", None)
-
-        # call the API from FullOCR endpoint
-        if "response_content" in kwargs:
-            # overriding response content if specified
-            ocr_results = kwargs["response_content"]
-        else:
-            # call original API
-            resp = requests.post(url=self.ocr_endpoint, files=files, data=data)
-            ocr_results = resp.json()["result"]
 
         # read PDF through normal reader (unstructured)
         pdf_page_items = read_pdf_unstructured(file_path)
@@ -77,6 +74,9 @@ class OCRReader(BaseReader):
                     "type": "table",
                     "page_label": page_id + 1,
                     "source": file_path.name,
+                    "file_path": str(file_path),
+                    "file_name": file_path.name,
+                    "filename": str(file_path),
                 },
                 metadata_template="",
                 metadata_seperator="",
@@ -91,6 +91,9 @@ class OCRReader(BaseReader):
                     metadata={
                         "page_label": page_id + 1,
                         "source": file_path.name,
+                        "file_path": str(file_path),
+                        "file_name": file_path.name,
+                        "filename": str(file_path),
                     },
                 )
                 for page_id, non_table_text in texts

@@ -62,7 +62,7 @@ class VectorIndexing(BaseIndexing):
         embeddings = self.embedding(input_)
         self.vector_store.add(
             embeddings=embeddings,
-            ids=[t.id_ for t in input_],
+            ids=[t.doc_id for t in input_],
         )
         if self.doc_store:
             self.doc_store.add(input_)
@@ -99,7 +99,7 @@ class VectorRetrieval(BaseRetrieval):
             )
 
         emb: list[float] = self.embedding(text)[0].embedding
-        _, scores, ids = self.vector_store.query(embedding=emb, top_k=top_k)
+        _, scores, ids = self.vector_store.query(embedding=emb, top_k=top_k, **kwargs)
         docs = self.doc_store.get(ids)
         result = [
             RetrievedDocument(**doc.to_dict(), score=score)

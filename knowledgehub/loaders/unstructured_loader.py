@@ -74,9 +74,10 @@ class UnstructuredReader(BaseReader):
         """ Process elements """
         docs = []
         file_name = Path(file).name
+        file_path = str(Path(file).resolve())
         if split_documents:
             for node in elements:
-                metadata = {"file_name": file_name}
+                metadata = {"file_name": file_name, "file_path": file_path}
                 if hasattr(node, "metadata"):
                     """Load metadata fields"""
                     for field, val in vars(node.metadata).items():
@@ -99,7 +100,7 @@ class UnstructuredReader(BaseReader):
 
         else:
             text_chunks = [" ".join(str(el).split()) for el in elements]
-            metadata = {"file_name": file_name}
+            metadata = {"file_name": file_name, "file_path": file_path}
 
             if additional_metadata is not None:
                 metadata.update(additional_metadata)
