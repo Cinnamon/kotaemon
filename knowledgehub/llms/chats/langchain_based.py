@@ -163,7 +163,7 @@ class AzureChatOpenAI(LCChatMixin, ChatLLM):
 
     def _get_lc_class(self):
         try:
-            from langchain_community.chat_models import AzureChatOpenAI
+            from langchain_openai import AzureChatOpenAI
         except ImportError:
             from langchain.chat_models import AzureChatOpenAI
 

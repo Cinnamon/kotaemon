@@ -50,6 +50,7 @@ dev = [
     "sphinx",
     "coverage",
     "openai",
+    "langchain-openai",
     "chromadb",
     "wikipedia",
     "duckduckgo-search",

@@ -187,7 +187,7 @@ class AzureOpenAI(LCCompletionMixin, LLM):
 
     def _get_lc_class(self):
         try:
-            from langchain_community.llms import AzureOpenAI
+            from langchain_openai import AzureOpenAI
         except ImportError:
             from langchain.llms import AzureOpenAI
 

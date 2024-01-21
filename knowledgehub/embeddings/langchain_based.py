@@ -122,7 +122,7 @@ class OpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
 
     def _get_lc_class(self):
         try:
-            from langchain_community.embeddings import OpenAIEmbeddings
+            from langchain_openai import OpenAIEmbeddings
         except ImportError:
             from langchain.embeddings import OpenAIEmbeddings
 
@@ -152,7 +152,7 @@ class AzureOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
 
     def _get_lc_class(self):
         try:
-            from langchain_community.embeddings import AzureOpenAIEmbeddings
+            from langchain_openai import AzureOpenAIEmbeddings
         except ImportError:
             from langchain.embeddings import AzureOpenAIEmbeddings
 
