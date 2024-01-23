@@ -60,7 +60,7 @@ jobs:
         # built-in tomllib
         run: |
           pip install tomli
-          package_version=$(python -c "import tomli; print(tomli.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          package_version=$(python -c "import tomli; print(tomli.load(open('libs/kotaemon/pyproject.toml', 'rb'))['project']['version'])")
           cache_key="${{ runner.os }}-py${{ matrix.python-version }}-v${package_version}"
           echo "key=$cache_key" | tee -a ${{ matrix.GITHUB_OUTPUT }}
 
@@ -99,7 +99,8 @@ jobs:
           path: ${{ env.pythonLocation }}
           key: ${{ steps.restore-dependencies.outputs.cache-primary-key }}
 
-      - name: Test with pytest
+      - name: Test kotaemon with pytest
         run: |
           pip show pytest
+          cd libs/kotaemon
           pytest

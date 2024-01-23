@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = false
+packages.find.include = ["ktem*"]
+packages.find.exclude = ["tests*", "env*"]
+
+[project]
+name = "ktem"
+version = "0.0.1"
+requires-python = ">= 3.10"
+description = "RAG-based Question and Answering Application"
+dependencies = [
+    "chromadb",
+    "click",
+    "cohere",
+    "platformdirs",
+    "pluggy",
+    "python-decouple",
+    "python-dotenv",
+    "sqlalchemy",
+    "sqlmodel",
+    "tiktoken",
+    "unstructured[pdf]",
+]
+readme = "README.md"
+license = { text = "MIT License" }
+authors = [
+    { name = "john", email = "john@cinnamon.is" },
+    { name = "ian", email = "ian@cinnamon.is" },
+    { name = "tadashi", email = "tadashi@cinnamon.is" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]

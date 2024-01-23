@@ -448,6 +448,7 @@ $RECYCLE.BIN/
 
 # PDF files
 *.pdf
+!libs/kotaemon/tests/resources/*.pdf
 
 .theflow/
 
