@@ -34,6 +34,8 @@ class BaseApp:
     """
 
     def __init__(self):
+        self.dev_mode = getattr(settings, "KH_MODE", "") == "dev"
+
         dir_assets = Path(__file__).parent / "assets"
         with (dir_assets / "css" / "main.css").open() as fi:
             self._css = fi.read()
@@ -56,7 +58,7 @@ class BaseApp:
         self.default_settings.index.finalize()
 
         self.settings_state = gr.State(self.default_settings.flatten())
-        self.user_id = gr.State(None)
+        self.user_id = gr.State(1 if self.dev_mode else None)
 
     def register_indices(self):
         """Register the index components from app settings"""
@@ -155,6 +157,10 @@ class BaseApp:
                 if isinstance(value, BasePage):
                     value.register_events()
 
+            for value in self.__dict__.values():
+                if isinstance(value, BasePage):
+                    value.on_app_created()
+
             demo.load(lambda: None, None, None, js=f"() => {{{self._js}}}")
 
         return demo
@@ -176,6 +182,9 @@ class BasePage:
 
     def on_register_events(self):
         """Register all events to the app"""
+
+    def _on_app_created(self):
+        """Called when the app is created"""
 
     def declare_public_events(self):
         """Declare an event for the app"""
@@ -199,3 +208,10 @@ class BasePage:
         for value in self.__dict__.values():
             if isinstance(value, BasePage):
                 value.register_events()
+
+    def on_app_created(self):
+        """Execute on app created callbacks"""
+        self._on_app_created()
+        for value in self.__dict__.values():
+            if isinstance(value, BasePage):
+                value.on_app_created()

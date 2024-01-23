@@ -68,8 +68,9 @@ class SettingsPage(BasePage):
 
     def on_building_ui(self):
         self.setting_save_btn = gr.Button("Save settings")
-        with gr.Tab("User settings"):
-            self.user_tab()
+        if not self._app.dev_mode:
+            with gr.Tab("User settings"):
+                self.user_tab()
         with gr.Tab("General application settings"):
             self.app_tab()
         with gr.Tab("Index settings"):
@@ -86,93 +87,96 @@ class SettingsPage(BasePage):
             inputs=[self._user_id] + self.components(),
             outputs=self._settings_state,
         )
-        self.password_change_btn.click(
-            self.change_password,
-            inputs=[
-                self._user_id,
-                self.password_change,
-                self.password_change_confirm,
-            ],
-            outputs=None,
-            show_progress="hidden",
-        )
         self._components["reasoning.use"].change(
             self.change_reasoning_mode,
             inputs=[self._components["reasoning.use"]],
             outputs=list(self._reasoning_mode.values()),
             show_progress="hidden",
         )
+        if not self._app.dev_mode:
+            self.password_change_btn.click(
+                self.change_password,
+                inputs=[
+                    self._user_id,
+                    self.password_change,
+                    self.password_change_confirm,
+                ],
+                outputs=None,
+                show_progress="hidden",
+            )
 
-        onSignInClick = self.signin.click(
-            self.sign_in,
-            inputs=[self.username, self.password],
-            outputs=[self._user_id, self.username, self.password]
-            + self.signed_in_state()
-            + [self.user_out_state],
-            show_progress="hidden",
-        ).then(
-            self.load_setting,
-            inputs=self._user_id,
-            outputs=[self._settings_state] + self.components(),
-            show_progress="hidden",
-        )
-        for event in self._app.get_event("onSignIn"):
-            onSignInClick = onSignInClick.then(**event)
+            onSignInClick = self.signin.click(
+                self.sign_in,
+                inputs=[self.username, self.password],
+                outputs=[self._user_id, self.username, self.password]
+                + self.signed_in_state()
+                + [self.user_out_state],
+                show_progress="hidden",
+            ).then(
+                self.load_setting,
+                inputs=self._user_id,
+                outputs=[self._settings_state] + self.components(),
+                show_progress="hidden",
+            )
+            for event in self._app.get_event("onSignIn"):
+                onSignInClick = onSignInClick.then(**event)
 
-        onSignInSubmit = self.password.submit(
-            self.sign_in,
-            inputs=[self.username, self.password],
-            outputs=[self._user_id, self.username, self.password]
-            + self.signed_in_state()
-            + [self.user_out_state],
-            show_progress="hidden",
-        ).then(
-            self.load_setting,
-            inputs=self._user_id,
-            outputs=[self._settings_state] + self.components(),
-            show_progress="hidden",
-        )
-        for event in self._app.get_event("onSignIn"):
-            onSignInSubmit = onSignInSubmit.then(**event)
+            onSignInSubmit = self.password.submit(
+                self.sign_in,
+                inputs=[self.username, self.password],
+                outputs=[self._user_id, self.username, self.password]
+                + self.signed_in_state()
+                + [self.user_out_state],
+                show_progress="hidden",
+            ).then(
+                self.load_setting,
+                inputs=self._user_id,
+                outputs=[self._settings_state] + self.components(),
+                show_progress="hidden",
+            )
+            for event in self._app.get_event("onSignIn"):
+                onSignInSubmit = onSignInSubmit.then(**event)
 
-        onCreateUserClick = self.create_btn.click(
-            self.create_user,
-            inputs=[
-                self.username_new,
-                self.password_new,
-                self.password_new_confirm,
-            ],
-            outputs=[
-                self._user_id,
-                self.username_new,
-                self.password_new,
-                self.password_new_confirm,
-            ]
-            + self.signed_in_state()
-            + [self.user_out_state],
-            show_progress="hidden",
-        ).then(
-            self.load_setting,
-            inputs=self._user_id,
-            outputs=[self._settings_state] + self.components(),
-            show_progress="hidden",
-        )
-        for event in self._app.get_event("onCreateUser"):
-            onCreateUserClick = onCreateUserClick.then(**event)
+            onCreateUserClick = self.create_btn.click(
+                self.create_user,
+                inputs=[
+                    self.username_new,
+                    self.password_new,
+                    self.password_new_confirm,
+                ],
+                outputs=[
+                    self._user_id,
+                    self.username_new,
+                    self.password_new,
+                    self.password_new_confirm,
+                ]
+                + self.signed_in_state()
+                + [self.user_out_state],
+                show_progress="hidden",
+            ).then(
+                self.load_setting,
+                inputs=self._user_id,
+                outputs=[self._settings_state] + self.components(),
+                show_progress="hidden",
+            )
+            for event in self._app.get_event("onCreateUser"):
+                onCreateUserClick = onCreateUserClick.then(**event)
 
-        onSignOutClick = self.signout.click(
-            self.sign_out,
-            inputs=None,
-            outputs=[self._user_id] + self.signed_in_state() + [self.user_out_state],
-            show_progress="hidden",
-        ).then(
-            self.load_setting,
-            inputs=self._user_id,
-            outputs=[self._settings_state] + self.components(),
-            show_progress="hidden",
-        )
-        for event in self._app.get_event("onSignOut"):
-            onSignOutClick = onSignOutClick.then(**event)
+            onSignOutClick = self.signout.click(
+                self.sign_out,
+                inputs=None,
+                outputs=[self._user_id]
+                + self.signed_in_state()
+                + [self.user_out_state],
+                show_progress="hidden",
+            ).then(
+                self.load_setting,
+                inputs=self._user_id,
+                outputs=[self._settings_state] + self.components(),
+                show_progress="hidden",
+            )
+            for event in self._app.get_event("onSignOut"):
+                onSignOutClick = onSignOutClick.then(**event)
 
     def user_tab(self):
         with gr.Row() as self.user_out_state:

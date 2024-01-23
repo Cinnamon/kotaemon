@@ -191,3 +191,11 @@ class ConversationControl(BasePage):
 
         history = self.load_chat_history(user_id)
         return gr.update(choices=history), conversation_id
+
+    def _on_app_created(self):
+        """Reload the conversation once the app is created"""
+        self._app.app.load(
+            self.reload_conv,
+            inputs=[self._app.user_id],
+            outputs=[self.conversation],
+        )
