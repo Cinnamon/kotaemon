@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import warnings
 from collections import defaultdict
@@ -275,7 +276,7 @@ class AnswerWithContextPipeline(BaseComponent):
     system_prompt: str = ""
     lang: str = "English"  # support English and Japanese
 
-    def run(
+    async def run(  # type: ignore
         self, question: str, evidence: str, evidence_mode: int = 0
     ) -> Document | Iterator[Document]:
         """Answer the question based on the evidence
@@ -318,12 +319,16 @@ class AnswerWithContextPipeline(BaseComponent):
             SystemMessage(content="You are a helpful assistant"),
             HumanMessage(content=prompt),
         ]
-        # output = self.llm(messages).text
-        yield from self.llm(messages)
+        output = ""
+        for text in self.llm(messages):
+            output += text.text
+            self.report_output({"output": text.text})
+            await asyncio.sleep(0)
 
         citation = self.citation_pipeline(context=evidence, question=question)
-        answer = Document(text="", metadata={"citation": citation})
-        yield answer
+        answer = Document(text=output, metadata={"citation": citation})
+
+        return answer
 
 
 class FullQAPipeline(BaseComponent):
@@ -337,13 +342,56 @@ class FullQAPipeline(BaseComponent):
     evidence_pipeline: PrepareEvidencePipeline = PrepareEvidencePipeline.withx()
     answering_pipeline: AnswerWithContextPipeline = AnswerWithContextPipeline.withx()
 
-    def run(self, question: str, **kwargs) -> Iterator[Document]:
+    async def run(self, question: str, **kwargs) -> Document:  # type: ignore
         docs = self.retrieval_pipeline(text=question)
         evidence_mode, evidence = self.evidence_pipeline(docs).content
-        answer = self.answering_pipeline(
+        answer = await self.answering_pipeline(
             question=question, evidence=evidence, evidence_mode=evidence_mode
         )
-        yield from answer  # should be a generator
+
+        # prepare citation
+        from collections import defaultdict
+
+        spans = defaultdict(list)
+        for fact_with_evidence in answer.metadata["citation"].answer:
+            for quote in fact_with_evidence.substring_quote:
+                for doc in docs:
+                    start_idx = doc.text.find(quote)
+                    if start_idx >= 0:
+                        spans[doc.doc_id].append(
+                            {
+                                "start": start_idx,
+                                "end": start_idx + len(quote),
+                            }
+                        )
+                        break
+
+        id2docs = {doc.doc_id: doc for doc in docs}
+        for id, ss in spans.items():
+            if not ss:
+                continue
+            ss = sorted(ss, key=lambda x: x["start"])
+            text = id2docs[id].text[: ss[0]["start"]]
+            for idx, span in enumerate(ss):
+                text += (
+                    "<mark>" + id2docs[id].text[span["start"] : span["end"]] + "</mark>"
+                )
+                if idx < len(ss) - 1:
+                    text += id2docs[id].text[span["end"] : ss[idx + 1]["start"]]
+            text += id2docs[id].text[ss[-1]["end"] :]
+            self.report_output(
+                {
+                    "evidence": (
+                        "<details>"
+                        f"<summary>{id2docs[id].metadata['file_name']}</summary>"
+                        f"{text}"
+                        "</details><br>"
+                    )
+                }
+            )
+
+        self.report_output(None)
+        return answer
 
     @classmethod
     def get_pipeline(cls, settings, **kwargs):

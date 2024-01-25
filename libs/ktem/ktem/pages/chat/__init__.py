@@ -23,6 +23,9 @@ class ChatPage(BasePage):
                 self.report_issue = ReportIssue(self._app)
             with gr.Column(scale=6):
                 self.chat_panel = ChatPanel(self._app)
+            with gr.Column(scale=3):
+                with gr.Accordion(label="Information panel", open=True):
+                    self.info_panel = gr.Markdown(elem_id="chat-info-panel")
 
     def on_register_events(self):
         self.chat_panel.submit_btn.click(
@@ -33,7 +36,11 @@ class ChatPage(BasePage):
                 self.data_source.files,
                 self._app.settings_state,
             ],
-            outputs=[self.chat_panel.text_input, self.chat_panel.chatbot],
+            outputs=[
+                self.chat_panel.text_input,
+                self.chat_panel.chatbot,
+                self.info_panel,
+            ],
         ).then(
             fn=update_data_source,
             inputs=[
@@ -52,7 +59,11 @@ class ChatPage(BasePage):
                 self.data_source.files,
                 self._app.settings_state,
             ],
-            outputs=[self.chat_panel.text_input, self.chat_panel.chatbot],
+            outputs=[
+                self.chat_panel.text_input,
+                self.chat_panel.chatbot,
+                self.info_panel,
+            ],
         ).then(
             fn=update_data_source,
             inputs=[

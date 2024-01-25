@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Iterator
+from typing import Iterator, Optional
 
 from kotaemon.base.schema import Document
 from theflow import Function, Node, Param, lazy
@@ -30,6 +30,17 @@ class BaseComponent(Function):
             )
 
         return self.__call__(self.inflow.flow())
+
+    def set_output_queue(self, queue):
+        self._queue = queue
+        for name in self._ff_nodes:
+            node = getattr(self, name)
+            if isinstance(node, BaseComponent):
+                node.set_output_queue(queue)
+
+    def report_output(self, output: Optional[dict]):
+        if self._queue is not None:
+            self._queue.put_nowait(output)
 
     @abstractmethod
     def run(

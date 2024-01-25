@@ -11,7 +11,7 @@ user_cache_dir.mkdir(parents=True, exist_ok=True)
 
 
 COHERE_API_KEY = config("COHERE_API_KEY", default="")
-# KH_MODE = "dev"
+KH_MODE = "dev"
 KH_DATABASE = f"sqlite:///{user_cache_dir / 'sql.db'}"
 KH_DOCSTORE = {
     "__type__": "kotaemon.storages.SimpleFileDocumentStore",

@@ -1,3 +1,4 @@
+import asyncio
 import os
 import tempfile
 from copy import deepcopy
@@ -116,24 +117,33 @@ def create_pipeline(settings: dict, files: Optional[list] = None):
     return pipeline
 
 
-def chat_fn(chat_input, chat_history, files, settings):
+async def chat_fn(chat_input, chat_history, files, settings):
+    """Chat function"""
+    queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
+
+    # construct the pipeline
     pipeline = create_pipeline(settings, files)
+    pipeline.set_output_queue(queue)
 
-    text = ""
-    refs = []
-    for response in pipeline(chat_input):
-        if response.metadata.get("citation", None):
-            citation = response.metadata["citation"]
-            for idx, fact_with_evidence in enumerate(citation.answer):
-                quotes = fact_with_evidence.substring_quote
-                if quotes:
-                    refs.append(
-                        (None, f"***Reference {idx+1}***: {' ... '.join(quotes)}")
-                    )
-        else:
-            text += response.text
+    asyncio.create_task(pipeline(chat_input))
+    text, refs = "", ""
 
-        yield "", chat_history + [(chat_input, text)] + refs
+    while True:
+        try:
+            response = queue.get_nowait()
+        except Exception:
+            await asyncio.sleep(0)
+            continue
+
+        if response is None:
+            break
+
+        if "output" in response:
+            text += response["output"]
+        if "evidence" in response:
+            refs += response["evidence"]
+
+        yield "", chat_history + [(chat_input, text)], refs
 
 
 def is_liked(convo_id, liked: gr.LikeData):

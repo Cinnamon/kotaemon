@@ -32,6 +32,15 @@ footer {
     height: calc(100vh - 140px) !important;
 }
 
+#chat-info-panel {
+    max-height: calc(100vh - 140px) !important;
+    overflow-y: scroll !important;
+}
+
 .setting-answer-mode-description {
     margin: 5px 5px 2px !important
+}
+
+mark {
+  background-color: #1496bb;
 }
