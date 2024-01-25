@@ -29,9 +29,13 @@ class ChatPage(BasePage):
 
     def on_register_events(self):
         self.chat_panel.submit_btn.click(
+            self.chat_panel.submit_msg,
+            inputs=[self.chat_panel.text_input, self.chat_panel.chatbot],
+            outputs=[self.chat_panel.text_input, self.chat_panel.chatbot],
+            show_progress="hidden",
+        ).then(
             fn=chat_fn,
             inputs=[
-                self.chat_panel.text_input,
                 self.chat_panel.chatbot,
                 self.data_source.files,
                 self._app.settings_state,
@@ -41,6 +45,7 @@ class ChatPage(BasePage):
                 self.chat_panel.chatbot,
                 self.info_panel,
             ],
+            show_progress="minimal",
         ).then(
             fn=update_data_source,
             inputs=[
@@ -52,9 +57,13 @@ class ChatPage(BasePage):
         )
 
         self.chat_panel.text_input.submit(
+            self.chat_panel.submit_msg,
+            inputs=[self.chat_panel.text_input, self.chat_panel.chatbot],
+            outputs=[self.chat_panel.text_input, self.chat_panel.chatbot],
+            show_progress="hidden",
+        ).then(
             fn=chat_fn,
             inputs=[
-                self.chat_panel.text_input,
                 self.chat_panel.chatbot,
                 self.data_source.files,
                 self._app.settings_state,
@@ -64,6 +73,7 @@ class ChatPage(BasePage):
                 self.chat_panel.chatbot,
                 self.info_panel,
             ],
+            show_progress="minimal",
         ).then(
             fn=update_data_source,
             inputs=[

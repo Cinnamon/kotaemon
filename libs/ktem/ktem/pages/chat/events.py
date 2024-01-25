@@ -117,8 +117,11 @@ def create_pipeline(settings: dict, files: Optional[list] = None):
     return pipeline
 
 
-async def chat_fn(chat_input, chat_history, files, settings):
+async def chat_fn(chat_history, files, settings):
     """Chat function"""
+    chat_input = chat_history[-1][0]
+    chat_history = chat_history[:-1]
+
     queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
 
     # construct the pipeline

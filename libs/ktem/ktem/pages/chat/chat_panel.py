@@ -19,3 +19,7 @@ class ChatPanel(BasePage):
                 placeholder="Chat input", scale=15, container=False
             )
             self.submit_btn = gr.Button(value="Send", scale=1, min_width=10)
+
+    def submit_msg(self, chat_input, chat_history):
+        """Submit a message to the chatbot"""
+        return "", chat_history + [(chat_input, None)]

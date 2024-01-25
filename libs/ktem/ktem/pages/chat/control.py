@@ -114,7 +114,6 @@ class ConversationControl(BasePage):
             for result in results:
                 options.append((result.name, result.id))
 
-        # return gr.update(choices=options)
         return options
 
     def reload_conv(self, user_id):

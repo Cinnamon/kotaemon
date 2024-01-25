@@ -41,6 +41,7 @@ class BaseApp:
             self._css = fi.read()
         with (dir_assets / "js" / "main.js").open() as fi:
             self._js = fi.read()
+        self._favicon = str(dir_assets / "img" / "favicon.svg")
 
         self.default_settings = SettingGroup(
             application=BaseSettingGroup(settings=settings.SETTINGS_APP),
@@ -138,7 +139,7 @@ class BaseApp:
         raise NotImplementedError
 
     def make(self):
-        with gr.Blocks(css=self._css) as demo:
+        with gr.Blocks(css=self._css, title="Kotaemon") as demo:
             self.app = demo
             self.settings_state.render()
             self.user_id.render()
