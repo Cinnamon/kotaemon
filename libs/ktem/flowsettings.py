@@ -68,9 +68,7 @@ KH_EMBEDDINGS = {
         "default": True,
     },
 }
-KH_REASONINGS = {
-    "simple": "ktem.reasoning.simple.FullQAPipeline",
-}
+KH_REASONINGS = ["ktem.reasoning.simple.FullQAPipeline"]
 
 
 SETTINGS_APP = {

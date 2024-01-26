@@ -19,6 +19,7 @@
 - Install all
 
   ```shell
+  cd libs/kotaemon
   pip install -e ".[dev]"
   ```
 

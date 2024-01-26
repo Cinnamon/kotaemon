@@ -128,7 +128,7 @@ async def chat_fn(chat_history, files, settings):
     pipeline = create_pipeline(settings, files)
     pipeline.set_output_queue(queue)
 
-    asyncio.create_task(pipeline(chat_input))
+    asyncio.create_task(pipeline(chat_input, chat_history))
     text, refs = "", ""
 
     while True:

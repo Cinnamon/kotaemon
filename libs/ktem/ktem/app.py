@@ -73,11 +73,12 @@ class BaseApp:
         if getattr(settings, "KH_REASONINGS", None) is None:
             return
 
-        for name, value in settings.KH_REASONINGS.items():
+        for value in settings.KH_REASONINGS:
             reasoning_cls = import_dotted_string(value, safe=False)
-            reasonings[name] = reasoning_cls
+            rid = reasoning_cls.get_info()["id"]
+            reasonings[rid] = reasoning_cls
             options = reasoning_cls().get_user_settings()
-            self.default_settings.reasoning.options[name] = BaseSettingGroup(
+            self.default_settings.reasoning.options[rid] = BaseSettingGroup(
                 settings=options
             )
 

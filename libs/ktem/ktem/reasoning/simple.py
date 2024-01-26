@@ -3,7 +3,7 @@ import logging
 import warnings
 from collections import defaultdict
 from functools import partial
-from typing import Iterator, Optional
+from typing import Optional
 
 import tiktoken
 from ktem.components import embeddings, get_docstore, get_vectorstore, llms
@@ -278,7 +278,7 @@ class AnswerWithContextPipeline(BaseComponent):
 
     async def run(  # type: ignore
         self, question: str, evidence: str, evidence_mode: int = 0
-    ) -> Document | Iterator[Document]:
+    ) -> Document:
         """Answer the question based on the evidence
 
         In addition to the question and the evidence, this method also take into
@@ -342,7 +342,9 @@ class FullQAPipeline(BaseComponent):
     evidence_pipeline: PrepareEvidencePipeline = PrepareEvidencePipeline.withx()
     answering_pipeline: AnswerWithContextPipeline = AnswerWithContextPipeline.withx()
 
-    async def run(self, question: str, **kwargs) -> Document:  # type: ignore
+    async def run(  # type: ignore
+        self, question: str, history: list, **kwargs  # type: ignore
+    ) -> Document:  # type: ignore
         docs = self.retrieval_pipeline(text=question)
         evidence_mode, evidence = self.evidence_pipeline(docs).content
         answer = await self.answering_pipeline(
@@ -454,4 +456,12 @@ class FullQAPipeline(BaseComponent):
                 "component": "dropdown",
                 "choices": main_llm_choices,
             },
+        }
+
+    @classmethod
+    def get_info(cls) -> dict:
+        return {
+            "id": "simple",
+            "name": "Simple QA",
+            "description": "Simple QA pipeline",
         }
