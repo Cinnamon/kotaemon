@@ -12,6 +12,7 @@ nav:
       - Data & Data Structure Components: data-components.md
       - Creating a Component: create-a-component.md
       - Utilities: ultilities.md
+      - Add new indexing and reasoning pipeline to the application: app.md
   # generated using gen-files + literate-nav
   - API Reference: reference/
   - Use Cases: examples/
