@@ -10,10 +10,19 @@ class FileUpload(BasePage):
     def on_building_ui(self):
         with gr.Accordion(label="File upload", open=False):
             gr.Markdown(
-                "Supported file types: image, pdf, txt, csv, xlsx, docx, pptx.",
+                "Supported file types: image, pdf, txt, csv, xlsx, docx, doc, pptx.",
             )
             self.files = gr.File(
-                file_types=["image", ".pdf", ".txt", ".csv", ".xlsx", ".docx", ".pptx"],
+                file_types=[
+                    "image",
+                    ".pdf",
+                    ".txt",
+                    ".csv",
+                    ".xlsx",
+                    ".doc",
+                    ".docx",
+                    ".pptx",
+                ],
                 file_count="multiple",
                 container=False,
                 height=50,
