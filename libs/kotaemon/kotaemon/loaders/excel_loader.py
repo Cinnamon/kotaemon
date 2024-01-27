@@ -44,6 +44,7 @@ class PandasExcelReader(BaseReader):
         file: Path,
         include_sheetname: bool = False,
         sheet_name: Optional[Union[str, int, list]] = None,
+        extra_info: Optional[dict] = None,
         **kwargs,
     ) -> List[Document]:
         """Parse file and extract values from a specific column.
@@ -92,7 +93,7 @@ class PandasExcelReader(BaseReader):
                 text=self._row_joiner.join(
                     self._col_joiner.join(sublist) for sublist in text_list
                 ),
-                metadata={"source": file.stem},
+                metadata=extra_info or {},
             )
         ]
 

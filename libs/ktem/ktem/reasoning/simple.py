@@ -96,7 +96,7 @@ class PrepareEvidencePipeline(BaseComponent):
             evidence = texts[0].text
             print("len (trimmed)", len(evidence))
 
-        print(f"PrepareEvidence with input {input}\nOutput: {evidence}\n")
+        print(f"PrepareEvidence with input {docs}\nOutput: {evidence}\n")
 
         return Document(content=(evidence_mode, evidence))
 
@@ -228,7 +228,7 @@ class FullQAPipeline(BaseComponent):
     answering_pipeline: AnswerWithContextPipeline = AnswerWithContextPipeline.withx()
 
     async def run(  # type: ignore
-        self, message: str, cid: str, history: list, **kwargs  # type: ignore
+        self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Document:  # type: ignore
         docs = []
         for retriever in self.retrievers:

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from uuid import uuid4
 
 import requests
@@ -25,7 +25,9 @@ class OCRReader(BaseReader):
         self.ocr_endpoint = endpoint
         self.use_ocr = use_ocr
 
-    def load_data(self, file_path: Path, **kwargs) -> List[Document]:
+    def load_data(
+        self, file_path: Path, extra_info: Optional[dict] = None, **kwargs
+    ) -> List[Document]:
         """Load data using OCR reader
 
         Args:
@@ -63,6 +65,7 @@ class OCRReader(BaseReader):
             debug_path=debug_path,
             artifact_path=artifact_path,
         )
+        extra_info = extra_info or {}
 
         # create output Document with metadata from table
         documents = [
@@ -72,10 +75,7 @@ class OCRReader(BaseReader):
                     "table_origin": table_text,
                     "type": "table",
                     "page_label": page_id + 1,
-                    "source": file_path.name,
-                    "file_path": str(file_path),
-                    "file_name": file_path.name,
-                    "filename": str(file_path),
+                    **extra_info,
                 },
                 metadata_template="",
                 metadata_seperator="",
@@ -87,13 +87,7 @@ class OCRReader(BaseReader):
             [
                 Document(
                     text=non_table_text,
-                    metadata={
-                        "page_label": page_id + 1,
-                        "source": file_path.name,
-                        "file_path": str(file_path),
-                        "file_name": file_path.name,
-                        "filename": str(file_path),
-                    },
+                    metadata={"page_label": page_id + 1, **extra_info},
                 )
                 for page_id, non_table_text in texts
             ]

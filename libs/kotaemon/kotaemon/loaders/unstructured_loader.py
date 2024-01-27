@@ -50,7 +50,7 @@ class UnstructuredReader(BaseReader):
     def load_data(
         self,
         file: Path,
-        additional_metadata: Optional[Dict] = None,
+        extra_info: Optional[Dict] = None,
         split_documents: Optional[bool] = False,
         **kwargs,
     ) -> List[Document]:
@@ -91,8 +91,8 @@ class UnstructuredReader(BaseReader):
                             continue
                         metadata[field] = val
 
-                if additional_metadata is not None:
-                    metadata.update(additional_metadata)
+                if extra_info is not None:
+                    metadata.update(extra_info)
 
                 metadata["file_name"] = file_name
                 docs.append(Document(text=node.text, metadata=metadata))
@@ -101,8 +101,8 @@ class UnstructuredReader(BaseReader):
             text_chunks = [" ".join(str(el).split()) for el in elements]
             metadata = {"file_name": file_name, "file_path": file_path}
 
-            if additional_metadata is not None:
-                metadata.update(additional_metadata)
+            if extra_info is not None:
+                metadata.update(extra_info)
 
             # Create a single document by joining all the texts
             docs.append(Document(text="\n\n".join(text_chunks), metadata=metadata))

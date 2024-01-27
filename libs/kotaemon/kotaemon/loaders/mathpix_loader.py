@@ -2,7 +2,7 @@ import json
 import re
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import requests
 from kotaemon.base import Document
@@ -138,7 +138,9 @@ class MathpixPDFReader(BaseReader):
         contents = re.sub(markup_regex, "", contents)
         return contents
 
-    def load_data(self, file_path: Path, **kwargs) -> List[Document]:
+    def load_data(
+        self, file_path: Path, extra_info: Optional[dict] = None, **kwargs
+    ) -> List[Document]:
         if "response_content" in kwargs:
             # overriding response content if specified
             content = kwargs["response_content"]
@@ -154,10 +156,11 @@ class MathpixPDFReader(BaseReader):
         for table in tables:
             text = strip_special_chars_markdown(table)
             metadata = {
-                "source": file_path.name,
                 "table_origin": table,
                 "type": "table",
             }
+            if extra_info:
+                metadata.update(extra_info)
             documents.append(
                 Document(
                     text=text,
