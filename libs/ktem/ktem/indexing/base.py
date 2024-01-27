@@ -1,7 +1,13 @@
 from kotaemon.base import BaseComponent
 
 
-class BaseIndex(BaseComponent):
+class BaseRetriever(BaseComponent):
+    pass
+
+
+class BaseIndexing(BaseComponent):
+    """The pipeline to index information into the data store"""
+
     def get_user_settings(self) -> dict:
         """Get the user settings for indexing
 
@@ -12,5 +18,8 @@ class BaseIndex(BaseComponent):
         return {}
 
     @classmethod
-    def get_pipeline(cls, setting: dict) -> "BaseIndex":
+    def get_pipeline(cls, settings: dict) -> "BaseIndexing":
+        raise NotImplementedError
+
+    def get_retrievers(self, settings: dict, **kwargs) -> list[BaseRetriever]:
         raise NotImplementedError

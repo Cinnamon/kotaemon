@@ -1,13 +1,11 @@
 import asyncio
 import logging
-import warnings
 from collections import defaultdict
 from functools import partial
-from typing import Optional
 
 import tiktoken
-from ktem.components import embeddings, get_docstore, get_vectorstore, llms
-from ktem.db.models import Index, SourceTargetRelation, engine
+from ktem.components import llms
+from ktem.indexing.base import BaseRetriever
 from kotaemon.base import (
     BaseComponent,
     Document,
@@ -16,124 +14,11 @@ from kotaemon.base import (
     RetrievedDocument,
     SystemMessage,
 )
-from kotaemon.indices import VectorRetrieval
 from kotaemon.indices.qa.citation import CitationPipeline
-from kotaemon.indices.rankings import BaseReranking, CohereReranking, LLMReranking
 from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import ChatLLM, PromptTemplate
-from llama_index.vector_stores import (
-    FilterCondition,
-    FilterOperator,
-    MetadataFilter,
-    MetadataFilters,
-)
-from llama_index.vector_stores.types import VectorStoreQueryMode
-from sqlmodel import Session, select
-from theflow.settings import settings
 
 logger = logging.getLogger(__name__)
-
-
-class DocumentRetrievalPipeline(BaseComponent):
-    """Retrieve relevant document
-
-    Args:
-        vector_retrieval: the retrieval pipeline that return the relevant documents
-            given a text query
-        reranker: the reranking pipeline that re-rank and filter the retrieved
-            documents
-        get_extra_table: if True, for each retrieved document, the pipeline will look
-            for surrounding tables (e.g. within the page)
-    """
-
-    vector_retrieval: VectorRetrieval = VectorRetrieval.withx(
-        doc_store=get_docstore(),
-        vector_store=get_vectorstore(),
-        embedding=embeddings.get_default(),
-    )
-    reranker: BaseReranking = CohereReranking.withx(
-        cohere_api_key=getattr(settings, "COHERE_API_KEY", "")
-    ) >> LLMReranking.withx(llm=llms.get_lowest_cost())
-    get_extra_table: bool = False
-
-    def run(
-        self,
-        text: str,
-        top_k: int = 5,
-        mmr: bool = False,
-        doc_ids: Optional[list[str]] = None,
-    ) -> list[RetrievedDocument]:
-        """Retrieve document excerpts similar to the text
-
-        Args:
-            text: the text to retrieve similar documents
-            top_k: number of documents to retrieve
-            mmr: whether to use mmr to re-rank the documents
-            doc_ids: list of document ids to constraint the retrieval
-        """
-        kwargs = {}
-        if doc_ids:
-            with Session(engine) as session:
-                stmt = select(Index).where(
-                    Index.relation_type == SourceTargetRelation.VECTOR,
-                    Index.source_id.in_(doc_ids),  # type: ignore
-                )
-                results = session.exec(stmt)
-                vs_ids = [r.target_id for r in results.all()]
-
-            kwargs["filters"] = MetadataFilters(
-                filters=[
-                    MetadataFilter(
-                        key="doc_id",
-                        value=vs_id,
-                        operator=FilterOperator.EQ,
-                    )
-                    for vs_id in vs_ids
-                ],
-                condition=FilterCondition.OR,
-            )
-
-        if mmr:
-            # TODO: double check that llama-index MMR works correctly
-            kwargs["mode"] = VectorStoreQueryMode.MMR
-            kwargs["mmr_threshold"] = 0.5
-
-        # rerank
-        docs = self.vector_retrieval(text=text, top_k=top_k, **kwargs)
-        if self.get_from_path("reranker"):
-            docs = self.reranker(docs, query=text)
-
-        if not self.get_extra_table:
-            return docs
-
-        # retrieve extra nodes relate to table
-        table_pages = defaultdict(list)
-        retrieved_id = set([doc.doc_id for doc in docs])
-        for doc in docs:
-            if "page_label" not in doc.metadata:
-                continue
-            if "file_name" not in doc.metadata:
-                warnings.warn(
-                    "file_name not in metadata while page_label is in metadata: "
-                    f"{doc.metadata}"
-                )
-            table_pages[doc.metadata["file_name"]].append(doc.metadata["page_label"])
-
-        queries = [
-            {"$and": [{"file_name": {"$eq": fn}}, {"page_label": {"$in": pls}}]}
-            for fn, pls in table_pages.items()
-        ]
-        if queries:
-            extra_docs = self.vector_retrieval(
-                text="",
-                top_k=50,
-                where={"$or": queries},
-            )
-            for doc in extra_docs:
-                if doc.doc_id not in retrieved_id:
-                    docs.append(doc)
-
-        return docs
 
 
 class PrepareEvidencePipeline(BaseComponent):
@@ -338,22 +223,22 @@ class FullQAPipeline(BaseComponent):
         allow_extra = True
         params_publish = True
 
-    retrieval_pipeline: DocumentRetrievalPipeline = DocumentRetrievalPipeline.withx()
+    retrievers: list[BaseRetriever]
     evidence_pipeline: PrepareEvidencePipeline = PrepareEvidencePipeline.withx()
     answering_pipeline: AnswerWithContextPipeline = AnswerWithContextPipeline.withx()
 
     async def run(  # type: ignore
-        self, question: str, history: list, **kwargs  # type: ignore
+        self, message: str, cid: str, history: list, **kwargs  # type: ignore
     ) -> Document:  # type: ignore
-        docs = self.retrieval_pipeline(text=question)
+        docs = []
+        for retriever in self.retrievers:
+            docs.extend(retriever(text=message))
         evidence_mode, evidence = self.evidence_pipeline(docs).content
         answer = await self.answering_pipeline(
-            question=question, evidence=evidence, evidence_mode=evidence_mode
+            question=message, evidence=evidence, evidence_mode=evidence_mode
         )
 
         # prepare citation
-        from collections import defaultdict
-
         spans = defaultdict(list)
         for fact_with_evidence in answer.metadata["citation"].answer:
             for quote in fact_with_evidence.substring_quote:
@@ -369,6 +254,7 @@ class FullQAPipeline(BaseComponent):
                         break
 
         id2docs = {doc.doc_id: doc for doc in docs}
+        lack_evidence = True
         for id, ss in spans.items():
             if not ss:
                 continue
@@ -391,31 +277,24 @@ class FullQAPipeline(BaseComponent):
                     )
                 }
             )
+            lack_evidence = False
+
+        if lack_evidence:
+            self.report_output({"evidence": "No evidence found"})
 
         self.report_output(None)
         return answer
 
     @classmethod
-    def get_pipeline(cls, settings, **kwargs):
+    def get_pipeline(cls, settings, retrievers, **kwargs):
         """Get the reasoning pipeline
 
-        Need a base pipeline implementation. Currently the drawback is that we want to
-        treat the retrievers as tools. Hence, the reasoning pipelie should just take
-        the already initiated tools (retrievers), and do not need to set such logic
-        here.
+        Args:
+            settings: the settings for the pipeline
+            retrievers: the retrievers to use
         """
-        pipeline = FullQAPipeline(get_extra_table=settings["index.prioritize_table"])
-        if not settings["index.use_reranking"]:
-            pipeline.retrieval_pipeline.reranker = None  # type: ignore
-
+        pipeline = FullQAPipeline(retrievers=retrievers)
         pipeline.answering_pipeline.llm = llms.get_highest_accuracy()
-        kwargs = {
-            ".retrieval_pipeline.top_k": int(settings["index.num_retrieval"]),
-            ".retrieval_pipeline.mmr": settings["index.mmr"],
-            ".retrieval_pipeline.doc_ids": kwargs.get("files", None),
-        }
-        pipeline.set_run(kwargs, temp=True)
-
         return pipeline
 
     @classmethod

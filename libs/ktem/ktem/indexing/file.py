@@ -1,16 +1,35 @@
 from __future__ import annotations
 
 import shutil
+import warnings
+from collections import defaultdict
 from hashlib import sha256
 from pathlib import Path
+from typing import Optional
 
-from ktem.components import embeddings, filestorage_path, get_docstore, get_vectorstore
+from ktem.components import (
+    embeddings,
+    filestorage_path,
+    get_docstore,
+    get_vectorstore,
+    llms,
+)
 from ktem.db.models import Index, Source, SourceTargetRelation, engine
-from ktem.indexing.base import BaseIndex
+from ktem.indexing.base import BaseIndexing, BaseRetriever
 from ktem.indexing.exceptions import FileExistsError
-from kotaemon.indices import VectorIndexing
+from kotaemon.base import RetrievedDocument
+from kotaemon.indices import VectorIndexing, VectorRetrieval
 from kotaemon.indices.ingests import DocumentIngestor
+from kotaemon.indices.rankings import BaseReranking, CohereReranking, LLMReranking
+from llama_index.vector_stores import (
+    FilterCondition,
+    FilterOperator,
+    MetadataFilter,
+    MetadataFilters,
+)
+from llama_index.vector_stores.types import VectorStoreQueryMode
 from sqlmodel import Session, select
+from theflow.settings import settings
 
 USER_SETTINGS = {
     "index_parser": {
@@ -61,7 +80,109 @@ USER_SETTINGS = {
 }
 
 
-class IndexDocumentPipeline(BaseIndex):
+class DocumentRetrievalPipeline(BaseRetriever):
+    """Retrieve relevant document
+
+    Args:
+        vector_retrieval: the retrieval pipeline that return the relevant documents
+            given a text query
+        reranker: the reranking pipeline that re-rank and filter the retrieved
+            documents
+        get_extra_table: if True, for each retrieved document, the pipeline will look
+            for surrounding tables (e.g. within the page)
+    """
+
+    vector_retrieval: VectorRetrieval = VectorRetrieval.withx(
+        doc_store=get_docstore(),
+        vector_store=get_vectorstore(),
+        embedding=embeddings.get_default(),
+    )
+    reranker: BaseReranking = CohereReranking.withx(
+        cohere_api_key=getattr(settings, "COHERE_API_KEY", "")
+    ) >> LLMReranking.withx(llm=llms.get_lowest_cost())
+    get_extra_table: bool = False
+
+    def run(
+        self,
+        text: str,
+        top_k: int = 5,
+        mmr: bool = False,
+        doc_ids: Optional[list[str]] = None,
+    ) -> list[RetrievedDocument]:
+        """Retrieve document excerpts similar to the text
+
+        Args:
+            text: the text to retrieve similar documents
+            top_k: number of documents to retrieve
+            mmr: whether to use mmr to re-rank the documents
+            doc_ids: list of document ids to constraint the retrieval
+        """
+        kwargs = {}
+        if doc_ids:
+            with Session(engine) as session:
+                stmt = select(Index).where(
+                    Index.relation_type == SourceTargetRelation.VECTOR,
+                    Index.source_id.in_(doc_ids),  # type: ignore
+                )
+                results = session.exec(stmt)
+                vs_ids = [r.target_id for r in results.all()]
+
+            kwargs["filters"] = MetadataFilters(
+                filters=[
+                    MetadataFilter(
+                        key="doc_id",
+                        value=vs_id,
+                        operator=FilterOperator.EQ,
+                    )
+                    for vs_id in vs_ids
+                ],
+                condition=FilterCondition.OR,
+            )
+
+        if mmr:
+            # TODO: double check that llama-index MMR works correctly
+            kwargs["mode"] = VectorStoreQueryMode.MMR
+            kwargs["mmr_threshold"] = 0.5
+
+        # rerank
+        docs = self.vector_retrieval(text=text, top_k=top_k, **kwargs)
+        if self.get_from_path("reranker"):
+            docs = self.reranker(docs, query=text)
+
+        if not self.get_extra_table:
+            return docs
+
+        # retrieve extra nodes relate to table
+        table_pages = defaultdict(list)
+        retrieved_id = set([doc.doc_id for doc in docs])
+        for doc in docs:
+            if "page_label" not in doc.metadata:
+                continue
+            if "file_name" not in doc.metadata:
+                warnings.warn(
+                    "file_name not in metadata while page_label is in metadata: "
+                    f"{doc.metadata}"
+                )
+            table_pages[doc.metadata["file_name"]].append(doc.metadata["page_label"])
+
+        queries = [
+            {"$and": [{"file_name": {"$eq": fn}}, {"page_label": {"$in": pls}}]}
+            for fn, pls in table_pages.items()
+        ]
+        if queries:
+            extra_docs = self.vector_retrieval(
+                text="",
+                top_k=50,
+                where={"$or": queries},
+            )
+            for doc in extra_docs:
+                if doc.doc_id not in retrieved_id:
+                    docs.append(doc)
+
+        return docs
+
+
+class IndexDocumentPipeline(BaseIndexing):
     """Store the documents and index the content into vector store and doc store
 
     Args:
@@ -175,8 +296,29 @@ class IndexDocumentPipeline(BaseIndex):
         return USER_SETTINGS
 
     @classmethod
-    def get_pipeline(cls, setting) -> "IndexDocumentPipeline":
+    def get_pipeline(cls, settings) -> "IndexDocumentPipeline":
         """Get the pipeline based on the setting"""
         obj = cls()
-        obj.file_ingestor.pdf_mode = setting["index.index_parser"]
+        obj.file_ingestor.pdf_mode = settings["index.index_parser"]
         return obj
+
+    def get_retrievers(self, settings, **kwargs) -> list[BaseRetriever]:
+        """Get retriever objects associated with the index
+
+        Args:
+            settings: the settings of the app
+            kwargs: other arguments
+        """
+        retriever = DocumentRetrievalPipeline(
+            get_extra_table=settings["index.prioritize_table"]
+        )
+        if not settings["index.use_reranking"]:
+            retriever.reranker = None  # type: ignore
+
+        kwargs = {
+            ".top_k": int(settings["index.num_retrieval"]),
+            ".mmr": settings["index.mmr"],
+            ".doc_ids": kwargs.get("files", None),
+        }
+        retriever.set_run(kwargs, temp=True)
+        return [retriever]

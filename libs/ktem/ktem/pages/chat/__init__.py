@@ -36,6 +36,7 @@ class ChatPage(BasePage):
         ).then(
             fn=chat_fn,
             inputs=[
+                self.chat_control.conversation_id,
                 self.chat_panel.chatbot,
                 self.data_source.files,
                 self._app.settings_state,
@@ -64,6 +65,7 @@ class ChatPage(BasePage):
         ).then(
             fn=chat_fn,
             inputs=[
+                self.chat_control.conversation_id,
                 self.chat_panel.chatbot,
                 self.data_source.files,
                 self._app.settings_state,
