@@ -20,6 +20,7 @@ dependencies = [
     "pluggy",
     "python-decouple",
     "python-dotenv",
+    "python-pptx",
     "sqlalchemy",
     "sqlmodel",
     "tiktoken",
