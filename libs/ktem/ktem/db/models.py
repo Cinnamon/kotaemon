@@ -1,97 +1,71 @@
-import datetime
-import uuid
-from enum import Enum
-from typing import Optional
-
+import ktem.db.base_models as base_models
 from ktem.db.engine import engine
-from sqlalchemy import JSON, Column
-from sqlmodel import Field, SQLModel
+from sqlmodel import SQLModel
+from theflow.settings import settings
+from theflow.utils.modules import import_dotted_string
+
+_base_source = (
+    import_dotted_string(settings.KH_TABLE_SOURCE, safe=False)
+    if hasattr(settings, "KH_TABLE_SOURCE")
+    else base_models.BaseSource
+)
+
+_base_index = (
+    import_dotted_string(settings.KH_TABLE_INDEX, safe=False)
+    if hasattr(settings, "KH_TABLE_INDEX")
+    else base_models.BaseIndex
+)
+
+_base_conv = (
+    import_dotted_string(settings.KH_TABLE_CONV, safe=False)
+    if hasattr(settings, "KH_TABLE_CONV")
+    else base_models.BaseConversation
+)
+
+_base_user = (
+    import_dotted_string(settings.KH_TABLE_USER, safe=False)
+    if hasattr(settings, "KH_TABLE_USER")
+    else base_models.BaseUser
+)
+
+_base_settings = (
+    import_dotted_string(settings.KH_TABLE_SETTINGS, safe=False)
+    if hasattr(settings, "KH_TABLE_SETTINGS")
+    else base_models.BaseSettings
+)
+
+_base_issue_report = (
+    import_dotted_string(settings.KH_TABLE_ISSUE_REPORT, safe=False)
+    if hasattr(settings, "KH_TABLE_ISSUE_REPORT")
+    else base_models.BaseIssueReport
+)
 
 
-class Source(SQLModel, table=True):
-    """The source of the document
-
-    Attributes:
-        id: id of the source
-        name: name of the source
-        path: path to the source
-    """
-
-    __table_args__ = {"extend_existing": True}
-
-    id: str = Field(
-        default_factory=lambda: uuid.uuid4().hex, primary_key=True, index=True
-    )
-    name: str
-    path: str
+class Source(_base_source, table=True):  # type: ignore
+    """Record the source of the document"""
 
 
-class SourceTargetRelation(str, Enum):
-    DOCUMENT = "document"
-    VECTOR = "vector"
-
-
-class Index(SQLModel, table=True):
+class Index(_base_index, table=True):  # type: ignore
     """The index pointing from the original id to the target id"""
 
-    __table_args__ = {"extend_existing": True}
 
-    id: Optional[int] = Field(default=None, primary_key=True, index=True)
-    source_id: str
-    target_id: str
-    relation_type: Optional[SourceTargetRelation] = Field(default=None)
-
-
-class Conversation(SQLModel, table=True):
+class Conversation(_base_conv, table=True):  # type: ignore
     """Conversation record"""
 
-    __table_args__ = {"extend_existing": True}
 
-    id: str = Field(
-        default_factory=lambda: uuid.uuid4().hex, primary_key=True, index=True
-    )
-    name: str = Field(
-        default_factory=lambda: datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    )
-    user: int = Field(default=0)  # For now we only have one user
-
-    # contains messages + current files
-    data_source: dict = Field(default={}, sa_column=Column(JSON))
-
-    date_created: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
-    date_updated: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+class User(_base_user, table=True):  # type: ignore
+    """User table"""
 
 
-class User(SQLModel, table=True):
-    __table_args__ = {"extend_existing": True}
-
-    id: Optional[int] = Field(default=None, primary_key=True)
-    username: str = Field(unique=True)
-    password: str
-
-
-class Settings(SQLModel, table=True):
+class Settings(_base_settings, table=True):  # type: ignore
     """Record of settings"""
 
-    __table_args__ = {"extend_existing": True}
 
-    id: str = Field(
-        default_factory=lambda: uuid.uuid4().hex, primary_key=True, index=True
-    )
-    user: int = Field(default=0)
-    setting: dict = Field(default={}, sa_column=Column(JSON))
-
-
-class IssueReport(SQLModel, table=True):
+class IssueReport(_base_issue_report, table=True):  # type: ignore
     """Record of issues"""
 
-    __table_args__ = {"extend_existing": True}
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    issues: dict = Field(default={}, sa_column=Column(JSON))
-    chat: Optional[dict] = Field(default=None, sa_column=Column(JSON))
-    settings: Optional[dict] = Field(default=None, sa_column=Column(JSON))
-    user: Optional[int] = Field(default=None)
+SourceTargetRelation = base_models.SourceTargetRelation
 
 
 SQLModel.metadata.create_all(engine)
