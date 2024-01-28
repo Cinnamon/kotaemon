@@ -68,4 +68,5 @@ class IssueReport(_base_issue_report, table=True):  # type: ignore
 SourceTargetRelation = base_models.SourceTargetRelation
 
 
-SQLModel.metadata.create_all(engine)
+if not getattr(settings, "KH_ENABLE_ALEMBIC", False):
+    SQLModel.metadata.create_all(engine)
