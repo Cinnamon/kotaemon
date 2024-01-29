@@ -255,8 +255,10 @@ class FullQAPipeline(BaseComponent):
 
         id2docs = {doc.doc_id: doc for doc in docs}
         lack_evidence = True
+        not_detected = set(id2docs.keys()) - set(spans.keys())
         for id, ss in spans.items():
             if not ss:
+                not_detected.add(id)
                 continue
             ss = sorted(ss, key=lambda x: x["start"])
             text = id2docs[id].text[: ss[0]["start"]]
@@ -280,7 +282,23 @@ class FullQAPipeline(BaseComponent):
             lack_evidence = False
 
         if lack_evidence:
-            self.report_output({"evidence": "No evidence found"})
+            self.report_output({"evidence": "No evidence found.\n"})
+
+        if not_detected:
+            self.report_output(
+                {"evidence": "Retrieved docs without matching evidence:\n"}
+            )
+            for id in list(not_detected):
+                self.report_output(
+                    {
+                        "evidence": (
+                            "<details>"
+                            f"<summary>{id2docs[id].metadata['file_name']}</summary>"
+                            f"{id2docs[id].text}"
+                            "</details><br>"
+                        )
+                    }
+                )
 
         self.report_output(None)
         return answer
@@ -295,6 +313,9 @@ class FullQAPipeline(BaseComponent):
         """
         pipeline = FullQAPipeline(retrievers=retrievers)
         pipeline.answering_pipeline.llm = llms.get_highest_accuracy()
+        pipeline.answering_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
+            settings["reasoning.lang"], "English"
+        )
         return pipeline
 
     @classmethod
