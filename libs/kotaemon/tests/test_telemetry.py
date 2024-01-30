@@ -51,6 +51,7 @@ def test_disable_telemetry_import_haystack_after_kotaemon():
     import os
 
     import haystack.telemetry
+
     import kotaemon  # noqa: F401
 
     assert haystack.telemetry.telemetry is None

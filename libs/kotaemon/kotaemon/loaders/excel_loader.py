@@ -6,8 +6,9 @@ Pandas parser for .xlsx files.
 from pathlib import Path
 from typing import Any, List, Optional, Union
 
-from kotaemon.base import Document
 from llama_index.readers.base import BaseReader
+
+from kotaemon.base import Document
 
 
 class PandasExcelReader(BaseReader):

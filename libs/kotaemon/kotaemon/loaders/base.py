@@ -1,9 +1,10 @@
 from pathlib import Path
 from typing import Any, List, Type, Union
 
-from kotaemon.base import BaseComponent, Document
 from llama_index import SimpleDirectoryReader, download_loader
 from llama_index.readers.base import BaseReader
+
+from kotaemon.base import BaseComponent, Document
 
 
 class AutoReader(BaseComponent):

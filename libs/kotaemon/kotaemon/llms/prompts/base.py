@@ -1,4 +1,6 @@
-from typing import Callable, Union
+from typing import Callable
+
+from theflow import Param
 
 from kotaemon.base import BaseComponent, Document
 
@@ -19,14 +21,18 @@ class BasePromptComponent(BaseComponent):
         middleware_switches = {"theflow.middleware.CachingMiddleware": False}
         allow_extra = True
 
-    def __init__(self, template: Union[str, PromptTemplate], **kwargs):
-        super().__init__()
-        self.template = (
-            template
-            if isinstance(template, PromptTemplate)
-            else PromptTemplate(template)
+    template: str | PromptTemplate
+
+    @Param.auto(depends_on="template")
+    def template__(self):
+        return (
+            self.template
+            if isinstance(self.template, PromptTemplate)
+            else PromptTemplate(self.template)
         )
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.__set(**kwargs)
 
     def __check_redundant_kwargs(self, **kwargs):
@@ -42,7 +48,7 @@ class BasePromptComponent(BaseComponent):
         Returns:
             None
         """
-        self.template.check_redundant_kwargs(**kwargs)
+        self.template__.check_redundant_kwargs(**kwargs)
 
     def __check_unset_placeholders(self):
         """
@@ -58,7 +64,7 @@ class BasePromptComponent(BaseComponent):
         Returns:
             None
         """
-        self.template.check_missing_kwargs(**self.__dict__)
+        self.template__.check_missing_kwargs(**self.__dict__)
 
     def __validate_value_type(self, **kwargs):
         """
@@ -76,6 +82,8 @@ class BasePromptComponent(BaseComponent):
         """
         type_error = []
         for k, v in kwargs.items():
+            if k.startswith("template"):
+                continue
             if not isinstance(v, (str, int, Document, Callable)):  # type: ignore
                 type_error.append((k, type(v)))
 
@@ -122,7 +130,7 @@ class BasePromptComponent(BaseComponent):
             )
 
         kwargs = {}
-        for k in self.template.placeholders:
+        for k in self.template__.placeholders:
             v = getattr(self, k)
 
             # if get a callable, execute to get its output
@@ -141,7 +149,7 @@ class BasePromptComponent(BaseComponent):
 
         return kwargs
 
-    def set(self, **kwargs):
+    def set_value(self, **kwargs):
         """
         Similar to `__set` but for external use.
 
@@ -172,7 +180,7 @@ class BasePromptComponent(BaseComponent):
         self.__check_unset_placeholders()
         prepared_kwargs = self.__prepare_value()
 
-        text = self.template.populate(**prepared_kwargs)
+        text = self.template__.populate(**prepared_kwargs)
         return Document(text=text, metadata={"origin": "PromptComponent"})
 
     def flow(self):

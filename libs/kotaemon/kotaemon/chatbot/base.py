@@ -1,9 +1,10 @@
 from abc import abstractmethod
 from typing import List, Optional
 
+from theflow import SessionFunction
+
 from kotaemon.base import BaseComponent, LLMInterface
 from kotaemon.base.schema import AIMessage, BaseMessage, HumanMessage, SystemMessage
-from theflow import SessionFunction
 
 
 class BaseChatBot(BaseComponent):

@@ -1,4 +1,5 @@
 import pytest
+
 from kotaemon.base import Document
 from kotaemon.parsers import RegexExtractor
 

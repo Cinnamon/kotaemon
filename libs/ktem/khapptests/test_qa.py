@@ -4,9 +4,10 @@ from unittest.mock import patch
 
 import pytest
 from index import ReaderIndexingPipeline
-from kotaemon.llms import AzureChatOpenAI
 from openai.resources.embeddings import Embeddings
 from openai.types.chat.chat_completion import ChatCompletion
+
+from kotaemon.llms import AzureChatOpenAI
 
 with open(Path(__file__).parent / "resources" / "embedding_openai.json") as f:
     openai_embedding = json.load(f)

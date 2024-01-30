@@ -1,6 +1,7 @@
+from llama_index.schema import NodeRelationship
+
 from kotaemon.base import Document
 from kotaemon.indices.splitters import TokenSplitter
-from llama_index.schema import NodeRelationship
 
 source1 = Document(
     content="The City Hall and Raffles Place MRT stations are paired cross-platform "

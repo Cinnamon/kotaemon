@@ -5,9 +5,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
-from kotaemon.base import Document
 from langchain.utils import get_from_dict_or_env
 from llama_index.readers.base import BaseReader
+
+from kotaemon.base import Document
 
 from .utils.table import parse_markdown_text_to_tables, strip_special_chars_markdown
 

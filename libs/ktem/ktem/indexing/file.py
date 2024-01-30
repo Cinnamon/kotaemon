@@ -17,10 +17,6 @@ from ktem.components import (
 from ktem.db.models import Index, Source, SourceTargetRelation, engine
 from ktem.indexing.base import BaseIndexing, BaseRetriever
 from ktem.indexing.exceptions import FileExistsError
-from kotaemon.base import RetrievedDocument
-from kotaemon.indices import VectorIndexing, VectorRetrieval
-from kotaemon.indices.ingests import DocumentIngestor
-from kotaemon.indices.rankings import BaseReranking, CohereReranking, LLMReranking
 from llama_index.vector_stores import (
     FilterCondition,
     FilterOperator,
@@ -30,6 +26,11 @@ from llama_index.vector_stores import (
 from llama_index.vector_stores.types import VectorStoreQueryMode
 from sqlmodel import Session, select
 from theflow.settings import settings
+
+from kotaemon.base import RetrievedDocument
+from kotaemon.indices import VectorIndexing, VectorRetrieval
+from kotaemon.indices.ingests import DocumentIngestor
+from kotaemon.indices.rankings import BaseReranking, CohereReranking, LLMReranking
 
 USER_SETTINGS = {
     "index_parser": {

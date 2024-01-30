@@ -9,6 +9,7 @@ try:
 except ImportError:
     from langchain.llms import AzureOpenAI as AzureOpenAILC
     from langchain.llms import OpenAI as OpenAILC
+
 from openai.types.completion import Completion
 
 _openai_completion_response = Completion.parse_obj(

@@ -1,7 +1,8 @@
 from typing import AnyStr, Optional, Type
 
-from kotaemon.llms import BaseLLM
 from pydantic import BaseModel, Field
+
+from kotaemon.llms import BaseLLM
 
 from .base import BaseTool, ToolException
 

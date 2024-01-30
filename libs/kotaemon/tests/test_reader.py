@@ -1,9 +1,10 @@
 from pathlib import Path
 
-from kotaemon.base import Document
-from kotaemon.loaders import AutoReader, UnstructuredReader
 from langchain.schema import Document as LangchainDocument
 from llama_index.node_parser import SimpleNodeParser
+
+from kotaemon.base import Document
+from kotaemon.loaders import AutoReader, UnstructuredReader
 
 
 def test_pdf_reader():

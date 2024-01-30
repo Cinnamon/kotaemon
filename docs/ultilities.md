@@ -2,7 +2,7 @@ Utilities detail can be referred in the sub-pages of this section.
 
 ## Prompt engineering UI
 
-![chat-ui](https://github.com/Cinnamon/kotaemon/assets/35283585/ac8f9aac-d853-4571-a48b-d866a99eaf3e)
+![chat-ui](images/271332562-ac8f9aac-d853-4571-a48b-d866a99eaf3e.png)
 
 **_Important:_** despite the name prompt engineering UI, this tool allows DMs to test any kind of parameters that are exposed by AIRs. Prompt is one kind of param. There can be other type of params that DMs can tweak (e.g. top_k, temperature...).
 
@@ -146,7 +146,7 @@ $ kh promptui run <path/to/config/file.yml>
 
 This will generate an UI as follow:
 
-![Screenshot from 2023-09-20 12-20-31](https://github.com/Cinnamon/kotaemon/assets/35283585/9ac1b95a-b667-42e7-b318-98a1b805d6df)
+![Screenshot from 2023-09-20 12-20-31](images/269170198-9ac1b95a-b667-42e7-b318-98a1b805d6df.png)
 
 where:
 

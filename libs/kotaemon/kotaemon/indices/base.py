@@ -3,8 +3,9 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Any, Type
 
-from kotaemon.base import BaseComponent, Document, RetrievedDocument
 from llama_index.node_parser.interface import NodeParser
+
+from kotaemon.base import BaseComponent, Document, RetrievedDocument
 
 
 class DocTransformer(BaseComponent):

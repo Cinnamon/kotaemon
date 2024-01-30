@@ -1,4 +1,5 @@
 import pytest
+
 from kotaemon.base import Document
 from kotaemon.llms import BasePromptComponent, PromptTemplate
 from kotaemon.parsers import RegexExtractor
@@ -58,5 +59,5 @@ def test_run():
 def test_set_method():
     template = PromptTemplate("Hello, {name}!")
     prompt = BasePromptComponent(template=template)
-    prompt.set(name="Alice")
+    prompt.set_value(name="Alice")
     assert prompt.name == "Alice"

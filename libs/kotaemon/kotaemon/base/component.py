@@ -1,8 +1,9 @@
 from abc import abstractmethod
 from typing import Iterator, Optional
 
-from kotaemon.base.schema import Document
 from theflow import Function, Node, Param, lazy
+
+from kotaemon.base.schema import Document
 
 
 class BaseComponent(Function):

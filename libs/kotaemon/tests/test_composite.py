@@ -1,6 +1,8 @@
 from copy import deepcopy
 
 import pytest
+from openai.types.chat.chat_completion import ChatCompletion
+
 from kotaemon.llms import (
     AzureChatOpenAI,
     BasePromptComponent,
@@ -10,7 +12,6 @@ from kotaemon.llms import (
     SimpleLinearPipeline,
 )
 from kotaemon.parsers import RegexExtractor
-from openai.types.chat.chat_completion import ChatCompletion
 
 _openai_chat_completion_response = ChatCompletion.parse_obj(
     {

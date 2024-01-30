@@ -60,7 +60,7 @@ plugins:
               - "!^_"
             members_order: source
             separate_signature: true
-          paths: [libs/kotaemon]
+          paths: [libs/kotaemon/kotaemon]
   - git-revision-date-localized:
       enable_creation_date: true
       type: timeago

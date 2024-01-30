@@ -6,9 +6,10 @@ from typing import Any, Dict, List, Type, Union
 
 import pandas as pd
 import yaml
-from kotaemon.base import BaseComponent
 from theflow.storage import storage
 from theflow.utils.modules import import_dotted_string
+
+from kotaemon.base import BaseComponent
 
 from .logs import ResultLog
 

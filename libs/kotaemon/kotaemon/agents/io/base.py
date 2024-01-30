@@ -5,8 +5,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Literal, NamedTuple, Optional, Union
 
-from kotaemon.base import LLMInterface
 from pydantic import Extra
+
+from kotaemon.base import LLMInterface
 
 
 def check_log():

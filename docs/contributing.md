@@ -139,8 +139,8 @@ Examples: https://github.com/Cinnamon/kotaemon/pull/2
 - 1st line message is the PR title.
 - The text area is the PR description.
 
-![image](https://github.com/Cinnamon/kotaemon/assets/35283585/e2593010-d7ef-46e3-8719-6fcae0315b5d)
-![image](https://github.com/Cinnamon/kotaemon/assets/35283585/bfe6a117-85cd-4dd4-b432-197c791a9901)
+![image](images/274787925-e2593010-d7ef-46e3-8719-6fcae0315b5d.png)
+![image](images/274787941-bfe6a117-85cd-4dd4-b432-197c791a9901.png)
 
 ## Develop pipelines
 

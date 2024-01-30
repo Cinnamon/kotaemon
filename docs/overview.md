@@ -3,8 +3,17 @@
 `kotaemon` library focuses on the AI building blocks to implement the Kotaemon. It can be used in both client project and in product development. It consists of base interfaces, core components and a list of utilities:
 
 - Base interfaces: `kotaemon` defines the base interface of a component in a pipeline. A pipeline is also a component. By clearly define this interface, a pipeline of steps can be easily constructed and orchestrated.
-- Core components: `kotaemon` implements (or wraps 3rd-party libraries like Langchain, llama-index,... when possible) commonly used components in kotaemon use cases. Some of these components are: LLM, vector store, document store, retriever... For a detailed list and description of these components, please refer to the [Pipeline Components](Pipeline-Components) and [Data & Data Structure Components](Data-&-Data-Structure-Components) sections.
-- List of utilities: `lib-knowledge` provides utilities and tools that are usually needed in client project. For example, it provides a prompt engineering UI for AI developers in a project to quickly create a prompt engineering tool for DMs and QALs. It also provides a command to quickly spin up a project code base. For a full list and description of these utilities, please refer to the [Utilities](Utilities) section.
+- Core components: `kotaemon` implements (or wraps 3rd-party libraries
+  like Langchain, llama-index,... when possible) commonly used components in
+  kotaemon use cases. Some of these components are: LLM, vector store,
+  document store, retriever... For a detailed list and description of these
+  components, please refer to the [API Reference](/reference/nav/) section.
+- List of utilities: `lib-knowledge` provides utilities and tools that are
+  usually needed in client project. For example, it provides a prompt
+  engineering UI for AI developers in a project to quickly create a prompt
+  engineering tool for DMs and QALs. It also provides a command to quickly spin
+  up a project code base. For a full list and description of these utilities,
+  please refer to the [Tutorial/Utilities](/ultilities) section.
 
 ```mermaid
 mindmap

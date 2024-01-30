@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import pytest
+
 from kotaemon.loaders import MathpixPDFReader, OCRReader, PandasExcelReader
 
 input_file = Path(__file__).parent / "resources" / "table.pdf"

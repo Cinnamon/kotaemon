@@ -1,8 +1,9 @@
 from copy import deepcopy
 from typing import Callable, List
 
-from kotaemon.base import BaseComponent, Document
 from theflow import Function, Node, Param
+
+from kotaemon.base import BaseComponent, Document
 
 from .chats import AzureChatOpenAI
 from .completions import LLM
@@ -84,7 +85,7 @@ class Thought(BaseComponent):
     @Node.auto(depends_on="prompt")
     def prompt_template(self):
         """Automatically wrap around param prompt. Can ignore"""
-        return BasePromptComponent(self.prompt)
+        return BasePromptComponent(template=self.prompt)
 
     def run(self, **kwargs) -> Document:
         """Run the chain of thought"""

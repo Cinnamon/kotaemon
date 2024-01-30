@@ -1,9 +1,10 @@
 from typing import Iterator, List
 
+from pydantic import BaseModel, Field
+
 from kotaemon.base import BaseComponent
 from kotaemon.base.schema import HumanMessage, SystemMessage
 from kotaemon.llms import BaseLLM
-from pydantic import BaseModel, Field
 
 
 class FactWithEvidence(BaseModel):

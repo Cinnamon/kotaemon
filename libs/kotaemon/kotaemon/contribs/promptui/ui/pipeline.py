@@ -6,9 +6,10 @@ from typing import Any, Dict
 
 import gradio as gr
 import pandas as pd
+from theflow.storage import storage
+
 from kotaemon.contribs.promptui.base import get_component
 from kotaemon.contribs.promptui.export import export
-from theflow.storage import storage
 
 from ..logs import ResultLog
 

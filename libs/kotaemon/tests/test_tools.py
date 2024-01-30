@@ -2,12 +2,13 @@ import json
 from pathlib import Path
 
 import pytest
+from openai.resources.embeddings import Embeddings
+
 from kotaemon.agents.tools import ComponentTool, GoogleSearchTool, WikipediaTool
 from kotaemon.base import Document
 from kotaemon.embeddings import AzureOpenAIEmbeddings
 from kotaemon.indices.vectorindex import VectorIndexing, VectorRetrieval
 from kotaemon.storages import ChromaVectorStore, InMemoryDocumentStore
-from openai.resources.embeddings import Embeddings
 
 with open(Path(__file__).parent / "resources" / "embedding_openai.json") as f:
     openai_embedding = json.load(f)

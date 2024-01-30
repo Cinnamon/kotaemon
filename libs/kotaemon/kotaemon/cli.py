@@ -36,8 +36,9 @@ def export(export_path, output):
     """Export a pipeline to a config file"""
     import sys
 
-    from kotaemon.contribs.promptui.config import export_pipeline_to_config
     from theflow.utils.modules import import_dotted_string
+
+    from kotaemon.contribs.promptui.config import export_pipeline_to_config
 
     sys.path.append(os.getcwd())
     cls = import_dotted_string(export_path, safe=False)

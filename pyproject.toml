@@ -4,3 +4,6 @@ skip = "*.js,*.css,*.map"
 ignore-words-list = "llm,fo"
 quiet-level = 3
 check-filenames = ""
+
+[tool.isort]
+known_first_party = ["kotaemon"]

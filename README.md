@@ -3,9 +3,7 @@
 Quick and easy AI components to build Kotaemon - applicable in client
 project.
 
-## Documentation
-
-https://docs.promptui.dm.cinnamon.is
+[Documentation](https://docs.bleh-internal.cinnamon.is/)
 
 ## Install
 

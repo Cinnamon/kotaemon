@@ -12,8 +12,9 @@ pip install xlrd
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from kotaemon.base import Document
 from llama_index.readers.base import BaseReader
+
+from kotaemon.base import Document
 
 
 class UnstructuredReader(BaseReader):

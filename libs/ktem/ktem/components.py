@@ -3,10 +3,11 @@ import logging
 from functools import cache
 from pathlib import Path
 
-from kotaemon.base import BaseComponent
-from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 from theflow.settings import settings
 from theflow.utils.modules import deserialize
+
+from kotaemon.base import BaseComponent
+from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 logger = logging.getLogger(__name__)
 

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Type, Union
 
 import yaml
+
 from kotaemon.base import BaseComponent
 from kotaemon.chatbot import BaseChatBot
 

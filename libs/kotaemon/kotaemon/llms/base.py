@@ -1,5 +1,6 @@
-from kotaemon.base import BaseComponent
 from langchain_core.language_models.base import BaseLanguageModel
+
+from kotaemon.base import BaseComponent
 
 
 class BaseLLM(BaseComponent):

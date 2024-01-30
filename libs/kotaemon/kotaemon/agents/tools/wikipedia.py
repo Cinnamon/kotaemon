@@ -1,7 +1,8 @@
 from typing import Any, AnyStr, Optional, Type, Union
 
-from kotaemon.base import Document
 from pydantic import BaseModel, Field
+
+from kotaemon.base import Document
 
 from .base import BaseTool
 

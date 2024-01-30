@@ -1,6 +1,8 @@
 from unittest.mock import patch
 
 import pytest
+from openai.types.chat.chat_completion import ChatCompletion
+
 from kotaemon.agents import (
     AgentType,
     BaseTool,
@@ -12,7 +14,6 @@ from kotaemon.agents import (
     WikipediaTool,
 )
 from kotaemon.llms import AzureChatOpenAI
-from openai.types.chat.chat_completion import ChatCompletion
 
 FINAL_RESPONSE_TEXT = "Final Answer: Hello Cinnamon AI!"
 REWOO_VALID_PLAN = (

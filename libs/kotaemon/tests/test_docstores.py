@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 from elastic_transport import ApiResponseMeta
+
 from kotaemon.base import Document
 from kotaemon.storages import (
     ElasticsearchDocumentStore,
