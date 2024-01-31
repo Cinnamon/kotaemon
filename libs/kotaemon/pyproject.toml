@@ -11,7 +11,7 @@ packages.find.exclude = ["tests*", "env*"]
 # metadata and dependencies
 [project]
 name = "kotaemon"
-version = "0.3.5"
+version = "0.3.6"
 requires-python = ">= 3.10"
 description = "Kotaemon core library for AI development."
 dependencies = [
@@ -55,6 +55,7 @@ dev = [
     "wikipedia",
     "duckduckgo-search",
     "googlesearch-python",
+    "python-docx",
     "python-dotenv",
     "pytest-mock",
     "unstructured[pdf]",
@@ -62,6 +63,7 @@ dev = [
     "cohere",
     "elasticsearch",
     "pypdf",
+    "html2text",
 ]
 
 [project.scripts]

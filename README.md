@@ -26,19 +26,19 @@ pip install kotaemon@git+ssh://git@github.com/Cinnamon/kotaemon.git
 
   ```shell
   git clone git@github.com:Cinnamon/kotaemon.git
-  cd kotaemon
-  ```
-
-- Install all
-
-  ```shell
-  pip install -e ".[dev]"
   ```
 
 - Pre-commit
 
   ```shell
   pre-commit install
+  ```
+
+- Install all
+
+  ```shell
+  cd kotaemon/libs/kotaemon
+  pip install -e ".[dev]"
   ```
 
 - Test

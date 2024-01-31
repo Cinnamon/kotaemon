@@ -4,13 +4,29 @@ from langchain.schema import Document as LangchainDocument
 from llama_index.node_parser import SimpleNodeParser
 
 from kotaemon.base import Document
-from kotaemon.loaders import AutoReader, UnstructuredReader
+from kotaemon.loaders import AutoReader, DocxReader, HtmlReader, UnstructuredReader
+
+
+def test_docx_reader():
+    reader = DocxReader()
+    documents = reader.load_data(Path(__file__).parent / "resources" / "dummy.docx")
+
+    assert len(documents)
+
+
+def test_html_reader():
+    reader = HtmlReader()
+    documents = reader.load_data(
+        Path(__file__).parent / "resources" / "html" / "dummy.html"
+    )
+
+    assert len(documents)
 
 
 def test_pdf_reader():
     reader = AutoReader("PDFReader")
     dirpath = Path(__file__).parent
-    documents = reader.load_data(dirpath / "resources/dummy.pdf")
+    documents = reader.load_data(dirpath / "resources" / "dummy.pdf")
 
     # check document reader output
     assert len(documents) == 1
