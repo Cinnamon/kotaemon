@@ -5,24 +5,18 @@ from ktem.app import BasePage
 class FileUpload(BasePage):
     def __init__(self, app):
         self._app = app
+        self._supported_file_types = [
+            "image", ".pdf", ".txt", ".csv", ".xlsx", ".doc", ".docx", ".pptx", ".html"
+        ]
         self.on_building_ui()
 
     def on_building_ui(self):
         with gr.Accordion(label="File upload", open=False):
             gr.Markdown(
-                "Supported file types: image, pdf, txt, csv, xlsx, docx, doc, pptx.",
+                f"Supported file types: {', '.join(self._supported_file_types)}",
             )
             self.files = gr.File(
-                file_types=[
-                    "image",
-                    ".pdf",
-                    ".txt",
-                    ".csv",
-                    ".xlsx",
-                    ".doc",
-                    ".docx",
-                    ".pptx",
-                ],
+                file_types=self._supported_file_types,
                 file_count="multiple",
                 container=False,
                 height=50,
