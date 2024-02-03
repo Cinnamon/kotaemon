@@ -33,7 +33,7 @@ class PrepareEvidencePipeline(BaseComponent):
     """
 
     trim_func: TokenSplitter = TokenSplitter.withx(
-        chunk_size=7600,
+        chunk_size=3000,
         chunk_overlap=0,
         separator=" ",
         tokenizer=partial(
@@ -232,8 +232,12 @@ class FullQAPipeline(BaseComponent):
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Document:  # type: ignore
         docs = []
+        doc_ids = []
         for retriever in self.retrievers:
-            docs.extend(retriever(text=message))
+            for doc in retriever(text=message):
+                if doc.doc_id not in doc_ids:
+                    docs.append(doc)
+                    doc_ids.append(doc.doc_id)
         evidence_mode, evidence = self.evidence_pipeline(docs).content
         answer = await self.answering_pipeline(
             question=message, evidence=evidence, evidence_mode=evidence_mode
@@ -287,7 +291,7 @@ class FullQAPipeline(BaseComponent):
 
         if not_detected:
             self.report_output(
-                {"evidence": "Retrieved docs without matching evidence:\n"}
+                {"evidence": "Retrieved segments without matching evidence:\n"}
             )
             for id in list(not_detected):
                 self.report_output(

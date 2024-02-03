@@ -166,7 +166,7 @@ class DocumentRetrievalPipeline(BaseRetriever):
                 )
             table_pages[doc.metadata["file_name"]].append(doc.metadata["page_label"])
 
-        queries = [
+        queries: list[dict] = [
             {"$and": [{"file_name": {"$eq": fn}}, {"page_label": {"$in": pls}}]}
             for fn, pls in table_pages.items()
         ]
@@ -174,7 +174,7 @@ class DocumentRetrievalPipeline(BaseRetriever):
             extra_docs = self.vector_retrieval(
                 text="",
                 top_k=50,
-                where={"$or": queries},
+                where=queries[0] if len(queries) == 1 else {"$or": queries},
             )
             for doc in extra_docs:
                 if doc.doc_id not in retrieved_id:

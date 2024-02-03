@@ -7,10 +7,12 @@ repos:
       - id: check-toml
       - id: end-of-file-fixer
       - id: trailing-whitespace
+      - id: mixed-line-ending
       - id: detect-aws-credentials
         args: ["--allow-missing-credentials"]
       - id: detect-private-key
       - id: check-added-large-files
+      - id: debug-statements
   - repo: https://github.com/ambv/black
     rev: 22.3.0
     hooks:

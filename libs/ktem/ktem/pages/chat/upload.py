@@ -6,7 +6,15 @@ class FileUpload(BasePage):
     def __init__(self, app):
         self._app = app
         self._supported_file_types = [
-            "image", ".pdf", ".txt", ".csv", ".xlsx", ".doc", ".docx", ".pptx", ".html"
+            "image",
+            ".pdf",
+            ".txt",
+            ".csv",
+            ".xlsx",
+            ".doc",
+            ".docx",
+            ".pptx",
+            ".html",
         ]
         self.on_building_ui()
 
