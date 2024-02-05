@@ -12,13 +12,13 @@ class HelpPage:
             gr.Markdown(self.get_changelogs())
 
         with gr.Accordion("About Kotaemon (temporary)"):
-            with (self.dir_md / "about_kotaemon.md").open() as fi:
+            with (self.dir_md / "about_kotaemon.md").open(encoding="utf-8") as fi:
                 gr.Markdown(fi.read())
 
         with gr.Accordion("About Cinnamon AI (temporary)", open=False):
-            with (self.dir_md / "about_cinnamon.md").open() as fi:
+            with (self.dir_md / "about_cinnamon.md").open(encoding="utf-8") as fi:
                 gr.Markdown(fi.read())
 
     def get_changelogs(self):
-        with (self.dir_md / "changelogs.md").open() as fi:
+        with (self.dir_md / "changelogs.md").open(encoding="utf-8") as fi:
             return fi.read()
