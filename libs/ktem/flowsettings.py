@@ -28,8 +28,8 @@ KH_LLMS = {
         "def": {
             "__type__": "kotaemon.llms.AzureChatOpenAI",
             "temperature": 0,
-            "azure_endpoint": config("OPENAI_API_BASE", default=""),
-            "openai_api_key": config("OPENAI_API_KEY", default=""),
+            "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
+            "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
             "openai_api_version": config("OPENAI_API_VERSION", default=""),
             "deployment_name": "dummy-q2",
             "stream": True,
@@ -42,8 +42,8 @@ KH_LLMS = {
         "def": {
             "__type__": "kotaemon.llms.AzureChatOpenAI",
             "temperature": 0,
-            "azure_endpoint": config("OPENAI_API_BASE", default=""),
-            "openai_api_key": config("OPENAI_API_KEY", default=""),
+            "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
+            "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
             "openai_api_version": config("OPENAI_API_VERSION", default=""),
             "deployment_name": "dummy-q2",
             "request_timeout": 10,
@@ -59,8 +59,8 @@ KH_EMBEDDINGS = {
         "def": {
             "__type__": "kotaemon.embeddings.AzureOpenAIEmbeddings",
             "model": "text-embedding-ada-002",
-            "azure_endpoint": config("OPENAI_API_BASE", default=""),
-            "openai_api_key": config("OPENAI_API_KEY", default=""),
+            "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
+            "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
             "deployment": "dummy-q2-text-embedding",
             "chunk_size": 16,
         },
