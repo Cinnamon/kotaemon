@@ -32,9 +32,10 @@ def read_pdf_unstructured(input_path: Union[Path, str]):
     """
     try:
         from unstructured.partition.auto import partition
-    except ImportError:
+    except ImportError as e:
         raise ImportError(
-            "Please install unstructured PDF reader `pip install unstructured[pdf]`"
+            "Please install unstructured PDF reader `pip install unstructured[pdf]`: "
+            f"{e}"
         )
 
     page_items = defaultdict(list)
