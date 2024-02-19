@@ -15,6 +15,7 @@ class FileUpload(BasePage):
             ".docx",
             ".pptx",
             ".html",
+            ".zip",
         ]
         self.on_building_ui()
 
