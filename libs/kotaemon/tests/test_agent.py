@@ -93,7 +93,7 @@ _openai_chat_completion_responses_react_langchain_tool = [
         (
             "I don't have prior knowledge about Cinnamon AI company, "
             "so I should gather information about it.\n"
-            "Action: Wikipedia\n"
+            "Action: wikipedia\n"
             "Action Input: Cinnamon AI company\n"
         ),
         (

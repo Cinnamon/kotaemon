@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Type
 
 from llama_index.readers.base import BaseReader
 
@@ -13,6 +14,13 @@ from kotaemon.loaders import (
     PandasExcelReader,
     UnstructuredReader,
 )
+
+KH_DEFAULT_FILE_EXTRACTORS: dict[str, Type[BaseReader]] = {
+    ".xlsx": PandasExcelReader,
+    ".docx": UnstructuredReader,
+    ".xls": UnstructuredReader,
+    ".doc": UnstructuredReader,
+}
 
 
 class DocumentIngestor(BaseComponent):
@@ -30,6 +38,8 @@ class DocumentIngestor(BaseComponent):
             - ocr: parse pdf image using flax
         doc_parsers: list of document parsers to parse the document
         text_splitter: splitter to split the document into text nodes
+        override_file_extractors: override file extractors for specific file extensions
+            The default file extractors are stored in `KH_DEFAULT_FILE_EXTRACTORS`
     """
 
     pdf_mode: str = "normal"  # "normal", "mathpix", "ocr"
@@ -38,26 +48,26 @@ class DocumentIngestor(BaseComponent):
         chunk_size=1024,
         chunk_overlap=256,
     )
+    override_file_extractors: dict[str, Type[BaseReader]] = {}
 
     def _get_reader(self, input_files: list[str | Path]):
         """Get appropriate readers for the input files based on file extension"""
-        file_extractor: dict[str, AutoReader | BaseReader] = {
-            ".xlsx": PandasExcelReader(),
-            ".docx": UnstructuredReader(),
-            ".xls": UnstructuredReader(),
-            ".doc": UnstructuredReader(),
+        file_extractors: dict[str, BaseReader] = {
+            ext: cls() for ext, cls in KH_DEFAULT_FILE_EXTRACTORS.items()
         }
+        for ext, cls in self.override_file_extractors.items():
+            file_extractors[ext] = cls()
 
         if self.pdf_mode == "normal":
-            file_extractor[".pdf"] = AutoReader("UnstructuredReader")
+            file_extractors[".pdf"] = AutoReader("UnstructuredReader")  # type: ignore
         elif self.pdf_mode == "ocr":
-            file_extractor[".pdf"] = OCRReader()
+            file_extractors[".pdf"] = OCRReader()
         else:
-            file_extractor[".pdf"] = MathpixPDFReader()
+            file_extractors[".pdf"] = MathpixPDFReader()
 
         main_reader = DirectoryReader(
             input_files=input_files,
-            file_extractor=file_extractor,
+            file_extractor=file_extractors,  # type: ignore
         )
 
         return main_reader

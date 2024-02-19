@@ -1,19 +1,25 @@
 from pathlib import Path
-from typing import Any, List, Type, Union
-
-from llama_index import SimpleDirectoryReader, download_loader
-from llama_index.readers.base import BaseReader
+from typing import TYPE_CHECKING, Any, List, Type, Union
 
 from kotaemon.base import BaseComponent, Document
 
+if TYPE_CHECKING:
+    from llama_index.readers.base import BaseReader as LIBaseReader
 
-class AutoReader(BaseComponent):
+
+class BaseReader(BaseComponent):
+    ...
+
+
+class AutoReader(BaseReader):
     """General auto reader for a variety of files. (based on llama-hub)"""
 
-    def __init__(self, reader_type: Union[str, Type[BaseReader]]) -> None:
+    def __init__(self, reader_type: Union[str, Type["LIBaseReader"]]) -> None:
         """Init reader using string identifier or class name from llama-hub"""
 
         if isinstance(reader_type, str):
+            from llama_index import download_loader
+
             self._reader = download_loader(reader_type)()
         else:
             self._reader = reader_type()
@@ -30,15 +36,30 @@ class AutoReader(BaseComponent):
         return self.load_data(file=file, **kwargs)
 
 
-class LIBaseReader(BaseComponent):
-    _reader_class: Type[BaseReader]
+class LIReaderMixin(BaseComponent):
+    """Base wrapper around llama-index reader
+
+    To use the LIBaseReader, you need to implement the _get_wrapped_class method to
+    return the relevant llama-index reader class that you want to wrap.
+
+    Example:
+
+        ```python
+        class DirectoryReader(LIBaseReader):
+            def _get_wrapped_class(self) -> Type["BaseReader"]:
+                from llama_index import SimpleDirectoryReader
+
+                return SimpleDirectoryReader
+        ```
+    """
+
+    def _get_wrapped_class(self) -> Type["LIBaseReader"]:
+        raise NotImplementedError(
+            "Please return the relevant Langchain class in in _get_lc_class"
+        )
 
     def __init__(self, *args, **kwargs):
-        if self._reader_class is None:
-            raise AttributeError(
-                "Require `_reader_class` to set a BaseReader class from LlamarIndex"
-            )
-
+        self._reader_class = self._get_wrapped_class()
         self._reader = self._reader_class(*args, **kwargs)
         super().__init__()
 
@@ -60,7 +81,3 @@ class LIBaseReader(BaseComponent):
 
     def run(self, *args, **kwargs: Any) -> List[Document]:
         return self.load_data(*args, **kwargs)
-
-
-class DirectoryReader(LIBaseReader):
-    _reader_class = SimpleDirectoryReader
