@@ -14,14 +14,25 @@ DEFAULT_OCR_ENDPOINT = "http://127.0.0.1:8000/v2/ai/infer/"
 
 
 class OCRReader(BaseReader):
-    def __init__(self, endpoint: str = DEFAULT_OCR_ENDPOINT, use_ocr=True):
-        """Init the OCR reader with OCR endpoint (FullOCR pipeline)
+    """Read PDF using OCR, with high focus on table extraction
 
-        Args:
-            endpoint: URL to FullOCR endpoint. Defaults to OCR_ENDPOINT.
-            use_ocr: whether to use OCR to read text
-                (e.g: from images, tables) in the PDF
-        """
+    Example:
+        ```python
+        >> from kotaemon.loaders import OCRReader
+        >> reader = OCRReader()
+        >> documents = reader.load_data("path/to/pdf")
+        ```
+
+    Args:
+        endpoint: URL to FullOCR endpoint. Defaults to
+            `kotaemon.loaders.ocr_loader.DEFAULT_OCR_ENDPOINT`
+            (http://127.0.0.1:8000/v2/ai/infer/)
+        use_ocr: whether to use OCR to read text (e.g: from images, tables) in the PDF
+            If False, only the table and text within table cells will be extracted.
+    """
+
+    def __init__(self, endpoint: str = DEFAULT_OCR_ENDPOINT, use_ocr=True):
+        """Init the OCR reader with OCR endpoint (FullOCR pipeline)"""
         super().__init__()
         self.ocr_endpoint = endpoint
         self.use_ocr = use_ocr

@@ -11,9 +11,11 @@ class BaseSource(SQLModel):
     """The source of the document
 
     Attributes:
-        id: id of the source
-        name: name of the source
-        path: path to the source
+        id: canonical id to identify the source
+        name: human-friendly name of the source
+        path: path to retrieve the source
+        type: [TODO] to differentiate different types of sources (as each type can be
+            handled differently)
     """
 
     __table_args__ = {"extend_existing": True}
@@ -26,12 +28,29 @@ class BaseSource(SQLModel):
 
 
 class SourceTargetRelation(str, Enum):
+    """The type of relationship between the source and the target, to be used with the
+    Index table.
+
+    Current supported relations:
+        - document: the target is a document
+        - vector: the target is a vector
+    """
+
     DOCUMENT = "document"
     VECTOR = "vector"
 
 
 class BaseIndex(SQLModel):
-    """The index pointing from the original id to the target id"""
+    """The index pointing from the source id to the target id
+
+    Attributes:
+        id: canonical id to identify the relationship between the source and the target
+        source_id: corresponds to Source.id
+        target_id: corresponds to the id of the indexed and processed entries (e.g.
+            embedding vector, document...)
+        relation_type: the type of relationship between the source and the target
+            (corresponds to SourceTargetRelation)
+    """
 
     __table_args__ = {"extend_existing": True}
 
@@ -42,7 +61,16 @@ class BaseIndex(SQLModel):
 
 
 class BaseConversation(SQLModel):
-    """Conversation record"""
+    """Store the chat conversation between the user and the bot
+
+    Attributes:
+        id: canonical id to identify the conversation
+        name: human-friendly name of the conversation
+        user: the user id
+        data_source: the data source of the conversation
+        date_created: the date the conversation was created
+        date_updated: the date the conversation was updated
+    """
 
     __table_args__ = {"extend_existing": True}
 
@@ -62,6 +90,14 @@ class BaseConversation(SQLModel):
 
 
 class BaseUser(SQLModel):
+    """Store the user information
+
+    Attributes:
+        id: canonical id to identify the user
+        username: the username of the user
+        password: the hashed password of the user
+    """
+
     __table_args__ = {"extend_existing": True}
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -70,7 +106,13 @@ class BaseUser(SQLModel):
 
 
 class BaseSettings(SQLModel):
-    """Record of settings"""
+    """Record of user settings
+
+    Attributes:
+        id: canonical id to identify the settings
+        user: the user id
+        setting: the user settings (in dict/json format)
+    """
 
     __table_args__ = {"extend_existing": True}
 
@@ -82,7 +124,15 @@ class BaseSettings(SQLModel):
 
 
 class BaseIssueReport(SQLModel):
-    """Record of issues"""
+    """Store user-reported issues
+
+    Attributes:
+        id: canonical id to identify the issue report
+        issues: the issues reported by the user, formatted as a dict
+        chat: the conversation id when the user reported the issue
+        settings: the user settings at the time of the issue report
+        user: the user id
+    """
 
     __table_args__ = {"extend_existing": True}
 
