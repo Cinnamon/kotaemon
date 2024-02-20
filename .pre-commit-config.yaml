@@ -12,6 +12,7 @@ repos:
         args: ["--allow-missing-credentials"]
       - id: detect-private-key
       - id: check-added-large-files
+        args: ["--maxkb=750"]
       - id: debug-statements
   - repo: https://github.com/ambv/black
     rev: 22.3.0

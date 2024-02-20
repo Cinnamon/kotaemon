@@ -195,3 +195,33 @@ class AzureOpenAI(LCCompletionMixin, LLM):
             from langchain.llms import AzureOpenAI
 
         return AzureOpenAI
+
+
+class LlamaCpp(LCCompletionMixin, LLM):
+    """Wrapper around Langchain's LlamaCpp class, focusing on key parameters"""
+
+    def __init__(
+        self,
+        model_path: str,
+        lora_base: Optional[str] = None,
+        n_ctx: int = 512,
+        n_gpu_layers: Optional[int] = None,
+        use_mmap: bool = True,
+        **params,
+    ):
+        super().__init__(
+            model_path=model_path,
+            lora_base=lora_base,
+            n_ctx=n_ctx,
+            n_gpu_layers=n_gpu_layers,
+            use_mmap=use_mmap,
+            **params,
+        )
+
+    def _get_lc_class(self):
+        try:
+            from langchain_community.llms import LlamaCpp
+        except ImportError:
+            from langchain.llms import LlamaCpp
+
+        return LlamaCpp

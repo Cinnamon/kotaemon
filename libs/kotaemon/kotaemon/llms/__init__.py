@@ -2,8 +2,8 @@ from kotaemon.base.schema import AIMessage, BaseMessage, HumanMessage, SystemMes
 
 from .base import BaseLLM
 from .branching import GatedBranchingPipeline, SimpleBranchingPipeline
-from .chats import AzureChatOpenAI, ChatLLM
-from .completions import LLM, AzureOpenAI, OpenAI
+from .chats import AzureChatOpenAI, ChatLLM, LlamaCppChat
+from .completions import LLM, AzureOpenAI, LlamaCpp, OpenAI
 from .cot import ManualSequentialChainOfThought, Thought
 from .linear import GatedLinearPipeline, SimpleLinearPipeline
 from .prompts import BasePromptComponent, PromptTemplate
@@ -17,10 +17,12 @@ __all__ = [
     "AIMessage",
     "SystemMessage",
     "AzureChatOpenAI",
+    "LlamaCppChat",
     # completion-specific components
     "LLM",
     "OpenAI",
     "AzureOpenAI",
+    "LlamaCpp",
     # prompt-specific components
     "BasePromptComponent",
     "PromptTemplate",

@@ -1,4 +1,7 @@
+from pathlib import Path
 from unittest.mock import patch
+
+import pytest
 
 from kotaemon.base.schema import (
     AIMessage,
@@ -6,7 +9,7 @@ from kotaemon.base.schema import (
     LLMInterface,
     SystemMessage,
 )
-from kotaemon.llms import AzureChatOpenAI
+from kotaemon.llms import AzureChatOpenAI, LlamaCppChat
 
 try:
     from langchain_openai import AzureChatOpenAI as AzureChatOpenAILC
@@ -76,3 +79,23 @@ def test_azureopenai_model(openai_completion):
         output, LLMInterface
     ), "Output for single text is not LLMInterface"
     openai_completion.assert_called()
+
+
+def test_llamacpp_chat():
+    from llama_cpp import Llama
+
+    dir_path = Path(__file__).parent / "resources" / "ggml-vocab-llama.gguf"
+
+    # test initialization
+    model = LlamaCppChat(model_path=str(dir_path), chat_format="llama", vocab_only=True)
+    assert isinstance(model.client_object, Llama), "Error initializing llama_cpp.Llama"
+
+    # test error if model_path is omitted
+    with pytest.raises(ValueError):
+        model = LlamaCppChat(chat_format="llama", vocab_only=True)
+        model.client_object
+
+    # test error if chat_format is omitted
+    with pytest.raises(ValueError):
+        model = LlamaCppChat(model_path=str(dir_path), vocab_only=True)
+        model.client_object

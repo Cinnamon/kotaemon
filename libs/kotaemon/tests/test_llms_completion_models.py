@@ -1,7 +1,8 @@
+from pathlib import Path
 from unittest.mock import patch
 
 from kotaemon.base.schema import LLMInterface
-from kotaemon.llms import AzureOpenAI, OpenAI
+from kotaemon.llms import AzureOpenAI, LlamaCpp, OpenAI
 
 try:
     from langchain_openai import AzureOpenAI as AzureOpenAILC
@@ -76,3 +77,11 @@ def test_openai_model(openai_completion):
     assert isinstance(
         output, LLMInterface
     ), "Output for single text is not LLMInterface"
+
+
+def test_llamacpp_model():
+    weight_path = Path(__file__).parent / "resources" / "ggml-vocab-llama.gguf"
+
+    # test initialization
+    model = LlamaCpp(model_path=str(weight_path), vocab_only=True)
+    assert isinstance(model._obj, model._get_lc_class())
