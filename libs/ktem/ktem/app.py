@@ -35,6 +35,10 @@ class BaseApp:
 
     def __init__(self):
         self.dev_mode = getattr(settings, "KH_MODE", "") == "dev"
+        self._theme = gr.themes.Base(
+            font=("ui-sans-serif", "system-ui", "sans-serif"),
+            font_mono=("ui-monospace", "Consolas", "monospace"),
+        )
 
         dir_assets = Path(__file__).parent / "assets"
         with (dir_assets / "css" / "main.css").open() as fi:
@@ -140,7 +144,12 @@ class BaseApp:
         raise NotImplementedError
 
     def make(self):
-        with gr.Blocks(css=self._css, title="Kotaemon") as demo:
+        with gr.Blocks(
+            theme=self._theme,
+            css=self._css,
+            title="Kotaemon",
+            analytics_enabled=False,
+        ) as demo:
             self.app = demo
             self.settings_state.render()
             self.user_id.render()
