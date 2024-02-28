@@ -134,6 +134,15 @@ DEFAULT_QA_CHATBOT_PROMPT = (
     "Answer:"
 )
 
+DEFAULT_REWRITE_PROMPT = (
+    "Given the following question, rephrase and expand it "
+    "to help you do better answering. Maintain all information "
+    "in the original question. Keep the question as concise as possible. "
+    "Give answer in {lang}\n"
+    "Original question: {question}\n"
+    "Rephrased question: "
+)
+
 
 class AnswerWithContextPipeline(BaseComponent):
     """Answer the question based on the evidence
@@ -217,6 +226,38 @@ class AnswerWithContextPipeline(BaseComponent):
         return answer
 
 
+class RewriteQuestionPipeline(BaseComponent):
+    """Rewrite user question
+
+    Args:
+        llm: the language model to rewrite question
+        rewrite_template: the prompt template for llm to paraphrase a text input
+        lang: the language of the answer. Currently support English and Japanese
+    """
+
+    llm: ChatLLM = Node(default_callback=lambda _: llms.get_lowest_cost())
+    rewrite_template: str = DEFAULT_REWRITE_PROMPT
+
+    lang: str = "English"
+
+    async def run(self, question: str) -> str:
+        prompt_template = PromptTemplate(self.rewrite_template)
+        prompt = prompt_template.populate(question=question, lang=self.lang)
+        messages = [
+            SystemMessage(content="You are a helpful assistant"),
+            HumanMessage(content=prompt),
+        ]
+        output = ""
+        for text in self.llm(messages):
+            if "content" in text:
+                output += text[1]
+                self.report_output({"chat_input": text[1]})
+                break
+            await asyncio.sleep(0)
+
+        return output
+
+
 class FullQAPipeline(BaseComponent):
     """Question answering pipeline. Handle from question to answer"""
 
@@ -227,12 +268,19 @@ class FullQAPipeline(BaseComponent):
     retrievers: list[BaseRetriever]
     evidence_pipeline: PrepareEvidencePipeline = PrepareEvidencePipeline.withx()
     answering_pipeline: AnswerWithContextPipeline = AnswerWithContextPipeline.withx()
+    rewrite_pipeline: RewriteQuestionPipeline = RewriteQuestionPipeline.withx()
+    use_rewrite: bool = False
 
     async def run(  # type: ignore
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Document:  # type: ignore
         docs = []
         doc_ids = []
+        print(f"Message: {message}")
+        if self.use_rewrite:
+            message = await self.rewrite_pipeline(question=message)
+        print(f"Message: {message}")
+
         for retriever in self.retrievers:
             for doc in retriever(text=message):
                 if doc.doc_id not in doc_ids:
@@ -321,6 +369,13 @@ class FullQAPipeline(BaseComponent):
         pipeline.answering_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
             settings["reasoning.lang"], "English"
         )
+        pipeline.use_rewrite = settings[
+            "reasoning.options.simple.rewrite_question"
+        ] and kwargs.get("is_regen", False)
+        pipeline.rewrite_pipeline.llm = llms.get_lowest_cost()
+        pipeline.rewrite_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
+            settings["reasoning.lang"], "English"
+        )
         return pipeline
 
     @classmethod
@@ -360,6 +415,12 @@ class FullQAPipeline(BaseComponent):
                 "value": main_llm,
                 "component": "dropdown",
                 "choices": main_llm_choices,
+            },
+            "rewrite_question": {
+                "name": "Rephrase question on regeneration",
+                "value": True,
+                "component": "dropdown",
+                "choices": [False, True],
             },
         }
 

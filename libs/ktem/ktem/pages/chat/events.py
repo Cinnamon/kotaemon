@@ -13,7 +13,7 @@ from theflow.settings import settings as app_settings
 from theflow.utils.modules import import_dotted_string
 
 
-def create_pipeline(settings: dict, files: Optional[list] = None):
+def create_pipeline(settings: dict, files: Optional[list] = None, **kwargs):
     """Create the pipeline from settings
 
     Args:
@@ -24,7 +24,6 @@ def create_pipeline(settings: dict, files: Optional[list] = None):
     Returns:
         the pipeline objects
     """
-
     # get retrievers
     indexing_cls: BaseIndexing = import_dotted_string(app_settings.KH_INDEX, safe=False)
     retrievers = indexing_cls.get_pipeline(settings).get_retrievers(
@@ -33,7 +32,10 @@ def create_pipeline(settings: dict, files: Optional[list] = None):
 
     reasoning_mode = settings["reasoning.use"]
     reasoning_cls = reasonings[reasoning_mode]
-    pipeline = reasoning_cls.get_pipeline(settings, retrievers, files=files)
+    is_regen = kwargs.get("is_regen", False)
+    pipeline = reasoning_cls.get_pipeline(
+        settings, retrievers, files=files, is_regen=is_regen
+    )
 
     if settings["reasoning.use"] in ["rewoo", "react"]:
         from kotaemon.agents import ReactAgent, RewooAgent
@@ -136,11 +138,43 @@ async def chat_fn(conversation_id, chat_history, files, settings):
 
         if response is None:
             break
+        if "output" in response:
+            text += response["output"]
+        if "evidence" in response:
+            refs += response["evidence"]
+
+        yield "", chat_history + [(chat_input, text)], refs
+
+
+async def regen_fn(conversation_id, chat_history, files, settings):
+    """Chat function"""
+    chat_input = chat_history[-1][0]
+
+    queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
+
+    # construct the pipeline
+    pipeline = create_pipeline(settings, files, is_regen=True)
+    pipeline.set_output_queue(queue)
+
+    asyncio.create_task(pipeline(chat_input, conversation_id, chat_history))
+    text, refs = "", ""
+
+    while True:
+        try:
+            response = queue.get_nowait()
+        except Exception:
+            await asyncio.sleep(0)
+            continue
+
+        if response is None:
+            break
 
         if "output" in response:
             text += response["output"]
         if "evidence" in response:
             refs += response["evidence"]
+        if "chat_input" in response:
+            chat_input = response["chat_input"]
 
         yield "", chat_history + [(chat_input, text)], refs
 

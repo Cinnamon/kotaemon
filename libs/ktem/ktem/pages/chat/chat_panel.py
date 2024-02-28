@@ -19,7 +19,12 @@ class ChatPanel(BasePage):
                 placeholder="Chat input", scale=15, container=False
             )
             self.submit_btn = gr.Button(value="Send", scale=1, min_width=10)
+            self.regen_btn = gr.Button(value="Regen", scale=1, min_width=10)
 
     def submit_msg(self, chat_input, chat_history):
         """Submit a message to the chatbot"""
         return "", chat_history + [(chat_input, None)]
+
+    def activate_rewrite(self, setting_state):
+        setting_state["reasoning.options.simple.rewrite_question"] = True
+        return setting_state

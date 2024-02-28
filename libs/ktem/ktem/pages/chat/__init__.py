@@ -4,7 +4,14 @@ from ktem.app import BasePage
 from .chat_panel import ChatPanel
 from .control import ConversationControl
 from .data_source import DataSource
-from .events import chat_fn, index_fn, is_liked, load_files, update_data_source
+from .events import (
+    chat_fn,
+    index_fn,
+    is_liked,
+    load_files,
+    regen_fn,
+    update_data_source,
+)
 from .report import ReportIssue
 from .upload import FileUpload
 
@@ -64,6 +71,30 @@ class ChatPage(BasePage):
             show_progress="hidden",
         ).then(
             fn=chat_fn,
+            inputs=[
+                self.chat_control.conversation_id,
+                self.chat_panel.chatbot,
+                self.data_source.files,
+                self._app.settings_state,
+            ],
+            outputs=[
+                self.chat_panel.text_input,
+                self.chat_panel.chatbot,
+                self.info_panel,
+            ],
+            show_progress="minimal",
+        ).then(
+            fn=update_data_source,
+            inputs=[
+                self.chat_control.conversation_id,
+                self.data_source.files,
+                self.chat_panel.chatbot,
+            ],
+            outputs=None,
+        )
+
+        self.chat_panel.regen_btn.click(
+            fn=regen_fn,
             inputs=[
                 self.chat_control.conversation_id,
                 self.chat_panel.chatbot,
