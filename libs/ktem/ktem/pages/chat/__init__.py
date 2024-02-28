@@ -4,9 +4,16 @@ from ktem.app import BasePage
 from .chat_panel import ChatPanel
 from .control import ConversationControl
 from .data_source import DataSource
-from .events import chat_fn, index_fn, is_liked, load_files, update_data_source
+from .events import (
+    chat_fn,
+    index_files_from_dir,
+    index_fn,
+    is_liked,
+    load_files,
+    update_data_source,
+)
 from .report import ReportIssue
-from .upload import FileUpload
+from .upload import DirectoryUpload, FileUpload
 
 
 class ChatPage(BasePage):
@@ -20,12 +27,13 @@ class ChatPage(BasePage):
                 self.chat_control = ConversationControl(self._app)
                 self.data_source = DataSource(self._app)
                 self.file_upload = FileUpload(self._app)
+                self.dir_upload = DirectoryUpload(self._app)
                 self.report_issue = ReportIssue(self._app)
             with gr.Column(scale=6):
                 self.chat_panel = ChatPanel(self._app)
             with gr.Column(scale=3):
                 with gr.Accordion(label="Information panel", open=True):
-                    self.info_panel = gr.Markdown(elem_id="chat-info-panel")
+                    self.info_panel = gr.HTML(elem_id="chat-info-panel")
 
     def on_register_events(self):
         self.chat_panel.submit_btn.click(
@@ -139,6 +147,17 @@ class ChatPage(BasePage):
                 self._app.settings_state,
             ],
             outputs=[self.file_upload.file_output, self.data_source.files],
+        )
+
+        self.dir_upload.upload_button.click(
+            fn=index_files_from_dir,
+            inputs=[
+                self.dir_upload.path,
+                self.dir_upload.reindex,
+                self.data_source.files,
+                self._app.settings_state,
+            ],
+            outputs=[self.dir_upload.file_output, self.data_source.files],
         )
 
         self._app.app.load(

@@ -44,3 +44,16 @@ footer {
 mark {
   background-color: #1496bb;
 }
+
+
+/* clpse */
+.clpse {
+  background-color: var(--background-fill-secondary);
+  font-weight: bold;
+  cursor: pointer;
+  padding: 3px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+}

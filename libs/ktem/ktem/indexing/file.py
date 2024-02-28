@@ -16,7 +16,6 @@ from ktem.components import (
 )
 from ktem.db.models import Index, Source, SourceTargetRelation, engine
 from ktem.indexing.base import BaseIndexing, BaseRetriever
-from ktem.indexing.exceptions import FileExistsError
 from llama_index.vector_stores import (
     FilterCondition,
     FilterOperator,
@@ -241,7 +240,7 @@ class IndexDocumentPipeline(BaseIndexing):
             to_index.append(abs_path)
 
         if errors:
-            raise FileExistsError(
+            print(
                 "Files already exist. Please rename/remove them or enable reindex.\n"
                 f"{errors}"
             )
@@ -258,14 +257,18 @@ class IndexDocumentPipeline(BaseIndexing):
 
         # extract the files
         nodes = self.file_ingestor(to_index)
+        print("Extracted", len(to_index), "files into", len(nodes), "nodes")
         for node in nodes:
             file_path = str(node.metadata["file_path"])
             node.source = file_to_source[file_path].id
 
         # index the files
+        print("Indexing the files into vector store")
         self.indexing_vector_pipeline(nodes)
+        print("Finishing indexing the files into vector store")
 
         # persist to the index
+        print("Persisting the vector and the document into index")
         file_ids = []
         with Session(engine) as session:
             for source in file_to_source.values():
@@ -291,6 +294,8 @@ class IndexDocumentPipeline(BaseIndexing):
                 session.add(index)
             session.commit()
 
+        print("Finishing persisting the vector and the document into index")
+        print(f"{len(nodes)} nodes are indexed")
         return nodes, file_ids
 
     def get_user_settings(self) -> dict:

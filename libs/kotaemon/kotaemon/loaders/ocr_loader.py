@@ -1,16 +1,32 @@
+import logging
+import os
 from pathlib import Path
 from typing import List, Optional
 from uuid import uuid4
 
 import requests
 from llama_index.readers.base import BaseReader
+from tenacity import after_log, retry, stop_after_attempt, wait_fixed, wait_random
 
 from kotaemon.base import Document
 
 from .utils.pdf_ocr import parse_ocr_output, read_pdf_unstructured
 from .utils.table import strip_special_chars_markdown
 
+logger = logging.getLogger(__name__)
+
 DEFAULT_OCR_ENDPOINT = "http://127.0.0.1:8000/v2/ai/infer/"
+
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(5) + wait_random(0, 2),
+    after=after_log(logger, logging.DEBUG),
+)
+def tenacious_api_post(url, **kwargs):
+    resp = requests.post(url=url, **kwargs)
+    resp.raise_for_status()
+    return resp
 
 
 class OCRReader(BaseReader):
@@ -24,17 +40,20 @@ class OCRReader(BaseReader):
         ```
 
     Args:
-        endpoint: URL to FullOCR endpoint. Defaults to
+        endpoint: URL to FullOCR endpoint. If not provided, will look for
+            environment variable `OCR_READER_ENDPOINT` or use the default
             `kotaemon.loaders.ocr_loader.DEFAULT_OCR_ENDPOINT`
             (http://127.0.0.1:8000/v2/ai/infer/)
         use_ocr: whether to use OCR to read text (e.g: from images, tables) in the PDF
             If False, only the table and text within table cells will be extracted.
     """
 
-    def __init__(self, endpoint: str = DEFAULT_OCR_ENDPOINT, use_ocr=True):
+    def __init__(self, endpoint: Optional[str] = None, use_ocr=True):
         """Init the OCR reader with OCR endpoint (FullOCR pipeline)"""
         super().__init__()
-        self.ocr_endpoint = endpoint
+        self.ocr_endpoint = endpoint or os.getenv(
+            "OCR_READER_ENDPOINT", DEFAULT_OCR_ENDPOINT
+        )
         self.use_ocr = use_ocr
 
     def load_data(
@@ -62,7 +81,7 @@ class OCRReader(BaseReader):
                 ocr_results = kwargs["response_content"]
             else:
                 # call original API
-                resp = requests.post(url=self.ocr_endpoint, files=files, data=data)
+                resp = tenacious_api_post(url=self.ocr_endpoint, files=files, data=data)
                 ocr_results = resp.json()["result"]
 
         debug_path = kwargs.pop("debug_path", None)

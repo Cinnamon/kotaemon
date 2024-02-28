@@ -2,7 +2,7 @@ import asyncio
 import os
 import tempfile
 from copy import deepcopy
-from typing import Optional
+from typing import Optional, Type
 
 import gradio as gr
 from ktem.components import llms, reasonings
@@ -127,14 +127,18 @@ async def chat_fn(conversation_id, chat_history, files, settings):
     asyncio.create_task(pipeline(chat_input, conversation_id, chat_history))
     text, refs = "", ""
 
+    len_ref = -1  # for logging purpose
+
     while True:
         try:
             response = queue.get_nowait()
         except Exception:
-            await asyncio.sleep(0)
+            yield "", chat_history + [(chat_input, text or "Thinking ...")], refs
             continue
 
         if response is None:
+            queue.task_done()
+            print("Chat completed")
             break
 
         if "output" in response:
@@ -142,7 +146,11 @@ async def chat_fn(conversation_id, chat_history, files, settings):
         if "evidence" in response:
             refs += response["evidence"]
 
-        yield "", chat_history + [(chat_input, text)], refs
+        if len(refs) > len_ref:
+            print(f"Len refs: {len(refs)}")
+            len_ref = len(refs)
+
+    yield "", chat_history + [(chat_input, text)], refs
 
 
 def is_liked(convo_id, liked: gr.LikeData):
@@ -203,7 +211,9 @@ def index_fn(files, reindex: bool, selected_files, settings):
     gr.Info(f"Start indexing {len(files)} files...")
 
     # get the pipeline
-    indexing_cls: BaseIndexing = import_dotted_string(app_settings.KH_INDEX, safe=False)
+    indexing_cls: Type[BaseIndexing] = import_dotted_string(
+        app_settings.KH_INDEX, safe=False
+    )
     indexing_pipeline = indexing_cls.get_pipeline(settings)
 
     output_nodes, file_ids = indexing_pipeline(files, reindex=reindex)
@@ -225,5 +235,71 @@ def index_fn(files, reindex: bool, selected_files, settings):
 
     return (
         gr.update(value=file_path, visible=True),
-        gr.update(value=output, choices=file_list),
+        gr.update(value=output, choices=file_list),  # unnecessary
     )
+
+
+def index_files_from_dir(folder_path, reindex, selected_files, settings):
+    """This should be constructable by users
+
+    It means that the users can build their own index.
+    Build your own index:
+        - Input:
+            - Type: based on the type, then there are ranges of. Use can select multiple
+            panels:
+                - Panels
+                - Data sources
+                - Include patterns
+                - Exclude patterns
+            - Indexing functions. Can be a list of indexing functions. Each declared
+            function is:
+                - Condition (the source that will go through this indexing function)
+                - Function (the pipeline that run this)
+        - Output: artifacts that can be used to -> this is the artifacts that we wish
+            - Build the UI
+                - Upload page: fixed standard, based on the type
+                - Read page: fixed standard, based on the type
+                - Delete page: fixed standard, based on the type
+            - Build the index function
+            - Build the chat function
+
+    Step:
+        1. Decide on the artifacts
+        2. Implement the transformation from artifacts to UI
+    """
+    if not folder_path:
+        return
+
+    import fnmatch
+    from pathlib import Path
+
+    include_patterns: list[str] = []
+    exclude_patterns: list[str] = ["*.png", "*.gif", "*/.*"]
+    if include_patterns and exclude_patterns:
+        raise ValueError("Cannot have both include and exclude patterns")
+
+    # clean up the include patterns
+    for idx in range(len(include_patterns)):
+        if include_patterns[idx].startswith("*"):
+            include_patterns[idx] = str(Path.cwd() / "**" / include_patterns[idx])
+        else:
+            include_patterns[idx] = str(Path.cwd() / include_patterns[idx].strip("/"))
+
+    # clean up the exclude patterns
+    for idx in range(len(exclude_patterns)):
+        if exclude_patterns[idx].startswith("*"):
+            exclude_patterns[idx] = str(Path.cwd() / "**" / exclude_patterns[idx])
+        else:
+            exclude_patterns[idx] = str(Path.cwd() / exclude_patterns[idx].strip("/"))
+
+    # get the files
+    files: list[str] = [str(p) for p in Path(folder_path).glob("**/*.*")]
+    if include_patterns:
+        for p in include_patterns:
+            files = fnmatch.filter(names=files, pat=p)
+
+    if exclude_patterns:
+        for p in exclude_patterns:
+            files = [f for f in files if not fnmatch.fnmatch(name=f, pat=p)]
+
+    return index_fn(files, reindex, selected_files, settings)

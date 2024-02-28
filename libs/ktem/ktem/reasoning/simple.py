@@ -106,7 +106,7 @@ DEFAULT_QA_TEXT_PROMPT = (
     "Use the following pieces of context to answer the question at the end. "
     "If you don't know the answer, just say that you don't know, don't try to "
     "make up an answer. Keep the answer as concise as possible. Give answer in "
-    "{lang}. {system}\n\n"
+    "{lang}.\n\n"
     "{context}\n"
     "Question: {question}\n"
     "Helpful Answer:"
@@ -116,7 +116,7 @@ DEFAULT_QA_TABLE_PROMPT = (
     "List all rows (row number) from the table context that related to the question, "
     "then provide detail answer with clear explanation and citations. "
     "If you don't know the answer, just say that you don't know, "
-    "don't try to make up an answer. Give answer in {lang}. {system}\n\n"
+    "don't try to make up an answer. Give answer in {lang}.\n\n"
     "Context:\n"
     "{context}\n"
     "Question: {question}\n"
@@ -127,7 +127,7 @@ DEFAULT_QA_CHATBOT_PROMPT = (
     "Pick the most suitable chatbot scenarios to answer the question at the end, "
     "output the provided answer text. If you don't know the answer, "
     "just say that you don't know. Keep the answer as concise as possible. "
-    "Give answer in {lang}. {system}\n\n"
+    "Give answer in {lang}.\n\n"
     "Context:\n"
     "{context}\n"
     "Question: {question}\n"
@@ -198,13 +198,12 @@ class AnswerWithContextPipeline(BaseComponent):
             context=evidence,
             question=question,
             lang=self.lang,
-            system=self.system_prompt,
         )
 
-        messages = [
-            SystemMessage(content="You are a helpful assistant"),
-            HumanMessage(content=prompt),
-        ]
+        messages = []
+        if self.system_prompt:
+            messages.append(SystemMessage(content=self.system_prompt))
+        messages.append(HumanMessage(content=prompt))
         output = ""
         for text in self.llm(messages):
             output += text.text
@@ -316,11 +315,19 @@ class FullQAPipeline(BaseComponent):
             settings: the settings for the pipeline
             retrievers: the retrievers to use
         """
+        _id = cls.get_info()["id"]
+
         pipeline = FullQAPipeline(retrievers=retrievers)
         pipeline.answering_pipeline.llm = llms.get_highest_accuracy()
         pipeline.answering_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
             settings["reasoning.lang"], "English"
         )
+        pipeline.answering_pipeline.system_prompt = settings[
+            f"reasoning.options.{_id}.system_prompt"
+        ]
+        pipeline.answering_pipeline.qa_template = settings[
+            f"reasoning.options.{_id}.qa_prompt"
+        ]
         return pipeline
 
     @classmethod
@@ -345,10 +352,6 @@ class FullQAPipeline(BaseComponent):
                 "value": True,
                 "component": "checkbox",
             },
-            "system_prompt": {
-                "name": "System Prompt",
-                "value": "This is a question answering system",
-            },
             "citation_llm": {
                 "name": "LLM for citation",
                 "value": citation_llm,
@@ -360,6 +363,14 @@ class FullQAPipeline(BaseComponent):
                 "value": main_llm,
                 "component": "dropdown",
                 "choices": main_llm_choices,
+            },
+            "system_prompt": {
+                "name": "System Prompt",
+                "value": "This is a question answering system",
+            },
+            "qa_prompt": {
+                "name": "QA Prompt (contains {context}, {question}, {lang})",
+                "value": DEFAULT_QA_TEXT_PROMPT,
             },
         }
 

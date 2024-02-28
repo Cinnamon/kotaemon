@@ -67,7 +67,7 @@ class DocumentIngestor(BaseComponent):
 
         main_reader = DirectoryReader(
             input_files=input_files,
-            file_extractor=file_extractors,  # type: ignore
+            file_extractor=file_extractors,
         )
 
         return main_reader
@@ -85,7 +85,9 @@ class DocumentIngestor(BaseComponent):
             file_paths = [file_paths]
 
         documents = self._get_reader(input_files=file_paths)()
+        print(f"Read {len(file_paths)} files into {len(documents)} documents.")
         nodes = self.text_splitter(documents)
+        print(f"Transform {len(documents)} documents into {len(nodes)} nodes.")
         self.log_progress(".num_docs", num_docs=len(nodes))
 
         # document parsers call

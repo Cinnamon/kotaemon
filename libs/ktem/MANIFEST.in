@@ -1,0 +1,4 @@
+include ktem/assets/css/*.css
+include ktem/assets/img/*.svg
+include ktem/assets/js/*.js
+include ktem/assets/md/*.md

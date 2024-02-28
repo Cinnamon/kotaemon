@@ -8,11 +8,15 @@ nav:
       - Quick Start: index.md
       - Overview: overview.md
       - Contributing: contributing.md
+  - Application:
+      - Features: pages/app/features.md
+      - Customize flow logic: pages/app/customize-flows.md
+      - Customize UI: pages/app/customize-ui.md
+      - Functional description: pages/app/functional-description.md
   - Tutorial:
       - Data & Data Structure Components: data-components.md
       - Creating a Component: create-a-component.md
       - Utilities: ultilities.md
-      - Add new indexing and reasoning pipeline to the application: app.md
   # generated using gen-files + literate-nav
   - API Reference: reference/
   - Use Cases: examples/
