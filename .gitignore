@@ -464,3 +464,6 @@ S.gpg-agent*
 .vscode/settings.json
 examples/example1/assets
 storage/*
+
+# Conda and env storages
+install_dir/

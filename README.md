@@ -7,13 +7,23 @@ projects.
 
 ## Install
 
-```shell
-pip install kotaemon@git+ssh://git@github.com/Cinnamon/kotaemon.git
-```
+### Easy install
 
-## Contribute
+1. Clone the repository.
+2. Navigate to the `scripts` folder and start an installer that matches your OS:
+   - Linux: `run_linux.sh`
+   - Windows: `run_windows.bat`
+   - macOS: `run_macos.sh`
+3. After the installation, the installer will ask to launch the ktem's UI, answer to continue.
+4. If launched, the application will be available at `http://localhost:7860/`. Let's start exploring!
 
-### Setup
+Here is the setup and update strategy:
+
+- **Run `run_*` script**: This setup environment, including downloading Miniconda (in case Conda is not available in your machine) and installing necessary dependencies in `install_dir` folder.
+- **Launch the UI**: To launch the ktem's UI after initial setup or any changes, simply run `run_*` script again.
+- **Reinstall dependencies**: Simply delete the `install_dir/env` folder and run `run_*` script. The script will recreate the folder with fresh dependencies.
+
+### Manual install
 
 - Create conda environment (suggest 3.10)
 
