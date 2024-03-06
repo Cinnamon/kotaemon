@@ -9,11 +9,15 @@ from .in_memory import InMemoryDocumentStore
 class SimpleFileDocumentStore(InMemoryDocumentStore):
     """Improve InMemoryDocumentStore by auto saving whenever the corpus is changed"""
 
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, collection_name: str = "default"):
         super().__init__()
         self._path = path
-        if path is not None and Path(path).is_file():
-            self.load(path)
+        self._collection_name = collection_name
+
+        Path(path).mkdir(parents=True, exist_ok=True)
+        self._save_path = Path(path) / f"{collection_name}.json"
+        if self._save_path.is_file():
+            self.load(self._save_path)
 
     def get(self, ids: Union[List[str], str]) -> List[Document]:
         """Get document by id"""
@@ -22,7 +26,7 @@ class SimpleFileDocumentStore(InMemoryDocumentStore):
 
         for doc_id in ids:
             if doc_id not in self._store:
-                self.load(self._path)
+                self.load(self._save_path)
                 break
 
         return [self._store[doc_id] for doc_id in ids]
@@ -43,14 +47,22 @@ class SimpleFileDocumentStore(InMemoryDocumentStore):
                 found in the docstore (default to False)
         """
         super().add(docs=docs, ids=ids, **kwargs)
-        self.save(self._path)
+        self.save(self._save_path)
 
     def delete(self, ids: Union[List[str], str]):
         """Delete document by id"""
         super().delete(ids=ids)
-        self.save(self._path)
+        self.save(self._save_path)
+
+    def drop(self):
+        """Drop the document store"""
+        super().drop()
+        self._save_path.unlink(missing_ok=True)
 
     def __persist_flow__(self):
         from theflow.utils.modules import serialize
 
-        return {"path": serialize(self._path)}
+        return {
+            "path": serialize(self._path),
+            "collection_name": self._collection_name,
+        }

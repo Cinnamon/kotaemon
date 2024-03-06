@@ -4,18 +4,6 @@ from sqlmodel import SQLModel
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
 
-_base_source = (
-    import_dotted_string(settings.KH_TABLE_SOURCE, safe=False)
-    if hasattr(settings, "KH_TABLE_SOURCE")
-    else base_models.BaseSource
-)
-
-_base_index = (
-    import_dotted_string(settings.KH_TABLE_INDEX, safe=False)
-    if hasattr(settings, "KH_TABLE_INDEX")
-    else base_models.BaseIndex
-)
-
 _base_conv = (
     import_dotted_string(settings.KH_TABLE_CONV, safe=False)
     if hasattr(settings, "KH_TABLE_CONV")
@@ -41,14 +29,6 @@ _base_issue_report = (
 )
 
 
-class Source(_base_source, table=True):  # type: ignore
-    """Record the source of the document"""
-
-
-class Index(_base_index, table=True):  # type: ignore
-    """The index pointing from the original id to the target id"""
-
-
 class Conversation(_base_conv, table=True):  # type: ignore
     """Conversation record"""
 
@@ -63,9 +43,6 @@ class Settings(_base_settings, table=True):  # type: ignore
 
 class IssueReport(_base_issue_report, table=True):  # type: ignore
     """Record of issues"""
-
-
-SourceTargetRelation = base_models.SourceTargetRelation
 
 
 if not getattr(settings, "KH_ENABLE_ALEMBIC", False):

@@ -12,7 +12,7 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
 
     def __init__(
         self,
-        index_name: str = "docstore",
+        collection_name: str = "docstore",
         elasticsearch_url: str = "http://localhost:9200",
         k1: float = 2.0,
         b: float = 0.75,
@@ -27,7 +27,7 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
             )
 
         self.elasticsearch_url = elasticsearch_url
-        self.index_name = index_name
+        self.index_name = collection_name
         self.k1 = k1
         self.b = b
 
@@ -55,9 +55,9 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
         }
 
         # Create the index with the specified settings and mappings
-        if not self.client.indices.exists(index=index_name):
+        if not self.client.indices.exists(index=self.index_name):
             self.client.indices.create(
-                index=index_name, mappings=mappings, settings=settings
+                index=self.index_name, mappings=mappings, settings=settings
             )
 
     def add(
@@ -162,6 +162,11 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
 
         query = {"query": {"terms": {"_id": ids}}}
         self.client.delete_by_query(index=self.index_name, body=query)
+        self.client.indices.refresh(index=self.index_name)
+
+    def drop(self):
+        """Drop the document store"""
+        self.client.indices.delete(index=self.index_name)
         self.client.indices.refresh(index=self.index_name)
 
     def __persist_flow__(self):

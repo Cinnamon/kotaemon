@@ -83,3 +83,7 @@ class InMemoryDocumentStore(BaseDocumentStore):
 
     def __persist_flow__(self):
         return {}
+
+    def drop(self):
+        """Drop the document store"""
+        self._store = {}

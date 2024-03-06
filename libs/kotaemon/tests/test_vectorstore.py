@@ -81,7 +81,7 @@ class TestChromaVectorStore:
         ), "load function does not load data completely"
 
         # test delete collection function
-        db2.delete_collection()
+        db2.drop()
         # reinit the chroma with the same collection name
         db2 = ChromaVectorStore(path=str(tmp_path))
         assert (
@@ -133,10 +133,11 @@ class TestSimpleFileVectorStore:
         embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]]
         metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 5, "b": 6}]
         ids = ["1", "2", "3"]
-        db = SimpleFileVectorStore(path=tmp_path / "test_save_load_delete.json")
+        collection_name = "test_save_load_delete"
+        db = SimpleFileVectorStore(path=tmp_path, collection_name=collection_name)
         db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
         db.delete(["3"])
-        with open(tmp_path / "test_save_load_delete.json") as f:
+        with open(tmp_path / collection_name) as f:
             data = json.load(f)
         assert (
             "1" and "2" in data["text_id_to_ref_doc_id"]
@@ -144,11 +145,11 @@ class TestSimpleFileVectorStore:
         assert (
             "3" not in data["text_id_to_ref_doc_id"]
         ), "delete function does not delete data completely"
-        db2 = SimpleFileVectorStore(path=tmp_path / "test_save_load_delete.json")
+        db2 = SimpleFileVectorStore(path=tmp_path, collection_name=collection_name)
         assert db2.get("2") == [
             0.4,
             0.5,
             0.6,
         ], "load function does not load data completely"
 
-        os.remove(tmp_path / "test_save_load_delete.json")
+        os.remove(tmp_path / collection_name)

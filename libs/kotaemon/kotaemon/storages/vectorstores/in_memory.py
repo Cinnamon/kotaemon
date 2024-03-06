@@ -53,6 +53,10 @@ class InMemoryVectorStore(LlamaIndexVectorStore):
         """
         self._client = self._client.from_persist_path(persist_path=load_path, fs=fs)
 
+    def drop(self):
+        """Clear the old data"""
+        self._data = SimpleVectorStoreData()
+
     def __persist_flow__(self):
         d = self._data.to_dict()
         d["__type__"] = f"{self._data.__module__}.{self._data.__class__.__qualname__}"

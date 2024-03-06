@@ -271,9 +271,7 @@ def test_inmemory_document_store_base_interfaces(tmp_path):
 def test_simplefile_document_store_base_interfaces(tmp_path):
     """Test all interfaces of a a document store"""
 
-    path = tmp_path / "store.json"
-
-    store = SimpleFileDocumentStore(path=path)
+    store = SimpleFileDocumentStore(path=tmp_path)
     docs = [
         Document(text=f"Sample text {idx}", meta={"meta_key": f"meta_value_{idx}"})
         for idx in range(10)
@@ -315,13 +313,13 @@ def test_simplefile_document_store_base_interfaces(tmp_path):
     assert len(store.get_all()) == 17, "Document store should have 17 documents"
 
     # Test save
-    assert path.exists(), "File should exist"
+    assert (tmp_path / "default.json").exists(), "File should exist"
 
     # Test load
-    store2 = SimpleFileDocumentStore(path=path)
+    store2 = SimpleFileDocumentStore(path=tmp_path)
     assert len(store2.get_all()) == 17, "Laded document store should have 17 documents"
 
-    os.remove(path)
+    os.remove(tmp_path / "default.json")
 
 
 @patch(
@@ -329,7 +327,7 @@ def test_simplefile_document_store_base_interfaces(tmp_path):
     side_effect=_elastic_search_responses,
 )
 def test_elastic_document_store(elastic_api):
-    store = ElasticsearchDocumentStore(index_name="test")
+    store = ElasticsearchDocumentStore(collection_name="test")
 
     docs = [
         Document(text=f"Sample text {idx}", meta={"meta_key": f"meta_value_{idx}"})

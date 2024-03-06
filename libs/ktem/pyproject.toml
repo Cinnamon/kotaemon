@@ -9,7 +9,7 @@ packages.find.exclude = ["tests*", "env*"]
 
 [project]
 name = "ktem"
-version = "0.0.1"
+version = "0.1.0"
 requires-python = ">= 3.10"
 description = "RAG-based Question and Answering Application"
 dependencies = [

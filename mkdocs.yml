@@ -10,6 +10,8 @@ nav:
       - Contributing: contributing.md
   - Application:
       - Features: pages/app/features.md
+      - Index:
+          - File index: pages/app/index/file.md
       - Customize flow logic: pages/app/customize-flows.md
       - Customize UI: pages/app/customize-ui.md
       - Functional description: pages/app/functional-description.md

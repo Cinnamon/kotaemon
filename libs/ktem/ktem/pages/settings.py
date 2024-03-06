@@ -329,9 +329,17 @@ class SettingsPage(BasePage):
             self._components[f"application.{n}"] = obj
 
     def index_tab(self):
-        for n, si in self._default_settings.index.settings.items():
-            obj = render_setting_item(si, si.value)
-            self._components[f"index.{n}"] = obj
+        # TODO: double check if we need general
+        # with gr.Tab("General"):
+        #     for n, si in self._default_settings.index.settings.items():
+        #         obj = render_setting_item(si, si.value)
+        #         self._components[f"index.{n}"] = obj
+
+        for pn, sig in self._default_settings.index.options.items():
+            with gr.Tab(f"Index {pn}"):
+                for n, si in sig.settings.items():
+                    obj = render_setting_item(si, si.value)
+                    self._components[f"index.options.{pn}.{n}"] = obj
 
     def reasoning_tab(self):
         with gr.Group():

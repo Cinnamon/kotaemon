@@ -5,7 +5,7 @@ from functools import partial
 
 import tiktoken
 from ktem.components import llms
-from ktem.indexing.base import BaseRetriever
+from ktem.reasoning.base import BaseReasoning
 
 from kotaemon.base import (
     BaseComponent,
@@ -210,20 +210,25 @@ class AnswerWithContextPipeline(BaseComponent):
             self.report_output({"output": text.text})
             await asyncio.sleep(0)
 
-        citation = self.citation_pipeline(context=evidence, question=question)
+        try:
+            citation = self.citation_pipeline(context=evidence, question=question)
+        except Exception as e:
+            print(e)
+            citation = None
+
         answer = Document(text=output, metadata={"citation": citation})
 
         return answer
 
 
-class FullQAPipeline(BaseComponent):
+class FullQAPipeline(BaseReasoning):
     """Question answering pipeline. Handle from question to answer"""
 
     class Config:
         allow_extra = True
-        params_publish = True
 
-    retrievers: list[BaseRetriever]
+    retrievers: list[BaseComponent]
+
     evidence_pipeline: PrepareEvidencePipeline = PrepareEvidencePipeline.withx()
     answering_pipeline: AnswerWithContextPipeline = AnswerWithContextPipeline.withx()
 
@@ -244,18 +249,19 @@ class FullQAPipeline(BaseComponent):
 
         # prepare citation
         spans = defaultdict(list)
-        for fact_with_evidence in answer.metadata["citation"].answer:
-            for quote in fact_with_evidence.substring_quote:
-                for doc in docs:
-                    start_idx = doc.text.find(quote)
-                    if start_idx >= 0:
-                        spans[doc.doc_id].append(
-                            {
-                                "start": start_idx,
-                                "end": start_idx + len(quote),
-                            }
-                        )
-                        break
+        if answer.metadata["citation"] is not None:
+            for fact_with_evidence in answer.metadata["citation"].answer:
+                for quote in fact_with_evidence.substring_quote:
+                    for doc in docs:
+                        start_idx = doc.text.find(quote)
+                        if start_idx >= 0:
+                            spans[doc.doc_id].append(
+                                {
+                                    "start": start_idx,
+                                    "end": start_idx + len(quote),
+                                }
+                            )
+                            break
 
         id2docs = {doc.doc_id: doc for doc in docs}
         lack_evidence = True
@@ -308,7 +314,7 @@ class FullQAPipeline(BaseComponent):
         return answer
 
     @classmethod
-    def get_pipeline(cls, settings, retrievers, **kwargs):
+    def get_pipeline(cls, settings, retrievers):
         """Get the reasoning pipeline
 
         Args:

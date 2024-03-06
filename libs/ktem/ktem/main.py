@@ -24,6 +24,15 @@ class App(BaseApp):
         with gr.Tab("Chat", elem_id="chat-tab"):
             self.chat_page = ChatPage(self)
 
+        for index in self.index_manager.indices:
+            with gr.Tab(
+                f"{index.name} Index",
+                elem_id=f"{index.id}-tab",
+                elem_classes="indices-tab",
+            ):
+                page = index.get_index_page_ui()
+                setattr(self, f"_index_{index.id}", page)
+
         with gr.Tab("Settings", elem_id="settings-tab"):
             self.settings_page = SettingsPage(self)
 

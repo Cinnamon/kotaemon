@@ -166,15 +166,23 @@ class ConversationControl(BasePage):
                 result = session.exec(statement).one()
                 id_ = result.id
                 name = result.name
-                files = result.data_source.get("files", [])
+                selected = result.data_source.get("selected", {})
                 chats = result.data_source.get("messages", [])
             except Exception as e:
                 logger.warning(e)
                 id_ = ""
                 name = ""
-                files = []
+                selected = {}
                 chats = []
-        return id_, id_, name, files, chats
+
+        indices = []
+        for index in self._app.index_manager.indices:
+            # assume that the index has selector
+            if index.selector == -1:
+                continue
+            indices.append(selected.get(str(index.id), []))
+
+        return id_, id_, name, chats, *indices
 
     def rename_conv(self, conversation_id, new_name, user_id):
         """Rename the conversation"""

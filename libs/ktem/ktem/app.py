@@ -1,16 +1,13 @@
 from pathlib import Path
+from typing import Optional
 
 import gradio as gr
 import pluggy
 from ktem import extension_protocol
 from ktem.components import reasonings
 from ktem.exceptions import HookAlreadyDeclared, HookNotDeclared
-from ktem.settings import (
-    BaseSettingGroup,
-    SettingGroup,
-    SettingItem,
-    SettingReasoningGroup,
-)
+from ktem.index import IndexManager
+from ktem.settings import BaseSettingGroup, SettingGroup, SettingReasoningGroup
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
 
@@ -55,22 +52,26 @@ class BaseApp:
         self._callbacks: dict[str, list] = {}
         self._events: dict[str, list] = {}
 
-        self.register_indices()
-        self.register_reasonings()
         self.register_extensions()
+        self.register_reasonings()
+        self.initialize_indices()
 
         self.default_settings.reasoning.finalize()
         self.default_settings.index.finalize()
-
         self.settings_state = gr.State(self.default_settings.flatten())
+
         self.user_id = gr.State(1 if self.dev_mode else None)
 
-    def register_indices(self):
-        """Register the index components from app settings"""
-        index = import_dotted_string(settings.KH_INDEX, safe=False)
-        user_settings = index().get_user_settings()
-        for key, value in user_settings.items():
-            self.default_settings.index.settings[key] = SettingItem(**value)
+    def initialize_indices(self):
+        """Create the index manager, start indices, and register to app settings"""
+        self.index_manager = IndexManager(self)
+        self.index_manager.on_application_startup()
+
+        for index in self.index_manager.indices:
+            options = index.get_user_settings()
+            self.default_settings.index.options[index.id] = BaseSettingGroup(
+                settings=options
+            )
 
     def register_reasonings(self):
         """Register the reasoning components from app settings"""
@@ -196,6 +197,27 @@ class BasePage:
 
     def _on_app_created(self):
         """Called when the app is created"""
+
+    def as_gradio_component(self) -> Optional[gr.components.Component]:
+        """Return the gradio components responsible for events
+
+        Note: in ideal scenario, this method shouldn't be necessary.
+        """
+        return None
+
+    def render(self):
+        for value in self.__dict__.values():
+            if isinstance(value, gr.blocks.Block):
+                value.render()
+            if isinstance(value, BasePage):
+                value.render()
+
+    def unrender(self):
+        for value in self.__dict__.values():
+            if isinstance(value, gr.blocks.Block):
+                value.unrender()
+            if isinstance(value, BasePage):
+                value.unrender()
 
     def declare_public_events(self):
         """Declare an event for the app"""

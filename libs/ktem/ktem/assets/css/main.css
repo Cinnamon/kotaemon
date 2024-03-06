@@ -24,6 +24,10 @@ footer {
     border-radius: 0;
 }
 
+.indices-tab {
+    border: none !important;
+}
+
 #chat-tab, #settings-tab, #help-tab {
     border: none !important;
 }
