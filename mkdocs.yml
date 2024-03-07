@@ -12,6 +12,8 @@ nav:
       - Features: pages/app/features.md
       - Index:
           - File index: pages/app/index/file.md
+      - Extension:
+          - User management: pages/app/ext/user-management.md
       - Customize flow logic: pages/app/customize-flows.md
       - Customize UI: pages/app/customize-ui.md
       - Functional description: pages/app/functional-description.md

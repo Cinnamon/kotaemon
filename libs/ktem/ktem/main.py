@@ -1,5 +1,6 @@
 import gradio as gr
 from ktem.app import BaseApp
+from ktem.pages.admin import AdminPage
 from ktem.pages.chat import ChatPage
 from ktem.pages.help import HelpPage
 from ktem.pages.settings import SettingsPage
@@ -32,6 +33,9 @@ class App(BaseApp):
             ):
                 page = index.get_index_page_ui()
                 setattr(self, f"_index_{index.id}", page)
+
+        with gr.Tab("Admin", elem_id="admin-tab"):
+            self.admin_page = AdminPage(self)
 
         with gr.Tab("Settings", elem_id="settings-tab"):
             self.settings_page = SettingsPage(self)

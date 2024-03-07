@@ -32,6 +32,7 @@ class BaseApp:
 
     def __init__(self):
         self.dev_mode = getattr(settings, "KH_MODE", "") == "dev"
+        self.f_user_management = getattr(settings, "KH_FEATURE_USER_MANAGEMENT", False)
         self._theme = gr.themes.Base(
             font=("ui-sans-serif", "system-ui", "sans-serif"),
             font_mono=("ui-monospace", "Consolas", "monospace"),
@@ -60,7 +61,7 @@ class BaseApp:
         self.default_settings.index.finalize()
         self.settings_state = gr.State(self.default_settings.flatten())
 
-        self.user_id = gr.State(1 if self.dev_mode else None)
+        self.user_id = gr.State(1 if not self.f_user_management else None)
 
     def initialize_indices(self):
         """Create the index manager, start indices, and register to app settings"""

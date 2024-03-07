@@ -405,12 +405,6 @@ class FileIndexPage(BasePage):
             name=list_files["name"][ev.index[0]]
         )
 
-    def delete(self, file_id):
-        pass
-
-    def cancel_delete(self):
-        pass
-
 
 class FileSelector(BasePage):
     """File selector UI in the Chat page"""

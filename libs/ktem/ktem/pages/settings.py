@@ -49,7 +49,7 @@ class SettingsPage(BasePage):
     name of the setting in the `app.default_settings`
     """
 
-    public_events = ["onSignIn", "onSignOut", "onCreateUser"]
+    public_events = ["onSignIn", "onSignOut"]
 
     def __init__(self, app):
         """Initiate the page and render the UI"""
@@ -68,7 +68,7 @@ class SettingsPage(BasePage):
 
     def on_building_ui(self):
         self.setting_save_btn = gr.Button("Save settings")
-        if not self._app.dev_mode:
+        if self._app.f_user_management:
             with gr.Tab("User settings"):
                 self.user_tab()
         with gr.Tab("General application settings"):
@@ -93,7 +93,7 @@ class SettingsPage(BasePage):
             outputs=list(self._reasoning_mode.values()),
             show_progress="hidden",
         )
-        if not self._app.dev_mode:
+        if self._app.f_user_management:
             self.password_change_btn.click(
                 self.change_password,
                 inputs=[
@@ -137,31 +137,6 @@ class SettingsPage(BasePage):
             for event in self._app.get_event("onSignIn"):
                 onSignInSubmit = onSignInSubmit.then(**event)
 
-            onCreateUserClick = self.create_btn.click(
-                self.create_user,
-                inputs=[
-                    self.username_new,
-                    self.password_new,
-                    self.password_new_confirm,
-                ],
-                outputs=[
-                    self._user_id,
-                    self.username_new,
-                    self.password_new,
-                    self.password_new_confirm,
-                ]
-                + self.signed_in_state()
-                + [self.user_out_state],
-                show_progress="hidden",
-            ).then(
-                self.load_setting,
-                inputs=self._user_id,
-                outputs=[self._settings_state] + self.components(),
-                show_progress="hidden",
-            )
-            for event in self._app.get_event("onCreateUser"):
-                onCreateUserClick = onCreateUserClick.then(**event)
-
             onSignOutClick = self.signout.click(
                 self.sign_out,
                 inputs=None,
@@ -179,25 +154,13 @@ class SettingsPage(BasePage):
                 onSignOutClick = onSignOutClick.then(**event)
 
     def user_tab(self):
-        with gr.Row() as self.user_out_state:
-            with gr.Column():
-                gr.Markdown("Sign in")
-                self.username = gr.Textbox(label="Username", interactive=True)
-                self.password = gr.Textbox(
-                    label="Password", type="password", interactive=True
-                )
-                self.signin = gr.Button("Login")
-
-            with gr.Column():
-                gr.Markdown("Create new account")
-                self.username_new = gr.Textbox(label="Username", interactive=True)
-                self.password_new = gr.Textbox(
-                    label="Password", type="password", interactive=True
-                )
-                self.password_new_confirm = gr.Textbox(
-                    label="Confirm password", type="password", interactive=True
-                )
-                self.create_btn = gr.Button("Create account")
+        with gr.Column() as self.user_out_state:
+            gr.Markdown("Sign in")
+            self.username = gr.Textbox(label="Username", interactive=True)
+            self.password = gr.Textbox(
+                label="Password", type="password", interactive=True
+            )
+            self.signin = gr.Button("Login")
 
         # user management
         self.current_name = gr.Markdown("Current user: ___", visible=False)
@@ -213,17 +176,6 @@ class SettingsPage(BasePage):
             "Change password", interactive=True, visible=False
         )
 
-    def signed_out_state(self):
-        return [
-            self.username,
-            self.password,
-            self.signin,
-            self.username_new,
-            self.password_new,
-            self.password_new_confirm,
-            self.create_btn,
-        ]
-
     def signed_in_state(self):
         return [
             self.current_name,  # always the first one
@@ -238,7 +190,7 @@ class SettingsPage(BasePage):
         user_id, clear_username, clear_password = None, username, password
         with Session(engine) as session:
             statement = select(User).where(
-                User.username == username,
+                User.username_lower == username.lower(),
                 User.password == hashed_password,
             )
             result = session.exec(statement).all()
@@ -260,42 +212,6 @@ class SettingsPage(BasePage):
                 gr.update(visible=True) for _ in range(len(self.signed_in_state()) - 1)
             ]
             output.append(gr.update(visible=False))
-
-        return output
-
-    def create_user(self, username, password, password_confirm):
-        user_id, usn, pwd, pwdc = None, username, password, password_confirm
-        if password != password_confirm:
-            gr.Warning("Password does not match")
-        else:
-            with Session(engine) as session:
-                statement = select(User).where(
-                    User.username == username,
-                )
-                result = session.exec(statement).all()
-                if result:
-                    gr.Warning(f'Username "{username}" already exists')
-                else:
-                    hashed_password = hashlib.sha256(password.encode()).hexdigest()
-                    user = User(username=username, password=hashed_password)
-                    session.add(user)
-                    session.commit()
-                    user_id = user.id
-                    usn, pwd, pwdc = "", "", ""
-                    print(user_id)
-
-        output: list = [user_id, usn, pwd, pwdc]
-        if user_id is not None:
-            output.append(gr.update(visible=True, value=f"Current user: {username}"))
-            output += [
-                gr.update(visible=True) for _ in range(len(self.signed_in_state()) - 1)
-            ]
-            output.append(gr.update(visible=False))
-        else:
-            output += [
-                gr.update(visible=False) for _ in range(len(self.signed_in_state()))
-            ]
-            output.append(gr.update(visible=True))
 
         return output
 

@@ -48,7 +48,9 @@ class BaseUser(SQLModel):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str = Field(unique=True)
+    username_lower: str = Field(unique=True)
     password: str
+    admin: bool = Field(default=False)
 
 
 class BaseSettings(SQLModel):

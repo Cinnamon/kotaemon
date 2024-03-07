@@ -71,16 +71,6 @@ class ConversationControl(BasePage):
             },
         )
 
-        self._app.subscribe_event(
-            name="onCreateUser",
-            definition={
-                "fn": self.reload_conv,
-                "inputs": [self._app.user_id],
-                "outputs": [self.conversation],
-                "show_progress": "hidden",
-            },
-        )
-
     def on_register_events(self):
         self.conversation_new_btn.click(
             self.new_conv,
