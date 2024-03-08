@@ -17,3 +17,14 @@ globalThis.clpseFn = (id) => {
     content.style.display = "none";
   }
 }
+
+// store info in local storage
+globalThis.setStorage = (key, value) => {
+    localStorage.setItem(key, JSON.stringify(value))
+}
+globalThis.getStorage = (key, value) => {
+    return JSON.parse(localStorage.getItem(key))
+}
+globalThis.removeFromStorage = (key) => {
+    localStorage.removeItem(key)
+}

@@ -5,6 +5,14 @@ from ktem.app import BasePage
 from ktem.db.models import Settings, User, engine
 from sqlmodel import Session, select
 
+signout_js = """
+function() {
+    removeFromStorage('username');
+    removeFromStorage('password');
+}
+"""
+
+
 gr_cls_single_value = {
     "text": gr.Textbox,
     "number": gr.Number,
@@ -49,7 +57,7 @@ class SettingsPage(BasePage):
     name of the setting in the `app.default_settings`
     """
 
-    public_events = ["onSignIn", "onSignOut"]
+    public_events = ["onSignOut"]
 
     def __init__(self, app):
         """Initiate the page and render the UI"""
@@ -79,7 +87,36 @@ class SettingsPage(BasePage):
             self.reasoning_tab()
 
     def on_subscribe_public_events(self):
-        pass
+        if self._app.f_user_management:
+            self._app.subscribe_event(
+                name="onSignIn",
+                definition={
+                    "fn": self.load_setting,
+                    "inputs": self._user_id,
+                    "outputs": [self._settings_state] + self.components(),
+                    "show_progress": "hidden",
+                },
+            )
+
+            def get_name(user_id):
+                name = "Current user: "
+                if user_id:
+                    with Session(engine) as session:
+                        statement = select(User).where(User.id == user_id)
+                        result = session.exec(statement).all()
+                        if result:
+                            return name + result[0].username
+                return name + "___"
+
+            self._app.subscribe_event(
+                name="onSignIn",
+                definition={
+                    "fn": get_name,
+                    "inputs": self._user_id,
+                    "outputs": [self.current_name],
+                    "show_progress": "hidden",
+                },
+            )
 
     def on_register_events(self):
         self.setting_save_btn.click(
@@ -101,49 +138,15 @@ class SettingsPage(BasePage):
                     self.password_change,
                     self.password_change_confirm,
                 ],
-                outputs=None,
+                outputs=[self.password_change, self.password_change_confirm],
                 show_progress="hidden",
             )
-
-            onSignInClick = self.signin.click(
-                self.sign_in,
-                inputs=[self.username, self.password],
-                outputs=[self._user_id, self.username, self.password]
-                + self.signed_in_state()
-                + [self.user_out_state],
-                show_progress="hidden",
-            ).then(
-                self.load_setting,
-                inputs=self._user_id,
-                outputs=[self._settings_state] + self.components(),
-                show_progress="hidden",
-            )
-            for event in self._app.get_event("onSignIn"):
-                onSignInClick = onSignInClick.then(**event)
-
-            onSignInSubmit = self.password.submit(
-                self.sign_in,
-                inputs=[self.username, self.password],
-                outputs=[self._user_id, self.username, self.password]
-                + self.signed_in_state()
-                + [self.user_out_state],
-                show_progress="hidden",
-            ).then(
-                self.load_setting,
-                inputs=self._user_id,
-                outputs=[self._settings_state] + self.components(),
-                show_progress="hidden",
-            )
-            for event in self._app.get_event("onSignIn"):
-                onSignInSubmit = onSignInSubmit.then(**event)
-
             onSignOutClick = self.signout.click(
-                self.sign_out,
+                lambda: (None, "Current user: ___"),
                 inputs=None,
-                outputs=[self._user_id]
-                + self.signed_in_state()
-                + [self.user_out_state],
+                outputs=[self._user_id, self.current_name],
                 show_progress="hidden",
+                js=signout_js,
             ).then(
                 self.load_setting,
                 inputs=self._user_id,
@@ -154,77 +157,22 @@ class SettingsPage(BasePage):
                 onSignOutClick = onSignOutClick.then(**event)
 
     def user_tab(self):
-        with gr.Column() as self.user_out_state:
-            gr.Markdown("Sign in")
-            self.username = gr.Textbox(label="Username", interactive=True)
-            self.password = gr.Textbox(
-                label="Password", type="password", interactive=True
-            )
-            self.signin = gr.Button("Login")
-
         # user management
-        self.current_name = gr.Markdown("Current user: ___", visible=False)
-        self.signout = gr.Button("Logout", visible=False)
+        self.current_name = gr.Markdown("Current user: ___")
+        self.signout = gr.Button("Logout")
 
         self.password_change = gr.Textbox(
-            label="New password", interactive=True, type="password", visible=False
+            label="New password", interactive=True, type="password"
         )
         self.password_change_confirm = gr.Textbox(
-            label="Confirm password", interactive=True, type="password", visible=False
+            label="Confirm password", interactive=True, type="password"
         )
-        self.password_change_btn = gr.Button(
-            "Change password", interactive=True, visible=False
-        )
-
-    def signed_in_state(self):
-        return [
-            self.current_name,  # always the first one
-            self.signout,
-            self.password_change,
-            self.password_change_confirm,
-            self.password_change_btn,
-        ]
-
-    def sign_in(self, username: str, password: str):
-        hashed_password = hashlib.sha256(password.encode()).hexdigest()
-        user_id, clear_username, clear_password = None, username, password
-        with Session(engine) as session:
-            statement = select(User).where(
-                User.username_lower == username.lower(),
-                User.password == hashed_password,
-            )
-            result = session.exec(statement).all()
-            if result:
-                user_id = result[0].id
-                clear_username, clear_password = "", ""
-            else:
-                gr.Warning("Username or password is incorrect")
-
-        output: list = [user_id, clear_username, clear_password]
-        if user_id is None:
-            output += [
-                gr.update(visible=False) for _ in range(len(self.signed_in_state()))
-            ]
-            output.append(gr.update(visible=True))
-        else:
-            output.append(gr.update(visible=True, value=f"Current user: {username}"))
-            output += [
-                gr.update(visible=True) for _ in range(len(self.signed_in_state()) - 1)
-            ]
-            output.append(gr.update(visible=False))
-
-        return output
-
-    def sign_out(self):
-        output = [None]
-        output += [gr.update(visible=False) for _ in range(len(self.signed_in_state()))]
-        output.append(gr.update(visible=True))
-        return output
+        self.password_change_btn = gr.Button("Change password", interactive=True)
 
     def change_password(self, user_id, password, password_confirm):
         if password != password_confirm:
             gr.Warning("Password does not match")
-            return
+            return password, password_confirm
 
         with Session(engine) as session:
             statement = select(User).where(User.id == user_id)
@@ -238,6 +186,8 @@ class SettingsPage(BasePage):
                 gr.Info("Password changed")
             else:
                 gr.Warning("User not found")
+
+        return "", ""
 
     def app_tab(self):
         for n, si in self._default_settings.application.settings.items():

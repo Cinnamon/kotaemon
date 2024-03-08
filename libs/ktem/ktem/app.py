@@ -30,6 +30,8 @@ class BaseApp:
         - Register events
     """
 
+    public_events: list[str] = []
+
     def __init__(self):
         self.dev_mode = getattr(settings, "KH_MODE", "") == "dev"
         self.f_user_management = getattr(settings, "KH_FEATURE_USER_MANAGEMENT", False)
@@ -145,6 +147,15 @@ class BaseApp:
     def ui(self):
         raise NotImplementedError
 
+    def on_subscribe_public_events(self):
+        """Subscribe to the declared public event of the app"""
+
+    def on_register_events(self):
+        """Register all events to the app"""
+
+    def _on_app_created(self):
+        """Called when the app is created"""
+
     def make(self):
         with gr.Blocks(
             theme=self._theme,
@@ -158,25 +169,43 @@ class BaseApp:
 
             self.ui()
 
-            for value in self.__dict__.values():
-                if isinstance(value, BasePage):
-                    value.declare_public_events()
-
-            for value in self.__dict__.values():
-                if isinstance(value, BasePage):
-                    value.subscribe_public_events()
-
-            for value in self.__dict__.values():
-                if isinstance(value, BasePage):
-                    value.register_events()
-
-            for value in self.__dict__.values():
-                if isinstance(value, BasePage):
-                    value.on_app_created()
-
-            demo.load(lambda: None, None, None, js=f"() => {{{self._js}}}")
+            self.declare_public_events()
+            self.subscribe_public_events()
+            self.register_events()
+            self.on_app_created()
 
         return demo
+
+    def declare_public_events(self):
+        """Declare an event for the app"""
+        for event in self.public_events:
+            self.declare_event(event)
+
+        for value in self.__dict__.values():
+            if isinstance(value, BasePage):
+                value.declare_public_events()
+
+    def subscribe_public_events(self):
+        """Subscribe to an event"""
+        self.on_subscribe_public_events()
+        for value in self.__dict__.values():
+            if isinstance(value, BasePage):
+                value.subscribe_public_events()
+
+    def register_events(self):
+        """Register all events"""
+        self.on_register_events()
+        for value in self.__dict__.values():
+            if isinstance(value, BasePage):
+                value.register_events()
+
+    def on_app_created(self):
+        """Execute on app created callbacks"""
+        self.app.load(lambda: None, None, None, js=f"() => {{{self._js}}}")
+        self._on_app_created()
+        for value in self.__dict__.values():
+            if isinstance(value, BasePage):
+                value.on_app_created()
 
 
 class BasePage:
