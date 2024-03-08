@@ -3,13 +3,13 @@ requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-include-package-data = false
+include-package-data = true
 packages.find.include = ["ktem*"]
 packages.find.exclude = ["tests*", "env*"]
 
 [project]
 name = "ktem"
-version = "0.0.1"
+version = "0.2.0"
 requires-python = ">= 3.10"
 description = "RAG-based Question and Answering Application"
 dependencies = [

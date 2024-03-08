@@ -115,13 +115,6 @@ class SettingIndexGroup(BaseSettingGroup):
 
         return output
 
-    def finalize(self):
-        """Finalize the setting"""
-        options = list(self.options.keys())
-        if options:
-            self.settings["use"].choices = [(x, x) for x in options]
-            self.settings["use"].value = options
-
 
 class SettingGroup(BaseModel):
     application: BaseSettingGroup = Field(default_factory=BaseSettingGroup)

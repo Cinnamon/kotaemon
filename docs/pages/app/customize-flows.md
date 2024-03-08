@@ -36,21 +36,15 @@ class SoSimple(BaseComponent):
         return self.arg1 * self.arg2 + arg3
 ```
 
-This pipeline is named `SoSimple`. It takes `arg1` and `arg2` as init argument.
-It takes `arg3` as run argument.
-
-```python
->> pipeline = SoSimple(arg1=2, arg2="ha")
->> pipeline("x")
-hahax
-```
-
 This pipeline is simple for demonstration purpose, but we can imagine pipelines
 with much more arguments, that can take other pipelines as arguments, and have
 more complicated logic in the `run` method.
 
 **_An indexing or reasoning pipeline is just a class subclass from
 `BaseComponent` like above._**
+
+For more detail on this topic, please refer to [Creating a
+Component](/create-a-component/)
 
 ## Run signatures
 
@@ -97,7 +91,7 @@ file. This file locates at the current working directory where you start the
 ktem. In most use cases, it is this
 [one](https://github.com/Cinnamon/kotaemon/blob/main/libs/ktem/flowsettings.py).
 
-```
+```python
 KH_REASONING = ["<python.module.path.to.the.reasoning.class>"]
 
 KH_INDEX = "<python.module.path.to.the.indexing.class>"
@@ -121,7 +115,7 @@ In your pipeline class, add a classmethod `get_user_settings` that returns a
 setting dictionary, add a classmethod `get_info` that returns an info
 dictionary. Example:
 
-```
+```python
 class SoSimple(BaseComponent):
 
     ... # as above

@@ -12,6 +12,13 @@ user_cache_dir.mkdir(parents=True, exist_ok=True)
 
 COHERE_API_KEY = config("COHERE_API_KEY", default="")
 KH_MODE = "dev"
+KH_FEATURE_USER_MANAGEMENT = True
+KH_FEATURE_USER_MANAGEMENT_ADMIN = str(
+    config("KH_FEATURE_USER_MANAGEMENT_ADMIN", default="admin")
+)
+KH_FEATURE_USER_MANAGEMENT_PASSWORD = str(
+    config("KH_FEATURE_USER_MANAGEMENT_PASSWORD", default="XsdMbe8zKP8KdeE@")
+)
 KH_ENABLE_ALEMBIC = False
 KH_DATABASE = f"sqlite:///{user_cache_dir / 'sql.db'}"
 KH_DOCSTORE = {
@@ -98,4 +105,12 @@ SETTINGS_REASONING = {
 }
 
 
-KH_INDEX = "ktem.indexing.file.IndexDocumentPipeline"
+KH_INDEX_TYPES = ["ktem.index.file.FileIndex"]
+KH_INDICES = [
+    {
+        "id": 1,
+        "name": "File",
+        "config": {},
+        "index_type": "ktem.index.file.FileIndex",
+    }
+]

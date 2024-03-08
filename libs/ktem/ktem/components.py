@@ -17,13 +17,21 @@ filestorage_path.mkdir(parents=True, exist_ok=True)
 
 
 @cache
-def get_docstore() -> BaseDocumentStore:
-    return deserialize(settings.KH_DOCSTORE, safe=False)
+def get_docstore(collection_name: str = "default") -> BaseDocumentStore:
+    from copy import deepcopy
+
+    ds_conf = deepcopy(settings.KH_DOCSTORE)
+    ds_conf["collection_name"] = collection_name
+    return deserialize(ds_conf, safe=False)
 
 
 @cache
-def get_vectorstore() -> BaseVectorStore:
-    return deserialize(settings.KH_VECTORSTORE, safe=False)
+def get_vectorstore(collection_name: str = "default") -> BaseVectorStore:
+    from copy import deepcopy
+
+    vs_conf = deepcopy(settings.KH_VECTORSTORE)
+    vs_conf["collection_name"] = collection_name
+    return deserialize(vs_conf, safe=False)
 
 
 class ModelPool:

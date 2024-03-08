@@ -1,63 +1,9 @@
 import datetime
 import uuid
-from enum import Enum
 from typing import Optional
 
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, SQLModel
-
-
-class BaseSource(SQLModel):
-    """The source of the document
-
-    Attributes:
-        id: canonical id to identify the source
-        name: human-friendly name of the source
-        path: path to retrieve the source
-        type: [TODO] to differentiate different types of sources (as each type can be
-            handled differently)
-    """
-
-    __table_args__ = {"extend_existing": True}
-
-    id: str = Field(
-        default_factory=lambda: uuid.uuid4().hex, primary_key=True, index=True
-    )
-    name: str
-    path: str
-
-
-class SourceTargetRelation(str, Enum):
-    """The type of relationship between the source and the target, to be used with the
-    Index table.
-
-    Current supported relations:
-        - document: the target is a document
-        - vector: the target is a vector
-    """
-
-    DOCUMENT = "document"
-    VECTOR = "vector"
-
-
-class BaseIndex(SQLModel):
-    """The index pointing from the source id to the target id
-
-    Attributes:
-        id: canonical id to identify the relationship between the source and the target
-        source_id: corresponds to Source.id
-        target_id: corresponds to the id of the indexed and processed entries (e.g.
-            embedding vector, document...)
-        relation_type: the type of relationship between the source and the target
-            (corresponds to SourceTargetRelation)
-    """
-
-    __table_args__ = {"extend_existing": True}
-
-    id: Optional[int] = Field(default=None, primary_key=True, index=True)
-    source_id: str
-    target_id: str
-    relation_type: Optional[SourceTargetRelation] = Field(default=None)
 
 
 class BaseConversation(SQLModel):
@@ -102,7 +48,9 @@ class BaseUser(SQLModel):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str = Field(unique=True)
+    username_lower: str = Field(unique=True)
     password: str
+    admin: bool = Field(default=False)
 
 
 class BaseSettings(SQLModel):

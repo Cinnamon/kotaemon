@@ -24,7 +24,3 @@ class ChatPanel(BasePage):
     def submit_msg(self, chat_input, chat_history):
         """Submit a message to the chatbot"""
         return "", chat_history + [(chat_input, None)]
-
-    def activate_rewrite(self, setting_state):
-        setting_state["reasoning.options.simple.rewrite_question"] = True
-        return setting_state

@@ -45,3 +45,8 @@ class BaseDocumentStore(ABC):
     def delete(self, ids: Union[List[str], str]):
         """Delete document by id"""
         ...
+
+    @abstractmethod
+    def drop(self):
+        """Drop the document store"""
+        ...

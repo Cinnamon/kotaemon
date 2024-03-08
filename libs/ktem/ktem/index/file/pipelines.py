@@ -3,20 +3,13 @@ from __future__ import annotations
 import shutil
 import warnings
 from collections import defaultdict
+from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
 from typing import Optional
 
-from ktem.components import (
-    embeddings,
-    filestorage_path,
-    get_docstore,
-    get_vectorstore,
-    llms,
-)
-from ktem.db.models import Index, Source, SourceTargetRelation, engine
-from ktem.indexing.base import BaseIndexing, BaseRetriever
-from ktem.indexing.exceptions import FileExistsError
+from ktem.components import embeddings, filestorage_path, llms
+from ktem.db.models import engine
 from llama_index.vector_stores import (
     FilterCondition,
     FilterOperator,
@@ -24,64 +17,42 @@ from llama_index.vector_stores import (
     MetadataFilters,
 )
 from llama_index.vector_stores.types import VectorStoreQueryMode
-from sqlmodel import Session, select
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from theflow.settings import settings
+from theflow.utils.modules import import_dotted_string
 
 from kotaemon.base import RetrievedDocument
 from kotaemon.indices import VectorIndexing, VectorRetrieval
 from kotaemon.indices.ingests import DocumentIngestor
 from kotaemon.indices.rankings import BaseReranking, CohereReranking, LLMReranking
 
-USER_SETTINGS = {
-    "index_parser": {
-        "name": "Index parser",
-        "value": "normal",
-        "choices": [
-            ("PDF text parser", "normal"),
-            ("Mathpix", "mathpix"),
-            ("Advanced ocr", "ocr"),
-        ],
-        "component": "dropdown",
-    },
-    "separate_embedding": {
-        "name": "Use separate embedding",
-        "value": False,
-        "choices": [("Yes", True), ("No", False)],
-        "component": "dropdown",
-    },
-    "num_retrieval": {
-        "name": "Number of documents to retrieve",
-        "value": 3,
-        "component": "number",
-    },
-    "retrieval_mode": {
-        "name": "Retrieval mode",
-        "value": "vector",
-        "choices": ["vector", "text", "hybrid"],
-        "component": "dropdown",
-    },
-    "prioritize_table": {
-        "name": "Prioritize table",
-        "value": True,
-        "choices": [True, False],
-        "component": "checkbox",
-    },
-    "mmr": {
-        "name": "Use MMR",
-        "value": True,
-        "choices": [True, False],
-        "component": "checkbox",
-    },
-    "use_reranking": {
-        "name": "Use reranking",
-        "value": True,
-        "choices": [True, False],
-        "component": "checkbox",
-    },
-}
+from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
 
 
-class DocumentRetrievalPipeline(BaseRetriever):
+@lru_cache
+def dev_settings():
+    """Retrieve the developer settings from flowsettings.py"""
+    file_extractors = {}
+
+    if hasattr(settings, "FILE_INDEX_PIPELINE_FILE_EXTRACTORS"):
+        file_extractors = {
+            key: import_dotted_string(value, safe=False)
+            for key, value in settings.FILE_INDEX_PIPELINE_FILE_EXTRACTORS.items()
+        }
+
+    chunk_size = None
+    if hasattr(settings, "FILE_INDEX_PIPELINE_SPLITTER_CHUNK_SIZE"):
+        chunk_size = settings.FILE_INDEX_PIPELINE_SPLITTER_CHUNK_SIZE
+
+    chunk_overlap = None
+    if hasattr(settings, "FILE_INDEX_PIPELINE_SPLITTER_CHUNK_OVERLAP"):
+        chunk_overlap = settings.FILE_INDEX_PIPELINE_SPLITTER_CHUNK_OVERLAP
+
+    return file_extractors, chunk_size, chunk_overlap
+
+
+class DocumentRetrievalPipeline(BaseFileIndexRetriever):
     """Retrieve relevant document
 
     Args:
@@ -94,8 +65,6 @@ class DocumentRetrievalPipeline(BaseRetriever):
     """
 
     vector_retrieval: VectorRetrieval = VectorRetrieval.withx(
-        doc_store=get_docstore(),
-        vector_store=get_vectorstore(),
         embedding=embeddings.get_default(),
     )
     reranker: BaseReranking = CohereReranking.withx(
@@ -118,15 +87,17 @@ class DocumentRetrievalPipeline(BaseRetriever):
             mmr: whether to use mmr to re-rank the documents
             doc_ids: list of document ids to constraint the retrieval
         """
+        Index = self._Index
+
         kwargs = {}
         if doc_ids:
             with Session(engine) as session:
                 stmt = select(Index).where(
-                    Index.relation_type == SourceTargetRelation.VECTOR,
+                    Index.relation_type == "vector",
                     Index.source_id.in_(doc_ids),  # type: ignore
                 )
-                results = session.exec(stmt)
-                vs_ids = [r.target_id for r in results.all()]
+                results = session.execute(stmt)
+                vs_ids = [r[0].target_id for r in results.all()]
 
             kwargs["filters"] = MetadataFilters(
                 filters=[
@@ -182,8 +153,73 @@ class DocumentRetrievalPipeline(BaseRetriever):
 
         return docs
 
+    @classmethod
+    def get_user_settings(cls) -> dict:
+        return {
+            "separate_embedding": {
+                "name": "Use separate embedding",
+                "value": False,
+                "choices": [("Yes", True), ("No", False)],
+                "component": "dropdown",
+            },
+            "num_retrieval": {
+                "name": "Number of documents to retrieve",
+                "value": 3,
+                "component": "number",
+            },
+            "retrieval_mode": {
+                "name": "Retrieval mode",
+                "value": "vector",
+                "choices": ["vector", "text", "hybrid"],
+                "component": "dropdown",
+            },
+            "prioritize_table": {
+                "name": "Prioritize table",
+                "value": True,
+                "choices": [True, False],
+                "component": "checkbox",
+            },
+            "mmr": {
+                "name": "Use MMR",
+                "value": True,
+                "choices": [True, False],
+                "component": "checkbox",
+            },
+            "use_reranking": {
+                "name": "Use reranking",
+                "value": True,
+                "choices": [True, False],
+                "component": "checkbox",
+            },
+        }
 
-class IndexDocumentPipeline(BaseIndexing):
+    @classmethod
+    def get_pipeline(cls, user_settings, index_settings, selected):
+        """Get retriever objects associated with the index
+
+        Args:
+            settings: the settings of the app
+            kwargs: other arguments
+        """
+        retriever = cls(get_extra_table=user_settings["prioritize_table"])
+        if not user_settings["use_reranking"]:
+            retriever.reranker = None  # type: ignore
+
+        kwargs = {
+            ".top_k": int(user_settings["num_retrieval"]),
+            ".mmr": user_settings["mmr"],
+            ".doc_ids": selected,
+        }
+        retriever.set_run(kwargs, temp=True)
+        return retriever
+
+    def set_resources(self, resources: dict):
+        super().set_resources(resources)
+        self.vector_retrieval.vector_store = self._VS
+        self.vector_retrieval.doc_store = self._DS
+
+
+class IndexDocumentPipeline(BaseFileIndexIndexing):
     """Store the documents and index the content into vector store and doc store
 
     Args:
@@ -192,8 +228,6 @@ class IndexDocumentPipeline(BaseIndexing):
     """
 
     indexing_vector_pipeline: VectorIndexing = VectorIndexing.withx(
-        doc_store=get_docstore(),
-        vector_store=get_vectorstore(),
         embedding=embeddings.get_default(),
     )
     file_ingestor: DocumentIngestor = DocumentIngestor.withx()
@@ -216,6 +250,9 @@ class IndexDocumentPipeline(BaseIndexing):
         Returns:
             list of split nodes
         """
+        Source = self._Source
+        Index = self._Index
+
         if not isinstance(file_paths, list):
             file_paths = [file_paths]
 
@@ -232,40 +269,48 @@ class IndexDocumentPipeline(BaseIndexing):
 
             with Session(engine) as session:
                 statement = select(Source).where(Source.name == Path(abs_path).name)
-                item = session.exec(statement).first()
+                item = session.execute(statement).first()
 
-            if item and not reindex:
-                errors.append(Path(abs_path).name)
-                continue
+                if item and not reindex:
+                    errors.append(Path(abs_path).name)
+                    continue
 
             to_index.append(abs_path)
 
         if errors:
-            raise FileExistsError(
+            print(
                 "Files already exist. Please rename/remove them or enable reindex.\n"
                 f"{errors}"
             )
+
+        if not to_index:
+            return [], []
 
         # persist the files to storage
         for path in to_index:
             shutil.copy(path, filestorage_path / file_to_hash[path])
 
         # prepare record info
-        file_to_source: dict[str, Source] = {}
+        file_to_source: dict = {}
         for file_path, file_hash in file_to_hash.items():
-            source = Source(path=file_hash, name=Path(file_path).name)
+            source = Source(
+                name=Path(file_path).name,
+                path=file_hash,
+                size=Path(file_path).stat().st_size,
+            )
             file_to_source[file_path] = source
 
         # extract the files
         nodes = self.file_ingestor(to_index)
-        for node in nodes:
-            file_path = str(node.metadata["file_path"])
-            node.source = file_to_source[file_path].id
+        print("Extracted", len(to_index), "files into", len(nodes), "nodes")
 
         # index the files
+        print("Indexing the files into vector store")
         self.indexing_vector_pipeline(nodes)
+        print("Finishing indexing the files into vector store")
 
         # persist to the index
+        print("Persisting the vector and the document into index")
         file_ids = []
         with Session(engine) as session:
             for source in file_to_source.values():
@@ -274,52 +319,67 @@ class IndexDocumentPipeline(BaseIndexing):
             for source in file_to_source.values():
                 file_ids.append(source.id)
 
+            for node in nodes:
+                file_path = str(node.metadata["file_path"])
+                node.source = str(file_to_source[file_path].id)
+                file_to_source[file_path].text_length += len(node.text)
+
+            session.flush()
+            session.commit()
+
         with Session(engine) as session:
             for node in nodes:
                 index = Index(
                     source_id=node.source,
                     target_id=node.doc_id,
-                    relation_type=SourceTargetRelation.DOCUMENT,
+                    relation_type="document",
                 )
                 session.add(index)
             for node in nodes:
                 index = Index(
                     source_id=node.source,
                     target_id=node.doc_id,
-                    relation_type=SourceTargetRelation.VECTOR,
+                    relation_type="vector",
                 )
                 session.add(index)
             session.commit()
 
+        print("Finishing persisting the vector and the document into index")
+        print(f"{len(nodes)} nodes are indexed")
         return nodes, file_ids
 
-    def get_user_settings(self) -> dict:
-        return USER_SETTINGS
+    @classmethod
+    def get_user_settings(cls) -> dict:
+        return {
+            "index_parser": {
+                "name": "Index parser",
+                "value": "normal",
+                "choices": [
+                    ("PDF text parser", "normal"),
+                    ("Mathpix", "mathpix"),
+                    ("Advanced ocr", "ocr"),
+                ],
+                "component": "dropdown",
+            },
+        }
 
     @classmethod
-    def get_pipeline(cls, settings) -> "IndexDocumentPipeline":
+    def get_pipeline(cls, user_settings, index_settings) -> "IndexDocumentPipeline":
         """Get the pipeline based on the setting"""
         obj = cls()
-        obj.file_ingestor.pdf_mode = settings["index.index_parser"]
+        obj.file_ingestor.pdf_mode = user_settings["index_parser"]
+
+        file_extractors, chunk_size, chunk_overlap = dev_settings()
+        if file_extractors:
+            obj.file_ingestor.override_file_extractors = file_extractors
+        if chunk_size:
+            obj.file_ingestor.text_splitter.chunk_size = chunk_size
+        if chunk_overlap:
+            obj.file_ingestor.text_splitter.chunk_overlap = chunk_overlap
+
         return obj
 
-    def get_retrievers(self, settings, **kwargs) -> list[BaseRetriever]:
-        """Get retriever objects associated with the index
-
-        Args:
-            settings: the settings of the app
-            kwargs: other arguments
-        """
-        retriever = DocumentRetrievalPipeline(
-            get_extra_table=settings["index.prioritize_table"]
-        )
-        if not settings["index.use_reranking"]:
-            retriever.reranker = None  # type: ignore
-
-        kwargs = {
-            ".top_k": int(settings["index.num_retrieval"]),
-            ".mmr": settings["index.mmr"],
-            ".doc_ids": kwargs.get("files", None),
-        }
-        retriever.set_run(kwargs, temp=True)
-        return [retriever]
+    def set_resources(self, resources: dict):
+        super().set_resources(resources)
+        self.indexing_vector_pipeline.vector_store = self._VS
+        self.indexing_vector_pipeline.doc_store = self._DS

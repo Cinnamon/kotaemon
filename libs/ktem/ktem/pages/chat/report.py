@@ -46,10 +46,15 @@ class ReportIssue(BasePage):
         more_detail: str,
         conv_id: str,
         chat_history: list,
-        files: list,
         settings: dict,
         user_id: Optional[int],
+        *selecteds
     ):
+        selecteds_ = {}
+        for index in self._app.index_manager.indices:
+            if index.selector != -1:
+                selecteds_[str(index.id)] = selecteds[index.selector]
+
         with Session(engine) as session:
             issue = IssueReport(
                 issues={
@@ -60,7 +65,7 @@ class ReportIssue(BasePage):
                 chat={
                     "conv_id": conv_id,
                     "chat_history": chat_history,
-                    "files": files,
+                    "selecteds": selecteds_,
                 },
                 settings=settings,
                 user=user_id,

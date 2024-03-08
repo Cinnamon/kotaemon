@@ -20,6 +20,7 @@ class SimpleFileVectorStore(LlamaIndexVectorStore):
     def __init__(
         self,
         path: str | Path,
+        collection_name: str = "default",
         data: Optional[SimpleVectorStoreData] = None,
         fs: Optional[fsspec.AbstractFileSystem] = None,
         **kwargs: Any,
@@ -27,8 +28,9 @@ class SimpleFileVectorStore(LlamaIndexVectorStore):
         """Initialize params."""
         self._data = data or SimpleVectorStoreData()
         self._fs = fs or fsspec.filesystem("file")
+        self._collection_name = collection_name
         self._path = path
-        self._save_path = Path(path)
+        self._save_path = Path(path) / collection_name
 
         super().__init__(
             data=data,
@@ -56,11 +58,16 @@ class SimpleFileVectorStore(LlamaIndexVectorStore):
         self._client.persist(str(self._save_path), self._fs)
         return r
 
+    def drop(self):
+        self._data = SimpleVectorStoreData()
+        self._save_path.unlink(missing_ok=True)
+
     def __persist_flow__(self):
         d = self._data.to_dict()
         d["__type__"] = f"{self._data.__module__}.{self._data.__class__.__qualname__}"
         return {
             "data": d,
+            "collection_name": self._collection_name,
             "path": str(self._path),
             # "fs": self._fs,
         }

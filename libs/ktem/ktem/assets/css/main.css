@@ -24,7 +24,11 @@ footer {
     border-radius: 0;
 }
 
-#chat-tab, #settings-tab, #help-tab {
+.indices-tab {
+    border: none !important;
+}
+
+#chat-tab, #settings-tab, #help-tab, #admin-tab, #login-tab {
     border: none !important;
 }
 
@@ -43,4 +47,17 @@ footer {
 
 mark {
   background-color: #1496bb;
+}
+
+
+/* clpse */
+.clpse {
+  background-color: var(--background-fill-secondary);
+  font-weight: bold;
+  cursor: pointer;
+  padding: 3px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
 }

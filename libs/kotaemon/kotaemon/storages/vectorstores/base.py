@@ -66,6 +66,11 @@ class BaseVectorStore(ABC):
         """
         ...
 
+    @abstractmethod
+    def drop(self):
+        """Drop the vector store"""
+        ...
+
 
 class LlamaIndexVectorStore(BaseVectorStore):
     _li_class: type[LIVectorStore | BasePydanticVectorStore]
