@@ -51,25 +51,26 @@ class ConversationControl(BasePage):
         # )
 
     def on_subscribe_public_events(self):
-        self._app.subscribe_event(
-            name="onSignIn",
-            definition={
-                "fn": self.reload_conv,
-                "inputs": [self._app.user_id],
-                "outputs": [self.conversation],
-                "show_progress": "hidden",
-            },
-        )
+        if self._app.f_user_management:
+            self._app.subscribe_event(
+                name="onSignIn",
+                definition={
+                    "fn": self.reload_conv,
+                    "inputs": [self._app.user_id],
+                    "outputs": [self.conversation],
+                    "show_progress": "hidden",
+                },
+            )
 
-        self._app.subscribe_event(
-            name="onSignOut",
-            definition={
-                "fn": self.reload_conv,
-                "inputs": [self._app.user_id],
-                "outputs": [self.conversation],
-                "show_progress": "hidden",
-            },
-        )
+            self._app.subscribe_event(
+                name="onSignOut",
+                definition={
+                    "fn": self.reload_conv,
+                    "inputs": [self._app.user_id],
+                    "outputs": [self.conversation],
+                    "show_progress": "hidden",
+                },
+            )
 
     def on_register_events(self):
         self.conversation_new_btn.click(
