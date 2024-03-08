@@ -437,6 +437,11 @@ class FullQAPipeline(BaseComponent):
                 "component": "dropdown",
                 "choices": [False, True],
             },
+            "already_rewrite": {
+                "name": "Last message is rewritten",
+                "value": False,
+                "choices": [False, True],
+            },
         }
 
     @classmethod
