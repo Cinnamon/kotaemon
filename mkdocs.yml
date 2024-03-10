@@ -12,6 +12,9 @@ nav:
       - Features: pages/app/features.md
       - Index:
           - File index: pages/app/index/file.md
+      - Settings:
+          - pages/app/settings/overview.md
+          - pages/app/settings/user-settings.md
       - Extension:
           - User management: pages/app/ext/user-management.md
       - Customize flow logic: pages/app/customize-flows.md
@@ -49,6 +52,7 @@ markdown_extensions:
   - toc:
       permalink: true
       title: Page contents
+  - mdx_truly_sane_lists
 
 plugins:
   - search

@@ -1,4 +1,3 @@
-import unicodedata
 from pathlib import Path
 from typing import List, Optional
 
@@ -22,41 +21,37 @@ class HtmlReader(BaseReader):
 
     def __init__(self, page_break_pattern: Optional[str] = None, *args, **kwargs):
         try:
-            import html2text
+            import html2text  # noqa
         except ImportError:
             raise ImportError(
                 "html2text is not installed. "
                 "Please install it using `pip install html2text`"
             )
 
-        self._module = html2text
         self._page_break_pattern: Optional[str] = page_break_pattern
         super().__init__()
 
     def load_data(
-        self, file_path: Path, extra_info: Optional[dict] = None, **kwargs
+        self, file_path: Path | str, extra_info: Optional[dict] = None, **kwargs
     ) -> List[Document]:
         """Load data using Html reader
 
         Args:
-            file_path (Path): Path to PDF file
-            debug_path (Path): Path to store debug image output
-            artifact_path (Path): Path to OCR endpoints artifacts directory
+            file_path: path to pdf file
+            extra_info: extra information passed to this reader during extracting data
+
         Returns:
-            List[Document]: list of documents extracted from the HTML file
+            list[Document]: list of documents extracted from the HTML file
         """
+        import html2text
+
         file_path = Path(file_path).resolve()
 
-        with file_path.open("r") as content:
-            html_text = "".join(
-                [
-                    unicodedata.normalize("NFKC", line[:-1])
-                    for line in content.readlines()
-                ]
-            )
+        with file_path.open("r") as f:
+            html_text = "".join([line[:-1] for line in f.readlines()])
 
         # read HTML
-        all_text = self._module.html2text(html_text)
+        all_text = html2text.html2text(html_text)
         pages = (
             all_text.split(self._page_break_pattern)
             if self._page_break_pattern
