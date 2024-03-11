@@ -36,6 +36,7 @@ class BaseFileIndexRetriever(BaseComponent):
         self._Index = resources["Index"]
         self._VS = resources["VectorStore"]
         self._DS = resources["DocStore"]
+        self._fs_path = resources["FileStoragePath"]
 
 
 class BaseFileIndexIndexing(BaseComponent):
@@ -89,3 +90,40 @@ class BaseFileIndexIndexing(BaseComponent):
         self._Index = resources["Index"]
         self._VS = resources["VectorStore"]
         self._DS = resources["DocStore"]
+        self._fs_path = resources["FileStoragePath"]
+
+    def copy_to_filestorage(
+        self, file_paths: str | Path | list[str | Path]
+    ) -> list[str]:
+        """Copy to file storage and return the new path, relative to the file storage
+
+        Args:
+            file_path: the file path to copy
+
+        Returns:
+            the new file paths, relative to the file storage
+        """
+        import shutil
+        from hashlib import sha256
+
+        if not isinstance(file_paths, list):
+            file_paths = [file_paths]
+
+        paths = []
+        for file_path in file_paths:
+            with open(file_path, "rb") as f:
+                paths.append(sha256(f.read()).hexdigest())
+            shutil.copy(file_path, self._fs_path / paths[-1])
+
+        return paths
+
+    def get_filestorage_path(self, rel_paths: str | list[str]) -> list[str]:
+        """Get the file storage path for the relative path
+
+        Args:
+            rel_paths: the relative path to the file storage
+
+        Returns:
+            the absolute file storage path to the file
+        """
+        raise NotImplementedError

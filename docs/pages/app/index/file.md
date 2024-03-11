@@ -17,11 +17,10 @@ The ktem has default indexing pipeline: `ktem.index.file.pipelines.IndexDocument
 
 This default pipeline works as follow:
 
-- Input: list of file paths
-- Output: list of nodes that are indexed into database
-- Process:
-  - Read files into texts. Different file types has different ways to read
-    texts.
+- **Input**: list of file paths
+- **Output**: list of nodes that are indexed into database
+- **Process**:
+  - Read files into texts. Different file types has different ways to read texts.
   - Split text files into smaller segments
   - Run each segments into embeddings.
   - Store the embeddings into vector store. Store the texts of each segment
@@ -55,7 +54,7 @@ You should define the following methods:
   fully-initialized pipeline, ready to be used by ktem.
   - `user_settings`: is a dictionary contains user settings (e.g. `{"pdf_mode": True, "num_retrieval": 5}`). You can declare these settings in the `get_user_settings` classmethod. ktem will collect these settings into the app Settings page, and will supply these user settings to your `get_pipeline` method.
   - `index_settings`: is a dictionary. Currently it's empty for File Index.
-- `get_user_settings`: to declare user settings, eturn a dictionary.
+- `get_user_settings`: to declare user settings, return a dictionary.
 
 By subclassing `BaseFileIndexIndexing`, You will have access to the following resources:
 
@@ -81,6 +80,30 @@ follow:
   - Query the vector store. Provide a list of vector ids to limit query scope
     if the user restrict.
   - Return the matched text segments
+
+### Create your own retrieval pipeline
+
+Your retrieval pipeline will subclass `BaseFileIndexRetriever`. The retriever
+has the same database, vectorstore and docstore accesses like the indexing
+pipeline.
+
+You should define the following methods:
+
+- `run(self, query, file_ids)`: retrieve relevant documents relating to the
+  query. If `file_ids` is given, you should restrict your search within these
+  `file_ids`.
+- `get_pipeline(cls, user_settings, index_settings, selected)`: return the
+  fully-initialized pipeline, ready to be used by ktem.
+  - `user_settings`: is a dictionary contains user settings (e.g. `{"pdf_mode": True, "num_retrieval": 5}`). You can declare these settings in the `get_user_settings` classmethod. ktem will collect these settings into the app Settings page, and will supply these user settings to your `get_pipeline` method.
+    - `index_settings`: is a dictionary. Currently it's empty for File Index.
+    - `selected`: a list of file ids selected by user. If user doesn't select
+      anything, this variable will be None.
+- `get_user_settings`: to declare user settings, return a dictionary.
+
+Once you build the retrieval pipeline class, you can register it in
+`flowsettings.py`: `FILE_INDEXING_RETRIEVER_PIPELIENS = ["path.to.retrieval.pipelie"]`. Because there can be
+multiple parallel pipelines within an index, this variable takes a list of
+string rather than a string.
 
 ## Software infrastructure
 

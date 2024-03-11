@@ -279,7 +279,11 @@ class FileIndexPage(BasePage):
         # get the pipeline
         indexing_pipeline = self._index.get_indexing_pipeline(settings)
 
-        output_nodes, _ = indexing_pipeline(files, reindex=reindex)
+        result = indexing_pipeline(files, reindex=reindex)
+        if result is None:
+            gr.Info("Finish indexing")
+            return
+        output_nodes, _ = result
         gr.Info(f"Finish indexing into {len(output_nodes)} chunks")
 
         # download the file

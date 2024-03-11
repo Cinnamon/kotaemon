@@ -20,13 +20,12 @@ class DocxReader(BaseReader):
 
     def __init__(self, *args, **kwargs):
         try:
-            import docx
+            import docx  # noqa
         except ImportError:
             raise ImportError(
                 "docx is not installed. "
                 "Please install it using `pip install python-docx`"
             )
-        self._module = docx
 
     def load_data(
         self, file_path: Path, extra_info: Optional[dict] = None, **kwargs
@@ -39,9 +38,11 @@ class DocxReader(BaseReader):
         Returns:
             List[Document]: list of documents extracted from the HTML file
         """
+        import docx
+
         file_path = Path(file_path).resolve()
 
-        doc = self._module.Document(str(file_path))
+        doc = docx.Document(str(file_path))
         all_text = "\n".join(
             [unicodedata.normalize("NFKC", p.text) for p in doc.paragraphs]
         )

@@ -1,7 +1,7 @@
 import uuid
 from typing import Any, Optional, Type
 
-from ktem.components import get_docstore, get_vectorstore
+from ktem.components import filestorage_path, get_docstore, get_vectorstore
 from ktem.db.engine import engine
 from ktem.index.base import BaseIndex
 from sqlalchemy import Column, DateTime, Integer, String
@@ -45,7 +45,7 @@ class FileIndex(BaseIndex):
                 ),
                 "name": Column(String, unique=True),
                 "path": Column(String),
-                "size": Column(Integer),
+                "size": Column(Integer, default=0),
                 "text_length": Column(Integer, default=0),
                 "date_created": Column(
                     DateTime(timezone=True), server_default=func.now()
@@ -66,11 +66,13 @@ class FileIndex(BaseIndex):
         self._db_tables: dict[str, Any] = {"Source": Source, "Index": Index}
         self._vs: BaseVectorStore = get_vectorstore(f"index_{self.id}")
         self._docstore: BaseDocumentStore = get_docstore(f"index_{self.id}")
+        self._fs_path = filestorage_path / f"index_{self.id}"
         self._resources = {
             "Source": Source,
             "Index": Index,
             "VectorStore": self._vs,
             "DocStore": self._docstore,
+            "FileStoragePath": self._fs_path,
         }
 
         self._indexing_pipeline_cls: Type[BaseFileIndexIndexing]
@@ -96,19 +98,19 @@ class FileIndex(BaseIndex):
         """
         if "FILE_INDEX_PIPELINE" in self._config:
             self._indexing_pipeline_cls = import_dotted_string(
-                self._config["FILE_INDEX_PIPELINE"]
+                self._config["FILE_INDEX_PIPELINE"], safe=False
             )
             return
 
         if hasattr(flowsettings, f"FILE_INDEX_{self.id}_PIPELINE"):
             self._indexing_pipeline_cls = import_dotted_string(
-                getattr(flowsettings, f"FILE_INDEX_{self.id}_PIPELINE")
+                getattr(flowsettings, f"FILE_INDEX_{self.id}_PIPELINE"), safe=False
             )
             return
 
         if hasattr(flowsettings, "FILE_INDEX_PIPELINE"):
             self._indexing_pipeline_cls = import_dotted_string(
-                getattr(flowsettings, "FILE_INDEX_PIPELINE")
+                getattr(flowsettings, "FILE_INDEX_PIPELINE"), safe=False
             )
             return
 
@@ -130,14 +132,14 @@ class FileIndex(BaseIndex):
         """
         if "FILE_INDEX_RETRIEVER_PIPELINES" in self._config:
             self._retriever_pipeline_cls = [
-                import_dotted_string(each)
+                import_dotted_string(each, safe=False)
                 for each in self._config["FILE_INDEX_RETRIEVER_PIPELINES"]
             ]
             return
 
         if hasattr(flowsettings, f"FILE_INDEX_{self.id}_RETRIEVER_PIPELINES"):
             self._retriever_pipeline_cls = [
-                import_dotted_string(each)
+                import_dotted_string(each, safe=False)
                 for each in getattr(
                     flowsettings, f"FILE_INDEX_{self.id}_RETRIEVER_PIPELINES"
                 )
@@ -146,8 +148,8 @@ class FileIndex(BaseIndex):
 
         if hasattr(flowsettings, "FILE_INDEX_RETRIEVER_PIPELINES"):
             self._retriever_pipeline_cls = [
-                import_dotted_string(each)
-                for each in getattr(flowsettings, "FILE_INDEX_RETRIEVER_PIPELINE")
+                import_dotted_string(each, safe=False)
+                for each in getattr(flowsettings, "FILE_INDEX_RETRIEVER_PIPELINES")
             ]
             return
 
@@ -165,13 +167,17 @@ class FileIndex(BaseIndex):
         """
         self._resources["Source"].metadata.create_all(engine)  # type: ignore
         self._resources["Index"].metadata.create_all(engine)  # type: ignore
+        self._fs_path.mkdir(parents=True, exist_ok=True)
 
     def on_delete(self):
         """Clean up the index when the user delete it"""
+        import shutil
+
         self._resources["Source"].__table__.drop(engine)  # type: ignore
         self._resources["Index"].__table__.drop(engine)  # type: ignore
         self._vs.drop()
         self._docstore.drop()
+        shutil.rmtree(self._fs_path)
 
     def get_selector_component_ui(self):
         return FileSelector(self._app, self)
