@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import AsyncGenerator, Iterator
 
 from kotaemon.base import BaseMessage, HumanMessage, LLMInterface
 
@@ -10,6 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 class LCChatMixin:
+    """Mixin for langchain based chat models"""
+
     def _get_lc_class(self):
         raise NotImplementedError(
             "Please return the relevant Langchain class in in _get_lc_class"
@@ -30,18 +33,7 @@ class LCChatMixin:
             return self.stream(messages, **kwargs)  # type: ignore
         return self.invoke(messages, **kwargs)
 
-    def invoke(
-        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
-    ) -> LLMInterface:
-        """Generate response from messages
-
-        Args:
-            messages: history of messages to generate response from
-            **kwargs: additional arguments to pass to the langchain chat model
-
-        Returns:
-            LLMInterface: generated response
-        """
+    def prepare_message(self, messages: str | BaseMessage | list[BaseMessage]):
         input_: list[BaseMessage] = []
 
         if isinstance(messages, str):
@@ -51,7 +43,9 @@ class LCChatMixin:
         else:
             input_ = messages
 
-        pred = self._obj.generate(messages=[input_], **kwargs)
+        return input_
+
+    def prepare_response(self, pred):
         all_text = [each.text for each in pred.generations[0]]
         all_messages = [each.message for each in pred.generations[0]]
 
@@ -76,8 +70,39 @@ class LCChatMixin:
             logits=[],
         )
 
-    def stream(self, messages: str | BaseMessage | list[BaseMessage], **kwargs):
+    def invoke(
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+    ) -> LLMInterface:
+        """Generate response from messages
+
+        Args:
+            messages: history of messages to generate response from
+            **kwargs: additional arguments to pass to the langchain chat model
+
+        Returns:
+            LLMInterface: generated response
+        """
+        input_ = self.prepare_message(messages)
+        pred = self._obj.generate(messages=[input_], **kwargs)
+        return self.prepare_response(pred)
+
+    async def ainvoke(
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+    ) -> LLMInterface:
+        input_ = self.prepare_message(messages)
+        pred = await self._obj.agenerate(messages=[input_], **kwargs)
+        return self.prepare_response(pred)
+
+    def stream(
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+    ) -> Iterator[LLMInterface]:
         for response in self._obj.stream(input=messages, **kwargs):
+            yield LLMInterface(content=response.content)
+
+    async def astream(
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+    ) -> AsyncGenerator[LLMInterface, None]:
+        async for response in self._obj.astream(input=messages, **kwargs):
             yield LLMInterface(content=response.content)
 
     def to_langchain_format(self):
@@ -140,7 +165,7 @@ class LCChatMixin:
         raise ValueError(f"Invalid param {path}")
 
 
-class AzureChatOpenAI(LCChatMixin, ChatLLM):
+class AzureChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
     def __init__(
         self,
         azure_endpoint: str | None = None,

@@ -278,7 +278,10 @@ class ChatPage(BasePage):
             if "output" in response:
                 text += response["output"]
             if "evidence" in response:
-                refs += response["evidence"]
+                if response["evidence"] is None:
+                    refs = ""
+                else:
+                    refs += response["evidence"]
             if "chat_input" in response:
                 chat_input = response["chat_input"]
 

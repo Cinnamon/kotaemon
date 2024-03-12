@@ -208,22 +208,24 @@ class AnswerWithContextPipeline(BaseComponent):
             lang=self.lang,
         )
 
+        citation_task = asyncio.create_task(
+            self.citation_pipeline.ainvoke(context=evidence, question=question)
+        )
+        print("Citation task created")
+
         messages = []
         if self.system_prompt:
             messages.append(SystemMessage(content=self.system_prompt))
         messages.append(HumanMessage(content=prompt))
         output = ""
-        for text in self.llm(messages):
+        for text in self.llm.stream(messages):
             output += text.text
             self.report_output({"output": text.text})
             await asyncio.sleep(0)
 
-        try:
-            citation = self.citation_pipeline(context=evidence, question=question)
-        except Exception as e:
-            print(e)
-            citation = None
-
+        # retrieve the citation
+        print("Waiting for citation task")
+        citation = await citation_task
         answer = Document(text=output, metadata={"citation": citation})
 
         return answer
@@ -288,6 +290,19 @@ class FullQAPipeline(BaseComponent):
                 if doc.doc_id not in doc_ids:
                     docs.append(doc)
                     doc_ids.append(doc.doc_id)
+        for doc in docs:
+            self.report_output(
+                {
+                    "evidence": (
+                        "<details open>"
+                        f"<summary>{doc.metadata['file_name']}</summary>"
+                        f"{doc.text}"
+                        "</details><br>"
+                    )
+                }
+            )
+        await asyncio.sleep(0.1)
+
         evidence_mode, evidence = self.evidence_pipeline(docs).content
         answer = await self.answering_pipeline(
             question=message, evidence=evidence, evidence_mode=evidence_mode
@@ -312,6 +327,7 @@ class FullQAPipeline(BaseComponent):
         id2docs = {doc.doc_id: doc for doc in docs}
         lack_evidence = True
         not_detected = set(id2docs.keys()) - set(spans.keys())
+        self.report_output({"evidence": None})
         for id, ss in spans.items():
             if not ss:
                 not_detected.add(id)
@@ -328,7 +344,7 @@ class FullQAPipeline(BaseComponent):
             self.report_output(
                 {
                     "evidence": (
-                        "<details>"
+                        "<details open>"
                         f"<summary>{id2docs[id].metadata['file_name']}</summary>"
                         f"{text}"
                         "</details><br>"
