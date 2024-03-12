@@ -17,6 +17,7 @@ class BaseApp:
 
     The main application contains app-level information:
         - setting state
+        - dynamic conversation state
         - user id
 
     Also contains registering methods for:
@@ -62,6 +63,9 @@ class BaseApp:
         self.default_settings.reasoning.finalize()
         self.default_settings.index.finalize()
         self.settings_state = gr.State(self.default_settings.flatten())
+
+        # init dynamic state as an empty dict, allow developer to update later
+        self.dynamic_state = gr.State({})
 
         self.user_id = gr.State(1 if not self.f_user_management else None)
 
@@ -165,6 +169,7 @@ class BaseApp:
         ) as demo:
             self.app = demo
             self.settings_state.render()
+            self.dynamic_state.render()
             self.user_id.render()
 
             self.ui()

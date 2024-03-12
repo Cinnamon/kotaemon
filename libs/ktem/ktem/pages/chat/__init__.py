@@ -62,6 +62,7 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_id,
                 self.chat_panel.chatbot,
                 self._app.settings_state,
+                self._app.dynamic_state,
             ]
             + self._indices_input,
             outputs=[
@@ -75,6 +76,7 @@ class ChatPage(BasePage):
             inputs=[
                 self.chat_control.conversation_id,
                 self.chat_panel.chatbot,
+                self._app.dynamic_state,
             ]
             + self._indices_input,
             outputs=None,
@@ -86,6 +88,7 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_id,
                 self.chat_panel.chatbot,
                 self._app.settings_state,
+                self._app.dynamic_state,
             ]
             + self._indices_input,
             outputs=[
@@ -99,6 +102,7 @@ class ChatPage(BasePage):
             inputs=[
                 self.chat_control.conversation_id,
                 self.chat_panel.chatbot,
+                self._app.dynamic_state,
             ]
             + self._indices_input,
             outputs=None,
@@ -118,6 +122,7 @@ class ChatPage(BasePage):
                 self.chat_control.conversation,
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
+                self._app.dynamic_state,
             ]
             + self._indices_input,
             show_progress="hidden",
@@ -138,7 +143,7 @@ class ChatPage(BasePage):
             outputs=None,
         )
 
-    def update_data_source(self, convo_id, messages, *selecteds):
+    def update_data_source(self, convo_id, messages, state, *selecteds):
         """Update the data source"""
         if not convo_id:
             gr.Warning("No conversation selected")
@@ -157,6 +162,7 @@ class ChatPage(BasePage):
             result.data_source = {
                 "selected": selecteds_,
                 "messages": messages,
+                "state": state,
                 "likes": deepcopy(data_source.get("likes", [])),
             }
             session.add(result)
@@ -176,7 +182,7 @@ class ChatPage(BasePage):
             session.add(result)
             session.commit()
 
-    def create_pipeline(self, settings: dict, is_regen: bool, *selecteds):
+    def create_pipeline(self, settings: dict, state: dict, *selecteds):
         """Create the pipeline from settings
 
         Args:
@@ -199,11 +205,11 @@ class ChatPage(BasePage):
 
         reasoning_mode = settings["reasoning.use"]
         reasoning_cls = reasonings[reasoning_mode]
-        pipeline = reasoning_cls.get_pipeline(settings, retrievers, is_regen)
+        pipeline = reasoning_cls.get_pipeline(settings, state, retrievers)
 
         return pipeline
 
-    async def chat_fn(self, conversation_id, chat_history, settings, *selecteds):
+    async def chat_fn(self, conversation_id, chat_history, settings, state, *selecteds):
         """Chat function"""
         chat_input = chat_history[-1][0]
         chat_history = chat_history[:-1]
@@ -211,8 +217,8 @@ class ChatPage(BasePage):
         queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
 
         # construct the pipeline
-        is_regen = False
-        pipeline = self.create_pipeline(settings, is_regen, *selecteds)
+        state["is_regen"] = False
+        pipeline = self.create_pipeline(settings, state, *selecteds)
         pipeline.set_output_queue(queue)
 
         asyncio.create_task(pipeline(chat_input, conversation_id, chat_history))
@@ -236,7 +242,10 @@ class ChatPage(BasePage):
             if "output" in response:
                 text += response["output"]
             if "evidence" in response:
-                refs += response["evidence"]
+                if response["evidence"] is None:
+                    refs = ""
+                else:
+                    refs += response["evidence"]
 
             if len(refs) > len_ref:
                 print(f"Len refs: {len(refs)}")
@@ -244,17 +253,24 @@ class ChatPage(BasePage):
 
         yield "", chat_history + [(chat_input, text)], refs
 
-    async def regen_fn(self, conversation_id, chat_history, settings, *selecteds):
+    async def regen_fn(
+        self, conversation_id, chat_history, settings, state, *selecteds
+    ):
         """Chat function"""
+        if len(chat_history) == 0:
+            gr.Warning("Can't regenerate in an empty conversation")
+            yield "", chat_history, ""
+            return
+
         chat_input = chat_history[-1][0]
-        if settings["reasoning.options.simple.already_rewrite"]:
+        if state.get("is_regen", False):
             chat_history = chat_history[:-1]
 
         queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
 
         # construct the pipeline
-        is_regen = True
-        pipeline = self.create_pipeline(settings, is_regen, *selecteds)
+        state["is_regen"] = True
+        pipeline = self.create_pipeline(settings, state, *selecteds)
         pipeline.set_output_queue(queue)
 
         asyncio.create_task(pipeline(chat_input, conversation_id, chat_history))

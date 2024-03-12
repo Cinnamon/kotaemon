@@ -376,7 +376,7 @@ class FullQAPipeline(BaseComponent):
         return answer
 
     @classmethod
-    def get_pipeline(cls, settings, retrievers, is_regen: bool = False):
+    def get_pipeline(cls, settings, states, retrievers):
         """Get the reasoning pipeline
 
         Args:
@@ -396,9 +396,9 @@ class FullQAPipeline(BaseComponent):
         pipeline.answering_pipeline.qa_template = settings[
             f"reasoning.options.{_id}.qa_prompt"
         ]
-        pipeline.use_rewrite = (
-            settings["reasoning.options.simple.rewrite_on_regen"] and is_regen
-        )
+        pipeline.use_rewrite = settings[
+            "reasoning.options.simple.rewrite_on_regen"
+        ] and states.get("is_regen", False)
         pipeline.rewrite_pipeline.llm = llms.get_lowest_cost()
         pipeline.rewrite_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
             settings["reasoning.lang"], "English"
@@ -451,11 +451,6 @@ class FullQAPipeline(BaseComponent):
                 "name": "Rephrase question on regeneration",
                 "value": True,
                 "component": "dropdown",
-                "choices": [False, True],
-            },
-            "already_rewrite": {
-                "name": "Last message is rewritten",
-                "value": False,
                 "choices": [False, True],
             },
         }

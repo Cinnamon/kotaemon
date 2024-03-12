@@ -159,12 +159,14 @@ class ConversationControl(BasePage):
                 name = result.name
                 selected = result.data_source.get("selected", {})
                 chats = result.data_source.get("messages", [])
+                state = result.data_source.get("state", {})
             except Exception as e:
                 logger.warning(e)
                 id_ = ""
                 name = ""
                 selected = {}
                 chats = []
+                state = {}
 
         indices = []
         for index in self._app.index_manager.indices:
@@ -173,7 +175,7 @@ class ConversationControl(BasePage):
                 continue
             indices.append(selected.get(str(index.id), []))
 
-        return id_, id_, name, chats, *indices
+        return id_, id_, name, chats, state, *indices
 
     def rename_conv(self, conversation_id, new_name, user_id):
         """Rename the conversation"""
