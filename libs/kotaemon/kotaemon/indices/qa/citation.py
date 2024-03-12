@@ -65,6 +65,9 @@ class CitationPipeline(BaseComponent):
     llm: BaseLLM
 
     def run(self, context: str, question: str):
+        return self.invoke(context, question)
+
+    def prepare_llm(self, context: str, question: str):
         schema = QuestionAnswer.schema()
         function = {
             "name": schema["title"],
@@ -92,8 +95,37 @@ class CitationPipeline(BaseComponent):
                 )
             ),
         ]
+        return messages, llm_kwargs
 
-        llm_output = self.llm(messages, **llm_kwargs)
+    def invoke(self, context: str, question: str):
+        messages, llm_kwargs = self.prepare_llm(context, question)
+
+        try:
+            print("CitationPipeline: invoking LLM")
+            llm_output = self.get_from_path("llm").invoke(messages, **llm_kwargs)
+            print("CitationPipeline: finish invoking LLM")
+        except Exception as e:
+            print(e)
+            return None
+
+        function_output = llm_output.messages[0].additional_kwargs["function_call"][
+            "arguments"
+        ]
+        output = QuestionAnswer.parse_raw(function_output)
+
+        return output
+
+    async def ainvoke(self, context: str, question: str):
+        messages, llm_kwargs = self.prepare_llm(context, question)
+
+        try:
+            print("CitationPipeline: async invoking LLM")
+            llm_output = await self.get_from_path("llm").ainvoke(messages, **llm_kwargs)
+            print("CitationPipeline: finish async invoking LLM")
+        except Exception as e:
+            print(e)
+            return None
+
         function_output = llm_output.messages[0].additional_kwargs["function_call"][
             "arguments"
         ]

@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Iterator, Optional
+from typing import AsyncGenerator, Iterator, Optional
 
 from theflow import Function, Node, Param, lazy
 
@@ -42,6 +42,18 @@ class BaseComponent(Function):
     def report_output(self, output: Optional[dict]):
         if self._queue is not None:
             self._queue.put_nowait(output)
+
+    def invoke(self, *args, **kwargs) -> Document | list[Document] | None:
+        ...
+
+    async def ainvoke(self, *args, **kwargs) -> Document | list[Document] | None:
+        ...
+
+    def stream(self, *args, **kwargs) -> Iterator[Document] | None:
+        ...
+
+    async def astream(self, *args, **kwargs) -> AsyncGenerator[Document, None] | None:
+        ...
 
     @abstractmethod
     def run(

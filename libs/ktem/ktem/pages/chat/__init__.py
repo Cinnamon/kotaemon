@@ -209,7 +209,10 @@ class ChatPage(BasePage):
             if "output" in response:
                 text += response["output"]
             if "evidence" in response:
-                refs += response["evidence"]
+                if response["evidence"] is None:
+                    refs = ""
+                else:
+                    refs += response["evidence"]
 
             if len(refs) > len_ref:
                 print(f"Len refs: {len(refs)}")
