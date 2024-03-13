@@ -50,14 +50,19 @@ class LoginPage(BasePage):
             onSignIn = onSignIn.success(**event)
 
     def _on_app_created(self):
-        self._app.app.load(
-            None,
-            inputs=None,
-            outputs=[self.usn, self.pwd],
+        onSignIn = self._app.app.load(
+            self.login,
+            inputs=[self.usn, self.pwd],
+            outputs=[self._app.user_id, self.usn, self.pwd],
+            show_progress="hidden",
             js=fetch_creds,
         )
+        for event in self._app.get_event("onSignIn"):
+            onSignIn = onSignIn.success(**event)
 
     def login(self, usn, pwd):
+        if not usn or not pwd:
+            return None, usn, pwd
 
         hashed_password = hashlib.sha256(pwd.encode()).hexdigest()
         with Session(engine) as session:
