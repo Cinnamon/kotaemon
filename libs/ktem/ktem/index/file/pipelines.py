@@ -8,6 +8,7 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Optional
 
+import gradio as gr
 from ktem.components import embeddings, filestorage_path, llms
 from ktem.db.models import engine
 from llama_index.vector_stores import (
@@ -278,9 +279,16 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
             to_index.append(abs_path)
 
         if errors:
+            error_files = ", ".join(errors)
+            if len(error_files) > 100:
+                error_files = error_files[:80] + "..."
             print(
-                "Files already exist. Please rename/remove them or enable reindex.\n"
-                f"{errors}"
+                "Skip these files already exist. Please rename/remove them or "
+                f"enable reindex:\n{errors}"
+            )
+            self.warning(
+                "Skip these files already exist. Please rename/remove them or "
+                f"enable reindex:\n{error_files}"
             )
 
         if not to_index:
@@ -293,6 +301,8 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         # prepare record info
         file_to_source: dict = {}
         for file_path, file_hash in file_to_hash.items():
+            if str(Path(file_path).resolve()) not in to_index:
+                continue
             source = Source(
                 name=Path(file_path).name,
                 path=file_hash,
@@ -383,3 +393,6 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         super().set_resources(resources)
         self.indexing_vector_pipeline.vector_store = self._VS
         self.indexing_vector_pipeline.doc_store = self._DS
+
+    def warning(self, msg):
+        gr.Warning(msg)

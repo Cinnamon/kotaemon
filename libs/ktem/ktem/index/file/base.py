@@ -127,3 +127,11 @@ class BaseFileIndexIndexing(BaseComponent):
             the absolute file storage path to the file
         """
         raise NotImplementedError
+
+    def warning(self, msg):
+        """Log a warning message
+
+        Args:
+            msg: the message to log
+        """
+        print(msg)
