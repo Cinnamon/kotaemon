@@ -139,7 +139,7 @@ class UserManagement(BasePage):
                 gr.Markdown(PASSWORD_RULE)
             self.btn_new = gr.Button("Create user")
 
-        gr.Markdown("## User list")
+        gr.Markdown("### User list")
         self.btn_list_user = gr.Button("Refresh user list")
         self.state_user_list = gr.State(value=None)
         self.user_list = gr.DataFrame(
@@ -160,7 +160,7 @@ class UserManagement(BasePage):
                 )
                 self.btn_delete_no = gr.Button("Cancel", visible=False)
 
-        gr.Markdown("## User details")
+        gr.Markdown("### User detail")
         self.usn_edit = gr.Textbox(label="Username")
         self.pwd_edit = gr.Textbox(label="Password", type="password")
         self.pwd_cnf_edit = gr.Textbox(label="Confirm password", type="password")
