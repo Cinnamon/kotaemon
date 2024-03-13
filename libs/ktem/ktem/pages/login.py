@@ -62,7 +62,8 @@ class LoginPage(BasePage):
         hashed_password = hashlib.sha256(pwd.encode()).hexdigest()
         with Session(engine) as session:
             stmt = select(User).where(
-                User.username_lower == usn.lower(), User.password == hashed_password
+                User.username_lower == usn.lower().strip(),
+                User.password == hashed_password,
             )
             result = session.exec(stmt).all()
             if result:
