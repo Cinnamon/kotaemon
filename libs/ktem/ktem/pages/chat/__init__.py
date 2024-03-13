@@ -71,6 +71,19 @@ class ChatPage(BasePage):
             ],
             show_progress="minimal",
         ).then(
+            fn=self.chat_control.auto_new_conv,
+            inputs=[
+                self._app.user_id,
+                self.chat_control.conversation_id,
+                self.chat_control.conversation_rn,
+            ],
+            outputs=[
+                self.chat_control.conversation_id,
+                self.chat_control.conversation,
+                self.chat_control.conversation_rn,
+            ],
+            show_progress="hidden",
+        ).then(
             fn=self.update_data_source,
             inputs=[
                 self.chat_control.conversation_id,
@@ -86,7 +99,52 @@ class ChatPage(BasePage):
             outputs=None,
         )
 
-        self.chat_control.conversation.change(
+        self.chat_control.conversation_new_btn.click(
+            self.chat_control.new_conv,
+            inputs=self._app.user_id,
+            outputs=[self.chat_control.conversation_id, self.chat_control.conversation],
+            show_progress="hidden",
+        ).then(
+            self.chat_control.select_conv,
+            inputs=[self.chat_control.conversation],
+            outputs=[
+                self.chat_control.conversation_id,
+                self.chat_control.conversation,
+                self.chat_control.conversation_rn,
+                self.chat_panel.chatbot,
+            ]
+            + self._indices_input,
+            show_progress="hidden",
+        )
+        self.chat_control.conversation_del_btn.click(
+            self.chat_control.delete_conv,
+            inputs=[self.chat_control.conversation_id, self._app.user_id],
+            outputs=[self.chat_control.conversation_id, self.chat_control.conversation],
+            show_progress="hidden",
+        ).then(
+            self.chat_control.select_conv,
+            inputs=[self.chat_control.conversation],
+            outputs=[
+                self.chat_control.conversation_id,
+                self.chat_control.conversation,
+                self.chat_control.conversation_rn,
+                self.chat_panel.chatbot,
+            ]
+            + self._indices_input,
+            show_progress="hidden",
+        )
+        self.chat_control.conversation_rn_btn.click(
+            self.chat_control.rename_conv,
+            inputs=[
+                self.chat_control.conversation_id,
+                self.chat_control.conversation_rn,
+                self._app.user_id,
+            ],
+            outputs=[self.chat_control.conversation, self.chat_control.conversation],
+            show_progress="hidden",
+        )
+
+        self.chat_control.conversation.select(
             self.chat_control.select_conv,
             inputs=[self.chat_control.conversation],
             outputs=[
@@ -113,6 +171,33 @@ class ChatPage(BasePage):
             + self._indices_input,
             outputs=None,
         )
+
+    def on_subscribe_public_events(self):
+        if self._app.f_user_management:
+            self._app.subscribe_event(
+                name="onSignIn",
+                definition={
+                    "fn": self.chat_control.reload_conv,
+                    "inputs": [self._app.user_id],
+                    "outputs": [self.chat_control.conversation],
+                    "show_progress": "hidden",
+                },
+            )
+
+            self._app.subscribe_event(
+                name="onSignOut",
+                definition={
+                    "fn": lambda: self.chat_control.select_conv(""),
+                    "outputs": [
+                        self.chat_control.conversation_id,
+                        self.chat_control.conversation,
+                        self.chat_control.conversation_rn,
+                        self.chat_panel.chatbot,
+                    ]
+                    + self._indices_input,
+                    "show_progress": "hidden",
+                },
+            )
 
     def update_data_source(self, convo_id, messages, *selecteds):
         """Update the data source"""

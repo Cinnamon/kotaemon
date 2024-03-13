@@ -50,48 +50,6 @@ class ConversationControl(BasePage):
         #     outputs=[current_state],
         # )
 
-    def on_subscribe_public_events(self):
-        if self._app.f_user_management:
-            self._app.subscribe_event(
-                name="onSignIn",
-                definition={
-                    "fn": self.reload_conv,
-                    "inputs": [self._app.user_id],
-                    "outputs": [self.conversation],
-                    "show_progress": "hidden",
-                },
-            )
-
-            self._app.subscribe_event(
-                name="onSignOut",
-                definition={
-                    "fn": self.reload_conv,
-                    "inputs": [self._app.user_id],
-                    "outputs": [self.conversation],
-                    "show_progress": "hidden",
-                },
-            )
-
-    def on_register_events(self):
-        self.conversation_new_btn.click(
-            self.new_conv,
-            inputs=self._app.user_id,
-            outputs=[self.conversation_id, self.conversation],
-            show_progress="hidden",
-        )
-        self.conversation_del_btn.click(
-            self.delete_conv,
-            inputs=[self.conversation_id, self._app.user_id],
-            outputs=[self.conversation_id, self.conversation],
-            show_progress="hidden",
-        )
-        self.conversation_rn_btn.click(
-            self.rename_conv,
-            inputs=[self.conversation_id, self.conversation_rn, self._app.user_id],
-            outputs=[self.conversation, self.conversation],
-            show_progress="hidden",
-        )
-
     def load_chat_history(self, user_id):
         """Reload chat history"""
         options = []
@@ -110,7 +68,7 @@ class ConversationControl(BasePage):
     def reload_conv(self, user_id):
         conv_list = self.load_chat_history(user_id)
         if conv_list:
-            return gr.update(value=conv_list[0][1], choices=conv_list)
+            return gr.update(value=None, choices=conv_list)
         else:
             return gr.update(value=None, choices=[])
 
@@ -130,11 +88,26 @@ class ConversationControl(BasePage):
 
         return id_, gr.update(value=id_, choices=history)
 
+    def auto_new_conv(self, user_id, conversation_id, conv_name):
+        if not conversation_id:
+            id_, update = self.new_conv(user_id)
+            with Session(engine) as session:
+                statement = select(Conversation).where(Conversation.id == id_)
+                name = session.exec(statement).one().name
+            return id_, update, name
+
+        return conversation_id, gr.update(), conv_name
+
     def delete_conv(self, conversation_id, user_id):
         """Create new chat"""
+        if not conversation_id:
+            gr.Warning("No conversation selected.")
+            return None, gr.update()
+
         if user_id is None:
             gr.Warning("Please sign in first (Settings → User Settings)")
             return None, gr.update()
+
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == conversation_id)
             result = session.exec(statement).one()
