@@ -109,7 +109,9 @@ class FileIndexPage(BasePage):
             with gr.Column():
                 self.delete_button = gr.Button("Delete")
                 with gr.Row():
-                    self.delete_yes = gr.Button("Confirm Delete", visible=False)
+                    self.delete_yes = gr.Button(
+                        "Confirm Delete", variant="primary", visible=False
+                    )
                     self.delete_no = gr.Button("Cancel", visible=False)
 
     def on_subscribe_public_events(self):

@@ -99,7 +99,7 @@ class ChatPage(BasePage):
             outputs=None,
         )
 
-        self.chat_control.conversation_new_btn.click(
+        self.chat_control.btn_new.click(
             self.chat_control.new_conv,
             inputs=self._app.user_id,
             outputs=[self.chat_control.conversation_id, self.chat_control.conversation],
@@ -116,7 +116,13 @@ class ChatPage(BasePage):
             + self._indices_input,
             show_progress="hidden",
         )
-        self.chat_control.conversation_del_btn.click(
+
+        self.chat_control.btn_del.click(
+            lambda id: self.toggle_delete(id),
+            inputs=[self.chat_control.conversation_id],
+            outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
+        )
+        self.chat_control.btn_del_conf.click(
             self.chat_control.delete_conv,
             inputs=[self.chat_control.conversation_id, self._app.user_id],
             outputs=[self.chat_control.conversation_id, self.chat_control.conversation],
@@ -132,6 +138,13 @@ class ChatPage(BasePage):
             ]
             + self._indices_input,
             show_progress="hidden",
+        ).then(
+            lambda: self.toggle_delete(""),
+            outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
+        )
+        self.chat_control.btn_del_cnl.click(
+            lambda: self.toggle_delete(""),
+            outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
         )
         self.chat_control.conversation_rn_btn.click(
             self.chat_control.rename_conv,
@@ -155,6 +168,9 @@ class ChatPage(BasePage):
             ]
             + self._indices_input,
             show_progress="hidden",
+        ).then(
+            lambda: self.toggle_delete(""),
+            outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
         )
 
         self.report_issue.report_btn.click(
@@ -171,6 +187,12 @@ class ChatPage(BasePage):
             + self._indices_input,
             outputs=None,
         )
+
+    def toggle_delete(self, conv_id):
+        if conv_id:
+            return gr.update(visible=False), gr.update(visible=True)
+        else:
+            return gr.update(visible=True), gr.update(visible=False)
 
     def on_subscribe_public_events(self):
         if self._app.f_user_management:

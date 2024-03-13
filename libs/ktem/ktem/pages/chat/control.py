@@ -37,9 +37,17 @@ class ConversationControl(BasePage):
                 interactive=True,
             )
 
-            with gr.Row():
-                self.conversation_new_btn = gr.Button(value="New", min_width=10)
-                self.conversation_del_btn = gr.Button(value="Delete", min_width=10)
+            with gr.Row() as self._new_delete:
+                self.btn_new = gr.Button(value="New", min_width=10)
+                self.btn_del = gr.Button(value="Delete", min_width=10)
+
+            with gr.Row(visible=False) as self._delete_confirm:
+                self.btn_del_conf = gr.Button(
+                    value="Delete",
+                    variant="primary",
+                    min_width=10,
+                )
+                self.btn_del_cnl = gr.Button(value="Cancel", min_width=10)
 
             with gr.Row():
                 self.conversation_rn = gr.Text(

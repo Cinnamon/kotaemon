@@ -155,7 +155,9 @@ class UserManagement(BasePage):
         with gr.Group():
             self.btn_delete = gr.Button("Delete user")
             with gr.Row():
-                self.btn_delete_yes = gr.Button("Confirm", visible=False)
+                self.btn_delete_yes = gr.Button(
+                    "Delete", variant="primary", visible=False
+                )
                 self.btn_delete_no = gr.Button("Cancel", visible=False)
 
         gr.Markdown("## User details")
