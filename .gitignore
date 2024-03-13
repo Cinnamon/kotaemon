@@ -453,6 +453,7 @@ $RECYCLE.BIN/
 .theflow/
 
 # End of https://www.toptal.com/developers/gitignore/api/python,linux,macos,windows,vim,emacs,visualstudiocode,pycharm
+*.py[coid]
 
 logs/
 .gitsecret/keys/random_seed

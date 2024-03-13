@@ -1,12 +1,38 @@
 import os
 import tempfile
+from pathlib import Path
 
 import gradio as gr
 import pandas as pd
+from gradio.data_classes import FileData
+from gradio.utils import NamedString
 from ktem.app import BasePage
 from ktem.db.engine import engine
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+
+class File(gr.File):
+    """Subclass from gr.File to maintain the original filename"""
+
+    def _process_single_file(self, f: FileData) -> NamedString | bytes:
+        file_name = f.path
+        if self.type == "filepath":
+            if f.orig_name and Path(file_name).name != f.orig_name:
+                file_name = str(Path(file_name).parent / f.orig_name)
+                os.rename(f.path, file_name)
+            file = tempfile.NamedTemporaryFile(delete=False, dir=self.GRADIO_CACHE)
+            file.name = file_name
+            return NamedString(file_name)
+        elif self.type == "binary":
+            with open(file_name, "rb") as file_data:
+                return file_data.read()
+        else:
+            raise ValueError(
+                "Unknown type: "
+                + str(type)
+                + ". Please choose from: 'filepath', 'binary'."
+            )
 
 
 class DirectoryUpload(BasePage):
@@ -54,7 +80,7 @@ class FileIndexPage(BasePage):
             gr.Markdown(
                 f"Supported file types: {', '.join(self._supported_file_types)}",
             )
-            self.files = gr.File(
+            self.files = File(
                 file_types=self._supported_file_types,
                 file_count="multiple",
                 container=False,
