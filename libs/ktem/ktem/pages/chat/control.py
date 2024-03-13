@@ -8,6 +8,17 @@ from sqlmodel import Session, select
 logger = logging.getLogger(__name__)
 
 
+def is_conv_name_valid(name):
+    """Check if the conversation name is valid"""
+    errors = []
+    if len(name) == 0:
+        errors.append("Name cannot be empty")
+    elif len(name) > 40:
+        errors.append("Name cannot be longer than 40 characters")
+
+    return "; ".join(errors)
+
+
 class ConversationControl(BasePage):
     """Manage conversation"""
 
@@ -153,6 +164,16 @@ class ConversationControl(BasePage):
         if user_id is None:
             gr.Warning("Please sign in first (Settings → User Settings)")
             return gr.update(), ""
+
+        if not conversation_id:
+            gr.Warning("No conversation selected.")
+            return gr.update(), ""
+
+        errors = is_conv_name_valid(new_name)
+        if errors:
+            gr.Warning(errors)
+            return gr.update(), conversation_id
+
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == conversation_id)
             result = session.exec(statement).one()
