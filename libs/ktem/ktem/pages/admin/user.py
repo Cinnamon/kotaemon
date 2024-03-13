@@ -40,7 +40,7 @@ def validate_username(usn):
     if len(usn) > 32:
         errors.append("Username must be at most 32 characters long")
 
-    if not usn.strip("_").isalnum():
+    if not usn.replace("_", "").isalnum():
         errors.append(
             "Username must contain only alphanumeric characters and underscores"
         )
