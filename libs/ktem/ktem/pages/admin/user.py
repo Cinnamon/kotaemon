@@ -172,6 +172,8 @@ class UserManagement(BasePage):
             self.create_user,
             inputs=[self.usn_new, self.pwd_new, self.pwd_cnf_new],
             outputs=None,
+        ).then(
+            self.list_users, inputs=None, outputs=[self.state_user_list, self.user_list]
         )
         self.btn_list_user.click(
             self.list_users, inputs=None, outputs=[self.state_user_list, self.user_list]
@@ -216,6 +218,8 @@ class UserManagement(BasePage):
             inputs=[self.selected_user_id],
             outputs=[self.selected_user_id, self.selected_panel],
             show_progress="hidden",
+        ).then(
+            self.list_users, inputs=None, outputs=[self.state_user_list, self.user_list]
         )
         self.btn_delete_no.click(
             lambda: (
