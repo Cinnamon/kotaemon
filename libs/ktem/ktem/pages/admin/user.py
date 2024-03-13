@@ -344,11 +344,10 @@ class UserManagement(BasePage):
         return btn_delete, btn_delete_yes, btn_delete_no
 
     def save_user(self, selected_user_id, usn, pwd, pwd_cnf, admin):
-        if usn:
-            errors = validate_username(usn)
-            if errors:
-                gr.Warning(errors)
-                return
+        errors = validate_username(usn)
+        if errors:
+            gr.Warning(errors)
+            return
 
         if pwd:
             errors = validate_password(pwd, pwd_cnf)
