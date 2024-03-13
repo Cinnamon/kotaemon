@@ -244,6 +244,25 @@ class UserManagement(BasePage):
             show_progress="hidden",
         )
 
+    def on_subscribe_public_events(self):
+        self._app.subscribe_event(
+            name="onSignOut",
+            definition={
+                "fn": lambda: ("", "", "", None, None, "", "", "", False),
+                "outputs": [
+                    self.usn_new,
+                    self.pwd_new,
+                    self.pwd_cnf_new,
+                    self.state_user_list,
+                    self.user_list,
+                    self.usn_edit,
+                    self.pwd_edit,
+                    self.pwd_cnf_edit,
+                    self.admin_edit,
+                ],
+            },
+        )
+
     def create_user(self, usn, pwd, pwd_cnf):
         errors = validate_username(usn)
         if errors:
