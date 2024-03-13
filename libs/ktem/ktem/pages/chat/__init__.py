@@ -223,7 +223,6 @@ class ChatPage(BasePage):
 
         asyncio.create_task(pipeline(chat_input, conversation_id, chat_history))
         text, refs = "", ""
-        settings["reasoning.options.simple.already_rewrite"] = False
 
         len_ref = -1  # for logging purpose
 
@@ -275,7 +274,6 @@ class ChatPage(BasePage):
 
         asyncio.create_task(pipeline(chat_input, conversation_id, chat_history))
         text, refs = "", ""
-        settings["reasoning.options.simple.already_rewrite"] = True
 
         len_ref = -1  # for logging purpose
 
