@@ -276,6 +276,10 @@ class FileIndexPage(BasePage):
             selected_files: the list of files already selected
             settings: the settings of the app
         """
+        if not files:
+            gr.Info("No uploaded file")
+            return gr.update()
+
         gr.Info(f"Start indexing {len(files)} files...")
 
         # get the pipeline
