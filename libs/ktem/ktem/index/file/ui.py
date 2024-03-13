@@ -10,20 +10,10 @@ from sqlalchemy.orm import Session
 
 
 class DirectoryUpload(BasePage):
-    def __init__(self, app):
-        self._app = app
-        self._supported_file_types = [
-            "image",
-            ".pdf",
-            ".txt",
-            ".csv",
-            ".xlsx",
-            ".doc",
-            ".docx",
-            ".pptx",
-            ".html",
-            ".zip",
-        ]
+    def __init__(self, app, index):
+        super().__init__(app)
+        self._index = index
+        self._supported_file_types = self._index.config.get("supported_file_types", [])
         self.on_building_ui()
 
     def on_building_ui(self):
@@ -50,18 +40,7 @@ class FileIndexPage(BasePage):
     def __init__(self, app, index):
         super().__init__(app)
         self._index = index
-        self._supported_file_types = [
-            "image",
-            ".pdf",
-            ".txt",
-            ".csv",
-            ".xlsx",
-            ".doc",
-            ".docx",
-            ".pptx",
-            ".html",
-            ".zip",
-        ]
+        self._supported_file_types = self._index.config.get("supported_file_types", [])
         self.selected_panel_false = "Selected file: (please select above)"
         self.selected_panel_true = "Selected file: {name}"
         # TODO: on_building_ui is not correctly named if it's always called in

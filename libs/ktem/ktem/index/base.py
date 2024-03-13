@@ -57,7 +57,7 @@ class BaseIndex(abc.ABC):
         self._app = app
         self.id = id
         self.name = name
-        self._config = config  # admin settings
+        self.config = config  # admin settings
 
     def on_create(self):
         """Create the index for the first time"""

@@ -91,14 +91,14 @@ class FileIndex(BaseIndex):
 
         The indexing class will is retrieved from the following order. Stop at the
         first order found:
-            - `FILE_INDEX_PIPELINE` in self._config
+            - `FILE_INDEX_PIPELINE` in self.config
             - `FILE_INDEX_{id}_PIPELINE` in the flowsettings
             - `FILE_INDEX_PIPELINE` in the flowsettings
             - The default .pipelines.IndexDocumentPipeline
         """
-        if "FILE_INDEX_PIPELINE" in self._config:
+        if "FILE_INDEX_PIPELINE" in self.config:
             self._indexing_pipeline_cls = import_dotted_string(
-                self._config["FILE_INDEX_PIPELINE"], safe=False
+                self.config["FILE_INDEX_PIPELINE"], safe=False
             )
             return
 
@@ -125,15 +125,15 @@ class FileIndex(BaseIndex):
 
         The retriever classes will is retrieved from the following order. Stop at the
         first order found:
-            - `FILE_INDEX_RETRIEVER_PIPELINES` in self._config
+            - `FILE_INDEX_RETRIEVER_PIPELINES` in self.config
             - `FILE_INDEX_{id}_RETRIEVER_PIPELINES` in the flowsettings
             - `FILE_INDEX_RETRIEVER_PIPELINES` in the flowsettings
             - The default .pipelines.DocumentRetrievalPipeline
         """
-        if "FILE_INDEX_RETRIEVER_PIPELINES" in self._config:
+        if "FILE_INDEX_RETRIEVER_PIPELINES" in self.config:
             self._retriever_pipeline_cls = [
                 import_dotted_string(each, safe=False)
-                for each in self._config["FILE_INDEX_RETRIEVER_PIPELINES"]
+                for each in self.config["FILE_INDEX_RETRIEVER_PIPELINES"]
             ]
             return
 
@@ -165,6 +165,11 @@ class FileIndex(BaseIndex):
             2. Create the vectorstore
             3. Create the docstore
         """
+        support_default = "image .pdf .txt .csv .xlsx .doc .docx .pptx .html .zip"
+        file_types_str = self.config.get("supported_file_types", support_default)
+        file_types = [each.strip() for each in file_types_str.split(",")]
+        self.config["supported_file_types"] = file_types
+
         self._resources["Source"].metadata.create_all(engine)  # type: ignore
         self._resources["Index"].metadata.create_all(engine)  # type: ignore
         self._fs_path.mkdir(parents=True, exist_ok=True)
@@ -224,7 +229,7 @@ class FileIndex(BaseIndex):
             else:
                 stripped_settings[key] = value
 
-        obj = self._indexing_pipeline_cls.get_pipeline(stripped_settings, self._config)
+        obj = self._indexing_pipeline_cls.get_pipeline(stripped_settings, self.config)
         obj.set_resources(resources=self._resources)
 
         return obj
@@ -242,7 +247,7 @@ class FileIndex(BaseIndex):
 
         retrievers = []
         for cls in self._retriever_pipeline_cls:
-            obj = cls.get_pipeline(stripped_settings, self._config, selected)
+            obj = cls.get_pipeline(stripped_settings, self.config, selected)
             if obj is None:
                 continue
             obj.set_resources(self._resources)
