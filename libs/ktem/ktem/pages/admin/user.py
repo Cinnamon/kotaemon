@@ -97,8 +97,6 @@ def validate_password(pwd, pwd_cnf):
 class UserManagement(BasePage):
     def __init__(self, app):
         self._app = app
-        self.selected_panel_false = "Selected user: (please select above)"
-        self.selected_panel_true = "Selected user: {name}"
 
         self.on_building_ui()
         if hasattr(flowsettings, "KH_FEATURE_USER_MANAGEMENT_ADMIN") and hasattr(
@@ -126,7 +124,38 @@ class UserManagement(BasePage):
                     gr.Info(f'User "{usn}" created successfully')
 
     def on_building_ui(self):
-        with gr.Accordion(label="Create user", open=False):
+        with gr.Tab(label="User list"):
+            self.state_user_list = gr.State(value=None)
+            self.user_list = gr.DataFrame(
+                headers=["id", "name", "admin"],
+                interactive=False,
+            )
+
+            with gr.Group(visible=False) as self._selected_panel:
+                self.selected_user_id = gr.Number(value=-1, visible=False)
+                self.usn_edit = gr.Textbox(label="Username")
+                with gr.Row():
+                    self.pwd_edit = gr.Textbox(label="Change password", type="password")
+                    self.pwd_cnf_edit = gr.Textbox(
+                        label="Confirm change password",
+                        type="password",
+                    )
+                self.admin_edit = gr.Checkbox(label="Admin")
+
+            with gr.Row() as self._selected_panel_btn:
+                with gr.Column():
+                    self.btn_edit_save = gr.Button("Save")
+                with gr.Column():
+                    self.btn_delete = gr.Button("Delete")
+                    with gr.Row():
+                        self.btn_delete_yes = gr.Button(
+                            "Confirm delete", variant="primary", visible=False
+                        )
+                        self.btn_delete_no = gr.Button("Cancel", visible=False)
+                with gr.Column():
+                    self.btn_close = gr.Button("Close")
+
+        with gr.Tab(label="Create user"):
             self.usn_new = gr.Textbox(label="Username", interactive=True)
             self.pwd_new = gr.Textbox(
                 label="Password", type="password", interactive=True
@@ -139,56 +168,28 @@ class UserManagement(BasePage):
                 gr.Markdown(PASSWORD_RULE)
             self.btn_new = gr.Button("Create user")
 
-        gr.Markdown("### User list")
-        self.btn_list_user = gr.Button("Refresh user list")
-        self.state_user_list = gr.State(value=None)
-        self.user_list = gr.DataFrame(
-            headers=["id", "name", "admin"],
-            interactive=False,
-        )
-
-        with gr.Row():
-            self.selected_user_id = gr.State(value=None)
-            self.selected_panel = gr.Markdown(self.selected_panel_false)
-            self.deselect_button = gr.Button("Deselect", visible=False)
-
-        with gr.Group():
-            self.btn_delete = gr.Button("Delete user")
-            with gr.Row():
-                self.btn_delete_yes = gr.Button(
-                    "Delete", variant="primary", visible=False
-                )
-                self.btn_delete_no = gr.Button("Cancel", visible=False)
-
-        gr.Markdown("### User detail")
-        self.usn_edit = gr.Textbox(label="Username")
-        self.pwd_edit = gr.Textbox(label="Password", type="password")
-        self.pwd_cnf_edit = gr.Textbox(label="Confirm password", type="password")
-        self.admin_edit = gr.Checkbox(label="Admin")
-        self.btn_edit_save = gr.Button("Save")
-
     def on_register_events(self):
         self.btn_new.click(
             self.create_user,
             inputs=[self.usn_new, self.pwd_new, self.pwd_cnf_new],
             outputs=None,
         ).then(
-            self.list_users, inputs=None, outputs=[self.state_user_list, self.user_list]
-        )
-        self.btn_list_user.click(
-            self.list_users, inputs=None, outputs=[self.state_user_list, self.user_list]
+            self.list_users,
+            inputs=self._app.user_id,
+            outputs=[self.state_user_list, self.user_list],
         )
         self.user_list.select(
             self.select_user,
             inputs=self.user_list,
-            outputs=[self.selected_user_id, self.selected_panel],
+            outputs=[self.selected_user_id],
             show_progress="hidden",
         )
-        self.selected_panel.change(
+        self.selected_user_id.change(
             self.on_selected_user_change,
             inputs=[self.selected_user_id],
             outputs=[
-                self.deselect_button,
+                self._selected_panel,
+                self._selected_panel_btn,
                 # delete section
                 self.btn_delete,
                 self.btn_delete_yes,
@@ -201,12 +202,6 @@ class UserManagement(BasePage):
             ],
             show_progress="hidden",
         )
-        self.deselect_button.click(
-            lambda: (None, self.selected_panel_false),
-            inputs=None,
-            outputs=[self.selected_user_id, self.selected_panel],
-            show_progress="hidden",
-        )
         self.btn_delete.click(
             self.on_btn_delete_click,
             inputs=[self.selected_user_id],
@@ -215,11 +210,13 @@ class UserManagement(BasePage):
         )
         self.btn_delete_yes.click(
             self.delete_user,
-            inputs=[self.selected_user_id],
-            outputs=[self.selected_user_id, self.selected_panel],
+            inputs=[self._app.user_id, self.selected_user_id],
+            outputs=[self.selected_user_id],
             show_progress="hidden",
         ).then(
-            self.list_users, inputs=None, outputs=[self.state_user_list, self.user_list]
+            self.list_users,
+            inputs=self._app.user_id,
+            outputs=[self.state_user_list, self.user_list],
         )
         self.btn_delete_no.click(
             lambda: (
@@ -240,25 +237,38 @@ class UserManagement(BasePage):
                 self.pwd_cnf_edit,
                 self.admin_edit,
             ],
-            outputs=None,
+            outputs=[self.pwd_edit, self.pwd_cnf_edit],
             show_progress="hidden",
+        ).then(
+            self.list_users,
+            inputs=self._app.user_id,
+            outputs=[self.state_user_list, self.user_list],
+        )
+        self.btn_close.click(
+            lambda: -1,
+            outputs=[self.selected_user_id],
         )
 
     def on_subscribe_public_events(self):
         self._app.subscribe_event(
+            name="onSignIn",
+            definition={
+                "fn": self.list_users,
+                "inputs": [self._app.user_id],
+                "outputs": [self.state_user_list, self.user_list],
+            },
+        )
+        self._app.subscribe_event(
             name="onSignOut",
             definition={
-                "fn": lambda: ("", "", "", None, None, "", "", "", False),
+                "fn": lambda: ("", "", "", None, None, None),
                 "outputs": [
                     self.usn_new,
                     self.pwd_new,
                     self.pwd_cnf_new,
                     self.state_user_list,
                     self.user_list,
-                    self.usn_edit,
-                    self.pwd_edit,
-                    self.pwd_cnf_edit,
-                    self.admin_edit,
+                    self.selected_user_id,
                 ],
             },
         )
@@ -290,8 +300,15 @@ class UserManagement(BasePage):
             session.commit()
             gr.Info(f'User "{usn}" created successfully')
 
-    def list_users(self):
+    def list_users(self, user_id):
         with Session(engine) as session:
+            statement = select(User).where(User.id == user_id)
+            user = session.exec(statement).one()
+            if not user.admin:
+                return [], pd.DataFrame.from_records(
+                    [{"id": "-", "username": "-", "admin": "-"}]
+                )
+
             statement = select(User)
             results = [
                 {"id": user.id, "username": user.username, "admin": user.admin}
@@ -309,18 +326,17 @@ class UserManagement(BasePage):
     def select_user(self, user_list, ev: gr.SelectData):
         if ev.value == "-" and ev.index[0] == 0:
             gr.Info("No user is loaded. Please refresh the user list")
-            return None, self.selected_panel_false
+            return -1
 
         if not ev.selected:
-            return None, self.selected_panel_false
+            return -1
 
-        return user_list["id"][ev.index[0]], self.selected_panel_true.format(
-            name=user_list["username"][ev.index[0]]
-        )
+        return user_list["id"][ev.index[0]]
 
     def on_selected_user_change(self, selected_user_id):
-        if selected_user_id is None:
-            deselect_button = gr.update(visible=False)
+        if selected_user_id == -1:
+            _selected_panel = gr.update(visible=False)
+            _selected_panel_btn = gr.update(visible=False)
             btn_delete = gr.update(visible=True)
             btn_delete_yes = gr.update(visible=False)
             btn_delete_no = gr.update(visible=False)
@@ -329,7 +345,8 @@ class UserManagement(BasePage):
             pwd_cnf_edit = gr.update(value="")
             admin_edit = gr.update(value=False)
         else:
-            deselect_button = gr.update(visible=True)
+            _selected_panel = gr.update(visible=True)
+            _selected_panel_btn = gr.update(visible=True)
             btn_delete = gr.update(visible=True)
             btn_delete_yes = gr.update(visible=False)
             btn_delete_no = gr.update(visible=False)
@@ -344,7 +361,8 @@ class UserManagement(BasePage):
             admin_edit = gr.update(value=user.admin)
 
         return (
-            deselect_button,
+            _selected_panel,
+            _selected_panel_btn,
             btn_delete,
             btn_delete_yes,
             btn_delete_no,
@@ -372,13 +390,13 @@ class UserManagement(BasePage):
         errors = validate_username(usn)
         if errors:
             gr.Warning(errors)
-            return
+            return pwd, pwd_cnf
 
         if pwd:
             errors = validate_password(pwd, pwd_cnf)
             if errors:
                 gr.Warning(errors)
-                return
+                return pwd, pwd_cnf
 
         with Session(engine) as session:
             statement = select(User).where(User.id == int(selected_user_id))
@@ -391,11 +409,17 @@ class UserManagement(BasePage):
             session.commit()
             gr.Info(f'User "{usn}" updated successfully')
 
-    def delete_user(self, selected_user_id):
+        return "", ""
+
+    def delete_user(self, current_user, selected_user_id):
+        if current_user == selected_user_id:
+            gr.Warning("You cannot delete yourself")
+            return selected_user_id
+
         with Session(engine) as session:
             statement = select(User).where(User.id == int(selected_user_id))
             user = session.exec(statement).one()
             session.delete(user)
             session.commit()
             gr.Info(f'User "{user.username}" deleted successfully')
-        return None, self.selected_panel_false
+        return -1
