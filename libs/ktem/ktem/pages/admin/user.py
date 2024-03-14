@@ -261,7 +261,7 @@ class UserManagement(BasePage):
         self._app.subscribe_event(
             name="onSignOut",
             definition={
-                "fn": lambda: ("", "", "", None, None, None),
+                "fn": lambda: ("", "", "", None, None, -1),
                 "outputs": [
                     self.usn_new,
                     self.pwd_new,
