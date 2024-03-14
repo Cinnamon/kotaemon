@@ -165,8 +165,10 @@ class FileIndex(BaseIndex):
             2. Create the vectorstore
             3. Create the docstore
         """
-        support_default = "image .pdf .txt .csv .xlsx .doc .docx .pptx .html .zip"
-        file_types_str = self.config.get("supported_file_types", support_default)
+        file_types_str = self.config.get(
+            "supported_file_types",
+            self.get_admin_settings()["supported_file_types"]["value"],
+        )
         file_types = [each.strip() for each in file_types_str.split(",")]
         self.config["supported_file_types"] = file_types
 
@@ -215,7 +217,29 @@ class FileIndex(BaseIndex):
                 "value": embedding_default,
                 "component": "dropdown",
                 "choices": embedding_choices,
-            }
+            },
+            "supported_file_types": {
+                "name": "Supported file types",
+                "value": "image .pdf .txt .csv .xlsx .doc .docx .pptx .html .zip",
+                "component": "text",
+            },
+            "max_file_size": {
+                "name": "Max file size (MB) - set 0 to disable",
+                "value": 1000,
+                "component": "number",
+            },
+            "max_number_of_files": {
+                "name": "Max number of files that can be indexed - set 0 to disable",
+                "value": 0,
+                "component": "number",
+            },
+            "max_number_of_text_length": {
+                "name": (
+                    "Max amount of characters that can be indexed - set 0 to disable"
+                ),
+                "value": 0,
+                "component": "number",
+            },
         }
 
     def get_indexing_pipeline(self, settings) -> BaseFileIndexIndexing:

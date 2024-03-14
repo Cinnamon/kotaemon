@@ -74,12 +74,31 @@ class FileIndexPage(BasePage):
         self.public_events = [f"onFileIndex{index.id}Changed"]
         self.on_building_ui()
 
+    def upload_instruction(self) -> str:
+        msgs = []
+        if self._supported_file_types:
+            msgs.append(
+                f"- Supported file types: {', '.join(self._supported_file_types)}"
+            )
+
+        if max_file_size := self._index.config.get("max_file_size", 0):
+            msgs.append(f"- Maximum file size: {max_file_size} MB")
+
+        if max_number_of_files := self._index.config.get("max_number_of_files", 0):
+            msgs.append(f"- The index can have maximum {max_number_of_files} files")
+
+        if msgs:
+            return "\n".join(msgs)
+
+        return ""
+
     def on_building_ui(self):
         """Build the UI of the app"""
         with gr.Accordion(label="File upload", open=False):
-            gr.Markdown(
-                f"Supported file types: {', '.join(self._supported_file_types)}",
-            )
+            msg = self.upload_instruction()
+            if msg:
+                gr.Markdown(msg)
+
             self.files = File(
                 file_types=self._supported_file_types,
                 file_count="multiple",
@@ -285,6 +304,11 @@ class FileIndexPage(BasePage):
             gr.Info("No uploaded file")
             return gr.update()
 
+        errors = self.validate(files)
+        if errors:
+            gr.Warning(", ".join(errors))
+            return gr.update()
+
         gr.Info(f"Start indexing {len(files)} files...")
 
         # get the pipeline
@@ -419,6 +443,35 @@ class FileIndexPage(BasePage):
         return list_files["id"][ev.index[0]], self.selected_panel_true.format(
             name=list_files["name"][ev.index[0]]
         )
+
+    def validate(self, files: list[str]):
+        """Validate if the files are valid"""
+        paths = [Path(file) for file in files]
+        errors = []
+        if max_file_size := self._index.config.get("max_file_size", 0):
+            errors_max_size = []
+            for path in paths:
+                if path.stat().st_size > max_file_size * 1e6:
+                    errors_max_size.append(path.name)
+            if errors_max_size:
+                str_errors = ", ".join(errors_max_size)
+                if len(str_errors) > 60:
+                    str_errors = str_errors[:55] + "..."
+                errors.append(
+                    f"Maximum file size ({max_file_size} MB) exceeded: {str_errors}"
+                )
+
+        if max_number_of_files := self._index.config.get("max_number_of_files", 0):
+            with Session(engine) as session:
+                current_num_files = session.query(
+                    self._index._db_tables["Source"].id
+                ).count()
+            if len(paths) + current_num_files > max_number_of_files:
+                errors.append(
+                    f"Maximum number of files ({max_number_of_files}) will be exceeded"
+                )
+
+        return errors
 
 
 class FileSelector(BasePage):
