@@ -220,7 +220,9 @@ class FileIndex(BaseIndex):
             },
             "supported_file_types": {
                 "name": "Supported file types",
-                "value": "image .pdf .txt .csv .xlsx .doc .docx .pptx .html .zip",
+                "value": (
+                    "image, .pdf, .txt, .csv, .xlsx, .doc, .docx, .pptx, .html, .zip"
+                ),
                 "component": "text",
             },
             "max_file_size": {
