@@ -298,11 +298,19 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         for path in to_index:
             shutil.copy(path, filestorage_path / file_to_hash[path])
 
-        # prepare record info
+        # extract the file & prepare record info
         file_to_source: dict = {}
+        extraction_errors = []
+        nodes = []
         for file_path, file_hash in file_to_hash.items():
             if str(Path(file_path).resolve()) not in to_index:
                 continue
+
+            extraction_result = self.file_ingestor(file_path)
+            if not extraction_result:
+                extraction_errors.append(Path(file_path).name)
+                continue
+            nodes.extend(extraction_result)
             source = Source(
                 name=Path(file_path).name,
                 path=file_hash,
@@ -310,9 +318,23 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
             )
             file_to_source[file_path] = source
 
-        # extract the files
-        nodes = self.file_ingestor(to_index)
-        print("Extracted", len(to_index), "files into", len(nodes), "nodes")
+        if extraction_errors:
+            msg = "Failed to extract these files: {}".format(
+                ", ".join(extraction_errors)
+            )
+            print(msg)
+            self.warning(msg)
+
+        if not nodes:
+            return [], []
+
+        print(
+            "Extracted",
+            len(to_index) - len(extraction_errors),
+            "files into",
+            len(nodes),
+            "nodes",
+        )
 
         # index the files
         print("Indexing the files into vector store")

@@ -301,6 +301,11 @@ class UserManagement(BasePage):
             gr.Info(f'User "{usn}" created successfully')
 
     def list_users(self, user_id):
+        if user_id is None:
+            return [], pd.DataFrame.from_records(
+                [{"id": "-", "username": "-", "admin": "-"}]
+            )
+
         with Session(engine) as session:
             statement = select(User).where(User.id == user_id)
             user = session.exec(statement).one()
