@@ -7,6 +7,7 @@ from kotaemon.base import BaseComponent, Document, Param
 from kotaemon.indices.extractors import BaseDocParser
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 from kotaemon.loaders import (
+    AdobeReader,
     AutoReader,
     DirectoryReader,
     MathpixPDFReader,
@@ -42,7 +43,7 @@ class DocumentIngestor(BaseComponent):
             The default file extractors are stored in `KH_DEFAULT_FILE_EXTRACTORS`
     """
 
-    pdf_mode: str = "normal"  # "normal", "mathpix", "ocr"
+    pdf_mode: str = "normal"  # "normal", "mathpix", "ocr", "multimodal"
     doc_parsers: list[BaseDocParser] = Param(default_callback=lambda _: [])
     text_splitter: BaseSplitter = TokenSplitter.withx(
         chunk_size=1024,
@@ -62,6 +63,8 @@ class DocumentIngestor(BaseComponent):
             file_extractors[".pdf"] = AutoReader("UnstructuredReader")  # type: ignore
         elif self.pdf_mode == "ocr":
             file_extractors[".pdf"] = OCRReader()
+        elif self.pdf_mode == "multimodal":
+            file_extractors[".pdf"] = AdobeReader()
         else:
             file_extractors[".pdf"] = MathpixPDFReader()
 

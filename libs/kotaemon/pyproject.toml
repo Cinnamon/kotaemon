@@ -66,6 +66,7 @@ dev = [
     "pypdf",
     "html2text",
     "llama-cpp-python",
+    "pdfservices-sdk @  git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements",
 ]
 
 [project.scripts]
