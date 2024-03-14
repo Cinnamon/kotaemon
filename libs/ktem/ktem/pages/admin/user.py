@@ -172,7 +172,7 @@ class UserManagement(BasePage):
         self.btn_new.click(
             self.create_user,
             inputs=[self.usn_new, self.pwd_new, self.pwd_cnf_new],
-            outputs=None,
+            outputs=[self.usn_new, self.pwd_new, self.pwd_cnf_new],
         ).then(
             self.list_users,
             inputs=self._app.user_id,
@@ -277,13 +277,13 @@ class UserManagement(BasePage):
         errors = validate_username(usn)
         if errors:
             gr.Warning(errors)
-            return
+            return usn, pwd, pwd_cnf
 
         errors = validate_password(pwd, pwd_cnf)
         print(errors)
         if errors:
             gr.Warning(errors)
-            return
+            return usn, pwd, pwd_cnf
 
         with Session(engine) as session:
             statement = select(User).where(User.username_lower == usn.lower())
@@ -299,6 +299,8 @@ class UserManagement(BasePage):
             session.add(user)
             session.commit()
             gr.Info(f'User "{usn}" created successfully')
+
+        return "", "", ""
 
     def list_users(self, user_id):
         if user_id is None:
