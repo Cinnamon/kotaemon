@@ -161,9 +161,12 @@ class ConversationControl(BasePage):
         indices = []
         for index in self._app.index_manager.indices:
             # assume that the index has selector
-            if index.selector == -1:
+            if index.selector is None:
                 continue
-            indices.append(selected.get(str(index.id), []))
+            if isinstance(index.selector, int):
+                indices.append(selected.get(str(index.id), []))
+            if isinstance(index.selector, tuple):
+                indices.extend(selected.get(str(index.id), [[] * len(index.selector)]))
 
         return id_, id_, name, chats, *indices
 

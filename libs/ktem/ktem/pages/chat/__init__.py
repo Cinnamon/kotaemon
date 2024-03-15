@@ -25,23 +25,36 @@ class ChatPage(BasePage):
                 self.chat_control = ConversationControl(self._app)
 
                 for index in self._app.index_manager.indices:
-                    index.selector = -1
+
+                    index.selector = None
                     index_ui = index.get_selector_component_ui()
                     if not index_ui:
+                        # the index doesn't have a selector UI component
                         continue
 
-                    index_ui.unrender()
+                    index_ui.unrender()  # need to rerender later within Accordion
                     with gr.Accordion(label=f"{index.name} Index", open=False):
                         index_ui.render()
                         gr_index = index_ui.as_gradio_component()
                         if gr_index:
-                            index.selector = len(self._indices_input)
-                            self._indices_input.append(gr_index)
+                            if isinstance(gr_index, list):
+                                index.selector = tuple(
+                                    range(
+                                        len(self._indices_input),
+                                        len(self._indices_input) + len(gr_index),
+                                    )
+                                )
+                                self._indices_input.extend(gr_index)
+                            else:
+                                index.selector = len(self._indices_input)
+                                self._indices_input.append(gr_index)
                         setattr(self, f"_index_{index.id}", index_ui)
 
                 self.report_issue = ReportIssue(self._app)
+
             with gr.Column(scale=6):
                 self.chat_panel = ChatPanel(self._app)
+
             with gr.Column(scale=3):
                 with gr.Accordion(label="Information panel", open=True):
                     self.info_panel = gr.HTML(elem_id="chat-info-panel")
@@ -229,8 +242,12 @@ class ChatPage(BasePage):
 
         selecteds_ = {}
         for index in self._app.index_manager.indices:
-            if index.selector != -1:
+            if index.selector is None:
+                continue
+            if isinstance(index.selector, int):
                 selecteds_[str(index.id)] = selecteds[index.selector]
+            else:
+                selecteds_[str(index.id)] = [selecteds[i] for i in index.selector]
 
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == convo_id)
@@ -274,8 +291,11 @@ class ChatPage(BasePage):
         retrievers = []
         for index in self._app.index_manager.indices:
             index_selected = []
-            if index.selector != -1:
+            if isinstance(index.selector, int):
                 index_selected = selecteds[index.selector]
+            if isinstance(index.selector, tuple):
+                for i in index.selector:
+                    index_selected.append(selecteds[i])
             iretrievers = index.get_retriever_pipelines(settings, index_selected)
             retrievers += iretrievers
 

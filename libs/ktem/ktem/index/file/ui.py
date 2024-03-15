@@ -494,6 +494,9 @@ class FileSelector(BasePage):
     def as_gradio_component(self):
         return self.selector
 
+    def get_selected_ids(self, selected):
+        return selected
+
     def load_files(self, selected_files):
         options = []
         available_ids = []
