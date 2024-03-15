@@ -200,24 +200,37 @@ class AnswerWithContextPipeline(BaseComponent):
             lang=self.lang,
         )
 
-        citation_task = asyncio.create_task(
-            self.citation_pipeline.ainvoke(context=evidence, question=question)
-        )
-        print("Citation task created")
+        if evidence:
+            citation_task = asyncio.create_task(
+                self.citation_pipeline.ainvoke(context=evidence, question=question)
+            )
+            print("Citation task created")
 
         messages = []
         if self.system_prompt:
             messages.append(SystemMessage(content=self.system_prompt))
         messages.append(HumanMessage(content=prompt))
+
         output = ""
-        for text in self.llm.stream(messages):
-            output += text.text
-            self.report_output({"output": text.text})
-            await asyncio.sleep(0)
+        try:
+            # try streaming first
+            print("Trying LLM streaming")
+            for text in self.llm.stream(messages):
+                output += text.text
+                self.report_output({"output": text.text})
+                await asyncio.sleep(0)
+        except NotImplementedError:
+            print("Streaming is not supported, falling back to normal processing")
+            output = self.llm(messages).text
+            self.report_output({"output": output})
 
         # retrieve the citation
         print("Waiting for citation task")
-        citation = await citation_task
+        if evidence:
+            citation = await citation_task
+        else:
+            citation = None
+
         answer = Document(text=output, metadata={"citation": citation})
 
         return answer

@@ -118,7 +118,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
 
         # rerank
         docs = self.vector_retrieval(text=text, top_k=top_k, **kwargs)
-        if self.get_from_path("reranker"):
+        if docs and self.get_from_path("reranker"):
             docs = self.reranker(docs, query=text)
 
         if not self.get_extra_table:

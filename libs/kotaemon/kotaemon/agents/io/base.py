@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Literal, NamedTuple, Optional, Union
 
-from pydantic import Extra
+from pydantic import ConfigDict
 
 from kotaemon.base import LLMInterface
 
@@ -238,7 +238,7 @@ class AgentFinish(NamedTuple):
     log: str
 
 
-class AgentOutput(LLMInterface, extra=Extra.allow):  # type: ignore [call-arg]
+class AgentOutput(LLMInterface):
     """Output from an agent.
 
     Args:
@@ -247,6 +247,8 @@ class AgentOutput(LLMInterface, extra=Extra.allow):  # type: ignore [call-arg]
         status: The status after executing the agent.
         error: The error message if any.
     """
+
+    model_config = ConfigDict(extra="allow")
 
     text: str
     type: str = "agent"

@@ -466,4 +466,5 @@ examples/example1/assets
 storage/*
 
 # Conda and env storages
-install_dir/
+*install_dir/
+doc_env

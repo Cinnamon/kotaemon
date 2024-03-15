@@ -12,7 +12,7 @@ user_cache_dir.mkdir(parents=True, exist_ok=True)
 
 COHERE_API_KEY = config("COHERE_API_KEY", default="")
 KH_MODE = "dev"
-KH_FEATURE_USER_MANAGEMENT = True
+KH_FEATURE_USER_MANAGEMENT = False
 KH_FEATURE_USER_MANAGEMENT_ADMIN = str(
     config("KH_FEATURE_USER_MANAGEMENT_ADMIN", default="admin")
 )
@@ -21,6 +21,8 @@ KH_FEATURE_USER_MANAGEMENT_PASSWORD = str(
 )
 KH_ENABLE_ALEMBIC = False
 KH_DATABASE = f"sqlite:///{user_cache_dir / 'sql.db'}"
+KH_FILESTORAGE_PATH = str(user_cache_dir / "files")
+
 KH_DOCSTORE = {
     "__type__": "kotaemon.storages.SimpleFileDocumentStore",
     "path": str(user_cache_dir / "docstore"),
@@ -29,51 +31,68 @@ KH_VECTORSTORE = {
     "__type__": "kotaemon.storages.ChromaVectorStore",
     "path": str(user_cache_dir / "vectorstore"),
 }
-KH_FILESTORAGE_PATH = str(user_cache_dir / "files")
 KH_LLMS = {
-    "gpt4": {
+    # example for using Azure OpenAI, the config variables can set as environment
+    # variables or in the .env file
+    # "gpt4": {
+    #     "def": {
+    #         "__type__": "kotaemon.llms.AzureChatOpenAI",
+    #         "temperature": 0,
+    #         "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
+    #         "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
+    #         "openai_api_version": config("OPENAI_API_VERSION", default=""),
+    #         "deployment_name": "<your deployment name>",
+    #         "stream": True,
+    #     },
+    #     "accuracy": 10,
+    #     "cost": 10,
+    #     "default": False,
+    # },
+    # "gpt35": {
+    #     "def": {
+    #         "__type__": "kotaemon.llms.AzureChatOpenAI",
+    #         "temperature": 0,
+    #         "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
+    #         "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
+    #         "openai_api_version": config("OPENAI_API_VERSION", default=""),
+    #         "deployment_name": "<your deployment name>",
+    #         "request_timeout": 10,
+    #         "stream": False,
+    #     },
+    #     "accuracy": 5,
+    #     "cost": 5,
+    #     "default": False,
+    # },
+    "local": {
         "def": {
-            "__type__": "kotaemon.llms.AzureChatOpenAI",
-            "temperature": 0,
-            "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
-            "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
-            "openai_api_version": config("OPENAI_API_VERSION", default=""),
-            "deployment_name": "dummy-q2",
-            "stream": True,
+            "__type__": "kotaemon.llms.EndpointChatLLM",
+            "endpoint_url": "http://localhost:31415/v1/chat/completions",
         },
-        "accuracy": 10,
-        "cost": 10,
         "default": False,
-    },
-    "gpt35": {
-        "def": {
-            "__type__": "kotaemon.llms.AzureChatOpenAI",
-            "temperature": 0,
-            "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
-            "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
-            "openai_api_version": config("OPENAI_API_VERSION", default=""),
-            "deployment_name": "dummy-q2",
-            "request_timeout": 10,
-            "stream": False,
-        },
-        "accuracy": 5,
-        "cost": 5,
-        "default": True,
     },
 }
 KH_EMBEDDINGS = {
-    "ada": {
+    # example for using Azure OpenAI, the config variables can set as environment
+    # variables or in the .env file
+    # "ada": {
+    #     "def": {
+    #         "__type__": "kotaemon.embeddings.AzureOpenAIEmbeddings",
+    #         "model": "text-embedding-ada-002",
+    #         "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
+    #         "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
+    #         "deployment": "<your deployment name>",
+    #         "chunk_size": 16,
+    #     },
+    #     "accuracy": 5,
+    #     "cost": 5,
+    #     "default": True,
+    # },
+    "local": {
         "def": {
-            "__type__": "kotaemon.embeddings.AzureOpenAIEmbeddings",
-            "model": "text-embedding-ada-002",
-            "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
-            "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
-            "deployment": "dummy-q2-text-embedding",
-            "chunk_size": 16,
+            "__type__": "kotaemon.embeddings.EndpointEmbeddings",
+            "endpoint_url": "http://localhost:31415/v1/embeddings",
         },
-        "accuracy": 5,
-        "cost": 5,
-        "default": True,
+        "default": False,
     },
 }
 KH_REASONINGS = ["ktem.reasoning.simple.FullQAPipeline"]
