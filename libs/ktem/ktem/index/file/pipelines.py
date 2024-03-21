@@ -25,7 +25,7 @@ from theflow.utils.modules import import_dotted_string
 from kotaemon.base import RetrievedDocument
 from kotaemon.indices import VectorIndexing, VectorRetrieval
 from kotaemon.indices.ingests import DocumentIngestor
-from kotaemon.indices.rankings import BaseReranking, CohereReranking, LLMReranking
+from kotaemon.indices.rankings import BaseReranking, LLMReranking
 
 from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
 
@@ -67,9 +67,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
     vector_retrieval: VectorRetrieval = VectorRetrieval.withx(
         embedding=embeddings.get_default(),
     )
-    reranker: BaseReranking = CohereReranking.withx(
-        cohere_api_key=getattr(settings, "COHERE_API_KEY", "")
-    ) >> LLMReranking.withx(llm=llms.get_lowest_cost())
+    reranker: BaseReranking = LLMReranking.withx(llm=llms.get_lowest_cost())
     get_extra_table: bool = False
 
     def run(

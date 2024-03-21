@@ -92,7 +92,7 @@ function install_dependencies() {
     if pip list 2>/dev/null | grep -q "kotaemon"; then
         echo "Requirements are already installed"
     else
-        local kotaemon_root="$(pwd)/libs/kotaemon/.[dev]"
+        local kotaemon_root="$(pwd)/libs/kotaemon"
         local ktem_root="$(pwd)/libs/ktem/"
 
         echo "" && echo "Install kotaemon's requirements"
