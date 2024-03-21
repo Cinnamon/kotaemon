@@ -1,6 +1,6 @@
 # import shutil
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Any, Iterable
 
 import mkdocs_gen_files
 
@@ -15,12 +15,10 @@ if doc_dir == doc_dir.parent:
 
 
 def generate_docs_for_examples_readme(
-    examples_dir: Path, target_doc_folder: str, ignored_modules: Optional[Iterable] = []
+    examples_dir: Path, target_doc_folder: str, ignored_modules: Iterable[Any] = []
 ):
     if not examples_dir.is_dir():
         raise ModuleNotFoundError(str(examples_dir))
-
-    ignored_modules = set(ignored_modules)
 
     nav = mkdocs_gen_files.Nav()
 

@@ -1,6 +1,6 @@
 # import shutil
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Any, Iterable
 
 import mkdocs_gen_files
 
@@ -13,14 +13,14 @@ while doc_dir.name != doc_dir_name and doc_dir != doc_dir.parent:
 if doc_dir == doc_dir.parent:
     raise ValueError(f"root_name ({doc_dir_name}) not in path ({str(Path(__file__))}).")
 
+nav_title_map = {"cli": "CLI", "llms": "LLMs"}
+
 
 def generate_docs_for_src_code(
-    code_dir: Path, target_doc_folder: str, ignored_modules: Optional[Iterable] = []
+    code_dir: Path, target_doc_folder: str, ignored_modules: Iterable[Any] = []
 ):
     if not code_dir.is_dir():
         raise ModuleNotFoundError(str(code_dir))
-
-    ignored_modules = set(ignored_modules)
 
     nav = mkdocs_gen_files.Nav()
 
@@ -55,7 +55,9 @@ def generate_docs_for_src_code(
         if ignore:
             continue
 
-        nav_titles = [name.replace("_", " ").title() for name in parts]
+        nav_titles = [
+            nav_title_map.get(name, name.replace("_", " ").title()) for name in parts
+        ]
         nav[nav_titles] = doc_path.as_posix()
 
         with mkdocs_gen_files.open(full_doc_path, "w") as f:
@@ -71,7 +73,7 @@ def generate_docs_for_src_code(
 
 
 generate_docs_for_src_code(
-    code_dir=doc_dir.parent / "kotaemon",
+    code_dir=doc_dir.parent / "libs" / "kotaemon" / "kotaemon",
     target_doc_folder="reference",
     ignored_modules={"contribs"},
 )
