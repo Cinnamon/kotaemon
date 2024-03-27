@@ -28,7 +28,7 @@ call :activate_environment
 
 @rem install dependencies
 @rem ver 0.2.56 produces segment error for /embeddings on MacOS
-call python -m pip install llama-cpp-python[server]!=0.2.56
+call python -m pip install llama-cpp-python[server]==0.2.55
 
 @REM @rem start the server with passed params
 call python -m llama_cpp.server %*

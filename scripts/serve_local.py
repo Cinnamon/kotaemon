@@ -3,9 +3,7 @@ import subprocess
 from inspect import currentframe, getframeinfo
 from pathlib import Path
 
-import dotenv
-
-configs = dotenv.dotenv_values(".env")
+from decouple import config
 
 system_name = platform.system()
 
@@ -53,7 +51,7 @@ def serve_llamacpp_python(local_model_file: Path, **kwargs):
 
 
 def main():
-    local_model_file = configs.get("LOCAL_MODEL", "")
+    local_model_file = config("LOCAL_MODEL", default="")
 
     if not local_model_file:
         print("LOCAL_MODEL not set in the `.env` file.")

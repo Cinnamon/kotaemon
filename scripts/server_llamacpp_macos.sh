@@ -88,7 +88,7 @@ activate_environment
 
 # install dependencies
 # ver 0.2.56 produces segment error for /embeddings on MacOS
-python -m pip install llama-cpp-python[server]!=0.2.56
+python -m pip install llama-cpp-python[server]==0.2.55
 
 # start the server with passed params
 python -m llama_cpp.server $@
