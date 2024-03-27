@@ -165,7 +165,36 @@ class LCChatMixin:
         raise ValueError(f"Invalid param {path}")
 
 
+class ChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
+    def __init__(
+        self,
+        openai_api_base: str | None = None,
+        openai_api_key: str | None = None,
+        model: str | None = None,
+        temperature: float = 0.7,
+        request_timeout: float | None = None,
+        **params,
+    ):
+        super().__init__(
+            openai_api_base=openai_api_base,
+            openai_api_key=openai_api_key,
+            model=model,
+            temperature=temperature,
+            request_timeout=request_timeout,
+            **params,
+        )
+
+    def _get_lc_class(self):
+        try:
+            from langchain_openai import ChatOpenAI
+        except ImportError:
+            from langchain.chat_models import ChatOpenAI
+
+        return ChatOpenAI
+
+
 class AzureChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
+
     def __init__(
         self,
         azure_endpoint: str | None = None,

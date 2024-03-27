@@ -137,14 +137,14 @@ class AzureOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
         azure_endpoint: Optional[str] = None,
         deployment: Optional[str] = None,
         openai_api_key: Optional[str] = None,
-        openai_api_version: Optional[str] = None,
+        api_version: Optional[str] = None,
         request_timeout: Optional[float] = None,
         **params,
     ):
         super().__init__(
             azure_endpoint=azure_endpoint,
             deployment=deployment,
-            openai_api_version=openai_api_version,
+            api_version=api_version,
             openai_api_key=openai_api_key,
             request_timeout=request_timeout,
             **params,
