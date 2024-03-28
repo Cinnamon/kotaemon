@@ -194,7 +194,6 @@ class ChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
 
 
 class AzureChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
-
     def __init__(
         self,
         azure_endpoint: str | None = None,
