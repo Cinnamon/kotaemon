@@ -26,9 +26,6 @@ nav:
       - Utilities: ultilities.md
   # generated using gen-files + literate-nav
   - API Reference: reference/
-  - Use Cases: examples/
-  - Misc:
-      - Upload python package to private index: upload-package.md
 
 markdown_extensions:
   - admonition
@@ -59,7 +56,6 @@ plugins:
   - gen-files:
       scripts:
         - docs/scripts/generate_reference_docs.py
-        - docs/scripts/generate_examples_docs.py
   - literate-nav:
       nav_file: NAV.md
   - mkdocstrings:
