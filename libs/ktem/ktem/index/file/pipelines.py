@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import shutil
 import warnings
 from collections import defaultdict
@@ -8,7 +9,7 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Optional
 
-from ktem.components import embeddings, filestorage_path, llms
+from ktem.components import embeddings, filestorage_path
 from ktem.db.models import engine
 from llama_index.vector_stores import (
     FilterCondition,
@@ -25,9 +26,11 @@ from theflow.utils.modules import import_dotted_string
 from kotaemon.base import RetrievedDocument
 from kotaemon.indices import VectorIndexing, VectorRetrieval
 from kotaemon.indices.ingests import DocumentIngestor
-from kotaemon.indices.rankings import BaseReranking, LLMReranking
+from kotaemon.indices.rankings import BaseReranking
 
 from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
+
+logger = logging.getLogger(__name__)
 
 
 @lru_cache
@@ -67,7 +70,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
     vector_retrieval: VectorRetrieval = VectorRetrieval.withx(
         embedding=embeddings.get_default(),
     )
-    reranker: BaseReranking = LLMReranking.withx(llm=llms.get_lowest_cost())
+    reranker: BaseReranking
     get_extra_table: bool = False
 
     def run(
@@ -153,7 +156,23 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
 
     @classmethod
     def get_user_settings(cls) -> dict:
+        from ktem.components import llms
+
+        try:
+            reranking_llm = llms.get_lowest_cost_name()
+            reranking_llm_choices = list(llms.options().keys())
+        except Exception as e:
+            logger.error(e)
+            reranking_llm = None
+            reranking_llm_choices = []
+
         return {
+            "reranking_llm": {
+                "name": "LLM for reranking",
+                "value": reranking_llm,
+                "component": "dropdown",
+                "choices": reranking_llm_choices,
+            },
             "separate_embedding": {
                 "name": "Use separate embedding",
                 "value": False,
@@ -185,7 +204,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             },
             "use_reranking": {
                 "name": "Use reranking",
-                "value": True,
+                "value": False,
                 "choices": [True, False],
                 "component": "checkbox",
             },
@@ -199,7 +218,10 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             settings: the settings of the app
             kwargs: other arguments
         """
-        retriever = cls(get_extra_table=user_settings["prioritize_table"])
+        retriever = cls(
+            get_extra_table=user_settings["prioritize_table"],
+            reranker=user_settings["reranking_llm"],
+        )
         if not user_settings["use_reranking"]:
             retriever.reranker = None  # type: ignore
 
