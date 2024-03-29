@@ -6,8 +6,7 @@ edit_uri: edit/main/docs/
 nav:
   - Getting Started:
       - Quick Start: index.md
-      - Overview: overview.md
-      - Contributing: contributing.md
+      - Basic Usage: usage.md
   - Application:
       - Features: pages/app/features.md
       - Index:
@@ -20,15 +19,13 @@ nav:
       - Customize flow logic: pages/app/customize-flows.md
       - Customize UI: pages/app/customize-ui.md
       - Functional description: pages/app/functional-description.md
-  - Tutorial:
-      - Data & Data Structure Components: data-components.md
-      - Creating a Component: create-a-component.md
-      - Utilities: ultilities.md
+  - Development:
+      - Contributing: development/contributing.md
+      - Data & Data Structure Components: development/data-components.md
+      - Creating a Component: development/create-a-component.md
+      - Utilities: development/utilities.md
   # generated using gen-files + literate-nav
   - API Reference: reference/
-  - Use Cases: examples/
-  - Misc:
-      - Upload python package to private index: upload-package.md
 
 markdown_extensions:
   - admonition
@@ -59,7 +56,6 @@ plugins:
   - gen-files:
       scripts:
         - docs/scripts/generate_reference_docs.py
-        - docs/scripts/generate_examples_docs.py
   - literate-nav:
       nav_file: NAV.md
   - mkdocstrings:

@@ -1,54 +1,66 @@
 # kotaemon
 
-Quick and easy AI components to build Kotaemon - applicable in client
-projects.
+[Documentation](https://cinnamon.github.io/kotaemon/)
 
-[Documentation](https://docs.bleh-internal.cinnamon.is/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-31013/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![built with Codeium](https://codeium.com/badges/main)](https://codeium.com)
 
-## Install
+Build and use local RAG-based Question Answering (QA) applications.
 
-### Easy install
+This repository would like to appeal to both end users who want to do QA on their
+documents and developers who want to build their own QA pipeline.
 
-1. Clone the repository.
-2. Navigate to the `scripts` folder and start an installer that matches your OS:
-   - Linux: `run_linux.sh`
-   - Windows: `run_windows.bat`
-   - macOS: `run_macos.sh`
-3. After the installation, the installer will ask to launch the ktem's UI, answer to continue.
-4. If launched, the application will be available at `http://localhost:7860/`. Let's start exploring!
+- For end users:
+  - A local Question Answering UI for RAG-based QA.
+  - Supports LLM API providers (OpenAI, AzureOpenAI, Cohere, etc) and local LLMs
+    (currently only GGUF format is supported via `llama-cpp-python`).
+  - Easy installation scripts, no environment setup required.
+- For developers:
+  - A framework for building your own RAG-based QA pipeline.
+  - See your RAG pipeline in action with the provided UI (built with Gradio).
+  - Share your pipeline so that others can use it.
 
-Here is the setup and update strategy:
+This repository is under active development. Feedback, issues, and PRs are highly
+appreciated. Your input is valuable as it helps us persuade our business guys to support
+open source.
 
-- **Run `run_*` script**: This setup environment, including downloading Miniconda (in case Conda is not available in your machine) and installing necessary dependencies in `install_dir` folder.
-- **Launch the UI**: To launch the ktem's UI after initial setup or any changes, simply run `run_*` script again.
-- **Reinstall dependencies**: Simply delete the `install_dir/env` folder and run `run_*` script. The script will recreate the folder with fresh dependencies.
+## Installation
 
-### Manual install
-
-- Create conda environment (suggest 3.10)
-
-  ```shell
-  conda create -n kotaemon python=3.10
-  conda activate kotaemon
-  ```
+### Manual installation
 
 - Clone the repo
 
   ```shell
   git clone git@github.com:Cinnamon/kotaemon.git
+  cd kotaemon
   ```
+
+- Install the environment
+
+  - Create a conda environment (python >= 3.10 is recommended)
+
+    ```shell
+    conda create -n kotaemon python=3.10
+    conda activate kotaemon
+
+    # install dependencies
+    cd libs/kotaemon
+    pip install -e ".[all]"
+    ```
+
+  - Or run the installer (one of the `scripts/run_*` scripts depends on your OS), then
+    you will have all the dependencies installed as a conda environment at
+    `install_dir/env`.
+
+    ```shell
+    conda activate install_dir/env
+    ```
 
 - Pre-commit
 
   ```shell
   pre-commit install
-  ```
-
-- Install all
-
-  ```shell
-  cd kotaemon/libs/kotaemon
-  pip install -e ".[dev]"
   ```
 
 - Test
@@ -57,86 +69,20 @@ Here is the setup and update strategy:
   pytest tests
   ```
 
-### Credential sharing
+### From installation scripts
 
-This repo uses [git-secret](https://sobolevn.me/git-secret/) to share credentials, which
-internally uses `gpg` to encrypt and decrypt secret files.
+1. Clone the repository.
+2. Navigate to the `scripts` folder and start an installer that matches your OS:
+   - Linux: `run_linux.sh`
+   - Windows: `run_windows.bat`
+   - macOS: `run_macos.sh`
+3. After the installation, the installer will ask to launch the ktem's UI,answer to continue.
+4. If launched, the application will be available at `http://localhost:7860/`.
+5. The conda environment is located in the `install_dir/env` folder.
 
-This repo also uses `python-dotenv` to manage credentials stored as environment variables.
-Please note that the use of `python-dotenv` and credentials are for development
-purposes only. Thus, it should not be used in the main source code (i.e. `kotaemon/` and `tests/`), but can be used in `examples/`.
+Here is the setup and update strategy:
 
-#### Install git-secret
-
-Please follow the [official guide](https://sobolevn.me/git-secret/installation) to install git-secret.
-
-For Windows users, see [For Windows users](#for-windows-users).
-
-For users who don't have sudo privilege to install packages, follow the `Manual Installation` in the [official guide](https://sobolevn.me/git-secret/installation) and set `PREFIX` to a path that you have access to. And please don't forget to add `PREFIX` to your `PATH`.
-
-#### Gaining access
-
-In order to gain access to the secret files, you must provide your gpg public file to anyone who has access and ask them to add your key to the keyring. For a quick tutorial on generating your gpg key pair, you can refer to the `Using gpg` section from the [git-secret main page](https://sobolevn.me/git-secret/).
-
-#### Decrypt the secret file
-
-The credentials are encrypted in the `.env.secret` file. To print the decrypted content to stdout, run
-
-```shell
-git-secret cat [filename]
-```
-
-Or to get the decrypted `.env` file, run
-
-```shell
-git-secret reveal [filename]
-```
-
-#### For Windows users
-
-git-secret is currently not available for Windows, thus the easiest way is to use it in WSL (please use the latest version of WSL2). From there you can:
-
-- Use the `gpg` and `git-secret` in WSL.
-
-  This is the most straight-forward option since you would use WSL just like any other Unix environment. However, the downside is that you have to make WSL your main environment, which means WSL must have write permission on your repo. To achieve this, you must either:
-
-  - Clone and store your repo inside WSL's file system.
-  - Provide WSL with the necessary permission on your Windows file system. This can be achieved by setting `automount` options for WSL. To do that, add this content to `/etc/wsl.conf` and then restart your sub-system.
-
-    ```shell
-    [automount]
-    options = "metadata,umask=022,fmask=011"
-    ```
-
-    This enables all permissions for user owner.
-
-- (Optional) use `git-secret` and `gpg` from WSL in Windows.
-
-  For those who use Windows as the main environment, having to switch back and forth between Windows and WSL will be inconvenient. You can instead stay within your Windows environment and apply some tricks to use `git-secret` from WSL.
-
-  - Install and setup `gpg` on WSL. Now in Windows you can invoke WSL's `gpg`
-    using `wsl gpg`.
-  - Install `git-secret` on WSL. Now in Windows you can invoke `git-secret` using `wsl git-secret`.
-  - Additionally, you can set up aliases in CMD to shorten the syntax. Please refer to [this SO answer](https://stackoverflow.com/a/65823225) for the instruction. Some recommended aliases are:
-
-    ```bat
-    @echo off
-
-    :: Commands
-    DOSKEY ls=dir /B $*
-    DOSKEY ll=dir /a $*
-    DOSKEY git-secret=wsl git-secret $*
-    DOSKEY gs=wsl git-secret $*
-    DOSKEY gpg=wsl gpg $*
-    ```
-
-    Now you can invoke `git-secret` in CMD using `git-secret` or `gs`.
-
-    - For Powershell users, similar behaviours can be achieved using
-      `Set-Alias` and `profile.ps1`. Please refer to [this SO thread](https://stackoverflow.com/questions/61081434/how-do-i-create-a-permanent-alias-file-in-powershell-core)
-      as an example.
-
-### Code base structure
-
-- documents: define document
-- loaders
+- **Run the `run_*` script**: This setup environment, including downloading Miniconda (in case Conda is not available in your machine) and installing necessary dependencies in `install_dir` folder.
+- **Launch the UI**: To launch the ktem's UI after initial setup or any changes, simply run `run_*` script again.
+- **Reinstall dependencies**: Simply delete the `install_dir/env` folder and run `run_*`
+  script again. The script will recreate the folder with fresh dependencies.

@@ -73,7 +73,7 @@ dev = [
 all = ["kotaemon[adv,dev]"]
 
 [project.scripts]
-kh = "kotaemon.cli:main"
+kotaemon = "kotaemon.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/Cinnamon/kotaemon/"
