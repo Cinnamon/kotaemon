@@ -1,4 +1,4 @@
-## Introduction
+# Package overview
 
 `kotaemon` library focuses on the AI building blocks to implement a RAG-based QA application. It consists of base interfaces, core components and a list of utilities:
 
@@ -13,7 +13,7 @@
   engineering UI for AI developers in a project to quickly create a prompt
   engineering tool for DMs and QALs. It also provides a command to quickly spin
   up a project code base. For a full list and description of these utilities,
-  please refer to the [Tutorial/Utilities](/ultilities) section.
+  please refer to the [Development/Utilities](/development/ultilities) section.
 
 ```mermaid
 mindmap
@@ -47,38 +47,28 @@ mindmap
       Documentation Support
 ```
 
-## Expected benefit
+# Common conventions
 
-Before `kotaemon`:
+- PR title: One-line description (example: Feat: Declare BaseComponent and decide LLM call interface).
+- [Encouraged] Provide a quick description in the PR, so that:
+  - Reviewers can quickly understand the direction of the PR.
+  - It will be included in the commit message when the PR is merged.
 
-- Starting everything from scratch.
-- Knowledge and expertise is fragmented.
-- Nothing to reuse.
-- No way to collaborate between tech and non-tech experts.
+# Environment caching on PR
 
-`kotaemon` expects to completely revolutionize the way we are building LLM-related projects. It helps the company side-steps those issues by:
+- To speed up CI, environments are cached based on the version specified in `__init__.py`.
+- Since dependencies versions in `setup.py` are not pinned, you need to pump the version in order to use a new environment. That environment will then be cached and used by your subsequence commits within the PR, until you pump the version again
+- The new environment created during your PR is cached and will be available to others once the PR is merged.
+- If you are experimenting with new dependencies and want a fresh environment every time, add `[ignore cache]` in your commit message. The CI will create a fresh environment to run your commit and then discard it.
+- If your PR include updated dependencies, the recommended workflow would be:
+  - Doing development as usual.
+  - When you want to run the CI, push a commit with the message containing `[ignore cache]`.
+  - Once the PR is final, pump the version in `__init__.py` and push a final commit not containing `[ignore cache]`.
 
-- Standardize the interface to (1) make building LLM pipeline clearer (2) more reasonable to integrate pipelines between different projects.
-- Centralize LLM-related technical components into 1 place. Avoid fragmented technology development. Easy to find the LLM-related technology inside the company.
-- Centralize bug fixes and improvements in 1 place.
-- Reduce boilerplate code during project development.
-- Lightning fast prototyping.
+# Merge PR guideline
 
-## Install
+- Use squash and merge option
+- 1st line message is the PR title.
+- The text area is the PR description.
 
-The kotaemon can be installed from source with:
-
-```
-pip install kotaemon@git+ssh://git@github.com/Cinnamon/kotaemon.git
-```
-
-or from Cinnamon's internal python package index:
-
-```
-pip install kotaemon --extra-index-url https://ian_devpi.promptui.dm.cinnamon.is/root/packages
-```
-
-## Example use cases
-
-- Start a project from scratch: `ktem start-project`
-- Run prompt engineering UI tool: `ktem promptui export`, then `ktem promptui run`.
+![image](images/274787925-e2593010-d7ef-46e3-8719-6fcae0315b5d.png)
