@@ -96,6 +96,10 @@ Here is how to get the full path of your model file:
 1. Navigate to the `scripts` folder and start an installer that matches your OS:
    - Windows: `run_windows.bat`. Just double click the file.
    - macOS: `run_macos.sh`
+     1. Right click on your file and select Open with and Other.
+     2. Enable All Applications and choose Terminal.
+     3. NOTE: If you always want to open that file with Terminal, then check Always Open With.
+     4. From now on, double click on your file and it should work.
    - Linux: `run_linux.sh`. If you are using Linux, you would know how to run a bash
      script, right ?
 2. After the installation, the installer will ask to launch the ktem's UI,answer to continue.
