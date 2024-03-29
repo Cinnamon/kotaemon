@@ -13,7 +13,7 @@
   engineering UI for AI developers in a project to quickly create a prompt
   engineering tool for DMs and QALs. It also provides a command to quickly spin
   up a project code base. For a full list and description of these utilities,
-  please refer to the [Development/Utilities](/development/ultilities) section.
+  please refer to the [Utilities](/development/utilities) section.
 
 ```mermaid
 mindmap
@@ -70,5 +70,3 @@ mindmap
 - Use squash and merge option
 - 1st line message is the PR title.
 - The text area is the PR description.
-
-![image](images/274787925-e2593010-d7ef-46e3-8719-6fcae0315b5d.png)
