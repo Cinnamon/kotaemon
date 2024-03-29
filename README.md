@@ -2,6 +2,10 @@
 
 [Documentation](https://cinnamon.github.io/kotaemon/)
 
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-31013/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![built with Codeium](https://codeium.com/badges/main)](https://codeium.com)
+
 Build and use local RAG-based Question Answering (QA) applications.
 
 This repository would like to appeal to both end users who want to do QA on their
