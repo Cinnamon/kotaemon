@@ -34,12 +34,16 @@ class BaseReasoning(BaseComponent):
 
     @classmethod
     def get_pipeline(
-        cls, user_settings: dict, retrievers: Optional[list["BaseComponent"]] = None
+        cls,
+        user_settings: dict,
+        state: dict,
+        retrievers: Optional[list["BaseComponent"]] = None,
     ) -> "BaseReasoning":
         """Get the reasoning pipeline for the app to execute
 
         Args:
             user_setting: user settings
+            state: conversation state
             retrievers (list): List of retrievers
         """
         return cls()

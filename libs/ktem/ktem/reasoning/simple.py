@@ -22,6 +22,8 @@ from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import ChatLLM, PromptTemplate
 from kotaemon.loaders.utils.gpt4v import stream_gpt4v
 
+from .base import BaseReasoning
+
 logger = logging.getLogger(__name__)
 
 EVIDENCE_MODE_TEXT = 0
@@ -336,7 +338,7 @@ class RewriteQuestionPipeline(BaseComponent):
         return Document(text=output)
 
 
-class FullQAPipeline(BaseComponent):
+class FullQAPipeline(BaseReasoning):
     """Question answering pipeline. Handle from question to answer"""
 
     class Config:
