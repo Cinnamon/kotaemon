@@ -10,14 +10,6 @@ from llama_index.readers.base import BaseReader
 
 from kotaemon.base import Document
 
-from .utils.adobe import (
-    generate_figure_captions,
-    load_json,
-    parse_figure_paths,
-    parse_table_paths,
-    request_adobe_service,
-)
-
 logger = logging.getLogger(__name__)
 
 DEFAULT_VLM_ENDPOINT = (
@@ -74,6 +66,13 @@ class AdobeReader(BaseReader):
                 includes 3 types: text, table, and image
 
         """
+        from .utils.adobe import (
+            generate_figure_captions,
+            load_json,
+            parse_figure_paths,
+            parse_table_paths,
+            request_adobe_service,
+        )
 
         filename = file.name
         filepath = str(Path(file).resolve())

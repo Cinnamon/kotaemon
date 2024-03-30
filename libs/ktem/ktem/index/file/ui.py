@@ -13,7 +13,10 @@ from sqlalchemy.orm import Session
 
 
 class File(gr.File):
-    """Subclass from gr.File to maintain the original filename"""
+    """Subclass from gr.File to maintain the original filename
+
+    The issue happens when user uploads file with name like: !@#$%%^&*().pdf
+    """
 
     def _process_single_file(self, f: FileData) -> NamedString | bytes:
         file_name = f.path
