@@ -5,6 +5,8 @@ from ktem.app import BasePage
 from ktem.db.models import Conversation, engine
 from sqlmodel import Session, select
 
+from .common import STATE
+
 logger = logging.getLogger(__name__)
 
 
@@ -159,14 +161,14 @@ class ConversationControl(BasePage):
                 name = result.name
                 selected = result.data_source.get("selected", {})
                 chats = result.data_source.get("messages", [])
-                state = result.data_source.get("state", {})
+                state = result.data_source.get("state", STATE)
             except Exception as e:
                 logger.warning(e)
                 id_ = ""
                 name = ""
                 selected = {}
                 chats = []
-                state = {}
+                state = STATE
 
         indices = []
         for index in self._app.index_manager.indices:

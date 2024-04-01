@@ -9,6 +9,7 @@ from ktem.db.models import Conversation, engine
 from sqlmodel import Session, select
 
 from .chat_panel import ChatPanel
+from .common import STATE
 from .control import ConversationControl
 from .report import ReportIssue
 
@@ -21,6 +22,7 @@ class ChatPage(BasePage):
 
     def on_building_ui(self):
         with gr.Row():
+            self.chat_state = gr.State(STATE)
             with gr.Column(scale=1):
                 self.chat_control = ConversationControl(self._app)
 
@@ -62,13 +64,13 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_id,
                 self.chat_panel.chatbot,
                 self._app.settings_state,
-                self._app.dynamic_state,
+                self.chat_state,
             ]
             + self._indices_input,
             outputs=[
-                self.chat_panel.text_input,
                 self.chat_panel.chatbot,
                 self.info_panel,
+                self.chat_state,
             ],
             show_progress="minimal",
         ).then(
@@ -76,7 +78,7 @@ class ChatPage(BasePage):
             inputs=[
                 self.chat_control.conversation_id,
                 self.chat_panel.chatbot,
-                self._app.dynamic_state,
+                self.chat_state,
             ]
             + self._indices_input,
             outputs=None,
@@ -88,13 +90,13 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_id,
                 self.chat_panel.chatbot,
                 self._app.settings_state,
-                self._app.dynamic_state,
+                self.chat_state,
             ]
             + self._indices_input,
             outputs=[
-                self.chat_panel.text_input,
                 self.chat_panel.chatbot,
                 self.info_panel,
+                self.chat_state,
             ],
             show_progress="minimal",
         ).then(
@@ -102,7 +104,7 @@ class ChatPage(BasePage):
             inputs=[
                 self.chat_control.conversation_id,
                 self.chat_panel.chatbot,
-                self._app.dynamic_state,
+                self.chat_state,
             ]
             + self._indices_input,
             outputs=None,
@@ -122,7 +124,7 @@ class ChatPage(BasePage):
                 self.chat_control.conversation,
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
-                self._app.dynamic_state,
+                self.chat_state,
             ]
             + self._indices_input,
             show_progress="hidden",
@@ -138,6 +140,7 @@ class ChatPage(BasePage):
                 self.chat_panel.chatbot,
                 self._app.settings_state,
                 self._app.user_id,
+                self.chat_state,
             ]
             + self._indices_input,
             outputs=None,
@@ -192,8 +195,12 @@ class ChatPage(BasePage):
                 consider using all files
 
         Returns:
-            the pipeline objects
+            - the pipeline objects
         """
+        reasoning_mode = settings["reasoning.use"]
+        reasoning_cls = reasonings[reasoning_mode]
+        reasoning_id = reasoning_cls.get_info()["id"]
+
         # get retrievers
         retrievers = []
         for index in self._app.index_manager.indices:
@@ -203,11 +210,15 @@ class ChatPage(BasePage):
             iretrievers = index.get_retriever_pipelines(settings, index_selected)
             retrievers += iretrievers
 
-        reasoning_mode = settings["reasoning.use"]
-        reasoning_cls = reasonings[reasoning_mode]
-        pipeline = reasoning_cls.get_pipeline(settings, state, retrievers)
+        # prepare states
+        reasoning_state = {
+            "app": deepcopy(state["app"]),
+            "pipeline": deepcopy(state.get(reasoning_id, {})),
+        }
 
-        return pipeline
+        pipeline = reasoning_cls.get_pipeline(settings, reasoning_state, retrievers)
+
+        return pipeline, reasoning_state
 
     async def chat_fn(self, conversation_id, chat_history, settings, state, *selecteds):
         """Chat function"""
@@ -217,8 +228,7 @@ class ChatPage(BasePage):
         queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
 
         # construct the pipeline
-        state["is_regen"] = False
-        pipeline = self.create_pipeline(settings, state, *selecteds)
+        pipeline, reasoning_state = self.create_pipeline(settings, state, *selecteds)
         pipeline.set_output_queue(queue)
 
         asyncio.create_task(pipeline(chat_input, conversation_id, chat_history))
@@ -230,7 +240,8 @@ class ChatPage(BasePage):
             try:
                 response = queue.get_nowait()
             except Exception:
-                yield "", chat_history + [(chat_input, text or "Thinking ...")], refs
+                state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
+                yield chat_history + [(chat_input, text or "Thinking ...")], refs, state
                 continue
 
             if response is None:
@@ -240,6 +251,7 @@ class ChatPage(BasePage):
 
             if "output" in response:
                 text += response["output"]
+
             if "evidence" in response:
                 if response["evidence"] is None:
                     refs = ""
@@ -250,57 +262,25 @@ class ChatPage(BasePage):
                 print(f"Len refs: {len(refs)}")
                 len_ref = len(refs)
 
-        yield "", chat_history + [(chat_input, text)], refs
+        state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
+        yield chat_history + [(chat_input, text)], refs, state
 
     async def regen_fn(
         self, conversation_id, chat_history, settings, state, *selecteds
     ):
-        """Chat function"""
-        if len(chat_history) == 0:
-            gr.Warning("Can't regenerate in an empty conversation")
-            yield "", chat_history, ""
+        """Regen function"""
+        if not chat_history:
+            gr.Warning("Empty chat")
+            yield chat_history, "", state
             return
 
-        chat_input = chat_history[-1][0]
-        if state.get("is_regen", False):
-            chat_history = chat_history[:-1]
-
-        queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
-
-        # construct the pipeline
-        state["is_regen"] = True
-        pipeline = self.create_pipeline(settings, state, *selecteds)
-        pipeline.set_output_queue(queue)
-
-        asyncio.create_task(pipeline(chat_input, conversation_id, chat_history))
-        text, refs = "", ""
-
-        len_ref = -1  # for logging purpose
-
-        while True:
-            try:
-                response = queue.get_nowait()
-            except Exception:
-                yield "", chat_history + [(chat_input, text or "Thinking ...")], refs
-                continue
-
-            if response is None:
-                queue.task_done()
-                print("Chat completed")
-                break
-
-            if "output" in response:
-                text += response["output"]
-            if "evidence" in response:
-                if response["evidence"] is None:
-                    refs = ""
-                else:
-                    refs += response["evidence"]
-            if "chat_input" in response:
-                chat_input = response["chat_input"]
-
-            if len(refs) > len_ref:
-                print(f"Len refs: {len(refs)}")
-                len_ref = len(refs)
-
-        yield "", chat_history + [(chat_input, text)], refs
+        state["app"]["regen"] = True
+        async for chat, refs, state in self.chat_fn(
+            conversation_id, chat_history, settings, state, *selecteds
+        ):
+            new_state = deepcopy(state)
+            new_state["app"]["regen"] = False
+            yield chat, refs, new_state
+        else:
+            state["app"]["regen"] = False
+            yield chat_history, "", state

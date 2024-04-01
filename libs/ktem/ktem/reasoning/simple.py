@@ -396,9 +396,7 @@ class FullQAPipeline(BaseComponent):
         pipeline.answering_pipeline.qa_template = settings[
             f"reasoning.options.{_id}.qa_prompt"
         ]
-        pipeline.use_rewrite = settings[
-            "reasoning.options.simple.rewrite_on_regen"
-        ] and states.get("is_regen", False)
+        pipeline.use_rewrite = states.get("app", {}).get("regen", False)
         pipeline.rewrite_pipeline.llm = llms.get_lowest_cost()
         pipeline.rewrite_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
             settings["reasoning.lang"], "English"
@@ -446,12 +444,6 @@ class FullQAPipeline(BaseComponent):
             "qa_prompt": {
                 "name": "QA Prompt (contains {context}, {question}, {lang})",
                 "value": DEFAULT_QA_TEXT_PROMPT,
-            },
-            "rewrite_on_regen": {
-                "name": "Rephrase question on regeneration",
-                "value": True,
-                "component": "dropdown",
-                "choices": [False, True],
             },
         }
 
