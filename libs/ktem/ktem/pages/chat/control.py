@@ -166,7 +166,7 @@ class ConversationControl(BasePage):
             if isinstance(index.selector, int):
                 indices.append(selected.get(str(index.id), []))
             if isinstance(index.selector, tuple):
-                indices.extend(selected.get(str(index.id), [[] * len(index.selector)]))
+                indices.extend(selected.get(str(index.id), [[]] * len(index.selector)))
 
         return id_, id_, name, chats, *indices
 

@@ -22,4 +22,6 @@ class ChatPanel(BasePage):
 
     def submit_msg(self, chat_input, chat_history):
         """Submit a message to the chatbot"""
-        return "", chat_history + [(chat_input, None)]
+        if chat_input:
+            return "", chat_history + [(chat_input, None)]
+        raise ValueError("Input is empty")

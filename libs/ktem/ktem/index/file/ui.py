@@ -94,7 +94,7 @@ class FileIndexPage(BasePage):
 
     def on_building_ui(self):
         """Build the UI of the app"""
-        with gr.Accordion(label="File upload", open=False):
+        with gr.Accordion(label="File upload", open=True):
             msg = self.upload_instruction()
             if msg:
                 gr.Markdown(msg)

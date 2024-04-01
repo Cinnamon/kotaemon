@@ -27,7 +27,7 @@ class App(BaseApp):
         if self.f_user_management:
             from ktem.pages.login import LoginPage
 
-            with gr.Tab("Login", elem_id="login-tab") as self._tabs["login-tab"]:
+            with gr.Tab("Welcome", elem_id="login-tab") as self._tabs["login-tab"]:
                 self.login_page = LoginPage(self)
 
         with gr.Tab(

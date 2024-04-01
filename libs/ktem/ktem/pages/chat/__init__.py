@@ -69,7 +69,7 @@ class ChatPage(BasePage):
             inputs=[self.chat_panel.text_input, self.chat_panel.chatbot],
             outputs=[self.chat_panel.text_input, self.chat_panel.chatbot],
             show_progress="hidden",
-        ).then(
+        ).success(
             fn=self.chat_fn,
             inputs=[
                 self.chat_control.conversation_id,
@@ -78,7 +78,6 @@ class ChatPage(BasePage):
             ]
             + self._indices_input,
             outputs=[
-                self.chat_panel.text_input,
                 self.chat_panel.chatbot,
                 self.info_panel,
             ],
@@ -325,7 +324,7 @@ class ChatPage(BasePage):
             try:
                 response = queue.get_nowait()
             except Exception:
-                yield "", chat_history + [(chat_input, text or "Thinking ...")], refs
+                yield chat_history + [(chat_input, text or "Thinking ...")], refs
                 continue
 
             if response is None:
@@ -345,4 +344,4 @@ class ChatPage(BasePage):
                 print(f"Len refs: {len(refs)}")
                 len_ref = len(refs)
 
-        yield "", chat_history + [(chat_input, text)], refs
+        yield chat_history + [(chat_input, text)], refs

@@ -18,7 +18,7 @@ from llama_index.vector_stores import (
     MetadataFilters,
 )
 from llama_index.vector_stores.types import VectorStoreQueryMode
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
@@ -260,6 +260,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         to_index: list[str] = []
         file_to_hash: dict[str, str] = {}
         errors = []
+        to_update = []
 
         for file_path in file_paths:
             abs_path = str(Path(file_path).resolve())
@@ -272,9 +273,12 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                 statement = select(Source).where(Source.name == Path(abs_path).name)
                 item = session.execute(statement).first()
 
-                if item and not reindex:
-                    errors.append(Path(abs_path).name)
-                    continue
+                if item:
+                    if not reindex:
+                        errors.append(Path(abs_path).name)
+                        continue
+                    else:
+                        to_update.append(Path(abs_path).name)
 
             to_index.append(abs_path)
 
@@ -344,7 +348,11 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         # persist to the index
         print("Persisting the vector and the document into index")
         file_ids = []
+        to_update = list(set(to_update))
         with Session(engine) as session:
+            if to_update:
+                session.execute(delete(Source).where(Source.name.in_(to_update)))
+
             for source in file_to_source.values():
                 session.add(source)
             session.commit()

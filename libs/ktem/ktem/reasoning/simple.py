@@ -163,7 +163,7 @@ class AnswerWithContextPipeline(BaseComponent):
     lang: str = "English"  # support English and Japanese
 
     async def run(  # type: ignore
-        self, question: str, evidence: str, evidence_mode: int = 0
+        self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
     ) -> Document:
         """Answer the question based on the evidence
 
@@ -237,6 +237,8 @@ class FullQAPipeline(BaseReasoning):
     async def run(  # type: ignore
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Document:  # type: ignore
+        import markdown
+
         docs = []
         doc_ids = []
         for retriever in self.retrievers:
@@ -245,12 +247,16 @@ class FullQAPipeline(BaseReasoning):
                     docs.append(doc)
                     doc_ids.append(doc.doc_id)
         for doc in docs:
+            # TODO: a better approach to show the information
+            text = markdown.markdown(
+                doc.text, extensions=["markdown.extensions.tables"]
+            )
             self.report_output(
                 {
                     "evidence": (
                         "<details open>"
                         f"<summary>{doc.metadata['file_name']}</summary>"
-                        f"{doc.text}"
+                        f"{text}"
                         "</details><br>"
                     )
                 }
@@ -259,7 +265,12 @@ class FullQAPipeline(BaseReasoning):
 
         evidence_mode, evidence = self.evidence_pipeline(docs).content
         answer = await self.answering_pipeline(
-            question=message, evidence=evidence, evidence_mode=evidence_mode
+            question=message,
+            history=history,
+            evidence=evidence,
+            evidence_mode=evidence_mode,
+            conv_id=conv_id,
+            **kwargs,
         )
 
         # prepare citation
@@ -295,12 +306,15 @@ class FullQAPipeline(BaseReasoning):
                 if idx < len(ss) - 1:
                     text += id2docs[id].text[span["end"] : ss[idx + 1]["start"]]
             text += id2docs[id].text[ss[-1]["end"] :]
+            text_out = markdown.markdown(
+                text, extensions=["markdown.extensions.tables"]
+            )
             self.report_output(
                 {
                     "evidence": (
                         "<details open>"
                         f"<summary>{id2docs[id].metadata['file_name']}</summary>"
-                        f"{text}"
+                        f"{text_out}"
                         "</details><br>"
                     )
                 }
@@ -315,12 +329,15 @@ class FullQAPipeline(BaseReasoning):
                 {"evidence": "Retrieved segments without matching evidence:\n"}
             )
             for id in list(not_detected):
+                text_out = markdown.markdown(
+                    id2docs[id].text, extensions=["markdown.extensions.tables"]
+                )
                 self.report_output(
                     {
                         "evidence": (
                             "<details>"
                             f"<summary>{id2docs[id].metadata['file_name']}</summary>"
-                            f"{id2docs[id].text}"
+                            f"{text_out}"
                             "</details><br>"
                         )
                     }
@@ -339,7 +356,7 @@ class FullQAPipeline(BaseReasoning):
         """
         _id = cls.get_info()["id"]
 
-        pipeline = FullQAPipeline(retrievers=retrievers)
+        pipeline = cls(retrievers=retrievers)
         pipeline.answering_pipeline.llm = llms.get_highest_accuracy()
         pipeline.answering_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
             settings["reasoning.lang"], "English"

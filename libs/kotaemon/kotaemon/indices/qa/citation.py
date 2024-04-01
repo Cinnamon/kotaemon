@@ -104,14 +104,13 @@ class CitationPipeline(BaseComponent):
             print("CitationPipeline: invoking LLM")
             llm_output = self.get_from_path("llm").invoke(messages, **llm_kwargs)
             print("CitationPipeline: finish invoking LLM")
+            function_output = llm_output.messages[0].additional_kwargs["function_call"][
+                "arguments"
+            ]
+            output = QuestionAnswer.parse_raw(function_output)
         except Exception as e:
             print(e)
             return None
-
-        function_output = llm_output.messages[0].additional_kwargs["function_call"][
-            "arguments"
-        ]
-        output = QuestionAnswer.parse_raw(function_output)
 
         return output
 
