@@ -13,7 +13,6 @@ from theflow.utils.modules import import_dotted_string
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
-from .ui import FileIndexPage
 
 
 class FileIndex(BaseIndex):
@@ -79,9 +78,12 @@ class FileIndex(BaseIndex):
         self._retriever_pipeline_cls: list[Type[BaseFileIndexRetriever]]
         self._selector_ui_cls: Type
         self._selector_ui: Any = None
+        self._index_ui_cls: Type
+        self._index_ui: Any = None
 
         self._setup_indexing_cls()
         self._setup_retriever_cls()
+        self._setup_file_index_ui_cls()
         self._setup_file_selector_ui_cls()
 
         self._default_settings: dict[str, dict] = {}
@@ -161,7 +163,7 @@ class FileIndex(BaseIndex):
         self._retriever_pipeline_cls = [DocumentRetrievalPipeline]
 
     def _setup_file_selector_ui_cls(self):
-        """Retrieve the retriever classes for the file index
+        """Retrieve the file selector UI for the file index
 
         There can be multiple retriever classes.
 
@@ -170,7 +172,7 @@ class FileIndex(BaseIndex):
             - `FILE_INDEX_SELECTOR_UI` in self.config
             - `FILE_INDEX_{id}_SELECTOR_UI` in the flowsettings
             - `FILE_INDEX_SELECTOR_UI` in the flowsettings
-            - The default .pipelines.DocumentRetrievalPipeline
+            - The default .ui.FileSelector
         """
         if "FILE_INDEX_SELECTOR_UI" in self.config:
             self._selector_ui_cls = import_dotted_string(
@@ -180,7 +182,7 @@ class FileIndex(BaseIndex):
 
         if hasattr(flowsettings, f"FILE_INDEX_{self.id}_SELECTOR_UI"):
             self._selector_ui_cls = import_dotted_string(
-                getattr(flowsettings, f"FILE_INDEX_{self.id}_RETRIEVER_PIPELINES"),
+                getattr(flowsettings, f"FILE_INDEX_{self.id}_SELECTOR_UI"),
                 safe=False,
             )
             return
@@ -194,6 +196,41 @@ class FileIndex(BaseIndex):
         from .ui import FileSelector
 
         self._selector_ui_cls = FileSelector
+
+    def _setup_file_index_ui_cls(self):
+        """Retrieve the Index UI class
+
+        There can be multiple retriever classes.
+
+        The retriever classes will is retrieved from the following order. Stop at the
+        first order found:
+            - `FILE_INDEX_UI` in self.config
+            - `FILE_INDEX_{id}_UI` in the flowsettings
+            - `FILE_INDEX_UI` in the flowsettings
+            - The default .ui.FileIndexPage
+        """
+        if "FILE_INDEX_UI" in self.config:
+            self._index_ui_cls = import_dotted_string(
+                self.config["FILE_INDEX_UI"], safe=False
+            )
+            return
+
+        if hasattr(flowsettings, f"FILE_INDEX_{self.id}_UI"):
+            self._index_ui_cls = import_dotted_string(
+                getattr(flowsettings, f"FILE_INDEX_{self.id}_UI"),
+                safe=False,
+            )
+            return
+
+        if hasattr(flowsettings, "FILE_INDEX_UI"):
+            self._index_ui_cls = import_dotted_string(
+                getattr(flowsettings, "FILE_INDEX_UI"), safe=False
+            )
+            return
+
+        from .ui import FileIndexPage
+
+        self._index_ui_cls = FileIndexPage
 
     def on_create(self):
         """Create the index for the first time
@@ -230,7 +267,9 @@ class FileIndex(BaseIndex):
         return self._selector_ui
 
     def get_index_page_ui(self):
-        return FileIndexPage(self._app, self)
+        if self._index_ui is None:
+            self._index_ui = self._index_ui_cls(self._app, self)
+        return self._index_ui
 
     def get_user_settings(self):
         if self._default_settings:

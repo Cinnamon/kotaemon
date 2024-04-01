@@ -94,7 +94,7 @@ class FileIndexPage(BasePage):
 
     def on_building_ui(self):
         """Build the UI of the app"""
-        with gr.Accordion(label="File upload", open=True):
+        with gr.Accordion(label="File upload", open=True) as self.upload:
             msg = self.upload_instruction()
             if msg:
                 gr.Markdown(msg)
@@ -122,12 +122,12 @@ class FileIndexPage(BasePage):
             interactive=False,
         )
 
-        with gr.Row():
+        with gr.Row() as self.selection_info:
             self.selected_file_id = gr.State(value=None)
             self.selected_panel = gr.Markdown(self.selected_panel_false)
             self.deselect_button = gr.Button("Deselect", visible=False)
 
-        with gr.Row():
+        with gr.Row() as self.tools:
             with gr.Column():
                 self.view_button = gr.Button("View Text (WIP)")
             with gr.Column():
@@ -268,10 +268,12 @@ class FileIndexPage(BasePage):
                 self._app.settings_state,
             ],
             outputs=[self.file_output],
+            concurrency_limit=20,
         ).then(
             fn=self.list_file,
             inputs=None,
             outputs=[self.file_list_state, self.file_list],
+            concurrency_limit=20,
         )
         for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
             onUploaded = onUploaded.then(**event)

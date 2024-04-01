@@ -84,6 +84,7 @@ class ChatPage(BasePage):
                 self.chat_control.conversation,
                 self.chat_control.conversation_rn,
             ],
+            concurrency_limit=20,
             show_progress="hidden",
         ).success(
             fn=self.chat_fn,
@@ -97,6 +98,7 @@ class ChatPage(BasePage):
                 self.chat_panel.chatbot,
                 self.info_panel,
             ],
+            concurrency_limit=20,
             show_progress="minimal",
         ).then(
             fn=self.update_data_source,
@@ -106,6 +108,7 @@ class ChatPage(BasePage):
             ]
             + self._indices_input,
             outputs=None,
+            concurrency_limit=20,
         )
 
         self.chat_panel.chatbot.like(
@@ -201,6 +204,7 @@ class ChatPage(BasePage):
                 self.chat_panel.chatbot,
                 self._app.settings_state,
                 self._app.user_id,
+                self.info_panel,
             ]
             + self._indices_input,
             outputs=None,
@@ -371,7 +375,11 @@ class ChatPage(BasePage):
                 break
 
             if "output" in response:
-                text += response["output"]
+                if response["output"] is None:
+                    text = ""
+                else:
+                    text += response["output"]
+
             if "evidence" in response:
                 if response["evidence"] is None:
                     refs = ""

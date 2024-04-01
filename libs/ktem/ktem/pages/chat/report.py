@@ -48,12 +48,18 @@ class ReportIssue(BasePage):
         chat_history: list,
         settings: dict,
         user_id: Optional[int],
-        *selecteds
+        info_panel: str,
+        *selecteds,
     ):
         selecteds_ = {}
         for index in self._app.index_manager.indices:
-            if index.selector != -1:
-                selecteds_[str(index.id)] = selecteds[index.selector]
+            if index.selector is not None:
+                if isinstance(index.selector, int):
+                    selecteds_[str(index.id)] = selecteds[index.selector]
+                elif isinstance(index.selector, tuple):
+                    selecteds_[str(index.id)] = [selecteds[_] for _ in index.selector]
+                else:
+                    print(f"Unknown selector type: {index.selector}")
 
         with Session(engine) as session:
             issue = IssueReport(
@@ -65,6 +71,7 @@ class ReportIssue(BasePage):
                 chat={
                     "conv_id": conv_id,
                     "chat_history": chat_history,
+                    "info_panel": info_panel,
                     "selecteds": selecteds_,
                 },
                 settings=settings,
