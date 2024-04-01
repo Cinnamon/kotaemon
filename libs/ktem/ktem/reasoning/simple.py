@@ -226,7 +226,7 @@ class AnswerWithContextPipeline(BaseComponent):
         else:
             prompt_template = PromptTemplate(self.qa_chatbot_template)
 
-        messages = []
+        images = []
         if evidence_mode == EVIDENCE_MODE_FIGURE:
             # isolate image from evidence
             evidence, images = self.extract_evidence_images(evidence)
@@ -242,10 +242,11 @@ class AnswerWithContextPipeline(BaseComponent):
                 lang=self.lang,
             )
 
-        citation_task = asyncio.create_task(
-            self.citation_pipeline.ainvoke(context=evidence, question=question)
-        )
-        print("Citation task created")
+        if evidence:
+            citation_task = asyncio.create_task(
+                self.citation_pipeline.ainvoke(context=evidence, question=question)
+            )
+            print("Citation task created")
 
         output = ""
         if evidence_mode == EVIDENCE_MODE_FIGURE:
@@ -254,18 +255,30 @@ class AnswerWithContextPipeline(BaseComponent):
                 self.report_output({"output": text})
                 await asyncio.sleep(0)
         else:
+            messages = []
             if self.system_prompt:
                 messages.append(SystemMessage(content=self.system_prompt))
             messages.append(HumanMessage(content=prompt))
 
-            for text in self.llm.stream(messages):
-                output += text.text
-                self.report_output({"output": text.text})
-                await asyncio.sleep(0)
+            try:
+                # try streaming first
+                print("Trying LLM streaming")
+                for text in self.llm.stream(messages):
+                    output += text.text
+                    self.report_output({"output": text.text})
+                    await asyncio.sleep(0)
+            except NotImplementedError:
+                print("Streaming is not supported, falling back to normal processing")
+                output = self.llm(messages).text
+                self.report_output({"output": output})
 
         # retrieve the citation
         print("Waiting for citation task")
-        citation = await citation_task
+        if evidence:
+            citation = await citation_task
+        else:
+            citation = None
+
         answer = Document(text=output, metadata={"citation": citation})
 
         return answer
