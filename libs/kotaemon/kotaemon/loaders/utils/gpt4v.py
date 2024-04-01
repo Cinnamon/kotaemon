@@ -4,13 +4,10 @@ from typing import Any, List
 import requests
 from decouple import config
 
-ENDPOINT = (
-    "https://bleh-dummy.openai.azure.com/openai/deployments/gpt-4-vision/"
-    "chat/completions?api-version=2023-07-01-preview"
-)
 
-
-def generate_gpt4v(images: str | List[str], prompt: str, max_tokens: int = 512) -> str:
+def generate_gpt4v(
+    endpoint: str, images: str | List[str], prompt: str, max_tokens: int = 512
+) -> str:
     # OpenAI API Key
     api_key = config("AZURE_OPENAI_API_KEY", default="")
     headers = {"Content-Type": "application/json", "api-key": api_key}
@@ -38,7 +35,7 @@ def generate_gpt4v(images: str | List[str], prompt: str, max_tokens: int = 512) 
     }
 
     try:
-        response = requests.post(ENDPOINT, headers=headers, json=payload)
+        response = requests.post(endpoint, headers=headers, json=payload)
         output = response.json()
         output = output["choices"][0]["message"]["content"]
     except Exception:
@@ -46,8 +43,8 @@ def generate_gpt4v(images: str | List[str], prompt: str, max_tokens: int = 512) 
     return output
 
 
-def generate_gpt4v_stream(
-    images: str | List[str], prompt: str, max_tokens: int = 512
+def stream_gpt4v(
+    endpoint: str, images: str | List[str], prompt: str, max_tokens: int = 512
 ) -> Any:
     # OpenAI API Key
     api_key = config("AZURE_OPENAI_API_KEY", default="")
@@ -76,7 +73,7 @@ def generate_gpt4v_stream(
         "stream": True,
     }
     try:
-        response = requests.post(ENDPOINT, headers=headers, json=payload, stream=True)
+        response = requests.post(endpoint, headers=headers, json=payload, stream=True)
         assert response.status_code == 200, str(response.content)
         output = ""
         for line in response.iter_lines():

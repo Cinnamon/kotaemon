@@ -35,8 +35,6 @@ from kotaemon.loaders.utils.gpt4v import generate_gpt4v
 
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 
-MAX_IMAGES_TO_GPT4 = 100
-
 
 def request_adobe_service(file_path: str, output_path: str = "") -> str:
     """Main function to call the adobe service, and unzip the results.
@@ -195,11 +193,13 @@ def parse_figure_paths(file_paths: List[Path]) -> Union[bytes, str]:
     return content
 
 
-def generate_single_figure_caption(figure: str) -> str:
-    """Summarize a single figure using GPT-4-Vision"""
+def generate_single_figure_caption(vlm_endpoint: str, figure: str) -> str:
+    """Summarize a single figure using GPT-4V"""
     if figure:
         output = generate_gpt4v(
-            prompt="Provide a short 2 sentence summary of this image?", images=figure
+            endpoint=vlm_endpoint,
+            prompt="Provide a short 2 sentence summary of this image?",
+            images=figure,
         )
         if "sorry" in output.lower():
             output = ""
@@ -208,13 +208,28 @@ def generate_single_figure_caption(figure: str) -> str:
     return output
 
 
-def generate_figure_captions(figures: List) -> List:
-    to_gen_figures = figures[:MAX_IMAGES_TO_GPT4]
-    other_figures = figures[MAX_IMAGES_TO_GPT4:]
+def generate_figure_captions(
+    vlm_endpoint: str, figures: List, max_figures_to_process: int
+) -> List:
+    """Summarize several figures using GPT-4V.
+    Args:
+        vlm_endpoint (str): endpoint to the vision language model service
+        figures (List): list of base64 images
+        max_figures_to_process (int): the maximum number of figures will be summarized,
+        the rest are ignored.
+
+    Returns:
+        results (List[str]): list of all figure captions and empty strings for
+        ignored figures.
+    """
+    to_gen_figures = figures[:max_figures_to_process]
+    other_figures = figures[max_figures_to_process:]
 
     with ThreadPoolExecutor() as executor:
         futures = [
-            executor.submit(lambda: generate_single_figure_caption(figure))
+            executor.submit(
+                lambda: generate_single_figure_caption(vlm_endpoint, figure)
+            )
             for figure in to_gen_figures
         ]
 

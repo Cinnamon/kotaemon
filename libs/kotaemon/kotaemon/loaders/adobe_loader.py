@@ -5,6 +5,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from decouple import config
 from llama_index.readers.base import BaseReader
 
 from kotaemon.base import Document
@@ -19,6 +20,14 @@ from .utils.adobe import (
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_VLM_ENDPOINT = (
+    "{0}openai/deployments/{1}/chat/completions?api-version={2}".format(
+        config("AZURE_OPENAI_ENDPOINT", default=""),
+        "gpt-4-vision",
+        config("OPENAI_API_VERSION", default=""),
+    )
+)
+
 
 class AdobeReader(BaseReader):
     """Read PDF using the Adobe's PDF Services.
@@ -30,13 +39,27 @@ class AdobeReader(BaseReader):
         >> reader = AdobeReader()
         >> documents = reader.load_data("path/to/pdf")
         ```
+    Args:
+        endpoint: URL to the Vision Language Model endpoint. If not provided,
+        will use the default `knowledgehub.loaders.adobe_loader.DEFAULT_VLM_ENDPOINT`
+
+        max_figures_to_caption: an int decides how many figured will be captioned.
+        The rest will be ignored (are indexed without captions).
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        vlm_endpoint: Optional[str] = None,
+        max_figures_to_caption: int = 100,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         """Init params"""
         super().__init__(*args)
         self.table_regex = r"/Table(\[\d+\])?$"
         self.figure_regex = r"/Figure(\[\d+\])?$"
+        self.vlm_endpoint = vlm_endpoint or DEFAULT_VLM_ENDPOINT
+        self.max_figures_to_caption = max_figures_to_caption
 
     def load_data(
         self, file: Path, extra_info: Optional[Dict] = None, **kwargs
@@ -103,7 +126,11 @@ class AdobeReader(BaseReader):
                     texts[page_number].append(item_text)
 
         # get figure caption using GPT-4V
-        figure_captions = generate_figure_captions([item[1] for item in figures])
+        figure_captions = generate_figure_captions(
+            self.vlm_endpoint,
+            [item[1] for item in figures],
+            self.max_figures_to_caption,
+        )
         for item, caption in zip(figures, figure_captions):
             # update figure caption
             item[2] += " " + caption

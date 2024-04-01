@@ -6,8 +6,10 @@ from collections import defaultdict
 from functools import partial
 
 import tiktoken
+from decouple import config
 from ktem.components import llms
 from ktem.reasoning.base import BaseReasoning
+from theflow.settings import settings as flowsettings
 
 from kotaemon.base import (
     BaseComponent,
@@ -20,7 +22,7 @@ from kotaemon.base import (
 from kotaemon.indices.qa.citation import CitationPipeline
 from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import ChatLLM, PromptTemplate
-from kotaemon.loaders.utils.gpt4v import generate_gpt4v_stream
+from kotaemon.loaders.utils.gpt4v import stream_gpt4v
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +165,14 @@ DEFAULT_QA_FIGURE_PROMPT = (
     "Answer: "
 )
 
+DEFAULT_VLM_ENDPOINT = (
+    "{0}/openai/deployments/{1}/chat/completions?api-version={2}".format(
+        config("AZURE_OPENAI_ENDPOINT", default=""),
+        "gpt-4-vision",
+        config("OPENAI_API_VERSION", default=""),
+    )
+)
+
 
 class AnswerWithContextPipeline(BaseComponent):
     """Answer the question based on the evidence
@@ -180,6 +190,7 @@ class AnswerWithContextPipeline(BaseComponent):
     """
 
     llm: ChatLLM = Node(default_callback=lambda _: llms.get_highest_accuracy())
+    vlm_endpoint: str = flowsettings.KH_VLM_ENDPOINT
     citation_pipeline: CitationPipeline = Node(
         default_callback=lambda _: CitationPipeline(llm=llms.get_lowest_cost())
     )
@@ -250,7 +261,7 @@ class AnswerWithContextPipeline(BaseComponent):
 
         output = ""
         if evidence_mode == EVIDENCE_MODE_FIGURE:
-            for text in generate_gpt4v_stream(images, prompt, max_tokens=768):
+            for text in stream_gpt4v(self.vlm_endpoint, images, prompt, max_tokens=768):
                 output += text
                 self.report_output({"output": text})
                 await asyncio.sleep(0)
