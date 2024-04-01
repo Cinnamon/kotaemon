@@ -6,7 +6,6 @@ from collections import defaultdict
 from functools import partial
 
 import tiktoken
-from decouple import config
 from ktem.components import llms
 from ktem.reasoning.base import BaseReasoning
 from theflow.settings import settings as flowsettings
@@ -164,6 +163,7 @@ DEFAULT_QA_FIGURE_PROMPT = (
     "Question: {question}\n"
     "Answer: "
 )
+
 
 class AnswerWithContextPipeline(BaseComponent):
     """Answer the question based on the evidence
