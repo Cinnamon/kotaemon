@@ -280,14 +280,29 @@ class FullQAPipeline(BaseReasoning):
                 for quote in fact_with_evidence.substring_quote:
                     for doc in docs:
                         start_idx = doc.text.find(quote)
-                        if start_idx >= 0:
+                        if start_idx == -1:
+                            continue
+
+                        end_idx = start_idx + len(quote)
+
+                        current_idx = start_idx
+                        if "|" not in doc.text[start_idx:end_idx]:
                             spans[doc.doc_id].append(
-                                {
-                                    "start": start_idx,
-                                    "end": start_idx + len(quote),
-                                }
+                                {"start": start_idx, "end": end_idx}
                             )
-                            break
+                        else:
+                            while doc.text[current_idx:end_idx].find("|") != -1:
+                                match_idx = doc.text[current_idx:end_idx].find("|")
+                                spans[doc.doc_id].append(
+                                    {
+                                        "start": current_idx,
+                                        "end": current_idx + match_idx,
+                                    }
+                                )
+                                current_idx += match_idx + 2
+                                if current_idx > end_idx:
+                                    break
+                        break
 
         id2docs = {doc.doc_id: doc for doc in docs}
         lack_evidence = True

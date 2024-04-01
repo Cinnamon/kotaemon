@@ -7,8 +7,10 @@ from ktem.app import BasePage
 from ktem.components import reasonings
 from ktem.db.models import Conversation, engine
 from sqlmodel import Session, select
+from theflow.settings import settings as flowsettings
 
 from .chat_panel import ChatPanel
+from .chat_suggestion import ChatSuggestion
 from .control import ConversationControl
 from .report import ReportIssue
 
@@ -24,8 +26,10 @@ class ChatPage(BasePage):
             with gr.Column(scale=1):
                 self.chat_control = ConversationControl(self._app)
 
-                for index in self._app.index_manager.indices:
+                if getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False):
+                    self.chat_suggestion = ChatSuggestion(self._app)
 
+                for index in self._app.index_manager.indices:
                     index.selector = None
                     index_ui = index.get_selector_component_ui()
                     if not index_ui:
@@ -65,9 +69,21 @@ class ChatPage(BasePage):
                 self.chat_panel.text_input.submit,
                 self.chat_panel.submit_btn.click,
             ],
-            fn=self.chat_panel.submit_msg,
-            inputs=[self.chat_panel.text_input, self.chat_panel.chatbot],
-            outputs=[self.chat_panel.text_input, self.chat_panel.chatbot],
+            fn=self.submit_msg,
+            inputs=[
+                self.chat_panel.text_input,
+                self.chat_panel.chatbot,
+                self._app.user_id,
+                self.chat_control.conversation_id,
+                self.chat_control.conversation_rn,
+            ],
+            outputs=[
+                self.chat_panel.text_input,
+                self.chat_panel.chatbot,
+                self.chat_control.conversation_id,
+                self.chat_control.conversation,
+                self.chat_control.conversation_rn,
+            ],
             show_progress="hidden",
         ).success(
             fn=self.chat_fn,
@@ -82,19 +98,6 @@ class ChatPage(BasePage):
                 self.info_panel,
             ],
             show_progress="minimal",
-        ).then(
-            fn=self.chat_control.auto_new_conv,
-            inputs=[
-                self._app.user_id,
-                self.chat_control.conversation_id,
-                self.chat_control.conversation_rn,
-            ],
-            outputs=[
-                self.chat_control.conversation_id,
-                self.chat_control.conversation,
-                self.chat_control.conversation_rn,
-            ],
-            show_progress="hidden",
         ).then(
             fn=self.update_data_source,
             inputs=[
@@ -124,6 +127,7 @@ class ChatPage(BasePage):
                 self.chat_control.conversation,
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
+                self.info_panel,
             ]
             + self._indices_input,
             show_progress="hidden",
@@ -147,6 +151,7 @@ class ChatPage(BasePage):
                 self.chat_control.conversation,
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
+                self.info_panel,
             ]
             + self._indices_input,
             show_progress="hidden",
@@ -177,6 +182,7 @@ class ChatPage(BasePage):
                 self.chat_control.conversation,
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
+                self.info_panel,
             ]
             + self._indices_input,
             show_progress="hidden",
@@ -198,6 +204,38 @@ class ChatPage(BasePage):
             ]
             + self._indices_input,
             outputs=None,
+        )
+        if getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False):
+            self.chat_suggestion.example.select(
+                self.chat_suggestion.select_example,
+                outputs=[self.chat_panel.text_input],
+                show_progress="hidden",
+            )
+
+    def submit_msg(self, chat_input, chat_history, user_id, conv_id, conv_name):
+        """Submit a message to the chatbot"""
+        if not chat_input:
+            raise ValueError("Input is empty")
+
+        if not conv_id:
+            id_, update = self.chat_control.new_conv(user_id)
+            with Session(engine) as session:
+                statement = select(Conversation).where(Conversation.id == id_)
+                name = session.exec(statement).one().name
+                new_conv_id = id_
+                conv_update = update
+                new_conv_name = name
+        else:
+            new_conv_id = conv_id
+            conv_update = gr.update()
+            new_conv_name = conv_name
+
+        return (
+            "",
+            chat_history + [(chat_input, None)],
+            new_conv_id,
+            conv_update,
+            new_conv_name,
         )
 
     def toggle_delete(self, conv_id):

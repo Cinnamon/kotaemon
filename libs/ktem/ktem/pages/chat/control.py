@@ -107,18 +107,8 @@ class ConversationControl(BasePage):
 
         return id_, gr.update(value=id_, choices=history)
 
-    def auto_new_conv(self, user_id, conversation_id, conv_name):
-        if not conversation_id:
-            id_, update = self.new_conv(user_id)
-            with Session(engine) as session:
-                statement = select(Conversation).where(Conversation.id == id_)
-                name = session.exec(statement).one().name
-            return id_, update, name
-
-        return conversation_id, gr.update(), conv_name
-
     def delete_conv(self, conversation_id, user_id):
-        """Create new chat"""
+        """Delete the selected conversation"""
         if not conversation_id:
             gr.Warning("No conversation selected.")
             return None, gr.update()
@@ -151,12 +141,14 @@ class ConversationControl(BasePage):
                 name = result.name
                 selected = result.data_source.get("selected", {})
                 chats = result.data_source.get("messages", [])
+                info_panel = ""
             except Exception as e:
                 logger.warning(e)
                 id_ = ""
                 name = ""
                 selected = {}
                 chats = []
+                info_panel = ""
 
         indices = []
         for index in self._app.index_manager.indices:
@@ -168,7 +160,7 @@ class ConversationControl(BasePage):
             if isinstance(index.selector, tuple):
                 indices.extend(selected.get(str(index.id), [[]] * len(index.selector)))
 
-        return id_, id_, name, chats, *indices
+        return id_, id_, name, chats, info_panel, *indices
 
     def rename_conv(self, conversation_id, new_name, user_id):
         """Rename the conversation"""
