@@ -1,7 +1,7 @@
 import os
 
 from kotaemon.base import BaseComponent, Document, Node, RetrievedDocument
-from kotaemon.llms import AzureChatOpenAI, BaseLLM, PromptTemplate
+from kotaemon.llms import BaseLLM, LCAzureChatOpenAI, PromptTemplate
 
 from .citation import CitationPipeline
 
@@ -13,7 +13,7 @@ class CitationQAPipeline(BaseComponent):
         'Answer the following question: "{question}". '
         "The context is: \n{context}\nAnswer: "
     )
-    llm: BaseLLM = AzureChatOpenAI.withx(
+    llm: BaseLLM = LCAzureChatOpenAI.withx(
         azure_endpoint="https://bleh-dummy.openai.azure.com/",
         openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
         openai_api_version="2023-07-01-preview",

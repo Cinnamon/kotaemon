@@ -41,7 +41,7 @@ if config("AZURE_OPENAI_API_KEY", default="") and config(
     if config("AZURE_OPENAI_CHAT_DEPLOYMENT", default=""):
         KH_LLMS["azure"] = {
             "def": {
-                "__type__": "kotaemon.llms.AzureChatOpenAI",
+                "__type__": "kotaemon.llms.LCAzureChatOpenAI",
                 "temperature": 0,
                 "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
                 "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),

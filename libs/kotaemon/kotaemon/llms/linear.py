@@ -22,12 +22,12 @@ class SimpleLinearPipeline(BaseComponent):
 
     Example Usage:
         ```python
-        from kotaemon.llms import AzureChatOpenAI, BasePromptComponent
+        from kotaemon.llms import LCAzureChatOpenAI, BasePromptComponent
 
         def identity(x):
             return x
 
-        llm = AzureChatOpenAI(
+        llm = LCAzureChatOpenAI(
             openai_api_base="your openai api base",
             openai_api_key="your openai api key",
             openai_api_version="your openai api version",
@@ -89,13 +89,13 @@ class GatedLinearPipeline(SimpleLinearPipeline):
 
     Usage:
         ```{.py3 title="Example Usage"}
-        from kotaemon.llms import AzureChatOpenAI, BasePromptComponent
+        from kotaemon.llms import LCAzureChatOpenAI, BasePromptComponent
         from kotaemon.parsers import RegexExtractor
 
         def identity(x):
             return x
 
-        llm = AzureChatOpenAI(
+        llm = LCAzureChatOpenAI(
             openai_api_base="your openai api base",
             openai_api_key="your openai api key",
             openai_api_version="your openai api version",

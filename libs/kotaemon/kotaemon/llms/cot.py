@@ -5,7 +5,7 @@ from theflow import Function, Node, Param
 
 from kotaemon.base import BaseComponent, Document
 
-from .chats import AzureChatOpenAI
+from .chats import LCAzureChatOpenAI
 from .completions import LLM
 from .prompts import BasePromptComponent
 
@@ -25,7 +25,7 @@ class Thought(BaseComponent):
     >> from kotaemon.pipelines.cot import Thought
     >> thought = Thought(
          prompt="How to {action} {object}?",
-         llm=AzureChatOpenAI(...),
+         llm=LCAzureChatOpenAI(...),
          post_process=lambda string: {"tutorial": string},
        )
     >> output = thought(action="install", object="python")
@@ -42,7 +42,7 @@ class Thought(BaseComponent):
     This `Thought` allows chaining sequentially with the + operator. For example:
 
     ```python
-    >> llm = AzureChatOpenAI(...)
+    >> llm = LCAzureChatOpenAI(...)
     >> thought1 = Thought(
            prompt="Word {word} in {language} is ",
            llm=llm,
@@ -73,7 +73,7 @@ class Thought(BaseComponent):
             " component is executed"
         )
     )
-    llm: LLM = Node(AzureChatOpenAI, help="The LLM model to execute the input prompt")
+    llm: LLM = Node(LCAzureChatOpenAI, help="The LLM model to execute the input prompt")
     post_process: Function = Node(
         help=(
             "The function post-processor that post-processes LLM output prediction ."
@@ -117,7 +117,7 @@ class ManualSequentialChainOfThought(BaseComponent):
 
     ```pycon
     >>> from kotaemon.pipelines.cot import Thought, ManualSequentialChainOfThought
-    >>> llm = AzureChatOpenAI(...)
+    >>> llm = LCAzureChatOpenAI(...)
     >>> thought1 = Thought(
     >>>    prompt="Word {word} in {language} is ",
     >>>    post_process=lambda string: {"translated": string},

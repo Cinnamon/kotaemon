@@ -13,7 +13,7 @@ from kotaemon.agents import (
     RewooAgent,
     WikipediaTool,
 )
-from kotaemon.llms import AzureChatOpenAI
+from kotaemon.llms import LCAzureChatOpenAI
 
 FINAL_RESPONSE_TEXT = "Final Answer: Hello Cinnamon AI!"
 REWOO_VALID_PLAN = (
@@ -112,7 +112,7 @@ _openai_chat_completion_responses_react_langchain_tool = [
 
 @pytest.fixture
 def llm():
-    return AzureChatOpenAI(
+    return LCAzureChatOpenAI(
         azure_endpoint="https://dummy.openai.azure.com/",
         openai_api_key="dummy",
         openai_api_version="2023-03-15-preview",
