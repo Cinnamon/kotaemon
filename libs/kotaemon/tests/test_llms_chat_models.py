@@ -3,12 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from kotaemon.base.schema import (
-    AIMessage,
-    HumanMessage,
-    LLMInterface,
-    SystemMessage,
-)
+from kotaemon.base.schema import AIMessage, HumanMessage, LLMInterface, SystemMessage
 from kotaemon.llms import AzureChatOpenAI, LlamaCppChat
 
 try:

@@ -1,6 +1,6 @@
 import requests
 
-from knowledgehub.base import (
+from kotaemon.base import (
     AIMessage,
     BaseMessage,
     HumanMessage,

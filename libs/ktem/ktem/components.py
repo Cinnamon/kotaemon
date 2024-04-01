@@ -1,4 +1,5 @@
 """Common components, some kind of config"""
+
 import logging
 from functools import cache
 from pathlib import Path
@@ -71,7 +72,7 @@ class ModelPool:
         }
 
     def options(self) -> dict:
-        """Present a list of models"""
+        """Present a dict of models"""
         return self._models
 
     def get_random_name(self) -> str:

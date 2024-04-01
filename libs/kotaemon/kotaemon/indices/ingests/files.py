@@ -60,7 +60,7 @@ class DocumentIngestor(BaseComponent):
             file_extractors[ext] = cls()
 
         if self.pdf_mode == "normal":
-            file_extractors[".pdf"] = AutoReader("UnstructuredReader")  # type: ignore
+            pass  # use default loader of llama-index which is pypdf
         elif self.pdf_mode == "ocr":
             file_extractors[".pdf"] = OCRReader()
         elif self.pdf_mode == "multimodal":

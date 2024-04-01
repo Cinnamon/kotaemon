@@ -13,18 +13,14 @@ version = "0.2.0"
 requires-python = ">= 3.10"
 description = "RAG-based Question and Answering Application"
 dependencies = [
-    "chromadb",
     "click",
-    "cohere",
     "platformdirs",
     "pluggy",
     "python-decouple",
-    "python-dotenv",
     "python-pptx",
     "sqlalchemy",
     "sqlmodel",
     "tiktoken",
-    "unstructured[pdf]",
 ]
 readme = "README.md"
 license = { text = "MIT License" }

@@ -1,6 +1,6 @@
 import requests
 
-from knowledgehub.base import Document, DocumentWithEmbedding
+from kotaemon.base import Document, DocumentWithEmbedding
 
 from .base import BaseEmbeddings
 

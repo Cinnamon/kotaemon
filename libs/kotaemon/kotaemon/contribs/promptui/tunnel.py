@@ -17,8 +17,7 @@ if machine == "x86_64":
 BINARY_REMOTE_NAME = f"frpc_{platform.system().lower()}_{machine.lower()}"
 EXTENSION = ".exe" if os.name == "nt" else ""
 BINARY_URL = (
-    "some-endpoint.com"
-    f"/kotaemon/tunneling/{VERSION}/{BINARY_REMOTE_NAME}{EXTENSION}"
+    "some-endpoint.com" f"/kotaemon/tunneling/{VERSION}/{BINARY_REMOTE_NAME}{EXTENSION}"
 )
 
 BINARY_FILENAME = f"{BINARY_REMOTE_NAME}_v{VERSION}"

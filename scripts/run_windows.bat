@@ -114,7 +114,7 @@ IF %ERRORLEVEL% == 0  (
     ECHO Dependencies are already installed
 ) ELSE (
     ECHO Install kotaemon's requirements
-    CALL python -m pip install -e "%CD%\libs\kotaemon\.[dev]"
+    CALL python -m pip install -e "%CD%\libs\kotaemon"
 
     ECHO Install ktem's requirements
     CALL python -m pip install -e "%CD%\libs\ktem"
