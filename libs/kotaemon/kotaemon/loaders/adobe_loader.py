@@ -41,7 +41,7 @@ class AdobeReader(BaseReader):
         ```
     Args:
         endpoint: URL to the Vision Language Model endpoint. If not provided,
-        will use the default `knowledgehub.loaders.adobe_loader.DEFAULT_VLM_ENDPOINT`
+        will use the default `kotaemon.loaders.adobe_loader.DEFAULT_VLM_ENDPOINT`
 
         max_figures_to_caption: an int decides how many figured will be captioned.
         The rest will be ignored (are indexed without captions).

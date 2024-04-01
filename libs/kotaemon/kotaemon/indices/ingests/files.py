@@ -8,7 +8,6 @@ from kotaemon.indices.extractors import BaseDocParser
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 from kotaemon.loaders import (
     AdobeReader,
-    AutoReader,
     DirectoryReader,
     MathpixPDFReader,
     OCRReader,
