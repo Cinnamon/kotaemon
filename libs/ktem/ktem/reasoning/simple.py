@@ -1,5 +1,7 @@
 import asyncio
+import html
 import logging
+import re
 from collections import defaultdict
 from functools import partial
 
@@ -18,8 +20,14 @@ from kotaemon.base import (
 from kotaemon.indices.qa.citation import CitationPipeline
 from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import ChatLLM, PromptTemplate
+from kotaemon.loaders.utils.gpt4v import generate_gpt4v_stream
 
 logger = logging.getLogger(__name__)
+
+EVIDENCE_MODE_TEXT = 0
+EVIDENCE_MODE_TABLE = 1
+EVIDENCE_MODE_CHATBOT = 2
+EVIDENCE_MODE_FIGURE = 3
 
 
 class PrepareEvidencePipeline(BaseComponent):
@@ -46,7 +54,7 @@ class PrepareEvidencePipeline(BaseComponent):
     def run(self, docs: list[RetrievedDocument]) -> Document:
         evidence = ""
         table_found = 0
-        evidence_mode = 0
+        evidence_mode = EVIDENCE_MODE_TEXT
 
         for _id, retrieved_item in enumerate(docs):
             retrieved_content = ""
@@ -55,7 +63,7 @@ class PrepareEvidencePipeline(BaseComponent):
             if page:
                 source += f" (Page {page})"
             if retrieved_item.metadata.get("type", "") == "table":
-                evidence_mode = 1  # table
+                evidence_mode = EVIDENCE_MODE_TABLE
                 if table_found < 5:
                     retrieved_content = retrieved_item.metadata.get("table_origin", "")
                     if retrieved_content not in evidence:
@@ -66,11 +74,21 @@ class PrepareEvidencePipeline(BaseComponent):
                             + "\n<br>"
                         )
             elif retrieved_item.metadata.get("type", "") == "chatbot":
-                evidence_mode = 2  # chatbot
+                evidence_mode = EVIDENCE_MODE_CHATBOT
                 retrieved_content = retrieved_item.metadata["window"]
                 evidence += (
                     f"<br><b>Chatbot scenario from {filename} (Row {page})</b>\n"
                     + retrieved_content
+                    + "\n<br>"
+                )
+            elif retrieved_item.metadata.get("type", "") == "image":
+                evidence_mode = EVIDENCE_MODE_FIGURE
+                retrieved_content = retrieved_item.metadata.get("image_origin", "")
+                retrieved_caption = html.escape(retrieved_item.get_content())
+                evidence += (
+                    f"<br><b>Figure from {source}</b>\n"
+                    + f"<img width='85%' src='{retrieved_content}' "
+                    + f"alt='{retrieved_caption}'/>"
                     + "\n<br>"
                 )
             else:
@@ -90,12 +108,13 @@ class PrepareEvidencePipeline(BaseComponent):
             print(retrieved_item.metadata)
             print("Score", retrieved_item.metadata.get("relevance_score", None))
 
-        # trim context by trim_len
-        print("len (original)", len(evidence))
-        if evidence:
-            texts = self.trim_func([Document(text=evidence)])
-            evidence = texts[0].text
-            print("len (trimmed)", len(evidence))
+        if evidence_mode != EVIDENCE_MODE_FIGURE:
+            # trim context by trim_len
+            print("len (original)", len(evidence))
+            if evidence:
+                texts = self.trim_func([Document(text=evidence)])
+                evidence = texts[0].text
+                print("len (trimmed)", len(evidence))
 
         print(f"PrepareEvidence with input {docs}\nOutput: {evidence}\n")
 
@@ -134,6 +153,16 @@ DEFAULT_QA_CHATBOT_PROMPT = (
     "Answer:"
 )
 
+DEFAULT_QA_FIGURE_PROMPT = (
+    "Use the given context: texts, tables, and figures below to answer the question. "
+    "If you don't know the answer, just say that you don't know. "
+    "Give answer in {lang}.\n\n"
+    "Context: \n"
+    "{context}\n"
+    "Question: {question}\n"
+    "Answer: "
+)
+
 
 class AnswerWithContextPipeline(BaseComponent):
     """Answer the question based on the evidence
@@ -158,6 +187,7 @@ class AnswerWithContextPipeline(BaseComponent):
     qa_template: str = DEFAULT_QA_TEXT_PROMPT
     qa_table_template: str = DEFAULT_QA_TABLE_PROMPT
     qa_chatbot_template: str = DEFAULT_QA_CHATBOT_PROMPT
+    qa_figure_template: str = DEFAULT_QA_FIGURE_PROMPT
 
     system_prompt: str = ""
     lang: str = "English"  # support English and Japanese
@@ -187,33 +217,51 @@ class AnswerWithContextPipeline(BaseComponent):
                 (determined by retrieval pipeline)
             evidence_mode: the mode of evidence, 0 for text, 1 for table, 2 for chatbot
         """
-        if evidence_mode == 0:
+        if evidence_mode == EVIDENCE_MODE_TEXT:
             prompt_template = PromptTemplate(self.qa_template)
-        elif evidence_mode == 1:
+        elif evidence_mode == EVIDENCE_MODE_TABLE:
             prompt_template = PromptTemplate(self.qa_table_template)
+        elif evidence_mode == EVIDENCE_MODE_FIGURE:
+            prompt_template = PromptTemplate(self.qa_figure_template)
         else:
             prompt_template = PromptTemplate(self.qa_chatbot_template)
 
-        prompt = prompt_template.populate(
-            context=evidence,
-            question=question,
-            lang=self.lang,
-        )
+        messages = []
+        if evidence_mode == EVIDENCE_MODE_FIGURE:
+            # isolate image from evidence
+            evidence, images = self.extract_evidence_images(evidence)
+            prompt = prompt_template.populate(
+                context=evidence,
+                question=question,
+                lang=self.lang,
+            )
+        else:
+            prompt = prompt_template.populate(
+                context=evidence,
+                question=question,
+                lang=self.lang,
+            )
 
         citation_task = asyncio.create_task(
             self.citation_pipeline.ainvoke(context=evidence, question=question)
         )
         print("Citation task created")
 
-        messages = []
-        if self.system_prompt:
-            messages.append(SystemMessage(content=self.system_prompt))
-        messages.append(HumanMessage(content=prompt))
         output = ""
-        for text in self.llm.stream(messages):
-            output += text.text
-            self.report_output({"output": text.text})
-            await asyncio.sleep(0)
+        if evidence_mode == EVIDENCE_MODE_FIGURE:
+            for text in generate_gpt4v_stream(images, prompt, max_tokens=768):
+                output += text
+                self.report_output({"output": text})
+                await asyncio.sleep(0)
+        else:
+            if self.system_prompt:
+                messages.append(SystemMessage(content=self.system_prompt))
+            messages.append(HumanMessage(content=prompt))
+
+            for text in self.llm.stream(messages):
+                output += text.text
+                self.report_output({"output": text.text})
+                await asyncio.sleep(0)
 
         # retrieve the citation
         print("Waiting for citation task")
@@ -221,6 +269,13 @@ class AnswerWithContextPipeline(BaseComponent):
         answer = Document(text=output, metadata={"citation": citation})
 
         return answer
+
+    def extract_evidence_images(self, evidence: str):
+        """Util function to extract and isolate images from context/evidence"""
+        image_pattern = r"src='(data:image\/[^;]+;base64[^']+)'"
+        matches = re.findall(image_pattern, evidence)
+        context = re.sub(image_pattern, "", evidence)
+        return context, matches
 
 
 class FullQAPipeline(BaseReasoning):

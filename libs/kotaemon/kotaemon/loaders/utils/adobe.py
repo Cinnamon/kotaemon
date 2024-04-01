@@ -29,6 +29,7 @@ from adobe.pdfservices.operation.pdfops.options.extractpdf.extract_pdf_options i
 from adobe.pdfservices.operation.pdfops.options.extractpdf.extract_renditions_element_type import (  # noqa: E501
     ExtractRenditionsElementType,
 )
+from decouple import config
 
 from kotaemon.loaders.utils.gpt4v import generate_gpt4v
 
@@ -54,8 +55,8 @@ def request_adobe_service(file_path: str, output_path: str = "") -> str:
         # Initial setup, create credentials instance.
         credentials = (
             Credentials.service_principal_credentials_builder()
-            .with_client_id(os.getenv("PDF_SERVICES_CLIENT_ID"))
-            .with_client_secret(os.getenv("PDF_SERVICES_CLIENT_SECRET"))
+            .with_client_id(config("PDF_SERVICES_CLIENT_ID", default=""))
+            .with_client_secret(config("PDF_SERVICES_CLIENT_SECRET", default=""))
             .build()
         )
 
@@ -189,7 +190,7 @@ def parse_figure_paths(file_paths: List[Path]) -> Union[bytes, str]:
     for path in file_paths:
         if path.suffix == ".png":
             base64_image = encode_image_base64(path)
-            content = f"data:image/png;base64,{base64_image!r}"
+            content = f"data:image/png;base64,{base64_image}"  # type: ignore
             break
     return content
 

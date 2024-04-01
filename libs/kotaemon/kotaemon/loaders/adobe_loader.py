@@ -53,6 +53,7 @@ class AdobeReader(BaseReader):
         """
 
         filename = file.name
+        filepath = str(Path(file).resolve())
         output_path = request_adobe_service(file_path=str(file), output_path="")
         results_path = os.path.join(output_path, "structuredData.json")
 
@@ -118,6 +119,7 @@ class AdobeReader(BaseReader):
                     metadata={
                         "page_label": page_number,
                         "file_name": filename,
+                        "file_path": filepath,
                     },
                 )
             )
@@ -132,6 +134,7 @@ class AdobeReader(BaseReader):
                         "type": "table",
                         "page_label": page_number,
                         "file_name": filename,
+                        "file_path": filepath,
                     },
                     metadata_template="",
                     metadata_seperator="",
@@ -148,6 +151,7 @@ class AdobeReader(BaseReader):
                         "type": "image",
                         "page_label": page_number,
                         "file_name": filename,
+                        "file_path": filepath,
                     },
                     metadata_template="",
                     metadata_seperator="",
