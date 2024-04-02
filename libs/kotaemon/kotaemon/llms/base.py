@@ -18,5 +18,8 @@ class BaseLLM(BaseComponent):
     def stream(self, *args, **kwargs) -> Iterator[LLMInterface]:
         raise NotImplementedError
 
-    async def astream(self, *args, **kwargs) -> AsyncGenerator[LLMInterface, None]:
+    def astream(self, *args, **kwargs) -> AsyncGenerator[LLMInterface, None]:
         raise NotImplementedError
+
+    def run(self, *args, **kwargs):
+        return self.invoke(*args, **kwargs)
