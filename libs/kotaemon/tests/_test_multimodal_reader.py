@@ -1,12 +1,14 @@
+# TODO: This test is broken and should be rewritten
 from pathlib import Path
-
-from dotenv import load_dotenv
 
 from kotaemon.loaders import AdobeReader
 
+# from dotenv import load_dotenv
+
+
 input_file = Path(__file__).parent / "resources" / "multimodal.pdf"
 
-load_dotenv()
+# load_dotenv()
 
 
 def test_adobe_reader():
