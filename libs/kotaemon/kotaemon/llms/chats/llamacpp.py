@@ -12,13 +12,32 @@ if TYPE_CHECKING:
 class LlamaCppChat(ChatLLM):
     """Wrapper around the llama-cpp-python's Llama model"""
 
-    model_path: Optional[str] = None
-    chat_format: Optional[str] = None
-    lora_base: Optional[str] = None
-    n_ctx: int = 512
-    n_gpu_layers: int = 0
-    use_mmap: bool = True
-    vocab_only: bool = False
+    model_path: str = Param(
+        help="Path to the model file. This is required to load the model.",
+        required=True,
+    )
+    chat_format: str = Param(
+        help=(
+            "Chat format to use. Please refer to llama_cpp.llama_chat_format for a "
+            "list of supported formats. If blank, the chat format will be auto-"
+            "inferred."
+        ),
+        required=True,
+    )
+    lora_base: Optional[str] = Param(None, help="Path to the base Lora model")
+    n_ctx: Optional[int] = Param(512, help="Text context, 0 = from model")
+    n_gpu_layers: Optional[int] = Param(
+        0,
+        help=("Number of layers to offload to GPU. If -1, all layers are offloaded"),
+    )
+    use_mmap: Optional[bool] = Param(
+        True,
+        help=(),
+    )
+    vocab_only: Optional[bool] = Param(
+        False,
+        help=("If True, only the vocabulary is loaded. This is useful for debugging."),
+    )
 
     _role_mapper: dict[str, str] = {
         "human": "user",
@@ -60,7 +79,7 @@ class LlamaCppChat(ChatLLM):
             vocab_only=self.vocab_only,
         )
 
-    def run(
+    def invoke(
         self, messages: str | BaseMessage | list[BaseMessage], **kwargs
     ) -> LLMInterface:
         input_: list[BaseMessage] = []

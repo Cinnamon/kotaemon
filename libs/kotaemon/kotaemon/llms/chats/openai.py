@@ -25,7 +25,7 @@ class BaseChatOpenAI(ChatLLM):
     _dependencies = ["openai"]
     _capabilities = ["chat", "text"]  # consider as mixin
 
-    api_key: Optional[str] = Param(None, help="API key")
+    api_key: str = Param(help="API key", required=True)
     timeout: Optional[float] = Param(None, help="Timeout for the API request")
     max_retries: Optional[int] = Param(
         None, help="Maximum number of retries for the API request"
@@ -81,15 +81,15 @@ class BaseChatOpenAI(ChatLLM):
         None,
         help=(
             "Choice of tool to use for the completion. Available choices are: "
-            "spellcheck, grammar, and style."
+            "auto, default."
         ),
     )
     tools: Optional[list[str]] = Param(
         None,
         help="List of tools to use for the completion.",
     )
-    logprobs: bool = Param(
-        False,
+    logprobs: Optional[bool] = Param(
+        None,
         help=(
             "Include log probabilities on the logprobs most likely tokens, "
             "as well as the chosen token."
@@ -244,9 +244,7 @@ class ChatOpenAI(BaseChatOpenAI):
 
     base_url: Optional[str] = Param(None, help="OpenAI base URL")
     organization: Optional[str] = Param(None, help="OpenAI organization")
-    model: Optional[str] = Param(None, help="OpenAI model")
-
-    api_key: str = Param(help="OpenAI access key")
+    model: str = Param(help="OpenAI model", required=True)
 
     def prepare_client(self, async_version: bool = False):
         """Get the OpenAI client
@@ -302,8 +300,8 @@ class AzureChatOpenAI(BaseChatOpenAI):
             "the full URL for the Azure OpenAI model."
         )
     )
-    azure_deployment: str = Param(help="Azure deployment name")
-    api_version: Optional[str] = Param(None, help="Azure model version")
+    azure_deployment: str = Param(help="Azure deployment name", required=True)
+    api_version: str = Param(help="Azure model version", required=True)
     azure_ad_token: Optional[str] = Param(None, help="Azure AD token")
     azure_ad_token_provider: Optional[str] = Param(None, help="Azure AD token provider")
 
