@@ -5,6 +5,7 @@ from kotaemon.base import (
     BaseMessage,
     HumanMessage,
     LLMInterface,
+    Param,
     SystemMessage,
 )
 
@@ -20,7 +21,9 @@ class EndpointChatLLM(ChatLLM):
         endpoint_url (str): The url of a OpenAI API compatible endpoint.
     """
 
-    endpoint_url: str
+    endpoint_url: str = Param(
+        help="URL of the OpenAI API compatible endpoint", required=True
+    )
 
     def run(
         self, messages: str | BaseMessage | list[BaseMessage], **kwargs

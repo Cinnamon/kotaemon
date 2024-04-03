@@ -54,9 +54,14 @@ class LLMManager:
                     self._default = item.name
 
     def load_vendors(self):
-        from kotaemon.llms import AzureChatOpenAI, ChatOpenAI, LlamaCppChat
+        from kotaemon.llms import (
+            AzureChatOpenAI,
+            ChatOpenAI,
+            EndpointChatLLM,
+            LlamaCppChat,
+        )
 
-        self._vendors = [ChatOpenAI, AzureChatOpenAI, LlamaCppChat]
+        self._vendors = [ChatOpenAI, AzureChatOpenAI, LlamaCppChat, EndpointChatLLM]
 
     def __getitem__(self, key: str) -> BaseComponent:
         """Get model by name"""
