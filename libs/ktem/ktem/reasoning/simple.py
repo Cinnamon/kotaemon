@@ -22,6 +22,8 @@ from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import ChatLLM, PromptTemplate
 from kotaemon.loaders.utils.gpt4v import stream_gpt4v
 
+from .base import BaseReasoning
+
 logger = logging.getLogger(__name__)
 
 EVIDENCE_MODE_TEXT = 0
@@ -204,7 +206,7 @@ class AnswerWithContextPipeline(BaseComponent):
     lang: str = "English"  # support English and Japanese
 
     async def run(  # type: ignore
-        self, question: str, evidence: str, evidence_mode: int = 0
+        self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
     ) -> Document:
         """Answer the question based on the evidence
 
@@ -336,7 +338,7 @@ class RewriteQuestionPipeline(BaseComponent):
         return Document(text=output)
 
 
-class FullQAPipeline(BaseComponent):
+class FullQAPipeline(BaseReasoning):
     """Question answering pipeline. Handle from question to answer"""
 
     class Config:
@@ -352,6 +354,8 @@ class FullQAPipeline(BaseComponent):
     async def run(  # type: ignore
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Document:  # type: ignore
+        import markdown
+
         docs = []
         doc_ids = []
         if self.use_rewrite:
@@ -364,12 +368,16 @@ class FullQAPipeline(BaseComponent):
                     docs.append(doc)
                     doc_ids.append(doc.doc_id)
         for doc in docs:
+            # TODO: a better approach to show the information
+            text = markdown.markdown(
+                doc.text, extensions=["markdown.extensions.tables"]
+            )
             self.report_output(
                 {
                     "evidence": (
                         "<details open>"
                         f"<summary>{doc.metadata['file_name']}</summary>"
-                        f"{doc.text}"
+                        f"{text}"
                         "</details><br>"
                     )
                 }
@@ -378,7 +386,12 @@ class FullQAPipeline(BaseComponent):
 
         evidence_mode, evidence = self.evidence_pipeline(docs).content
         answer = await self.answering_pipeline(
-            question=message, evidence=evidence, evidence_mode=evidence_mode
+            question=message,
+            history=history,
+            evidence=evidence,
+            evidence_mode=evidence_mode,
+            conv_id=conv_id,
+            **kwargs,
         )
 
         # prepare citation
@@ -388,14 +401,29 @@ class FullQAPipeline(BaseComponent):
                 for quote in fact_with_evidence.substring_quote:
                     for doc in docs:
                         start_idx = doc.text.find(quote)
-                        if start_idx >= 0:
+                        if start_idx == -1:
+                            continue
+
+                        end_idx = start_idx + len(quote)
+
+                        current_idx = start_idx
+                        if "|" not in doc.text[start_idx:end_idx]:
                             spans[doc.doc_id].append(
-                                {
-                                    "start": start_idx,
-                                    "end": start_idx + len(quote),
-                                }
+                                {"start": start_idx, "end": end_idx}
                             )
-                            break
+                        else:
+                            while doc.text[current_idx:end_idx].find("|") != -1:
+                                match_idx = doc.text[current_idx:end_idx].find("|")
+                                spans[doc.doc_id].append(
+                                    {
+                                        "start": current_idx,
+                                        "end": current_idx + match_idx,
+                                    }
+                                )
+                                current_idx += match_idx + 2
+                                if current_idx > end_idx:
+                                    break
+                        break
 
         id2docs = {doc.doc_id: doc for doc in docs}
         lack_evidence = True
@@ -414,12 +442,15 @@ class FullQAPipeline(BaseComponent):
                 if idx < len(ss) - 1:
                     text += id2docs[id].text[span["end"] : ss[idx + 1]["start"]]
             text += id2docs[id].text[ss[-1]["end"] :]
+            text_out = markdown.markdown(
+                text, extensions=["markdown.extensions.tables"]
+            )
             self.report_output(
                 {
                     "evidence": (
                         "<details open>"
                         f"<summary>{id2docs[id].metadata['file_name']}</summary>"
-                        f"{text}"
+                        f"{text_out}"
                         "</details><br>"
                     )
                 }
@@ -434,12 +465,15 @@ class FullQAPipeline(BaseComponent):
                 {"evidence": "Retrieved segments without matching evidence:\n"}
             )
             for id in list(not_detected):
+                text_out = markdown.markdown(
+                    id2docs[id].text, extensions=["markdown.extensions.tables"]
+                )
                 self.report_output(
                     {
                         "evidence": (
                             "<details>"
                             f"<summary>{id2docs[id].metadata['file_name']}</summary>"
-                            f"{id2docs[id].text}"
+                            f"{text_out}"
                             "</details><br>"
                         )
                     }

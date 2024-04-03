@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Optional, Type
 
 from ktem.db.models import engine
 from sqlmodel import Session, select
@@ -49,15 +49,19 @@ class IndexManager:
         Returns:
             BaseIndex: the index object
         """
+        index_cls = import_dotted_string(index_type, safe=False)
+        index = index_cls(app=self._app, id=id, name=name, config=config)
+        index.on_create()
+
         with Session(engine) as session:
-            index_entry = Index(id=id, name=name, config=config, index_type=index_type)
+            index_entry = Index(
+                id=index.id, name=index.name, config=index.config, index_type=index_type
+            )
             session.add(index_entry)
             session.commit()
             session.refresh(index_entry)
 
-        index_cls = import_dotted_string(index_type, safe=False)
-        index = index_cls(app=self._app, id=id, name=name, config=config)
-        index.on_create()
+            index.id = index_entry.id
 
         return index
 
@@ -77,7 +81,7 @@ class IndexManager:
         self._indices.append(index)
         return index
 
-    def exists(self, id: int) -> bool:
+    def exists(self, id: Optional[int] = None, name: Optional[str] = None) -> bool:
         """Check if the index exists
 
         Args:
@@ -86,9 +90,19 @@ class IndexManager:
         Returns:
             bool: True if the index exists, False otherwise
         """
-        with Session(engine) as session:
-            index = session.get(Index, id)
-            return index is not None
+        if id:
+            with Session(engine) as session:
+                index = session.get(Index, id)
+                return index is not None
+
+        if name:
+            with Session(engine) as session:
+                index = session.exec(
+                    select(Index).where(Index.name == name)
+                ).one_or_none()
+                return index is not None
+
+        return False
 
     def on_application_startup(self):
         """This method is called by the base application when the application starts

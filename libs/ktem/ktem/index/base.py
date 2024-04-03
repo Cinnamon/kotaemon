@@ -1,6 +1,6 @@
 import abc
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from ktem.app import BasePage
@@ -57,7 +57,7 @@ class BaseIndex(abc.ABC):
         self._app = app
         self.id = id
         self.name = name
-        self._config = config  # admin settings
+        self.config = config  # admin settings
 
     def on_create(self):
         """Create the index for the first time"""
@@ -121,7 +121,7 @@ class BaseIndex(abc.ABC):
         ...
 
     def get_retriever_pipelines(
-        self, settings: dict, selected: Optional[list]
+        self, settings: dict, selected: Any = None
     ) -> list["BaseComponent"]:
         """Return the retriever pipelines to retrieve the entity from the index"""
         return []

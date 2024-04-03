@@ -7,8 +7,10 @@ from ktem.app import BasePage
 from ktem.components import reasonings
 from ktem.db.models import Conversation, engine
 from sqlmodel import Session, select
+from theflow.settings import settings as flowsettings
 
 from .chat_panel import ChatPanel
+from .chat_suggestion import ChatSuggestion
 from .common import STATE
 from .control import ConversationControl
 from .report import ReportIssue
@@ -26,24 +28,39 @@ class ChatPage(BasePage):
             with gr.Column(scale=1):
                 self.chat_control = ConversationControl(self._app)
 
+                if getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False):
+                    self.chat_suggestion = ChatSuggestion(self._app)
+
                 for index in self._app.index_manager.indices:
-                    index.selector = -1
+                    index.selector = None
                     index_ui = index.get_selector_component_ui()
                     if not index_ui:
+                        # the index doesn't have a selector UI component
                         continue
 
-                    index_ui.unrender()
+                    index_ui.unrender()  # need to rerender later within Accordion
                     with gr.Accordion(label=f"{index.name} Index", open=False):
                         index_ui.render()
                         gr_index = index_ui.as_gradio_component()
                         if gr_index:
-                            index.selector = len(self._indices_input)
-                            self._indices_input.append(gr_index)
+                            if isinstance(gr_index, list):
+                                index.selector = tuple(
+                                    range(
+                                        len(self._indices_input),
+                                        len(self._indices_input) + len(gr_index),
+                                    )
+                                )
+                                self._indices_input.extend(gr_index)
+                            else:
+                                index.selector = len(self._indices_input)
+                                self._indices_input.append(gr_index)
                         setattr(self, f"_index_{index.id}", index_ui)
 
                 self.report_issue = ReportIssue(self._app)
+
             with gr.Column(scale=6):
                 self.chat_panel = ChatPanel(self._app)
+
             with gr.Column(scale=3):
                 with gr.Accordion(label="Information panel", open=True):
                     self.info_panel = gr.HTML(elem_id="chat-info-panel")
@@ -54,11 +71,24 @@ class ChatPage(BasePage):
                 self.chat_panel.text_input.submit,
                 self.chat_panel.submit_btn.click,
             ],
-            fn=self.chat_panel.submit_msg,
-            inputs=[self.chat_panel.text_input, self.chat_panel.chatbot],
-            outputs=[self.chat_panel.text_input, self.chat_panel.chatbot],
+            fn=self.submit_msg,
+            inputs=[
+                self.chat_panel.text_input,
+                self.chat_panel.chatbot,
+                self._app.user_id,
+                self.chat_control.conversation_id,
+                self.chat_control.conversation_rn,
+            ],
+            outputs=[
+                self.chat_panel.text_input,
+                self.chat_panel.chatbot,
+                self.chat_control.conversation_id,
+                self.chat_control.conversation,
+                self.chat_control.conversation_rn,
+            ],
+            concurrency_limit=20,
             show_progress="hidden",
-        ).then(
+        ).success(
             fn=self.chat_fn,
             inputs=[
                 self.chat_control.conversation_id,
@@ -72,6 +102,7 @@ class ChatPage(BasePage):
                 self.info_panel,
                 self.chat_state,
             ],
+            concurrency_limit=20,
             show_progress="minimal",
         ).then(
             fn=self.update_data_source,
@@ -82,6 +113,7 @@ class ChatPage(BasePage):
             ]
             + self._indices_input,
             outputs=None,
+            concurrency_limit=20,
         )
 
         self.chat_panel.regen_btn.click(
@@ -98,6 +130,7 @@ class ChatPage(BasePage):
                 self.info_panel,
                 self.chat_state,
             ],
+            concurrency_limit=20,
             show_progress="minimal",
         ).then(
             fn=self.update_data_source,
@@ -108,6 +141,7 @@ class ChatPage(BasePage):
             ]
             + self._indices_input,
             outputs=None,
+            concurrency_limit=20,
         )
 
         self.chat_panel.chatbot.like(
@@ -116,7 +150,12 @@ class ChatPage(BasePage):
             outputs=None,
         )
 
-        self.chat_control.conversation.change(
+        self.chat_control.btn_new.click(
+            self.chat_control.new_conv,
+            inputs=self._app.user_id,
+            outputs=[self.chat_control.conversation_id, self.chat_control.conversation],
+            show_progress="hidden",
+        ).then(
             self.chat_control.select_conv,
             inputs=[self.chat_control.conversation],
             outputs=[
@@ -124,10 +163,69 @@ class ChatPage(BasePage):
                 self.chat_control.conversation,
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
+                self.info_panel,
                 self.chat_state,
             ]
             + self._indices_input,
             show_progress="hidden",
+        )
+
+        self.chat_control.btn_del.click(
+            lambda id: self.toggle_delete(id),
+            inputs=[self.chat_control.conversation_id],
+            outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
+        )
+        self.chat_control.btn_del_conf.click(
+            self.chat_control.delete_conv,
+            inputs=[self.chat_control.conversation_id, self._app.user_id],
+            outputs=[self.chat_control.conversation_id, self.chat_control.conversation],
+            show_progress="hidden",
+        ).then(
+            self.chat_control.select_conv,
+            inputs=[self.chat_control.conversation],
+            outputs=[
+                self.chat_control.conversation_id,
+                self.chat_control.conversation,
+                self.chat_control.conversation_rn,
+                self.chat_panel.chatbot,
+                self.info_panel,
+            ]
+            + self._indices_input,
+            show_progress="hidden",
+        ).then(
+            lambda: self.toggle_delete(""),
+            outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
+        )
+        self.chat_control.btn_del_cnl.click(
+            lambda: self.toggle_delete(""),
+            outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
+        )
+        self.chat_control.conversation_rn_btn.click(
+            self.chat_control.rename_conv,
+            inputs=[
+                self.chat_control.conversation_id,
+                self.chat_control.conversation_rn,
+                self._app.user_id,
+            ],
+            outputs=[self.chat_control.conversation, self.chat_control.conversation],
+            show_progress="hidden",
+        )
+
+        self.chat_control.conversation.select(
+            self.chat_control.select_conv,
+            inputs=[self.chat_control.conversation],
+            outputs=[
+                self.chat_control.conversation_id,
+                self.chat_control.conversation,
+                self.chat_control.conversation_rn,
+                self.chat_panel.chatbot,
+                self.info_panel,
+            ]
+            + self._indices_input,
+            show_progress="hidden",
+        ).then(
+            lambda: self.toggle_delete(""),
+            outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
         )
 
         self.report_issue.report_btn.click(
@@ -140,11 +238,77 @@ class ChatPage(BasePage):
                 self.chat_panel.chatbot,
                 self._app.settings_state,
                 self._app.user_id,
+                self.info_panel,
                 self.chat_state,
             ]
             + self._indices_input,
             outputs=None,
         )
+        if getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False):
+            self.chat_suggestion.example.select(
+                self.chat_suggestion.select_example,
+                outputs=[self.chat_panel.text_input],
+                show_progress="hidden",
+            )
+
+    def submit_msg(self, chat_input, chat_history, user_id, conv_id, conv_name):
+        """Submit a message to the chatbot"""
+        if not chat_input:
+            raise ValueError("Input is empty")
+
+        if not conv_id:
+            id_, update = self.chat_control.new_conv(user_id)
+            with Session(engine) as session:
+                statement = select(Conversation).where(Conversation.id == id_)
+                name = session.exec(statement).one().name
+                new_conv_id = id_
+                conv_update = update
+                new_conv_name = name
+        else:
+            new_conv_id = conv_id
+            conv_update = gr.update()
+            new_conv_name = conv_name
+
+        return (
+            "",
+            chat_history + [(chat_input, None)],
+            new_conv_id,
+            conv_update,
+            new_conv_name,
+        )
+
+    def toggle_delete(self, conv_id):
+        if conv_id:
+            return gr.update(visible=False), gr.update(visible=True)
+        else:
+            return gr.update(visible=True), gr.update(visible=False)
+
+    def on_subscribe_public_events(self):
+        if self._app.f_user_management:
+            self._app.subscribe_event(
+                name="onSignIn",
+                definition={
+                    "fn": self.chat_control.reload_conv,
+                    "inputs": [self._app.user_id],
+                    "outputs": [self.chat_control.conversation],
+                    "show_progress": "hidden",
+                },
+            )
+
+            self._app.subscribe_event(
+                name="onSignOut",
+                definition={
+                    "fn": lambda: self.chat_control.select_conv(""),
+                    "outputs": [
+                        self.chat_control.conversation_id,
+                        self.chat_control.conversation,
+                        self.chat_control.conversation_rn,
+                        self.chat_panel.chatbot,
+                    ]
+                    + self._indices_input,
+                    "show_progress": "hidden",
+                },
+            )
 
     def update_data_source(self, convo_id, messages, state, *selecteds):
         """Update the data source"""
@@ -154,8 +318,12 @@ class ChatPage(BasePage):
 
         selecteds_ = {}
         for index in self._app.index_manager.indices:
-            if index.selector != -1:
+            if index.selector is None:
+                continue
+            if isinstance(index.selector, int):
                 selecteds_[str(index.id)] = selecteds[index.selector]
+            else:
+                selecteds_[str(index.id)] = [selecteds[i] for i in index.selector]
 
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == convo_id)
@@ -205,8 +373,11 @@ class ChatPage(BasePage):
         retrievers = []
         for index in self._app.index_manager.indices:
             index_selected = []
-            if index.selector != -1:
+            if isinstance(index.selector, int):
                 index_selected = selecteds[index.selector]
+            if isinstance(index.selector, tuple):
+                for i in index.selector:
+                    index_selected.append(selecteds[i])
             iretrievers = index.get_retriever_pipelines(settings, index_selected)
             retrievers += iretrievers
 
@@ -250,7 +421,10 @@ class ChatPage(BasePage):
                 break
 
             if "output" in response:
-                text += response["output"]
+                if response["output"] is None:
+                    text = ""
+                else:
+                    text += response["output"]
 
             if "evidence" in response:
                 if response["evidence"] is None:
