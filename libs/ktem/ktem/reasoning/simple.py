@@ -355,12 +355,9 @@ class FullQAPipeline(BaseReasoning):
         _id = cls.get_info()["id"]
 
         pipeline = FullQAPipeline(retrievers=retrievers)
-        pipeline.answering_pipeline.llm = llms[
-            settings[f"reasoning.options.{_id}.main_llm"]
-        ]
-        pipeline.answering_pipeline.citation_pipeline.llm = llms[
-            settings[f"reasoning.options.{_id}.citation_llm"]
-        ]
+        pipeline.answering_pipeline.llm = llms.get_default()
+        pipeline.answering_pipeline.citation_pipeline.llm = llms.get_default()
+
         pipeline.answering_pipeline.enable_citation = settings[
             f"reasoning.options.{_id}.highlight_citation"
         ]
@@ -377,37 +374,11 @@ class FullQAPipeline(BaseReasoning):
 
     @classmethod
     def get_user_settings(cls) -> dict:
-        from ktem.llms.manager import llms
-
-        try:
-            citation_llm = llms.get_default_name()
-            citation_llm_choices = list(llms.options().keys())
-            main_llm = llms.get_default_name()
-            main_llm_choices = list(llms.options().keys())
-        except Exception as e:
-            logger.error(e)
-            citation_llm = None
-            citation_llm_choices = []
-            main_llm = None
-            main_llm_choices = []
-
         return {
             "highlight_citation": {
                 "name": "Highlight Citation",
                 "value": False,
                 "component": "checkbox",
-            },
-            "citation_llm": {
-                "name": "LLM for citation",
-                "value": citation_llm,
-                "component": "dropdown",
-                "choices": citation_llm_choices,
-            },
-            "main_llm": {
-                "name": "LLM for main generation",
-                "value": main_llm,
-                "component": "dropdown",
-                "choices": main_llm_choices,
             },
             "system_prompt": {
                 "name": "System Prompt",
