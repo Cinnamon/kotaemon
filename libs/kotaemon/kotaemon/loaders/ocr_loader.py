@@ -125,3 +125,70 @@ class OCRReader(BaseReader):
         )
 
         return documents
+
+
+class ImageReader(BaseReader):
+    """Read PDF using OCR, with high focus on table extraction
+
+    Example:
+        ```python
+        >> from knowledgehub.loaders import OCRReader
+        >> reader = OCRReader()
+        >> documents = reader.load_data("path/to/pdf")
+        ```
+
+    Args:
+        endpoint: URL to FullOCR endpoint. If not provided, will look for
+            environment variable `OCR_READER_ENDPOINT` or use the default
+            `knowledgehub.loaders.ocr_loader.DEFAULT_OCR_ENDPOINT`
+            (http://127.0.0.1:8000/v2/ai/infer/)
+        use_ocr: whether to use OCR to read text (e.g: from images, tables) in the PDF
+            If False, only the table and text within table cells will be extracted.
+    """
+
+    def __init__(self, endpoint: Optional[str] = None):
+        """Init the OCR reader with OCR endpoint (FullOCR pipeline)"""
+        super().__init__()
+        self.ocr_endpoint = endpoint or os.getenv(
+            "OCR_READER_ENDPOINT", DEFAULT_OCR_ENDPOINT
+        )
+
+    def load_data(
+        self, file_path: Path, extra_info: Optional[dict] = None, **kwargs
+    ) -> List[Document]:
+        """Load data using OCR reader
+
+        Args:
+            file_path (Path): Path to PDF file
+            debug_path (Path): Path to store debug image output
+            artifact_path (Path): Path to OCR endpoints artifacts directory
+
+        Returns:
+            List[Document]: list of documents extracted from the PDF file
+        """
+        file_path = Path(file_path).resolve()
+
+        with file_path.open("rb") as content:
+            files = {"input": content}
+            data = {"job_id": uuid4(), "table_only": False}
+
+            # call the API from FullOCR endpoint
+            if "response_content" in kwargs:
+                # overriding response content if specified
+                ocr_results = kwargs["response_content"]
+            else:
+                # call original API
+                resp = tenacious_api_post(url=self.ocr_endpoint, files=files, data=data)
+                ocr_results = resp.json()["result"]
+
+        extra_info = extra_info or {}
+        result = []
+        for ocr_result in ocr_results:
+            result.append(
+                Document(
+                    content=ocr_result["csv_string"],
+                    metadata=extra_info,
+                )
+            )
+
+        return result

@@ -27,7 +27,7 @@ class App(BaseApp):
         if self.f_user_management:
             from ktem.pages.login import LoginPage
 
-            with gr.Tab("Login", elem_id="login-tab") as self._tabs["login-tab"]:
+            with gr.Tab("Welcome", elem_id="login-tab") as self._tabs["login-tab"]:
                 self.login_page = LoginPage(self)
 
         with gr.Tab(
@@ -62,6 +62,9 @@ class App(BaseApp):
 
     def on_subscribe_public_events(self):
         if self.f_user_management:
+            from ktem.db.engine import engine
+            from ktem.db.models import User
+            from sqlmodel import Session, select
 
             def signed_in_out(user_id):
                 if not user_id:
@@ -73,14 +76,31 @@ class App(BaseApp):
                         )
                         for k in self._tabs.keys()
                     )
-                return list(
-                    (
-                        gr.update(visible=True)
-                        if k != "login-tab"
-                        else gr.update(visible=False)
-                    )
-                    for k in self._tabs.keys()
-                )
+
+                with Session(engine) as session:
+                    user = session.exec(select(User).where(User.id == user_id)).first()
+                    if user is None:
+                        return list(
+                            (
+                                gr.update(visible=True)
+                                if k == "login-tab"
+                                else gr.update(visible=False)
+                            )
+                            for k in self._tabs.keys()
+                        )
+
+                    is_admin = user.admin
+
+                tabs_update = []
+                for k in self._tabs.keys():
+                    if k == "login-tab":
+                        tabs_update.append(gr.update(visible=False))
+                    elif k == "admin-tab":
+                        tabs_update.append(gr.update(visible=is_admin))
+                    else:
+                        tabs_update.append(gr.update(visible=True))
+
+                return tabs_update
 
             self.subscribe_event(
                 name="onSignIn",

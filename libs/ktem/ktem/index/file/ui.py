@@ -1,29 +1,48 @@
 import os
 import tempfile
+from pathlib import Path
 
 import gradio as gr
 import pandas as pd
+from gradio.data_classes import FileData
+from gradio.utils import NamedString
 from ktem.app import BasePage
 from ktem.db.engine import engine
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 
+class File(gr.File):
+    """Subclass from gr.File to maintain the original filename
+
+    The issue happens when user uploads file with name like: !@#$%%^&*().pdf
+    """
+
+    def _process_single_file(self, f: FileData) -> NamedString | bytes:
+        file_name = f.path
+        if self.type == "filepath":
+            if f.orig_name and Path(file_name).name != f.orig_name:
+                file_name = str(Path(file_name).parent / f.orig_name)
+                os.rename(f.path, file_name)
+            file = tempfile.NamedTemporaryFile(delete=False, dir=self.GRADIO_CACHE)
+            file.name = file_name
+            return NamedString(file_name)
+        elif self.type == "binary":
+            with open(file_name, "rb") as file_data:
+                return file_data.read()
+        else:
+            raise ValueError(
+                "Unknown type: "
+                + str(type)
+                + ". Please choose from: 'filepath', 'binary'."
+            )
+
+
 class DirectoryUpload(BasePage):
-    def __init__(self, app):
-        self._app = app
-        self._supported_file_types = [
-            "image",
-            ".pdf",
-            ".txt",
-            ".csv",
-            ".xlsx",
-            ".doc",
-            ".docx",
-            ".pptx",
-            ".html",
-            ".zip",
-        ]
+    def __init__(self, app, index):
+        super().__init__(app)
+        self._index = index
+        self._supported_file_types = self._index.config.get("supported_file_types", [])
         self.on_building_ui()
 
     def on_building_ui(self):
@@ -50,18 +69,7 @@ class FileIndexPage(BasePage):
     def __init__(self, app, index):
         super().__init__(app)
         self._index = index
-        self._supported_file_types = [
-            "image",
-            ".pdf",
-            ".txt",
-            ".csv",
-            ".xlsx",
-            ".doc",
-            ".docx",
-            ".pptx",
-            ".html",
-            ".zip",
-        ]
+        self._supported_file_types = self._index.config.get("supported_file_types", [])
         self.selected_panel_false = "Selected file: (please select above)"
         self.selected_panel_true = "Selected file: {name}"
         # TODO: on_building_ui is not correctly named if it's always called in
@@ -69,13 +77,32 @@ class FileIndexPage(BasePage):
         self.public_events = [f"onFileIndex{index.id}Changed"]
         self.on_building_ui()
 
+    def upload_instruction(self) -> str:
+        msgs = []
+        if self._supported_file_types:
+            msgs.append(
+                f"- Supported file types: {', '.join(self._supported_file_types)}"
+            )
+
+        if max_file_size := self._index.config.get("max_file_size", 0):
+            msgs.append(f"- Maximum file size: {max_file_size} MB")
+
+        if max_number_of_files := self._index.config.get("max_number_of_files", 0):
+            msgs.append(f"- The index can have maximum {max_number_of_files} files")
+
+        if msgs:
+            return "\n".join(msgs)
+
+        return ""
+
     def on_building_ui(self):
         """Build the UI of the app"""
-        with gr.Accordion(label="File upload", open=False):
-            gr.Markdown(
-                f"Supported file types: {', '.join(self._supported_file_types)}",
-            )
-            self.files = gr.File(
+        with gr.Accordion(label="File upload", open=True) as self.upload:
+            msg = self.upload_instruction()
+            if msg:
+                gr.Markdown(msg)
+
+            self.files = File(
                 file_types=self._supported_file_types,
                 file_count="multiple",
                 container=False,
@@ -98,18 +125,20 @@ class FileIndexPage(BasePage):
             interactive=False,
         )
 
-        with gr.Row():
+        with gr.Row() as self.selection_info:
             self.selected_file_id = gr.State(value=None)
             self.selected_panel = gr.Markdown(self.selected_panel_false)
             self.deselect_button = gr.Button("Deselect", visible=False)
 
-        with gr.Row():
+        with gr.Row() as self.tools:
             with gr.Column():
                 self.view_button = gr.Button("View Text (WIP)")
             with gr.Column():
                 self.delete_button = gr.Button("Delete")
                 with gr.Row():
-                    self.delete_yes = gr.Button("Confirm Delete", visible=False)
+                    self.delete_yes = gr.Button(
+                        "Confirm Delete", variant="primary", visible=False
+                    )
                     self.delete_no = gr.Button("Cancel", visible=False)
 
     def on_subscribe_public_events(self):
@@ -242,10 +271,12 @@ class FileIndexPage(BasePage):
                 self._app.settings_state,
             ],
             outputs=[self.file_output],
+            concurrency_limit=20,
         ).then(
             fn=self.list_file,
             inputs=None,
             outputs=[self.file_list_state, self.file_list],
+            concurrency_limit=20,
         )
         for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
             onUploaded = onUploaded.then(**event)
@@ -274,6 +305,15 @@ class FileIndexPage(BasePage):
             selected_files: the list of files already selected
             settings: the settings of the app
         """
+        if not files:
+            gr.Info("No uploaded file")
+            return gr.update()
+
+        errors = self.validate(files)
+        if errors:
+            gr.Warning(", ".join(errors))
+            return gr.update()
+
         gr.Info(f"Start indexing {len(files)} files...")
 
         # get the pipeline
@@ -409,6 +449,35 @@ class FileIndexPage(BasePage):
             name=list_files["name"][ev.index[0]]
         )
 
+    def validate(self, files: list[str]):
+        """Validate if the files are valid"""
+        paths = [Path(file) for file in files]
+        errors = []
+        if max_file_size := self._index.config.get("max_file_size", 0):
+            errors_max_size = []
+            for path in paths:
+                if path.stat().st_size > max_file_size * 1e6:
+                    errors_max_size.append(path.name)
+            if errors_max_size:
+                str_errors = ", ".join(errors_max_size)
+                if len(str_errors) > 60:
+                    str_errors = str_errors[:55] + "..."
+                errors.append(
+                    f"Maximum file size ({max_file_size} MB) exceeded: {str_errors}"
+                )
+
+        if max_number_of_files := self._index.config.get("max_number_of_files", 0):
+            with Session(engine) as session:
+                current_num_files = session.query(
+                    self._index._db_tables["Source"].id
+                ).count()
+            if len(paths) + current_num_files > max_number_of_files:
+                errors.append(
+                    f"Maximum number of files ({max_number_of_files}) will be exceeded"
+                )
+
+        return errors
+
 
 class FileSelector(BasePage):
     """File selector UI in the Chat page"""
@@ -429,6 +498,9 @@ class FileSelector(BasePage):
 
     def as_gradio_component(self):
         return self.selector
+
+    def get_selected_ids(self, selected):
+        return selected
 
     def load_files(self, selected_files):
         options = []

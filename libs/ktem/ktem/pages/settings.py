@@ -164,9 +164,14 @@ class SettingsPage(BasePage):
                 show_progress="hidden",
             )
             onSignOutClick = self.signout.click(
-                lambda: (None, "Current user: ___"),
+                lambda: (None, "Current user: ___", "", ""),
                 inputs=None,
-                outputs=[self._user_id, self.current_name],
+                outputs=[
+                    self._user_id,
+                    self.current_name,
+                    self.password_change,
+                    self.password_change_confirm,
+                ],
                 show_progress="hidden",
                 js=signout_js,
             ).then(
@@ -192,8 +197,12 @@ class SettingsPage(BasePage):
         self.password_change_btn = gr.Button("Change password", interactive=True)
 
     def change_password(self, user_id, password, password_confirm):
-        if password != password_confirm:
-            gr.Warning("Password does not match")
+        from ktem.pages.admin.user import validate_password
+
+        errors = validate_password(password, password_confirm)
+        if errors:
+            print(errors)
+            gr.Warning(errors)
             return password, password_confirm
 
         with Session(engine) as session:

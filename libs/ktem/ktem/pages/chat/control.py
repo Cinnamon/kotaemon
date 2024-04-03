@@ -5,7 +5,20 @@ from ktem.app import BasePage
 from ktem.db.models import Conversation, engine
 from sqlmodel import Session, select
 
+from .common import STATE
+
 logger = logging.getLogger(__name__)
+
+
+def is_conv_name_valid(name):
+    """Check if the conversation name is valid"""
+    errors = []
+    if len(name) == 0:
+        errors.append("Name cannot be empty")
+    elif len(name) > 40:
+        errors.append("Name cannot be longer than 40 characters")
+
+    return "; ".join(errors)
 
 
 class ConversationControl(BasePage):
@@ -26,9 +39,17 @@ class ConversationControl(BasePage):
                 interactive=True,
             )
 
-            with gr.Row():
-                self.conversation_new_btn = gr.Button(value="New", min_width=10)
-                self.conversation_del_btn = gr.Button(value="Delete", min_width=10)
+            with gr.Row() as self._new_delete:
+                self.btn_new = gr.Button(value="New", min_width=10)
+                self.btn_del = gr.Button(value="Delete", min_width=10)
+
+            with gr.Row(visible=False) as self._delete_confirm:
+                self.btn_del_conf = gr.Button(
+                    value="Delete",
+                    variant="primary",
+                    min_width=10,
+                )
+                self.btn_del_cnl = gr.Button(value="Cancel", min_width=10)
 
             with gr.Row():
                 self.conversation_rn = gr.Text(
@@ -50,48 +71,6 @@ class ConversationControl(BasePage):
         #     outputs=[current_state],
         # )
 
-    def on_subscribe_public_events(self):
-        if self._app.f_user_management:
-            self._app.subscribe_event(
-                name="onSignIn",
-                definition={
-                    "fn": self.reload_conv,
-                    "inputs": [self._app.user_id],
-                    "outputs": [self.conversation],
-                    "show_progress": "hidden",
-                },
-            )
-
-            self._app.subscribe_event(
-                name="onSignOut",
-                definition={
-                    "fn": self.reload_conv,
-                    "inputs": [self._app.user_id],
-                    "outputs": [self.conversation],
-                    "show_progress": "hidden",
-                },
-            )
-
-    def on_register_events(self):
-        self.conversation_new_btn.click(
-            self.new_conv,
-            inputs=self._app.user_id,
-            outputs=[self.conversation_id, self.conversation],
-            show_progress="hidden",
-        )
-        self.conversation_del_btn.click(
-            self.delete_conv,
-            inputs=[self.conversation_id, self._app.user_id],
-            outputs=[self.conversation_id, self.conversation],
-            show_progress="hidden",
-        )
-        self.conversation_rn_btn.click(
-            self.rename_conv,
-            inputs=[self.conversation_id, self.conversation_rn, self._app.user_id],
-            outputs=[self.conversation, self.conversation],
-            show_progress="hidden",
-        )
-
     def load_chat_history(self, user_id):
         """Reload chat history"""
         options = []
@@ -110,7 +89,7 @@ class ConversationControl(BasePage):
     def reload_conv(self, user_id):
         conv_list = self.load_chat_history(user_id)
         if conv_list:
-            return gr.update(value=conv_list[0][1], choices=conv_list)
+            return gr.update(value=None, choices=conv_list)
         else:
             return gr.update(value=None, choices=[])
 
@@ -131,10 +110,15 @@ class ConversationControl(BasePage):
         return id_, gr.update(value=id_, choices=history)
 
     def delete_conv(self, conversation_id, user_id):
-        """Create new chat"""
+        """Delete the selected conversation"""
+        if not conversation_id:
+            gr.Warning("No conversation selected.")
+            return None, gr.update()
+
         if user_id is None:
             gr.Warning("Please sign in first (Settings → User Settings)")
             return None, gr.update()
+
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == conversation_id)
             result = session.exec(statement).one()
@@ -159,27 +143,44 @@ class ConversationControl(BasePage):
                 name = result.name
                 selected = result.data_source.get("selected", {})
                 chats = result.data_source.get("messages", [])
+                info_panel = ""
+                state = result.data_source.get("state", STATE)
             except Exception as e:
                 logger.warning(e)
                 id_ = ""
                 name = ""
                 selected = {}
                 chats = []
+                info_panel = ""
+                state = STATE
 
         indices = []
         for index in self._app.index_manager.indices:
             # assume that the index has selector
-            if index.selector == -1:
+            if index.selector is None:
                 continue
-            indices.append(selected.get(str(index.id), []))
+            if isinstance(index.selector, int):
+                indices.append(selected.get(str(index.id), []))
+            if isinstance(index.selector, tuple):
+                indices.extend(selected.get(str(index.id), [[]] * len(index.selector)))
 
-        return id_, id_, name, chats, *indices
+        return id_, id_, name, chats, info_panel, state, *indices
 
     def rename_conv(self, conversation_id, new_name, user_id):
         """Rename the conversation"""
         if user_id is None:
             gr.Warning("Please sign in first (Settings → User Settings)")
             return gr.update(), ""
+
+        if not conversation_id:
+            gr.Warning("No conversation selected.")
+            return gr.update(), ""
+
+        errors = is_conv_name_valid(new_name)
+        if errors:
+            gr.Warning(errors)
+            return gr.update(), conversation_id
+
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == conversation_id)
             result = session.exec(statement).one()

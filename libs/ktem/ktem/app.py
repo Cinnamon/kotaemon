@@ -17,6 +17,7 @@ class BaseApp:
 
     The main application contains app-level information:
         - setting state
+        - dynamic conversation state
         - user id
 
     Also contains registering methods for:
@@ -228,7 +229,9 @@ class BasePage:
     def _on_app_created(self):
         """Called when the app is created"""
 
-    def as_gradio_component(self) -> Optional[gr.components.Component]:
+    def as_gradio_component(
+        self,
+    ) -> Optional[gr.components.Component | list[gr.components.Component]]:
         """Return the gradio components responsible for events
 
         Note: in ideal scenario, this method shouldn't be necessary.

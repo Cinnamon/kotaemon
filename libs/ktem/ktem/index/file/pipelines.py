@@ -9,6 +9,7 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Optional
 
+import gradio as gr
 from ktem.components import embeddings, filestorage_path
 from ktem.db.models import engine
 from llama_index.vector_stores import (
@@ -18,7 +19,7 @@ from llama_index.vector_stores import (
     MetadataFilters,
 )
 from llama_index.vector_stores.types import VectorStoreQueryMode
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
@@ -279,6 +280,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         to_index: list[str] = []
         file_to_hash: dict[str, str] = {}
         errors = []
+        to_update = []
 
         for file_path in file_paths:
             abs_path = str(Path(file_path).resolve())
@@ -291,16 +293,26 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                 statement = select(Source).where(Source.name == Path(abs_path).name)
                 item = session.execute(statement).first()
 
-                if item and not reindex:
-                    errors.append(Path(abs_path).name)
-                    continue
+                if item:
+                    if not reindex:
+                        errors.append(Path(abs_path).name)
+                        continue
+                    else:
+                        to_update.append(Path(abs_path).name)
 
             to_index.append(abs_path)
 
         if errors:
+            error_files = ", ".join(errors)
+            if len(error_files) > 100:
+                error_files = error_files[:80] + "..."
             print(
-                "Files already exist. Please rename/remove them or enable reindex.\n"
-                f"{errors}"
+                "Skip these files already exist. Please rename/remove them or "
+                f"enable reindex:\n{errors}"
+            )
+            self.warning(
+                "Skip these files already exist. Please rename/remove them or "
+                f"enable reindex:\n{error_files}"
             )
 
         if not to_index:
@@ -310,9 +322,19 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         for path in to_index:
             shutil.copy(path, filestorage_path / file_to_hash[path])
 
-        # prepare record info
+        # extract the file & prepare record info
         file_to_source: dict = {}
+        extraction_errors = []
+        nodes = []
         for file_path, file_hash in file_to_hash.items():
+            if str(Path(file_path).resolve()) not in to_index:
+                continue
+
+            extraction_result = self.file_ingestor(file_path)
+            if not extraction_result:
+                extraction_errors.append(Path(file_path).name)
+                continue
+            nodes.extend(extraction_result)
             source = Source(
                 name=Path(file_path).name,
                 path=file_hash,
@@ -320,9 +342,23 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
             )
             file_to_source[file_path] = source
 
-        # extract the files
-        nodes = self.file_ingestor(to_index)
-        print("Extracted", len(to_index), "files into", len(nodes), "nodes")
+        if extraction_errors:
+            msg = "Failed to extract these files: {}".format(
+                ", ".join(extraction_errors)
+            )
+            print(msg)
+            self.warning(msg)
+
+        if not nodes:
+            return [], []
+
+        print(
+            "Extracted",
+            len(to_index) - len(extraction_errors),
+            "files into",
+            len(nodes),
+            "nodes",
+        )
 
         # index the files
         print("Indexing the files into vector store")
@@ -332,7 +368,11 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         # persist to the index
         print("Persisting the vector and the document into index")
         file_ids = []
+        to_update = list(set(to_update))
         with Session(engine) as session:
+            if to_update:
+                session.execute(delete(Source).where(Source.name.in_(to_update)))
+
             for source in file_to_source.values():
                 session.add(source)
             session.commit()
@@ -378,6 +418,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                     ("PDF text parser", "normal"),
                     ("Mathpix", "mathpix"),
                     ("Advanced ocr", "ocr"),
+                    ("Multimodal parser", "multimodal"),
                 ],
                 "component": "dropdown",
             },
@@ -403,3 +444,6 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         super().set_resources(resources)
         self.indexing_vector_pipeline.vector_store = self._VS
         self.indexing_vector_pipeline.doc_store = self._DS
+
+    def warning(self, msg):
+        gr.Warning(msg)

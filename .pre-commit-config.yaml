@@ -52,7 +52,12 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies:
-          [types-PyYAML==6.0.12.11, "types-requests", "sqlmodel"]
+          [
+            types-PyYAML==6.0.12.11,
+            "types-requests",
+            "sqlmodel",
+            "types-Markdown",
+          ]
         args: ["--check-untyped-defs", "--ignore-missing-imports"]
         exclude: "^templates/"
   - repo: https://github.com/codespell-project/codespell
