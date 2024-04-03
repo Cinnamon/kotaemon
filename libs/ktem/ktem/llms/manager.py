@@ -16,7 +16,7 @@ class LLMManager:
     def __init__(self):
         self._models: dict[str, BaseComponent] = {}
         self._info: dict[str, dict] = {}
-        self._default: list[str] = []
+        self._default: str = ""
         self._vendors: list[Type] = []
 
         if hasattr(flowsettings, "KH_LLMS"):
@@ -38,7 +38,7 @@ class LLMManager:
 
     def load(self):
         """Load the model pool from database"""
-        self._models, self._info, self._defaut = {}, {}, []
+        self._models, self._info, self._defaut = {}, {}, ""
         with Session(engine) as session:
             stmt = select(LLMTable)
             items = session.execute(stmt)
@@ -50,10 +50,8 @@ class LLMManager:
                     "spec": item.spec,
                     "default": item.default,
                 }
-
-        self._default = [
-            name for name, info in self._info.items() if info.get("default", False)
-        ]
+                if item.default:
+                    self._default = item.name
 
     def load_vendors(self):
         from kotaemon.llms import AzureChatOpenAI, ChatOpenAI, LlamaCppChat
@@ -111,12 +109,10 @@ class LLMManager:
         if not self._models:
             raise ValueError("No models in pool")
 
-        if self._default:
-            import random
+        if not self._default:
+            return self.get_random_name()
 
-            return random.choice(self._default)
-
-        return self.get_random_name()
+        return self._default
 
     def get_random(self) -> BaseComponent:
         """Get random model"""
@@ -165,6 +161,12 @@ class LLMManager:
         """Update a model in the pool"""
         try:
             with Session(engine) as session:
+
+                if default:
+                    # turn all models to non-default
+                    session.query(LLMTable).update({"default": False})
+                    session.commit()
+
                 item = session.query(LLMTable).filter_by(name=name).first()
                 if not item:
                     raise ValueError(f"Model {name} not found")

@@ -5,9 +5,7 @@ import pandas as pd
 import yaml
 from ktem.app import BasePage
 
-from .manager import LLMManager
-
-llms = LLMManager()
+from .manager import llms
 
 
 def format_description(cls):
@@ -29,7 +27,7 @@ class LLMManagement(BasePage):
         self.on_building_ui()
 
     def on_building_ui(self):
-        with gr.Tab(label="LLM list"):
+        with gr.Tab(label="View"):
             self.llm_list = gr.DataFrame(
                 headers=["name", "vendor", "default"],
                 interactive=False,
@@ -38,7 +36,6 @@ class LLMManagement(BasePage):
             with gr.Column(visible=False) as self._selected_panel:
                 self.selected_llm_name = gr.Textbox(value="", visible=False)
                 with gr.Row():
-
                     with gr.Column():
                         self.edit_default = gr.Checkbox(
                             label="Set default",
@@ -53,25 +50,28 @@ class LLMManagement(BasePage):
                             lines=10,
                         )
 
+                        with gr.Row(visible=False) as self._selected_panel_btn:
+                            with gr.Column():
+                                self.btn_edit_save = gr.Button("Save", min_width=10)
+                            with gr.Column():
+                                self.btn_delete = gr.Button("Delete", min_width=10)
+                                with gr.Row():
+                                    self.btn_delete_yes = gr.Button(
+                                        "Confirm delete",
+                                        variant="primary",
+                                        visible=False,
+                                        min_width=10,
+                                    )
+                                    self.btn_delete_no = gr.Button(
+                                        "Cancel", visible=False, min_width=10
+                                    )
+                            with gr.Column():
+                                self.btn_close = gr.Button("Close", min_width=10)
+
                     with gr.Column():
                         self.edit_spec_desc = gr.Markdown("# Spec description")
 
-            with gr.Row(visible=False) as self._selected_panel_btn:
-                with gr.Column():
-                    self.btn_edit_save = gr.Button("Save")
-                with gr.Column():
-                    self.btn_delete = gr.Button("Delete")
-                    with gr.Row():
-                        self.btn_delete_yes = gr.Button(
-                            "Confirm delete", variant="primary", visible=False
-                        )
-                        self.btn_delete_no = gr.Button("Cancel", visible=False)
-                with gr.Column():
-                    self.btn_close = gr.Button("Close")
-                with gr.Column():
-                    self.btn_clone = gr.Button("Clone")
-
-        with gr.Tab(label="Add LLM"):
+        with gr.Tab(label="Add"):
             with gr.Row():
                 with gr.Column(scale=2):
                     self.name = gr.Textbox(
@@ -98,12 +98,10 @@ class LLMManagement(BasePage):
                             "by default across the application."
                         ),
                     )
+                    self.btn_new = gr.Button("Create LLM")
 
                 with gr.Column(scale=3):
                     self.spec_desc = gr.Markdown(self.spec_desc_default)
-
-            with gr.Row():
-                self.btn_new = gr.Button("Create LLM")
 
     def _on_app_created(self):
         """Called when the app is created"""

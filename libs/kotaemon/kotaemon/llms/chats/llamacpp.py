@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, cast
+from typing import TYPE_CHECKING, Iterator, Optional, cast
 
 from kotaemon.base import BaseMessage, HumanMessage, LLMInterface, Param
 
@@ -79,9 +79,9 @@ class LlamaCppChat(ChatLLM):
             vocab_only=self.vocab_only,
         )
 
-    def invoke(
-        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
-    ) -> LLMInterface:
+    def prepare_message(
+        self, messages: str | BaseMessage | list[BaseMessage]
+    ) -> list[dict]:
         input_: list[BaseMessage] = []
 
         if isinstance(messages, str):
@@ -91,11 +91,19 @@ class LlamaCppChat(ChatLLM):
         else:
             input_ = messages
 
+        output_ = [
+            {"role": self._role_mapper[each.type], "content": each.content}
+            for each in input_
+        ]
+
+        return output_
+
+    def invoke(
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+    ) -> LLMInterface:
+
         pred: "CCCR" = self.client_object.create_chat_completion(
-            messages=[
-                {"role": self._role_mapper[each.type], "content": each.content}
-                for each in input_
-            ],  # type: ignore
+            messages=self.prepare_message(messages),
             stream=False,
         )
 
@@ -110,3 +118,19 @@ class LlamaCppChat(ChatLLM):
             total_tokens=pred["usage"]["total_tokens"],
             prompt_tokens=pred["usage"]["prompt_tokens"],
         )
+
+    def stream(
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+    ) -> Iterator[LLMInterface]:
+        pred = self.client_object.create_chat_completion(
+            messages=self.prepare_message(messages),
+            stream=True,
+        )
+        for chunk in pred:
+            if not chunk["choices"]:
+                continue
+
+            if "content" not in chunk["choices"][0]["delta"]:
+                continue
+
+            yield LLMInterface(content=chunk["choices"][0]["delta"]["content"])

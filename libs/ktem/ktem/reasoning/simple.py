@@ -4,7 +4,7 @@ from collections import defaultdict
 from functools import partial
 
 import tiktoken
-from ktem.components import llms
+from ktem.llms.manager import llms
 from ktem.reasoning.base import BaseReasoning
 
 from kotaemon.base import (
@@ -150,9 +150,9 @@ class AnswerWithContextPipeline(BaseComponent):
         lang: the language of the answer. Currently support English and Japanese
     """
 
-    llm: ChatLLM = Node(default_callback=lambda _: llms.get_highest_accuracy())
+    llm: ChatLLM = Node(default_callback=lambda _: llms.get_default())
     citation_pipeline: CitationPipeline = Node(
-        default_callback=lambda _: CitationPipeline(llm=llms.get_lowest_cost())
+        default_callback=lambda _: CitationPipeline(llm=llms.get_default())
     )
 
     qa_template: str = DEFAULT_QA_TEXT_PROMPT
@@ -377,12 +377,12 @@ class FullQAPipeline(BaseReasoning):
 
     @classmethod
     def get_user_settings(cls) -> dict:
-        from ktem.components import llms
+        from ktem.llms.manager import llms
 
         try:
-            citation_llm = llms.get_lowest_cost_name()
+            citation_llm = llms.get_default_name()
             citation_llm_choices = list(llms.options().keys())
-            main_llm = llms.get_highest_accuracy_name()
+            main_llm = llms.get_default_name()
             main_llm_choices = list(llms.options().keys())
         except Exception as e:
             logger.error(e)

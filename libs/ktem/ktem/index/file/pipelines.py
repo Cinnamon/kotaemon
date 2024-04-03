@@ -156,10 +156,10 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
 
     @classmethod
     def get_user_settings(cls) -> dict:
-        from ktem.components import llms
+        from ktem.llms.manager import llms
 
         try:
-            reranking_llm = llms.get_lowest_cost_name()
+            reranking_llm = llms.get_default_name()
             reranking_llm_choices = list(llms.options().keys())
         except Exception as e:
             logger.error(e)
