@@ -17,6 +17,7 @@ class BaseApp:
 
     The main application contains app-level information:
         - setting state
+        - dynamic conversation state
         - user id
 
     Also contains registering methods for:

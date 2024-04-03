@@ -11,6 +11,7 @@ from theflow.settings import settings as flowsettings
 
 from .chat_panel import ChatPanel
 from .chat_suggestion import ChatSuggestion
+from .common import STATE
 from .control import ConversationControl
 from .report import ReportIssue
 
@@ -23,6 +24,7 @@ class ChatPage(BasePage):
 
     def on_building_ui(self):
         with gr.Row():
+            self.chat_state = gr.State(STATE)
             with gr.Column(scale=1):
                 self.chat_control = ConversationControl(self._app)
 
@@ -92,11 +94,13 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_id,
                 self.chat_panel.chatbot,
                 self._app.settings_state,
+                self.chat_state,
             ]
             + self._indices_input,
             outputs=[
                 self.chat_panel.chatbot,
                 self.info_panel,
+                self.chat_state,
             ],
             concurrency_limit=20,
             show_progress="minimal",
@@ -105,6 +109,35 @@ class ChatPage(BasePage):
             inputs=[
                 self.chat_control.conversation_id,
                 self.chat_panel.chatbot,
+                self.chat_state,
+            ]
+            + self._indices_input,
+            outputs=None,
+            concurrency_limit=20,
+        )
+
+        self.chat_panel.regen_btn.click(
+            fn=self.regen_fn,
+            inputs=[
+                self.chat_control.conversation_id,
+                self.chat_panel.chatbot,
+                self._app.settings_state,
+                self.chat_state,
+            ]
+            + self._indices_input,
+            outputs=[
+                self.chat_panel.chatbot,
+                self.info_panel,
+                self.chat_state,
+            ],
+            concurrency_limit=20,
+            show_progress="minimal",
+        ).then(
+            fn=self.update_data_source,
+            inputs=[
+                self.chat_control.conversation_id,
+                self.chat_panel.chatbot,
+                self.chat_state,
             ]
             + self._indices_input,
             outputs=None,
@@ -131,6 +164,7 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
                 self.info_panel,
+                self.chat_state,
             ]
             + self._indices_input,
             show_progress="hidden",
@@ -205,6 +239,7 @@ class ChatPage(BasePage):
                 self._app.settings_state,
                 self._app.user_id,
                 self.info_panel,
+                self.chat_state,
             ]
             + self._indices_input,
             outputs=None,
@@ -275,7 +310,7 @@ class ChatPage(BasePage):
                 },
             )
 
-    def update_data_source(self, convo_id, messages, *selecteds):
+    def update_data_source(self, convo_id, messages, state, *selecteds):
         """Update the data source"""
         if not convo_id:
             gr.Warning("No conversation selected")
@@ -298,6 +333,7 @@ class ChatPage(BasePage):
             result.data_source = {
                 "selected": selecteds_,
                 "messages": messages,
+                "state": state,
                 "likes": deepcopy(data_source.get("likes", [])),
             }
             session.add(result)
@@ -317,17 +353,22 @@ class ChatPage(BasePage):
             session.add(result)
             session.commit()
 
-    def create_pipeline(self, settings: dict, *selecteds):
+    def create_pipeline(self, settings: dict, state: dict, *selecteds):
         """Create the pipeline from settings
 
         Args:
             settings: the settings of the app
+            is_regen: whether the regen button is clicked
             selected: the list of file ids that will be served as context. If None, then
                 consider using all files
 
         Returns:
-            the pipeline objects
+            - the pipeline objects
         """
+        reasoning_mode = settings["reasoning.use"]
+        reasoning_cls = reasonings[reasoning_mode]
+        reasoning_id = reasoning_cls.get_info()["id"]
+
         # get retrievers
         retrievers = []
         for index in self._app.index_manager.indices:
@@ -340,13 +381,17 @@ class ChatPage(BasePage):
             iretrievers = index.get_retriever_pipelines(settings, index_selected)
             retrievers += iretrievers
 
-        reasoning_mode = settings["reasoning.use"]
-        reasoning_cls = reasonings[reasoning_mode]
-        pipeline = reasoning_cls.get_pipeline(settings, retrievers)
+        # prepare states
+        reasoning_state = {
+            "app": deepcopy(state["app"]),
+            "pipeline": deepcopy(state.get(reasoning_id, {})),
+        }
 
-        return pipeline
+        pipeline = reasoning_cls.get_pipeline(settings, reasoning_state, retrievers)
 
-    async def chat_fn(self, conversation_id, chat_history, settings, *selecteds):
+        return pipeline, reasoning_state
+
+    async def chat_fn(self, conversation_id, chat_history, settings, state, *selecteds):
         """Chat function"""
         chat_input = chat_history[-1][0]
         chat_history = chat_history[:-1]
@@ -354,7 +399,7 @@ class ChatPage(BasePage):
         queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
 
         # construct the pipeline
-        pipeline = self.create_pipeline(settings, *selecteds)
+        pipeline, reasoning_state = self.create_pipeline(settings, state, *selecteds)
         pipeline.set_output_queue(queue)
 
         asyncio.create_task(pipeline(chat_input, conversation_id, chat_history))
@@ -366,7 +411,8 @@ class ChatPage(BasePage):
             try:
                 response = queue.get_nowait()
             except Exception:
-                yield chat_history + [(chat_input, text or "Thinking ...")], refs
+                state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
+                yield chat_history + [(chat_input, text or "Thinking ...")], refs, state
                 continue
 
             if response is None:
@@ -390,4 +436,25 @@ class ChatPage(BasePage):
                 print(f"Len refs: {len(refs)}")
                 len_ref = len(refs)
 
-        yield chat_history + [(chat_input, text)], refs
+        state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
+        yield chat_history + [(chat_input, text)], refs, state
+
+    async def regen_fn(
+        self, conversation_id, chat_history, settings, state, *selecteds
+    ):
+        """Regen function"""
+        if not chat_history:
+            gr.Warning("Empty chat")
+            yield chat_history, "", state
+            return
+
+        state["app"]["regen"] = True
+        async for chat, refs, state in self.chat_fn(
+            conversation_id, chat_history, settings, state, *selecteds
+        ):
+            new_state = deepcopy(state)
+            new_state["app"]["regen"] = False
+            yield chat, refs, new_state
+        else:
+            state["app"]["regen"] = False
+            yield chat_history, "", state

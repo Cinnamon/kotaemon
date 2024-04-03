@@ -1,3 +1,4 @@
+from .adobe_loader import AdobeReader
 from .base import AutoReader, BaseReader
 from .composite_loader import DirectoryReader
 from .docx_loader import DocxReader
@@ -18,4 +19,5 @@ __all__ = [
     "UnstructuredReader",
     "DocxReader",
     "HtmlReader",
+    "AdobeReader",
 ]

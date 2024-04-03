@@ -5,6 +5,8 @@ from ktem.app import BasePage
 from ktem.db.models import Conversation, engine
 from sqlmodel import Session, select
 
+from .common import STATE
+
 logger = logging.getLogger(__name__)
 
 
@@ -141,14 +143,14 @@ class ConversationControl(BasePage):
                 name = result.name
                 selected = result.data_source.get("selected", {})
                 chats = result.data_source.get("messages", [])
-                info_panel = ""
+                state = result.data_source.get("state", STATE)
             except Exception as e:
                 logger.warning(e)
                 id_ = ""
                 name = ""
                 selected = {}
                 chats = []
-                info_panel = ""
+                state = STATE
 
         indices = []
         for index in self._app.index_manager.indices:
@@ -160,7 +162,7 @@ class ConversationControl(BasePage):
             if isinstance(index.selector, tuple):
                 indices.extend(selected.get(str(index.id), [[]] * len(index.selector)))
 
-        return id_, id_, name, chats, info_panel, *indices
+        return id_, id_, name, chats, info_panel, state, *indices
 
     def rename_conv(self, conversation_id, new_name, user_id):
         """Rename the conversation"""

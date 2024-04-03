@@ -17,6 +17,8 @@ description = "Kotaemon core library for AI development."
 dependencies = [
     "langchain",
     "langchain-community",
+    "langchain-openai",
+    "openai",
     "theflow",
     "llama-index>=0.9.0,<0.10.0",
     "llama-hub",
@@ -27,6 +29,11 @@ dependencies = [
     "pandas",
     "trogon",
     "tenacity",
+    "python-dotenv", # currently used to read configs from file, should be remove in the future
+    "chromadb",
+    "unstructured",
+    "pypdf",
+    "html2text",
 ]
 readme = "README.md"
 license = { text = "MIT License" }
@@ -42,6 +49,19 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
+adv = [
+    "wikipedia",
+    "duckduckgo-search",
+    "googlesearch-python",
+    "python-docx",
+    "pytest-mock",
+    "unstructured[pdf]",
+    "sentence_transformers",
+    "cohere",
+    "elasticsearch",
+    "llama-cpp-python",
+    "pdfservices-sdk @  git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements",
+]
 dev = [
     "ipython",
     "pytest",
@@ -50,26 +70,12 @@ dev = [
     "flake8",
     "sphinx",
     "coverage",
-    "openai",
-    "langchain-openai",
-    "chromadb",
-    "wikipedia",
-    "duckduckgo-search",
-    "googlesearch-python",
-    "python-docx",
-    "python-dotenv",
-    "pytest-mock",
-    "unstructured[pdf]",
-    "sentence_transformers",
-    "cohere",
-    "elasticsearch",
-    "pypdf",
-    "html2text",
-    "llama-cpp-python",
+    "python-decouple"
 ]
+all = ["kotaemon[adv,dev]"]
 
 [project.scripts]
-kh = "kotaemon.cli:main"
+kotaemon = "kotaemon.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/Cinnamon/kotaemon/"

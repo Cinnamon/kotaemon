@@ -112,6 +112,14 @@ class CitationPipeline(BaseComponent):
             print(e)
             return None
 
+        if not llm_output.messages:
+            return None
+
+        function_output = llm_output.messages[0].additional_kwargs["function_call"][
+            "arguments"
+        ]
+        output = QuestionAnswer.parse_raw(function_output)
+
         return output
 
     async def ainvoke(self, context: str, question: str):
@@ -123,6 +131,9 @@ class CitationPipeline(BaseComponent):
             print("CitationPipeline: finish async invoking LLM")
         except Exception as e:
             print(e)
+            return None
+
+        if not llm_output.messages:
             return None
 
         function_output = llm_output.messages[0].additional_kwargs["function_call"][

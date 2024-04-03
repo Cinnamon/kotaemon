@@ -4,11 +4,13 @@ Utilities detail can be referred in the sub-pages of this section.
 
 ![chat-ui](images/271332562-ac8f9aac-d853-4571-a48b-d866a99eaf3e.png)
 
-**_Important:_** despite the name prompt engineering UI, this tool allows DMs to test any kind of parameters that are exposed by AIRs. Prompt is one kind of param. There can be other type of params that DMs can tweak (e.g. top_k, temperature...).
+**_Important:_** despite the name prompt engineering UI, this tool allows testers to test any kind of parameters that are exposed by developers. Prompt is one kind of param. There can be other type of params that testers can tweak (e.g. top_k, temperature...).
 
-**_Note:_** For hands-on examination of how to use prompt engineering UI, refer `./examples/promptui` and `./examples/example2/`
-
-In client projects, AI developers typically build the pipeline. However, for LLM projects requiring Japanese and domain expertise in prompt creation, non-technical team members (DM, BizDev, and QALs) can be more effective. To facilitate this, "xxx" offers a user-friendly prompt engineering UI that AI developers integrate into their pipelines. This enables non-technical members to adjust prompts and parameters, run experiments, and export results for optimization.
+In the development process, developers typically build the pipeline. However, for use
+cases requiring expertise in prompt creation, non-technical members (testers, domain experts) can be more
+effective. To facilitate this, `kotaemon` offers a user-friendly prompt engineering UI
+that developers integrate into their pipelines. This enables non-technical members to
+adjust prompts and parameters, run experiments, and export results for optimization.
 
 As of Sept 2023, there are 2 kinds of prompt engineering UI:
 
@@ -19,22 +21,23 @@ As of Sept 2023, there are 2 kinds of prompt engineering UI:
 
 For simple pipeline, the supported client project workflow looks as follow:
 
-1. [AIR] Build pipeline
-2. [AIR] Export pipeline to config: `$ kh promptui export <module.path.piplineclass> --output <path/to/config/file.yml>`
-3. [AIR] Customize the config
-4. [AIR] Spin up prompt engineering UI: `$ kh promptui run <path/to/config/file.yml>`
-5. [DM] Change params, run inference
-6. [DM] Export to Excel
-7. [DM] Select the set of params that achieve the best output
+1. [tech] Build pipeline
+2. [tech] Export pipeline to config: `$ kotaemon promptui export <module.path.piplineclass> --output <path/to/config/file.yml>`
+3. [tech] Customize the config
+4. [tech] Spin up prompt engineering UI: `$ kotaemon promptui run <path/to/config/file.yml>`
+5. [non-tech] Change params, run inference
+6. [non-tech] Export to Excel
+7. [non-tech] Select the set of params that achieve the best output
 
-The prompt engineering UI prominently involves from step 2 to step 7 (step 1 is normal AI tasks in project, while step 7 happens exclusively in Excel file).
+The prompt engineering UI prominently involves from step 2 to step 7 (step 1 is normally
+done by the developers, while step 7 happens exclusively in Excel file).
 
 #### Step 2 - Export pipeline to config
 
 Command:
 
 ```
-$ kh promptui export <module.path.piplineclass> --output <path/to/config/file.yml>
+$ kotaemon promptui export <module.path.piplineclass> --output <path/to/config/file.yml>
 ```
 
 where:
@@ -54,14 +57,14 @@ Declared as above, and `param1` will show up in the config YAML file, while `par
 
 #### Step 3 - Customize the config
 
-AIR can further edit the config file in this step to get the most suitable UI (step 4) with their tasks. The exported config will have this overall schema:
+developers can further edit the config file in this step to get the most suitable UI (step 4) with their tasks. The exported config will have this overall schema:
 
 ```
 <module.path.pipelineclass1>:
   params:
     ... (Detail param information to initiate a pipeline. This corresponds to the pipeline init parameters.)
   inputs:
-    ... (Detail the input of the pipeline e.g. a text prompt, an FNOL... This corresponds to the params of `run(...)` method.)
+    ... (Detail the input of the pipeline e.g. a text prompt. This corresponds to the params of `run(...)` method.)
   outputs:
     ... (Detail the output of the pipeline e.g. prediction, accuracy... This is the output information we wish to see in the UI.)
   logs:
@@ -141,7 +144,7 @@ logs:
 Command:
 
 ```
-$ kh promptui run <path/to/config/file.yml>
+$ kotaemon promptui run <path/to/config/file.yml>
 ```
 
 This will generate an UI as follow:

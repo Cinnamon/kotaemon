@@ -12,7 +12,7 @@ user_cache_dir.mkdir(parents=True, exist_ok=True)
 
 COHERE_API_KEY = config("COHERE_API_KEY", default="")
 KH_MODE = "dev"
-KH_FEATURE_USER_MANAGEMENT = True
+KH_FEATURE_USER_MANAGEMENT = False
 KH_FEATURE_USER_MANAGEMENT_ADMIN = str(
     config("KH_FEATURE_USER_MANAGEMENT_ADMIN", default="admin")
 )
@@ -21,6 +21,8 @@ KH_FEATURE_USER_MANAGEMENT_PASSWORD = str(
 )
 KH_ENABLE_ALEMBIC = False
 KH_DATABASE = f"sqlite:///{user_cache_dir / 'sql.db'}"
+KH_FILESTORAGE_PATH = str(user_cache_dir / "files")
+
 KH_DOCSTORE = {
     "__type__": "kotaemon.storages.SimpleFileDocumentStore",
     "path": str(user_cache_dir / "docstore"),
@@ -29,54 +31,104 @@ KH_VECTORSTORE = {
     "__type__": "kotaemon.storages.ChromaVectorStore",
     "path": str(user_cache_dir / "vectorstore"),
 }
-KH_FILESTORAGE_PATH = str(user_cache_dir / "files")
-KH_LLMS = {
-    "gpt4": {
+KH_LLMS = {}
+KH_EMBEDDINGS = {}
+
+# populate options from config
+if config("AZURE_OPENAI_API_KEY", default="") and config(
+    "AZURE_OPENAI_ENDPOINT", default=""
+):
+    if config("AZURE_OPENAI_CHAT_DEPLOYMENT", default=""):
+        KH_LLMS["azure"] = {
+            "def": {
+                "__type__": "kotaemon.llms.AzureChatOpenAI",
+                "temperature": 0,
+                "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
+                "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
+                "api_version": config("OPENAI_API_VERSION", default="")
+                or "2024-02-15-preview",
+                "deployment_name": config("AZURE_OPENAI_CHAT_DEPLOYMENT", default=""),
+                "request_timeout": 10,
+                "stream": False,
+            },
+            "default": False,
+            "accuracy": 5,
+            "cost": 5,
+        }
+    if config("AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT", default=""):
+        KH_EMBEDDINGS["azure"] = {
+            "def": {
+                "__type__": "kotaemon.embeddings.AzureOpenAIEmbeddings",
+                "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
+                "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
+                "api_version": config("OPENAI_API_VERSION", default="")
+                or "2024-02-15-preview",
+                "deployment": config("AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT", default=""),
+                "request_timeout": 10,
+                "chunk_size": 16,
+            },
+            "default": False,
+            "accuracy": 5,
+            "cost": 5,
+        }
+
+if config("OPENAI_API_KEY", default=""):
+    KH_LLMS["openai"] = {
         "def": {
-            "__type__": "kotaemon.llms.AzureChatOpenAI",
+            "__type__": "kotaemon.llms.ChatOpenAI",
             "temperature": 0,
-            "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
-            "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
-            "openai_api_version": config("OPENAI_API_VERSION", default=""),
-            "deployment_name": "dummy-q2",
-            "stream": True,
-        },
-        "accuracy": 10,
-        "cost": 10,
-        "default": False,
-    },
-    "gpt35": {
-        "def": {
-            "__type__": "kotaemon.llms.AzureChatOpenAI",
-            "temperature": 0,
-            "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
-            "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
-            "openai_api_version": config("OPENAI_API_VERSION", default=""),
-            "deployment_name": "dummy-q2",
+            "openai_api_base": config("OPENAI_API_BASE", default="")
+            or "https://api.openai.com/v1",
+            "openai_api_key": config("OPENAI_API_KEY", default=""),
+            "model": config("OPENAI_CHAT_MODEL", default="") or "gpt-3.5-turbo",
             "request_timeout": 10,
             "stream": False,
         },
-        "accuracy": 5,
-        "cost": 5,
-        "default": True,
-    },
-}
-KH_EMBEDDINGS = {
-    "ada": {
+        "default": False,
+    }
+    if len(KH_EMBEDDINGS) < 1:
+        KH_EMBEDDINGS["openai"] = {
+            "def": {
+                "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
+                "openai_api_base": config("OPENAI_API_BASE", default="")
+                or "https://api.openai.com/v1",
+                "openai_api_key": config("OPENAI_API_KEY", default=""),
+                "model": config(
+                    "OPENAI_EMBEDDINGS_MODEL", default="text-embedding-ada-002"
+                )
+                or "text-embedding-ada-002",
+                "request_timeout": 10,
+                "chunk_size": 16,
+            },
+            "default": False,
+        }
+
+if config("LOCAL_MODEL", default=""):
+    KH_LLMS["local"] = {
         "def": {
-            "__type__": "kotaemon.embeddings.AzureOpenAIEmbeddings",
-            "model": "text-embedding-ada-002",
-            "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
-            "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
-            "deployment": "dummy-q2-text-embedding",
-            "chunk_size": 16,
+            "__type__": "kotaemon.llms.EndpointChatLLM",
+            "endpoint_url": "http://localhost:31415/v1/chat/completions",
         },
-        "accuracy": 5,
-        "cost": 5,
-        "default": True,
-    },
-}
+        "default": False,
+        "cost": 0,
+    }
+    if len(KH_EMBEDDINGS) < 1:
+        KH_EMBEDDINGS["local"] = {
+            "def": {
+                "__type__": "kotaemon.embeddings.EndpointEmbeddings",
+                "endpoint_url": "http://localhost:31415/v1/embeddings",
+            },
+            "default": False,
+            "cost": 0,
+        }
+
+
 KH_REASONINGS = ["ktem.reasoning.simple.FullQAPipeline"]
+KH_VLM_ENDPOINT = "{0}/openai/deployments/{1}/chat/completions?api-version={2}".format(
+    config("AZURE_OPENAI_ENDPOINT", default=""),
+    config("OPENAI_VISION_DEPLOYMENT_NAME", default="gpt-4-vision"),
+    config("OPENAI_API_VERSION", default=""),
+)
 
 
 SETTINGS_APP = {

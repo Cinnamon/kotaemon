@@ -14,6 +14,7 @@ IF %ERRORLEVEL% EQU 0 (
     ECHO The current workdir has whitespace which can lead to unintended behaviour. Please modify your path and continue later.
     GOTO :end
 )
+
 CALL :print_highlight "Setup Anaconda/Miniconda"
 CALL :download_and_install_miniconda
 :: check if function run fail, then exit the script
@@ -28,6 +29,10 @@ IF ERRORLEVEL 1 GOTO :end
 
 CALL :print_highlight "Install requirements"
 CALL :install_dependencies
+IF ERRORLEVEL 1 GOTO :end
+
+CALL :print_highlight "Setting up a local model"
+CALL :setup_local_model
 IF ERRORLEVEL 1 GOTO :end
 
 CALL :print_highlight "Launching web UI. Please wait..."
@@ -109,7 +114,7 @@ IF %ERRORLEVEL% == 0  (
     ECHO Dependencies are already installed
 ) ELSE (
     ECHO Install kotaemon's requirements
-    CALL python -m pip install -e "%CD%\libs\kotaemon\.[dev]"
+    CALL python -m pip install -e "%CD%\libs\kotaemon"
 
     ECHO Install ktem's requirements
     CALL python -m pip install -e "%CD%\libs\ktem"
@@ -124,6 +129,10 @@ IF %ERRORLEVEL% == 0  (
     CALL "%conda_root%\condabin\conda.bat" clean --all -y
     CALL python -m pip cache purge
 )
+GOTO :eof
+
+:setup_local_model
+python "%CD%\scripts\serve_local.py"
 GOTO :eof
 
 :launch_ui
