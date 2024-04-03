@@ -167,6 +167,7 @@ class AnswerWithContextPipeline(BaseComponent):
     qa_table_template: str = DEFAULT_QA_TABLE_PROMPT
     qa_chatbot_template: str = DEFAULT_QA_CHATBOT_PROMPT
 
+    enable_citation: bool = False
     system_prompt: str = ""
     lang: str = "English"  # support English and Japanese
 
@@ -208,24 +209,38 @@ class AnswerWithContextPipeline(BaseComponent):
             lang=self.lang,
         )
 
-        citation_task = asyncio.create_task(
-            self.citation_pipeline.ainvoke(context=evidence, question=question)
-        )
-        print("Citation task created")
+        citation_task = None
+        if evidence and self.enable_citation:
+            citation_task = asyncio.create_task(
+                self.citation_pipeline.ainvoke(context=evidence, question=question)
+            )
+            print("Citation task created")
 
         messages = []
         if self.system_prompt:
             messages.append(SystemMessage(content=self.system_prompt))
         messages.append(HumanMessage(content=prompt))
+
         output = ""
-        for text in self.llm.stream(messages):
-            output += text.text
-            self.report_output({"output": text.text})
-            await asyncio.sleep(0)
+        try:
+            # try streaming first
+            print("Trying LLM streaming")
+            for text in self.llm.stream(messages):
+                output += text.text
+                self.report_output({"output": text.text})
+                await asyncio.sleep(0)
+        except NotImplementedError:
+            print("Streaming is not supported, falling back to normal processing")
+            output = self.llm(messages).text
+            self.report_output({"output": output})
 
         # retrieve the citation
         print("Waiting for citation task")
-        citation = await citation_task
+        if citation_task is not None:
+            citation = await citation_task
+        else:
+            citation = None
+
         answer = Document(text=output, metadata={"citation": citation})
 
         return answer
@@ -386,7 +401,15 @@ class FullQAPipeline(BaseComponent):
         _id = cls.get_info()["id"]
 
         pipeline = FullQAPipeline(retrievers=retrievers)
-        pipeline.answering_pipeline.llm = llms.get_highest_accuracy()
+        pipeline.answering_pipeline.llm = llms[
+            settings[f"reasoning.options.{_id}.main_llm"]
+        ]
+        pipeline.answering_pipeline.citation_pipeline.llm = llms[
+            settings[f"reasoning.options.{_id}.citation_llm"]
+        ]
+        pipeline.answering_pipeline.enable_citation = settings[
+            f"reasoning.options.{_id}.highlight_citation"
+        ]
         pipeline.answering_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
             settings["reasoning.lang"], "English"
         )
@@ -422,7 +445,7 @@ class FullQAPipeline(BaseComponent):
         return {
             "highlight_citation": {
                 "name": "Highlight Citation",
-                "value": True,
+                "value": False,
                 "component": "checkbox",
             },
             "citation_llm": {

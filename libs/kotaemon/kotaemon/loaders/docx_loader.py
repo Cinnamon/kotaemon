@@ -33,7 +33,7 @@ class DocxReader(BaseReader):
         """Load data using Docx reader
 
         Args:
-            file_path (Path): Path to PDF file
+            file_path (Path): Path to .docx file
 
         Returns:
             List[Document]: list of documents extracted from the HTML file

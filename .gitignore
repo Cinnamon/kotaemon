@@ -332,7 +332,6 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
 .venv
 env/
 venv/
@@ -457,7 +456,6 @@ $RECYCLE.BIN/
 logs/
 .gitsecret/keys/random_seed
 !*.secret
-.env
 .envrc
 
 S.gpg-agent*
@@ -466,4 +464,5 @@ examples/example1/assets
 storage/*
 
 # Conda and env storages
-install_dir/
+*install_dir/
+doc_env/

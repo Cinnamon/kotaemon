@@ -7,7 +7,6 @@ from kotaemon.base import BaseComponent, Document, Param
 from kotaemon.indices.extractors import BaseDocParser
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 from kotaemon.loaders import (
-    AutoReader,
     DirectoryReader,
     MathpixPDFReader,
     OCRReader,
@@ -59,7 +58,7 @@ class DocumentIngestor(BaseComponent):
             file_extractors[ext] = cls()
 
         if self.pdf_mode == "normal":
-            file_extractors[".pdf"] = AutoReader("UnstructuredReader")  # type: ignore
+            pass  # use default loader of llama-index which is pypdf
         elif self.pdf_mode == "ocr":
             file_extractors[".pdf"] = OCRReader()
         else:

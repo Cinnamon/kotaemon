@@ -37,7 +37,7 @@ class HtmlReader(BaseReader):
         """Load data using Html reader
 
         Args:
-            file_path: path to pdf file
+            file_path: path to HTML file
             extra_info: extra information passed to this reader during extracting data
 
         Returns:

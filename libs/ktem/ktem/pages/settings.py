@@ -87,6 +87,28 @@ class SettingsPage(BasePage):
             self.reasoning_tab()
 
     def on_subscribe_public_events(self):
+        """
+        Subscribes to public events related to user management.
+
+        This function is responsible for subscribing to the "onSignIn" event, which is
+        triggered when a user signs in. It registers two event handlers for this event.
+
+        The first event handler, "load_setting", is responsible for loading the user's
+        settings when they sign in. It takes the user ID as input and returns the
+        settings state and a list of component outputs. The progress indicator for this
+        event is set to "hidden".
+
+        The second event handler, "get_name", is responsible for retrieving the
+        username of the current user. It takes the user ID as input and returns the
+        username if it exists, otherwise it returns "___". The progress indicator for
+        this event is also set to "hidden".
+
+        Parameters:
+            self (object): The instance of the class.
+
+        Returns:
+            None
+        """
         if self._app.f_user_management:
             self._app.subscribe_event(
                 name="onSignIn",
@@ -290,3 +312,12 @@ class SettingsPage(BasePage):
     def component_names(self):
         """Get the setting components"""
         return self._settings_keys
+
+    def _on_app_created(self):
+        if not self._app.f_user_management:
+            self._app.app.load(
+                self.load_setting,
+                inputs=self._user_id,
+                outputs=[self._settings_state] + self.components(),
+                show_progress="hidden",
+            )

@@ -12,22 +12,22 @@ function install_miniconda() {
     # Miniconda installer is limited to two main architectures: x86_64 and arm64
     local sys_arch=$(uname -m)
     case "${sys_arch}" in
-        x86_64*) sys_arch="x86_64";;
-        arm64*) sys_arch="arm64";;
-        *) {
-            echo "Unknown system architecture: ${sys_arch}! This script runs only on x86_64 or arm64"
-            exit 1
-        };;
+    x86_64*) sys_arch="x86_64" ;;
+    arm64*) sys_arch="arm64" ;;
+    *) {
+        echo "Unknown system architecture: ${sys_arch}! This script runs only on x86_64 or arm64"
+        exit 1
+    } ;;
     esac
 
     # if miniconda has not been installed, download and install it
-    if ! "${conda_root}/bin/conda" --version &>/dev/null ; then
+    if ! "${conda_root}/bin/conda" --version &>/dev/null; then
         if [ ! -d "$install_dir/miniconda_installer.sh" ]; then
             local miniconda_url="https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-${sys_arch}.sh"
             echo "Downloading Miniconda from $miniconda_url"
 
             mkdir -p "$install_dir"
-            curl -Lk "$miniconda_url" > "$install_dir/miniconda_installer.sh"
+            curl -Lk "$miniconda_url" >"$install_dir/miniconda_installer.sh"
         fi
 
         echo "Installing Miniconda to $conda_root"
@@ -63,7 +63,7 @@ function create_conda_env() {
 
 function activate_conda_env() {
     # deactivate the current env(s) to avoid conflicts
-    { conda deactivate && conda deactivate && conda deactivate; } 2> /dev/null
+    { conda deactivate && conda deactivate && conda deactivate; } 2>/dev/null
 
     # check if conda env is broken (because of interruption during creation)
     if [ ! -f "$env_dir/bin/python" ]; then
@@ -79,7 +79,7 @@ function activate_conda_env() {
     echo "Activate conda environment at $CONDA_PREFIX"
 }
 
-function deactivate_conda_env(){
+function deactivate_conda_env() {
     # Conda deactivate if we are in the right env
     if [[ "$CONDA_PREFIX" == "$env_dir" ]]; then
         conda deactivate
@@ -89,10 +89,10 @@ function deactivate_conda_env(){
 
 function install_dependencies() {
     # check if the env is already setup by finding 'kotaemon' in 'pip list'
-    if pip list 2> /dev/null | grep -q "kotaemon"; then
+    if pip list 2>/dev/null | grep -q "kotaemon"; then
         echo "Requirements are already installed"
     else
-        local kotaemon_root="$(pwd)/libs/kotaemon/.[dev]"
+        local kotaemon_root="$(pwd)/libs/kotaemon"
         local ktem_root="$(pwd)/libs/ktem/"
 
         echo "" && echo "Install kotaemon's requirements"
@@ -101,7 +101,7 @@ function install_dependencies() {
         echo "" && echo "Install ktem's requirements"
         python -m pip install -e "$ktem_root"
 
-        if ! pip list 2> /dev/null | grep -q "kotaemon"; then
+        if ! pip list 2>/dev/null | grep -q "kotaemon"; then
             echo "Installation failed. You may need to run the installer again."
             deactivate_conda_env
             exit 1
@@ -124,6 +124,10 @@ function install_dependencies() {
     fi
 }
 
+function setup_local_model() {
+    python $(pwd)/scripts/serve_local.py
+}
+
 function launch_ui() {
     gradio $(pwd)/libs/ktem/launch.py || {
         echo "" && echo "Will exit now..."
@@ -141,7 +145,10 @@ function print_highlight() {
 # Main script execution
 
 # move two levels up from the dir where this script resides
-cd "$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )" && cd ..
+cd "$(
+    cd -- "$(dirname "$0")" >/dev/null 2>&1
+    pwd -P
+)" && cd ..
 
 install_dir="$(pwd)/install_dir"
 conda_root="${install_dir}/conda"
@@ -159,6 +166,9 @@ activate_conda_env
 
 print_highlight "Install requirements"
 install_dependencies
+
+print_highlight "Setting up a local model"
+setup_local_model
 
 print_highlight "Launching web UI. Please wait..."
 launch_ui

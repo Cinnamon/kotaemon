@@ -224,8 +224,8 @@ def test_wrapper_agent_langchain(openai_completion, llm, mock_google_search):
     side_effect=_openai_chat_completion_responses_react_langchain_tool,
 )
 def test_react_agent_with_langchain_tools(openai_completion, llm):
-    from langchain.tools import DuckDuckGoSearchRun, WikipediaQueryRun
-    from langchain.utilities import WikipediaAPIWrapper
+    from langchain_community.tools import DuckDuckGoSearchRun, WikipediaQueryRun
+    from langchain_community.utilities import WikipediaAPIWrapper
 
     wikipedia = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper())
     search = DuckDuckGoSearchRun()
