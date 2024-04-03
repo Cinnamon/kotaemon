@@ -1,5 +1,5 @@
 import gradio as gr
-from khapp.app import BasePage
+from ktem.app import BasePage
 from theflow.settings import settings as flowsettings
 
 
