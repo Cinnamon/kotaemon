@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 import gradio as gr
-from ktem.components import embeddings, filestorage_path, llms
+from ktem.components import embeddings, filestorage_path
 from ktem.db.models import engine
 from llama_index.vector_stores import (
     FilterCondition,

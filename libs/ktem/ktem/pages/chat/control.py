@@ -143,6 +143,7 @@ class ConversationControl(BasePage):
                 name = result.name
                 selected = result.data_source.get("selected", {})
                 chats = result.data_source.get("messages", [])
+                info_panel = ""
                 state = result.data_source.get("state", STATE)
             except Exception as e:
                 logger.warning(e)
@@ -150,6 +151,7 @@ class ConversationControl(BasePage):
                 name = ""
                 selected = {}
                 chats = []
+                info_panel = ""
                 state = STATE
 
         indices = []
