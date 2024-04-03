@@ -378,6 +378,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                     ("PDF text parser", "normal"),
                     ("Mathpix", "mathpix"),
                     ("Advanced ocr", "ocr"),
+                    ("Multimodal parser", "multimodal"),
                 ],
                 "component": "dropdown",
             },
