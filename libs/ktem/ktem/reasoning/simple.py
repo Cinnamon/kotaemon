@@ -7,7 +7,6 @@ from functools import partial
 
 import tiktoken
 from ktem.components import llms
-from ktem.reasoning.base import BaseReasoning
 from theflow.settings import settings as flowsettings
 
 from kotaemon.base import (
@@ -296,12 +295,14 @@ class AnswerWithContextPipeline(BaseComponent):
 
         return answer
 
+
 def extract_evidence_images(self, evidence: str):
-        """Util function to extract and isolate images from context/evidence"""
-        image_pattern = r"src='(data:image\/[^;]+;base64[^']+)'"
-        matches = re.findall(image_pattern, evidence)
-        context = re.sub(image_pattern, "", evidence)
-        return context, matches
+    """Util function to extract and isolate images from context/evidence"""
+    image_pattern = r"src='(data:image\/[^;]+;base64[^']+)'"
+    matches = re.findall(image_pattern, evidence)
+    context = re.sub(image_pattern, "", evidence)
+    return context, matches
+
 
 class RewriteQuestionPipeline(BaseComponent):
     """Rewrite user question
