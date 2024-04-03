@@ -37,11 +37,13 @@ def request_adobe_service(file_path: str, output_path: str = "") -> str:
         )
         from adobe.pdfservices.operation.execution_context import ExecutionContext
         from adobe.pdfservices.operation.io.file_ref import FileRef
-        from adobe.pdfservices.operation.pdfops.extract_pdf_operation import ExtractPDFOperation
-        from adobe.pdfservices.operation.pdfops.options.extractpdf.extract_element_type import (
+        from adobe.pdfservices.operation.pdfops.extract_pdf_operation import (
+            ExtractPDFOperation,
+        )
+        from adobe.pdfservices.operation.pdfops.options.extractpdf.extract_element_type import (  # noqa: E501
             ExtractElementType,
         )
-        from adobe.pdfservices.operation.pdfops.options.extractpdf.extract_pdf_options import (
+        from adobe.pdfservices.operation.pdfops.options.extractpdf.extract_pdf_options import (  # noqa: E501
             ExtractPDFOptions,
         )
         from adobe.pdfservices.operation.pdfops.options.extractpdf.extract_renditions_element_type import (  # noqa: E501
@@ -51,7 +53,8 @@ def request_adobe_service(file_path: str, output_path: str = "") -> str:
         raise ImportError(
             "pdfservices-sdk is not installed. "
             "Please install it by running `pip install pdfservices-sdk"
-            "@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements`"
+            "@git+https://github.com/niallcm/pdfservices-python-sdk.git"
+            "@bump-and-unfreeze-requirements`"
         )
 
     if not output_path:
