@@ -7,7 +7,6 @@ from functools import partial
 
 import tiktoken
 from ktem.components import llms
-from ktem.reasoning.base import BaseReasoning
 from theflow.settings import settings as flowsettings
 
 from kotaemon.base import (
@@ -164,6 +163,15 @@ DEFAULT_QA_FIGURE_PROMPT = (
     "Answer: "
 )
 
+DEFAULT_REWRITE_PROMPT = (
+    "Given the following question, rephrase and expand it "
+    "to help you do better answering. Maintain all information "
+    "in the original question. Keep the question as concise as possible. "
+    "Give answer in {lang}\n"
+    "Original question: {question}\n"
+    "Rephrased question: "
+)
+
 
 class AnswerWithContextPipeline(BaseComponent):
     """Answer the question based on the evidence
@@ -287,15 +295,48 @@ class AnswerWithContextPipeline(BaseComponent):
 
         return answer
 
-    def extract_evidence_images(self, evidence: str):
-        """Util function to extract and isolate images from context/evidence"""
-        image_pattern = r"src='(data:image\/[^;]+;base64[^']+)'"
-        matches = re.findall(image_pattern, evidence)
-        context = re.sub(image_pattern, "", evidence)
-        return context, matches
+
+def extract_evidence_images(self, evidence: str):
+    """Util function to extract and isolate images from context/evidence"""
+    image_pattern = r"src='(data:image\/[^;]+;base64[^']+)'"
+    matches = re.findall(image_pattern, evidence)
+    context = re.sub(image_pattern, "", evidence)
+    return context, matches
 
 
-class FullQAPipeline(BaseReasoning):
+class RewriteQuestionPipeline(BaseComponent):
+    """Rewrite user question
+
+    Args:
+        llm: the language model to rewrite question
+        rewrite_template: the prompt template for llm to paraphrase a text input
+        lang: the language of the answer. Currently support English and Japanese
+    """
+
+    llm: ChatLLM = Node(default_callback=lambda _: llms.get_lowest_cost())
+    rewrite_template: str = DEFAULT_REWRITE_PROMPT
+
+    lang: str = "English"
+
+    async def run(self, question: str) -> Document:  # type: ignore
+        prompt_template = PromptTemplate(self.rewrite_template)
+        prompt = prompt_template.populate(question=question, lang=self.lang)
+        messages = [
+            SystemMessage(content="You are a helpful assistant"),
+            HumanMessage(content=prompt),
+        ]
+        output = ""
+        for text in self.llm(messages):
+            if "content" in text:
+                output += text[1]
+                self.report_output({"chat_input": text[1]})
+                break
+            await asyncio.sleep(0)
+
+        return Document(text=output)
+
+
+class FullQAPipeline(BaseComponent):
     """Question answering pipeline. Handle from question to answer"""
 
     class Config:
@@ -305,12 +346,18 @@ class FullQAPipeline(BaseReasoning):
 
     evidence_pipeline: PrepareEvidencePipeline = PrepareEvidencePipeline.withx()
     answering_pipeline: AnswerWithContextPipeline = AnswerWithContextPipeline.withx()
+    rewrite_pipeline: RewriteQuestionPipeline = RewriteQuestionPipeline.withx()
+    use_rewrite: bool = False
 
     async def run(  # type: ignore
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Document:  # type: ignore
         docs = []
         doc_ids = []
+        if self.use_rewrite:
+            rewrite = await self.rewrite_pipeline(question=message)
+            message = rewrite.text
+
         for retriever in self.retrievers:
             for doc in retriever(text=message):
                 if doc.doc_id not in doc_ids:
@@ -402,7 +449,7 @@ class FullQAPipeline(BaseReasoning):
         return answer
 
     @classmethod
-    def get_pipeline(cls, settings, retrievers):
+    def get_pipeline(cls, settings, states, retrievers):
         """Get the reasoning pipeline
 
         Args:
@@ -430,6 +477,11 @@ class FullQAPipeline(BaseReasoning):
         pipeline.answering_pipeline.qa_template = settings[
             f"reasoning.options.{_id}.qa_prompt"
         ]
+        pipeline.use_rewrite = states.get("app", {}).get("regen", False)
+        pipeline.rewrite_pipeline.llm = llms.get_lowest_cost()
+        pipeline.rewrite_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
+            settings["reasoning.lang"], "English"
+        )
         return pipeline
 
     @classmethod

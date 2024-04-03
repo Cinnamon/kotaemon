@@ -48,6 +48,7 @@ class ReportIssue(BasePage):
         chat_history: list,
         settings: dict,
         user_id: Optional[int],
+        chat_state: dict,
         *selecteds
     ):
         selecteds_ = {}
@@ -65,6 +66,7 @@ class ReportIssue(BasePage):
                 chat={
                     "conv_id": conv_id,
                     "chat_history": chat_history,
+                    "chat_state": chat_state,
                     "selecteds": selecteds_,
                 },
                 settings=settings,

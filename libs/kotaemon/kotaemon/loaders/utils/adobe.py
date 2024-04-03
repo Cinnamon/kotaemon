@@ -15,8 +15,6 @@ from decouple import config
 
 from kotaemon.loaders.utils.gpt4v import generate_gpt4v
 
-logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
-
 
 def request_adobe_service(file_path: str, output_path: str = "") -> str:
     """Main function to call the adobe service, and unzip the results.
