@@ -11,24 +11,6 @@ from pathlib import Path
 from typing import List, Union
 
 import pandas as pd
-from adobe.pdfservices.operation.auth.credentials import Credentials
-from adobe.pdfservices.operation.exception.exceptions import (
-    SdkException,
-    ServiceApiException,
-    ServiceUsageException,
-)
-from adobe.pdfservices.operation.execution_context import ExecutionContext
-from adobe.pdfservices.operation.io.file_ref import FileRef
-from adobe.pdfservices.operation.pdfops.extract_pdf_operation import ExtractPDFOperation
-from adobe.pdfservices.operation.pdfops.options.extractpdf.extract_element_type import (
-    ExtractElementType,
-)
-from adobe.pdfservices.operation.pdfops.options.extractpdf.extract_pdf_options import (
-    ExtractPDFOptions,
-)
-from adobe.pdfservices.operation.pdfops.options.extractpdf.extract_renditions_element_type import (  # noqa: E501
-    ExtractRenditionsElementType,
-)
 from decouple import config
 
 from kotaemon.loaders.utils.gpt4v import generate_gpt4v
@@ -46,6 +28,32 @@ def request_adobe_service(file_path: str, output_path: str = "") -> str:
         output_path (str): path to the results
 
     """
+    try:
+        from adobe.pdfservices.operation.auth.credentials import Credentials
+        from adobe.pdfservices.operation.exception.exceptions import (
+            SdkException,
+            ServiceApiException,
+            ServiceUsageException,
+        )
+        from adobe.pdfservices.operation.execution_context import ExecutionContext
+        from adobe.pdfservices.operation.io.file_ref import FileRef
+        from adobe.pdfservices.operation.pdfops.extract_pdf_operation import ExtractPDFOperation
+        from adobe.pdfservices.operation.pdfops.options.extractpdf.extract_element_type import (
+            ExtractElementType,
+        )
+        from adobe.pdfservices.operation.pdfops.options.extractpdf.extract_pdf_options import (
+            ExtractPDFOptions,
+        )
+        from adobe.pdfservices.operation.pdfops.options.extractpdf.extract_renditions_element_type import (  # noqa: E501
+            ExtractRenditionsElementType,
+        )
+    except ImportError:
+        raise ImportError(
+            "pdfservices-sdk is not installed. "
+            "Please install it by running `pip install pdfservices-sdk"
+            "@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements`"
+        )
+
     if not output_path:
         output_path = tempfile.mkdtemp()
 
