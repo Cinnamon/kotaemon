@@ -407,13 +407,19 @@ class ChatPage(BasePage):
         text, refs = "", ""
 
         len_ref = -1  # for logging purpose
+        msg_placeholder = getattr(
+            flowsettings, "KH_CHAT_MSG_PLACEHOLDER", "Thinking ..."
+        )
 
+        print(msg_placeholder)
         while True:
             try:
                 response = queue.get_nowait()
             except Exception:
                 state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
-                yield chat_history + [(chat_input, text or "Thinking ...")], refs, state
+                yield chat_history + [
+                    (chat_input, text or msg_placeholder)
+                ], refs, state
                 continue
 
             if response is None:
