@@ -24,41 +24,57 @@ class App(BaseApp):
         """Render the UI"""
         self._tabs = {}
 
-        if self.f_user_management:
-            from ktem.pages.login import LoginPage
+        with gr.Tabs() as self.tabs:
+            if self.f_user_management:
+                from ktem.pages.login import LoginPage
 
-            with gr.Tab("Welcome", elem_id="login-tab") as self._tabs["login-tab"]:
-                self.login_page = LoginPage(self)
+                with gr.Tab(
+                    "Welcome", elem_id="login-tab", id="login-tab"
+                ) as self._tabs["login-tab"]:
+                    self.login_page = LoginPage(self)
 
-        with gr.Tab(
-            "Chat", elem_id="chat-tab", visible=not self.f_user_management
-        ) as self._tabs["chat-tab"]:
-            self.chat_page = ChatPage(self)
-
-        for index in self.index_manager.indices:
             with gr.Tab(
-                f"{index.name} Index",
-                elem_id=f"{index.id}-tab",
-                elem_classes="indices-tab",
+                "Chat",
+                elem_id="chat-tab",
+                id="chat-tab",
                 visible=not self.f_user_management,
-            ) as self._tabs[f"{index.id}-tab"]:
-                page = index.get_index_page_ui()
-                setattr(self, f"_index_{index.id}", page)
+            ) as self._tabs["chat-tab"]:
+                self.chat_page = ChatPage(self)
 
-        with gr.Tab(
-            "Admin", elem_id="admin-tab", visible=not self.f_user_management
-        ) as self._tabs["admin-tab"]:
-            self.admin_page = AdminPage(self)
+            for index in self.index_manager.indices:
+                with gr.Tab(
+                    f"{index.name} Index",
+                    elem_id=f"{index.id}-tab",
+                    elem_classes="indices-tab",
+                    id=f"{index.id}-tab",
+                    visible=not self.f_user_management,
+                ) as self._tabs[f"{index.id}-tab"]:
+                    page = index.get_index_page_ui()
+                    setattr(self, f"_index_{index.id}", page)
 
-        with gr.Tab(
-            "Settings", elem_id="settings-tab", visible=not self.f_user_management
-        ) as self._tabs["settings-tab"]:
-            self.settings_page = SettingsPage(self)
+            with gr.Tab(
+                "Admin",
+                elem_id="admin-tab",
+                id="admin-tab",
+                visible=not self.f_user_management,
+            ) as self._tabs["admin-tab"]:
+                self.admin_page = AdminPage(self)
 
-        with gr.Tab(
-            "Help", elem_id="help-tab", visible=not self.f_user_management
-        ) as self._tabs["help-tab"]:
-            self.help_page = HelpPage(self)
+            with gr.Tab(
+                "Settings",
+                elem_id="settings-tab",
+                id="settings-tab",
+                visible=not self.f_user_management,
+            ) as self._tabs["settings-tab"]:
+                self.settings_page = SettingsPage(self)
+
+            with gr.Tab(
+                "Help",
+                elem_id="help-tab",
+                id="help-tab",
+                visible=not self.f_user_management,
+            ) as self._tabs["help-tab"]:
+                self.help_page = HelpPage(self)
 
     def on_subscribe_public_events(self):
         if self.f_user_management:
@@ -75,7 +91,7 @@ class App(BaseApp):
                             else gr.update(visible=False)
                         )
                         for k in self._tabs.keys()
-                    )
+                    ) + [gr.update(selected="login-tab")]
 
                 with Session(engine) as session:
                     user = session.exec(select(User).where(User.id == user_id)).first()
@@ -100,6 +116,8 @@ class App(BaseApp):
                     else:
                         tabs_update.append(gr.update(visible=True))
 
+                tabs_update.append(gr.update(selected="chat-tab"))
+
                 return tabs_update
 
             self.subscribe_event(
@@ -107,7 +125,7 @@ class App(BaseApp):
                 definition={
                     "fn": signed_in_out,
                     "inputs": [self.user_id],
-                    "outputs": list(self._tabs.values()),
+                    "outputs": list(self._tabs.values()) + [self.tabs],
                     "show_progress": "hidden",
                 },
             )
@@ -117,7 +135,7 @@ class App(BaseApp):
                 definition={
                     "fn": signed_in_out,
                     "inputs": [self.user_id],
-                    "outputs": list(self._tabs.values()),
+                    "outputs": list(self._tabs.values()) + [self.tabs],
                     "show_progress": "hidden",
                 },
             )

@@ -304,6 +304,7 @@ class ChatPage(BasePage):
                         self.chat_control.conversation,
                         self.chat_control.conversation_rn,
                         self.chat_panel.chatbot,
+                        self.info_panel,
                     ]
                     + self._indices_input,
                     "show_progress": "hidden",
