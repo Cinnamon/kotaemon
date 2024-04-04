@@ -72,6 +72,31 @@ class SettingsPage(BasePage):
         self._components = {}
         self._reasoning_mode = {}
 
+        # render application page if there are application settings
+        self._render_app_tab = False
+        if self._default_settings.application.settings:
+            self._render_app_tab = True
+
+        # render index page if there are index settings (general and/or specific)
+        self._render_index_tab = False
+        if self._default_settings.index.settings:
+            self._render_index_tab = True
+        else:
+            for sig in self._default_settings.index.options.values():
+                if sig.settings:
+                    self._render_index_tab = True
+                    break
+
+        # render reasoning page if there are reasoning settings
+        self._render_reasoning_tab = False
+        if len(self._default_settings.reasoning.settings) > 1:
+            self._render_reasoning_tab = True
+        else:
+            for sig in self._default_settings.reasoning.options.values():
+                if sig.settings:
+                    self._render_reasoning_tab = True
+                    break
+
         self.on_building_ui()
 
     def on_building_ui(self):
@@ -79,12 +104,9 @@ class SettingsPage(BasePage):
         if self._app.f_user_management:
             with gr.Tab("User settings"):
                 self.user_tab()
-        with gr.Tab("General application settings"):
-            self.app_tab()
-        with gr.Tab("Index settings"):
-            self.index_tab()
-        with gr.Tab("Reasoning settings"):
-            self.reasoning_tab()
+        self.app_tab()
+        self.index_tab()
+        self.reasoning_tab()
 
     def on_subscribe_public_events(self):
         """
@@ -221,9 +243,10 @@ class SettingsPage(BasePage):
         return "", ""
 
     def app_tab(self):
-        for n, si in self._default_settings.application.settings.items():
-            obj = render_setting_item(si, si.value)
-            self._components[f"application.{n}"] = obj
+        with gr.Tab("General application settings", visible=self._render_app_tab):
+            for n, si in self._default_settings.application.settings.items():
+                obj = render_setting_item(si, si.value)
+                self._components[f"application.{n}"] = obj
 
     def index_tab(self):
         # TODO: double check if we need general
@@ -232,37 +255,39 @@ class SettingsPage(BasePage):
         #         obj = render_setting_item(si, si.value)
         #         self._components[f"index.{n}"] = obj
 
-        for pn, sig in self._default_settings.index.options.items():
-            with gr.Tab(f"Index {pn}"):
-                for n, si in sig.settings.items():
-                    obj = render_setting_item(si, si.value)
-                    self._components[f"index.options.{pn}.{n}"] = obj
+        with gr.Tab("Index settings", visible=self._render_index_tab):
+            for pn, sig in self._default_settings.index.options.items():
+                with gr.Tab(f"Index {pn}"):
+                    for n, si in sig.settings.items():
+                        obj = render_setting_item(si, si.value)
+                        self._components[f"index.options.{pn}.{n}"] = obj
 
     def reasoning_tab(self):
-        with gr.Group():
-            for n, si in self._default_settings.reasoning.settings.items():
-                if n == "use":
-                    continue
-                obj = render_setting_item(si, si.value)
-                self._components[f"reasoning.{n}"] = obj
-
-        gr.Markdown("### Reasoning-specific settings")
-        self._components["reasoning.use"] = render_setting_item(
-            self._default_settings.reasoning.settings["use"],
-            self._default_settings.reasoning.settings["use"].value,
-        )
-
-        for idx, (pn, sig) in enumerate(
-            self._default_settings.reasoning.options.items()
-        ):
-            with gr.Group(
-                visible=idx == 0,
-                elem_id=pn,
-            ) as self._reasoning_mode[pn]:
-                gr.Markdown("**Name**: Description")
-                for n, si in sig.settings.items():
+        with gr.Tab("Reasoning settings", visible=self._render_reasoning_tab):
+            with gr.Group():
+                for n, si in self._default_settings.reasoning.settings.items():
+                    if n == "use":
+                        continue
                     obj = render_setting_item(si, si.value)
-                    self._components[f"reasoning.options.{pn}.{n}"] = obj
+                    self._components[f"reasoning.{n}"] = obj
+
+            gr.Markdown("### Reasoning-specific settings")
+            self._components["reasoning.use"] = render_setting_item(
+                self._default_settings.reasoning.settings["use"],
+                self._default_settings.reasoning.settings["use"].value,
+            )
+
+            for idx, (pn, sig) in enumerate(
+                self._default_settings.reasoning.options.items()
+            ):
+                with gr.Group(
+                    visible=idx == 0,
+                    elem_id=pn,
+                ) as self._reasoning_mode[pn]:
+                    gr.Markdown("**Name**: Description")
+                    for n, si in sig.settings.items():
+                        obj = render_setting_item(si, si.value)
+                        self._components[f"reasoning.options.{pn}.{n}"] = obj
 
     def change_reasoning_mode(self, value):
         output = []
