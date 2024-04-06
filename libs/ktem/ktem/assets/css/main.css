@@ -1,54 +1,87 @@
 footer {
-    display: none !important;
+  display: none !important;
 }
 
 .gradio-container {
-    max-width: 100% !important;
-    padding: 0 !important;
+  max-width: 100% !important;
+
+  ::-webkit-scrollbar {
+    background: var(--background-fill-primary);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--border-color-primary);
+    border: 3px solid transparent;
+    border-radius: 100px;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: var(--border-color-primary);
+  }
+}
+
+.gradio-container .light {
+  background-color: #ffffff;
 }
 
 .header-bar {
-    background-color: #f7f7f7;
-    margin: 0px 0px 20px;
-    overflow-x: scroll;
-    display: block !important;
-    text-wrap: nowrap;
-}
-
-.dark .header-bar {
-    border: none !important;
-    background-color: #8080802b !important;
+  background-color: transparent;
+  margin: 0px 0px 20px;
+  overflow-x: scroll;
+  display: block !important;
+  text-wrap: nowrap;
+  border: none;
 }
 
 .header-bar button.selected {
-    border-radius: 0;
+  border: none;
+  /* background-color: var(--background-fill-primary); */
+  /* border: 4px solid transparent; */
+  /* border-radius: var(--radius-lg);
+  background-clip: padding-box; */
+}
+
+button.selected {
+  color: var(--block-label-text-color);
+  font-weight: bold;
+}
+
+#chat-tab,
+#settings-tab,
+#help-tab,
+#admin-tab,
+#login-tab {
+  border: none !important;
+}
+
+#help-tab,
+#settings-tab {
+  max-width: max(56vw, 900px) !important;
+  margin: 0 auto !important;
 }
 
 .indices-tab {
-    border: none !important;
-}
-
-#chat-tab, #settings-tab, #help-tab, #admin-tab, #login-tab {
-    border: none !important;
+  border: none !important;
+  max-width: max(70vw, 1200px) !important;
+  margin: 0 auto !important;
 }
 
 #main-chat-bot {
-    height: calc(100vh - 140px) !important;
+  height: calc(100vh - 180px) !important;
 }
 
 #chat-info-panel {
-    max-height: calc(100vh - 140px) !important;
-    overflow-y: scroll !important;
+  max-height: calc(100vh - 180px) !important;
+  overflow-y: scroll !important;
 }
 
 .setting-answer-mode-description {
-    margin: 5px 5px 2px !important
+  margin: 5px 5px 2px !important;
 }
-
-mark {
+*/ mark {
   background-color: #1496bb;
 }
-
 
 /* clpse */
 .clpse {
@@ -60,4 +93,29 @@ mark {
   border: none;
   text-align: left;
   outline: none;
+}
+
+.no-background {
+  background-color: transparent;
+  border: none;
+}
+
+.bold-text {
+  font-weight: bold;
+}
+
+.body-text-color {
+  color: var(--body-text-color);
+}
+
+.right-button {
+  min-width: 200px !important;
+  width: fit-content;
+  padding-left: 20px;
+  padding-right: 20px;
+  margin: 0px 0px 0px auto;
+}
+
+.cap-height {
+  max-height: 42px;
 }
