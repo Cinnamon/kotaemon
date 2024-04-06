@@ -102,8 +102,8 @@ jobs:
 
       - name: Install OS-based packages
         run: |
-          apt update -qqy
-          apt install -y poppler-utils libpoppler-dev
+          sudo apt update -qqy
+          sudo apt install -y libpoppler-dev
 
       - name: Test kotaemon with pytest
         run: |
