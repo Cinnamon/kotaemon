@@ -308,6 +308,7 @@ class ChatPage(BasePage):
                         self.chat_control.conversation,
                         self.chat_control.conversation_rn,
                         self.chat_panel.chatbot,
+                        self.info_panel,
                     ]
                     + self._indices_input,
                     "show_progress": "hidden",
@@ -407,8 +408,11 @@ class ChatPage(BasePage):
         pipeline.set_output_queue(queue)
 
         text, refs = "", ""
-
-        yield chat_history + [(chat_input, text or "Thinking ...")], refs, state
+        msg_placeholder = getattr(
+            flowsettings, "KH_CHAT_MSG_PLACEHOLDER", "Thinking ..."
+        )
+        print(msg_placeholder)
+        yield chat_history + [(chat_input, text or msg_placeholder)], refs, state
 
         len_ref = -1  # for logging purpose
 
