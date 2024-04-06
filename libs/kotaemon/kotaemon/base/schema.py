@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, Optional, TypeVar
 
 from langchain.schema.messages import AIMessage as LCAIMessage
 from langchain.schema.messages import HumanMessage as LCHumanMessage
@@ -29,10 +29,15 @@ class Document(BaseDocument):
     Attributes:
         content: raw content of the document, can be anything
         source: id of the source of the Document. Optional.
+        channel: the channel to show the document. Optional.:
+            - chat: show in chat message
+            - info: show in information panel
+            - debug: show in debug panel
     """
 
-    content: Any
+    content: Any = None
     source: Optional[str] = None
+    channel: Optional[Literal["chat", "info", "debug"]] = None
 
     def __init__(self, content: Optional[Any] = None, *args, **kwargs):
         if content is None:

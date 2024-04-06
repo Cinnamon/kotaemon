@@ -9,6 +9,8 @@ from ktem.db.models import Conversation, engine
 from sqlmodel import Session, select
 from theflow.settings import settings as flowsettings
 
+from kotaemon.base import Document
+
 from .chat_panel import ChatPanel
 from .chat_suggestion import ChatSuggestion
 from .common import STATE
@@ -189,6 +191,7 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
                 self.info_panel,
+                self.chat_state,
             ]
             + self._indices_input,
             show_progress="hidden",
@@ -220,6 +223,7 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
                 self.info_panel,
+                self.chat_state,
             ]
             + self._indices_input,
             show_progress="hidden",
@@ -391,7 +395,7 @@ class ChatPage(BasePage):
 
         return pipeline, reasoning_state
 
-    async def chat_fn(self, conversation_id, chat_history, settings, state, *selecteds):
+    def chat_fn(self, conversation_id, chat_history, settings, state, *selecteds):
         """Chat function"""
         chat_input = chat_history[-1][0]
         chat_history = chat_history[:-1]
@@ -402,46 +406,40 @@ class ChatPage(BasePage):
         pipeline, reasoning_state = self.create_pipeline(settings, state, *selecteds)
         pipeline.set_output_queue(queue)
 
-        asyncio.create_task(pipeline(chat_input, conversation_id, chat_history))
         text, refs = "", ""
+
+        yield chat_history + [(chat_input, text or "Thinking ...")], refs, state
 
         len_ref = -1  # for logging purpose
 
-        while True:
-            try:
-                response = queue.get_nowait()
-            except Exception:
-                state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
-                yield chat_history + [(chat_input, text or "Thinking ...")], refs, state
+        for response in pipeline.stream(chat_input, conversation_id, chat_history):
+
+            if not isinstance(response, Document):
                 continue
 
-            if response is None:
-                queue.task_done()
-                print("Chat completed")
-                break
+            if response.channel is None:
+                continue
 
-            if "output" in response:
-                if response["output"] is None:
+            if response.channel == "chat":
+                if response.content is None:
                     text = ""
                 else:
-                    text += response["output"]
+                    text += response.content
 
-            if "evidence" in response:
-                if response["evidence"] is None:
+            if response.channel == "info":
+                if response.content is None:
                     refs = ""
                 else:
-                    refs += response["evidence"]
+                    refs += response.content
 
             if len(refs) > len_ref:
                 print(f"Len refs: {len(refs)}")
                 len_ref = len(refs)
 
-        state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
-        yield chat_history + [(chat_input, text)], refs, state
+            state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
+            yield chat_history + [(chat_input, text or "Thinking ...")], refs, state
 
-    async def regen_fn(
-        self, conversation_id, chat_history, settings, state, *selecteds
-    ):
+    def regen_fn(self, conversation_id, chat_history, settings, state, *selecteds):
         """Regen function"""
         if not chat_history:
             gr.Warning("Empty chat")
@@ -449,12 +447,11 @@ class ChatPage(BasePage):
             return
 
         state["app"]["regen"] = True
-        async for chat, refs, state in self.chat_fn(
+        for chat, refs, state in self.chat_fn(
             conversation_id, chat_history, settings, state, *selecteds
         ):
             new_state = deepcopy(state)
             new_state["app"]["regen"] = False
             yield chat, refs, new_state
-        else:
-            state["app"]["regen"] = False
-            yield chat_history, "", state
+
+        state["app"]["regen"] = False
