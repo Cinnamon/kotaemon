@@ -6,6 +6,7 @@ from .langchain_based import (
     LCHuggingFaceEmbeddings,
     LCOpenAIEmbeddings,
 )
+from .openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
 
 __all__ = [
     "BaseEmbeddings",
@@ -14,4 +15,6 @@ __all__ = [
     "LCAzureOpenAIEmbeddings",
     "LCCohereEmbdeddings",
     "LCHuggingFaceEmbeddings",
+    "OpenAIEmbeddings",
+    "AzureOpenAIEmbeddings",
 ]

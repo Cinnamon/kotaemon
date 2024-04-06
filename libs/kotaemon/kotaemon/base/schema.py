@@ -48,7 +48,10 @@ class Document(BaseDocument):
                 # default text indicating this document only contains embedding
                 kwargs["text"] = "<EMBEDDING>"
         elif isinstance(content, Document):
-            kwargs = content.dict()
+            # TODO: simplify the Document class
+            temp_ = content.dict()
+            temp_.update(kwargs)
+            kwargs = temp_
         else:
             kwargs["content"] = content
             if content:
