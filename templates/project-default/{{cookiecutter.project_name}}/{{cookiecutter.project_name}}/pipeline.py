@@ -5,7 +5,7 @@ from kotaemon.base import BaseComponent, Document, LLMInterface, Node, Param, la
 from kotaemon.contribs.promptui.logs import ResultLog
 from kotaemon.embeddings import AzureOpenAIEmbeddings
 from kotaemon.indices import VectorIndexing, VectorRetrieval
-from kotaemon.llms import AzureChatOpenAI
+from kotaemon.llms import LCAzureChatOpenAI
 from kotaemon.storages import ChromaVectorStore, SimpleFileDocumentStore
 
 
@@ -34,7 +34,7 @@ class QuestionAnsweringPipeline(BaseComponent):
     ]
 
     retrieval_top_k: int = 1
-    llm: AzureChatOpenAI = AzureChatOpenAI.withx(
+    llm: LCAzureChatOpenAI = LCAzureChatOpenAI.withx(
         azure_endpoint="https://bleh-dummy-2.openai.azure.com/",
         openai_api_key=os.environ.get("OPENAI_API_KEY", "default-key"),
         openai_api_version="2023-03-15-preview",

@@ -7,7 +7,7 @@ from index import ReaderIndexingPipeline
 from openai.resources.embeddings import Embeddings
 from openai.types.chat.chat_completion import ChatCompletion
 
-from kotaemon.llms import AzureChatOpenAI
+from kotaemon.llms import LCAzureChatOpenAI
 
 with open(Path(__file__).parent / "resources" / "embedding_openai.json") as f:
     openai_embedding = json.load(f)
@@ -61,7 +61,7 @@ def test_ingest_pipeline(patch, mock_openai_embedding, tmp_path):
     assert len(results) == 1
 
     # create llm
-    llm = AzureChatOpenAI(
+    llm = LCAzureChatOpenAI(
         openai_api_base="https://test.openai.azure.com/",
         openai_api_key="some-key",
         openai_api_version="2023-03-15-preview",

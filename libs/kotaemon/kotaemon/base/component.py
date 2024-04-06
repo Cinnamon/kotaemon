@@ -52,7 +52,7 @@ class BaseComponent(Function):
     def stream(self, *args, **kwargs) -> Iterator[Document] | None:
         ...
 
-    async def astream(self, *args, **kwargs) -> AsyncGenerator[Document, None] | None:
+    def astream(self, *args, **kwargs) -> AsyncGenerator[Document, None] | None:
         ...
 
     @abstractmethod

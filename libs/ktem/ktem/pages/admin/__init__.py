@@ -1,6 +1,7 @@
 import gradio as gr
 from ktem.app import BasePage
 from ktem.db.models import User, engine
+from ktem.llms.ui import LLMManagement
 from sqlmodel import Session, select
 
 from .user import UserManagement
@@ -15,6 +16,9 @@ class AdminPage(BasePage):
         if self._app.f_user_management:
             with gr.Tab("User Management", visible=False) as self.user_management_tab:
                 self.user_management = UserManagement(self._app)
+
+        with gr.Tab("LLM Management") as self.llm_management_tab:
+            self.llm_management = LLMManagement(self._app)
 
     def on_subscribe_public_events(self):
         if self._app.f_user_management:

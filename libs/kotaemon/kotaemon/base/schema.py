@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, Optional, TypeVar
 
 from langchain.schema.messages import AIMessage as LCAIMessage
 from langchain.schema.messages import HumanMessage as LCHumanMessage
@@ -10,6 +10,9 @@ from llama_index.schema import Document as BaseDocument
 
 if TYPE_CHECKING:
     from haystack.schema import Document as HaystackDocument
+    from openai.types.chat.chat_completion_message_param import (
+        ChatCompletionMessageParam,
+    )
 
 IO_Type = TypeVar("IO_Type", "Document", str)
 SAMPLE_TEXT = "A sample Document from kotaemon"
@@ -26,10 +29,15 @@ class Document(BaseDocument):
     Attributes:
         content: raw content of the document, can be anything
         source: id of the source of the Document. Optional.
+        channel: the channel to show the document. Optional.:
+            - chat: show in chat message
+            - info: show in information panel
+            - debug: show in debug panel
     """
 
-    content: Any
+    content: Any = None
     source: Optional[str] = None
+    channel: Optional[Literal["chat", "info", "debug"]] = None
 
     def __init__(self, content: Optional[Any] = None, *args, **kwargs):
         if content is None:
@@ -87,17 +95,23 @@ class BaseMessage(Document):
     def __add__(self, other: Any):
         raise NotImplementedError
 
+    def to_openai_format(self) -> "ChatCompletionMessageParam":
+        raise NotImplementedError
+
 
 class SystemMessage(BaseMessage, LCSystemMessage):
-    pass
+    def to_openai_format(self) -> "ChatCompletionMessageParam":
+        return {"role": "system", "content": self.content}
 
 
 class AIMessage(BaseMessage, LCAIMessage):
-    pass
+    def to_openai_format(self) -> "ChatCompletionMessageParam":
+        return {"role": "assistant", "content": self.content}
 
 
 class HumanMessage(BaseMessage, LCHumanMessage):
-    pass
+    def to_openai_format(self) -> "ChatCompletionMessageParam":
+        return {"role": "user", "content": self.content}
 
 
 class RetrievedDocument(Document):

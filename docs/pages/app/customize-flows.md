@@ -193,7 +193,8 @@ information panel.
 You can access users' collections of LLMs and embedding models with:
 
 ```python
-from ktem.components import llms, embeddings
+from ktem.components import embeddings
+from ktem.llms.manager import llms
 
 
 llm = llms.get_default()
@@ -206,12 +207,12 @@ models they want to use through the settings.
 ```python
     @classmethod
     def get_user_settings(cls) -> dict:
-        from ktem.components import llms
+        from ktem.llms.manager import llms
 
         return {
             "citation_llm": {
                 "name": "LLM for citation",
-                "value": llms.get_lowest_cost_name(),
+                "value": llms.get_default(),
                 "component: "dropdown",
                 "choices": list(llms.options().keys()),
             },

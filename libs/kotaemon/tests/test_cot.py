@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from openai.types.chat.chat_completion import ChatCompletion
 
-from kotaemon.llms import AzureChatOpenAI
+from kotaemon.llms import LCAzureChatOpenAI
 from kotaemon.llms.cot import ManualSequentialChainOfThought, Thought
 
 _openai_chat_completion_response = [
@@ -38,7 +38,7 @@ _openai_chat_completion_response = [
     side_effect=_openai_chat_completion_response,
 )
 def test_cot_plus_operator(openai_completion):
-    llm = AzureChatOpenAI(
+    llm = LCAzureChatOpenAI(
         azure_endpoint="https://dummy.openai.azure.com/",
         openai_api_key="dummy",
         openai_api_version="2023-03-15-preview",
@@ -70,7 +70,7 @@ def test_cot_plus_operator(openai_completion):
     side_effect=_openai_chat_completion_response,
 )
 def test_cot_manual(openai_completion):
-    llm = AzureChatOpenAI(
+    llm = LCAzureChatOpenAI(
         azure_endpoint="https://dummy.openai.azure.com/",
         openai_api_key="dummy",
         openai_api_version="2023-03-15-preview",
@@ -100,7 +100,7 @@ def test_cot_manual(openai_completion):
     side_effect=_openai_chat_completion_response,
 )
 def test_cot_with_termination_callback(openai_completion):
-    llm = AzureChatOpenAI(
+    llm = LCAzureChatOpenAI(
         azure_endpoint="https://dummy.openai.azure.com/",
         openai_api_key="dummy",
         openai_api_version="2023-03-15-preview",

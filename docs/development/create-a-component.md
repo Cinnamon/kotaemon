@@ -22,7 +22,7 @@ The syntax of a component is as follow:
 
 ```python
 from kotaemon.base import BaseComponent
-from kotaemon.llms import AzureChatOpenAI
+from kotaemon.llms import LCAzureChatOpenAI
 from kotaemon.parsers import RegexExtractor
 
 
@@ -32,7 +32,7 @@ class FancyPipeline(BaseComponent):
     param3: float
 
     node1: BaseComponent    # this is a node because of BaseComponent type annotation
-    node2: AzureChatOpenAI  # this is also a node because AzureChatOpenAI subclasses BaseComponent
+    node2: LCAzureChatOpenAI  # this is also a node because LCAzureChatOpenAI subclasses BaseComponent
     node3: RegexExtractor   # this is also a node bceause RegexExtractor subclasses BaseComponent
 
     def run(self, some_text: str):
@@ -45,7 +45,7 @@ class FancyPipeline(BaseComponent):
 Then this component can be used as follow:
 
 ```python
-llm = AzureChatOpenAI(endpoint="some-endpont")
+llm = LCAzureChatOpenAI(endpoint="some-endpont")
 extractor = RegexExtractor(pattern=["yes", "Yes"])
 
 component = FancyPipeline(

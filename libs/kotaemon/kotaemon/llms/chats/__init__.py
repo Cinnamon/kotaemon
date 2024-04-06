@@ -1,13 +1,17 @@
 from .base import ChatLLM
 from .endpoint_based import EndpointChatLLM
-from .langchain_based import AzureChatOpenAI, ChatOpenAI, LCChatMixin
+from .langchain_based import LCAzureChatOpenAI, LCChatMixin, LCChatOpenAI
 from .llamacpp import LlamaCppChat
+from .openai import AzureChatOpenAI, ChatOpenAI
 
 __all__ = [
+    "ChatOpenAI",
+    "AzureChatOpenAI",
     "ChatLLM",
     "EndpointChatLLM",
     "ChatOpenAI",
-    "AzureChatOpenAI",
+    "LCChatOpenAI",
+    "LCAzureChatOpenAI",
     "LCChatMixin",
     "LlamaCppChat",
 ]

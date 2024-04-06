@@ -15,7 +15,7 @@ class SimpleBranchingPipeline(BaseComponent):
     Example:
         ```python
         from kotaemon.llms import (
-            AzureChatOpenAI,
+            LCAzureChatOpenAI,
             BasePromptComponent,
             GatedLinearPipeline,
         )
@@ -25,7 +25,7 @@ class SimpleBranchingPipeline(BaseComponent):
             return x
 
         pipeline = SimpleBranchingPipeline()
-        llm = AzureChatOpenAI(
+        llm = LCAzureChatOpenAI(
             openai_api_base="your openai api base",
             openai_api_key="your openai api key",
             openai_api_version="your openai api version",
@@ -92,7 +92,7 @@ class GatedBranchingPipeline(SimpleBranchingPipeline):
     Example:
         ```python
         from kotaemon.llms import (
-            AzureChatOpenAI,
+            LCAzureChatOpenAI,
             BasePromptComponent,
             GatedLinearPipeline,
         )
@@ -102,7 +102,7 @@ class GatedBranchingPipeline(SimpleBranchingPipeline):
             return x
 
         pipeline = GatedBranchingPipeline()
-        llm = AzureChatOpenAI(
+        llm = LCAzureChatOpenAI(
             openai_api_base="your openai api base",
             openai_api_key="your openai api key",
             openai_api_version="your openai api version",
@@ -157,7 +157,7 @@ class GatedBranchingPipeline(SimpleBranchingPipeline):
 if __name__ == "__main__":
     import dotenv
 
-    from kotaemon.llms import AzureChatOpenAI, BasePromptComponent
+    from kotaemon.llms import BasePromptComponent, LCAzureChatOpenAI
     from kotaemon.parsers import RegexExtractor
 
     def identity(x):
@@ -166,7 +166,7 @@ if __name__ == "__main__":
     secrets = dotenv.dotenv_values(".env")
 
     pipeline = GatedBranchingPipeline()
-    llm = AzureChatOpenAI(
+    llm = LCAzureChatOpenAI(
         openai_api_base=secrets.get("OPENAI_API_BASE", ""),
         openai_api_key=secrets.get("OPENAI_API_KEY", ""),
         openai_api_version=secrets.get("OPENAI_API_VERSION", ""),

@@ -3,6 +3,7 @@
 import logging
 from functools import cache
 from pathlib import Path
+from typing import Optional
 
 from theflow.settings import settings
 from theflow.utils.modules import deserialize
@@ -48,7 +49,7 @@ class ModelPool:
         self._default: list[str] = []
 
         for name, model in conf.items():
-            self._models[name] = deserialize(model["def"], safe=False)
+            self._models[name] = deserialize(model["spec"], safe=False)
             if model.get("default", False):
                 self._default.append(name)
 
@@ -58,10 +59,26 @@ class ModelPool:
         self._cost = list(sorted(conf, key=lambda x: conf[x].get("cost", float("inf"))))
 
     def __getitem__(self, key: str) -> BaseComponent:
+        """Get model by name"""
         return self._models[key]
 
     def __setitem__(self, key: str, value: BaseComponent):
+        """Set model by name"""
         self._models[key] = value
+
+    def __delitem__(self, key: str):
+        """Delete model by name"""
+        del self._models[key]
+
+    def __contains__(self, key: str) -> bool:
+        """Check if model exists"""
+        return key in self._models
+
+    def get(
+        self, key: str, default: Optional[BaseComponent] = None
+    ) -> Optional[BaseComponent]:
+        """Get model by name with default value"""
+        return self._models.get(key, default)
 
     def settings(self) -> dict:
         """Present model pools option for gradio"""
@@ -169,4 +186,3 @@ llms = ModelPool("LLMs", settings.KH_LLMS)
 embeddings = ModelPool("Embeddings", settings.KH_EMBEDDINGS)
 reasonings: dict = {}
 tools = ModelPool("Tools", {})
-indices = ModelPool("Indices", {})

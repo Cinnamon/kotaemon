@@ -40,16 +40,15 @@ if config("AZURE_OPENAI_API_KEY", default="") and config(
 ):
     if config("AZURE_OPENAI_CHAT_DEPLOYMENT", default=""):
         KH_LLMS["azure"] = {
-            "def": {
+            "spec": {
                 "__type__": "kotaemon.llms.AzureChatOpenAI",
                 "temperature": 0,
                 "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
-                "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
+                "api_key": config("AZURE_OPENAI_API_KEY", default=""),
                 "api_version": config("OPENAI_API_VERSION", default="")
                 or "2024-02-15-preview",
-                "deployment_name": config("AZURE_OPENAI_CHAT_DEPLOYMENT", default=""),
-                "request_timeout": 10,
-                "stream": False,
+                "azure_deployment": config("AZURE_OPENAI_CHAT_DEPLOYMENT", default=""),
+                "timeout": 20,
             },
             "default": False,
             "accuracy": 5,
@@ -57,7 +56,7 @@ if config("AZURE_OPENAI_API_KEY", default="") and config(
         }
     if config("AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT", default=""):
         KH_EMBEDDINGS["azure"] = {
-            "def": {
+            "spec": {
                 "__type__": "kotaemon.embeddings.AzureOpenAIEmbeddings",
                 "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
                 "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
@@ -164,5 +163,11 @@ KH_INDICES = [
         "name": "File",
         "config": {},
         "index_type": "ktem.index.file.FileIndex",
-    }
+    },
+    {
+        "id": 2,
+        "name": "Sample",
+        "config": {},
+        "index_type": "ktem.index.file.FileIndex",
+    },
 ]

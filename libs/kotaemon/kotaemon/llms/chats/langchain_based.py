@@ -165,7 +165,7 @@ class LCChatMixin:
         raise ValueError(f"Invalid param {path}")
 
 
-class ChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
+class LCChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
     def __init__(
         self,
         openai_api_base: str | None = None,
@@ -193,7 +193,7 @@ class ChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
         return ChatOpenAI
 
 
-class AzureChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
+class LCAzureChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
     def __init__(
         self,
         azure_endpoint: str | None = None,

@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from kotaemon.base.schema import AIMessage, HumanMessage, LLMInterface, SystemMessage
-from kotaemon.llms import AzureChatOpenAI, LlamaCppChat
+from kotaemon.llms import LCAzureChatOpenAI, LlamaCppChat
 
 try:
     from langchain_openai import AzureChatOpenAI as AzureChatOpenAILC
@@ -43,7 +43,7 @@ _openai_chat_completion_response = ChatCompletion.parse_obj(
     side_effect=lambda *args, **kwargs: _openai_chat_completion_response,
 )
 def test_azureopenai_model(openai_completion):
-    model = AzureChatOpenAI(
+    model = LCAzureChatOpenAI(
         azure_endpoint="https://test.openai.azure.com/",
         openai_api_key="some-key",
         openai_api_version="2023-03-15-preview",

@@ -4,10 +4,10 @@ import pytest
 from openai.types.chat.chat_completion import ChatCompletion
 
 from kotaemon.llms import (
-    AzureChatOpenAI,
     BasePromptComponent,
     GatedBranchingPipeline,
     GatedLinearPipeline,
+    LCAzureChatOpenAI,
     SimpleBranchingPipeline,
     SimpleLinearPipeline,
 )
@@ -40,7 +40,7 @@ _openai_chat_completion_response = ChatCompletion.parse_obj(
 
 @pytest.fixture
 def mock_llm():
-    return AzureChatOpenAI(
+    return LCAzureChatOpenAI(
         azure_endpoint="OPENAI_API_BASE",
         openai_api_key="OPENAI_API_KEY",
         openai_api_version="OPENAI_API_VERSION",
