@@ -6,7 +6,7 @@ from openai.resources.embeddings import Embeddings
 
 from kotaemon.agents.tools import ComponentTool, GoogleSearchTool, WikipediaTool
 from kotaemon.base import Document
-from kotaemon.embeddings import AzureOpenAIEmbeddings
+from kotaemon.embeddings import LCAzureOpenAIEmbeddings
 from kotaemon.indices.vectorindex import VectorIndexing, VectorRetrieval
 from kotaemon.storages import ChromaVectorStore, InMemoryDocumentStore
 
@@ -38,7 +38,7 @@ def test_wikipedia_tool():
 def test_pipeline_tool(mock_openai_embedding, tmp_path):
     db = ChromaVectorStore(path=str(tmp_path))
     doc_store = InMemoryDocumentStore()
-    embedding = AzureOpenAIEmbeddings(
+    embedding = LCAzureOpenAIEmbeddings(
         model="text-embedding-ada-002",
         deployment="embedding-deployment",
         azure_endpoint="https://test.openai.azure.com/",

@@ -2,7 +2,7 @@ import tempfile
 from typing import List
 
 from kotaemon.base import BaseComponent, LLMInterface, lazy
-from kotaemon.embeddings import AzureOpenAIEmbeddings
+from kotaemon.embeddings import LCAzureOpenAIEmbeddings
 from kotaemon.indices import VectorRetrieval
 from kotaemon.llms import AzureOpenAI
 from kotaemon.storages import ChromaVectorStore
@@ -20,7 +20,7 @@ class Pipeline(BaseComponent):
 
     retrieving_pipeline: VectorRetrieval = VectorRetrieval.withx(
         vector_store=lazy(ChromaVectorStore).withx(path=str(tempfile.mkdtemp())),
-        embedding=AzureOpenAIEmbeddings.withx(
+        embedding=LCAzureOpenAIEmbeddings.withx(
             model="text-embedding-ada-002",
             deployment="embedding-deployment",
             azure_endpoint="https://test.openai.azure.com/",

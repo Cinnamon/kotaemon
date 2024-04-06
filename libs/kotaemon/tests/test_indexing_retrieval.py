@@ -6,7 +6,7 @@ import pytest
 from openai.resources.embeddings import Embeddings
 
 from kotaemon.base import Document
-from kotaemon.embeddings import AzureOpenAIEmbeddings
+from kotaemon.embeddings import LCAzureOpenAIEmbeddings
 from kotaemon.indices import VectorIndexing, VectorRetrieval
 from kotaemon.storages import ChromaVectorStore, InMemoryDocumentStore
 
@@ -22,7 +22,7 @@ def mock_openai_embedding(monkeypatch):
 def test_indexing(mock_openai_embedding, tmp_path):
     db = ChromaVectorStore(path=str(tmp_path))
     doc_store = InMemoryDocumentStore()
-    embedding = AzureOpenAIEmbeddings(
+    embedding = LCAzureOpenAIEmbeddings(
         model="text-embedding-ada-002",
         deployment="embedding-deployment",
         azure_endpoint="https://test.openai.azure.com/",
@@ -42,7 +42,7 @@ def test_indexing(mock_openai_embedding, tmp_path):
 def test_retrieving(mock_openai_embedding, tmp_path):
     db = ChromaVectorStore(path=str(tmp_path))
     doc_store = InMemoryDocumentStore()
-    embedding = AzureOpenAIEmbeddings(
+    embedding = LCAzureOpenAIEmbeddings(
         model="text-embedding-ada-002",
         deployment="embedding-deployment",
         azure_endpoint="https://test.openai.azure.com/",

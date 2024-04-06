@@ -4,9 +4,9 @@ from unittest.mock import patch
 
 from kotaemon.base import Document
 from kotaemon.embeddings import (
-    AzureOpenAIEmbeddings,
-    CohereEmbdeddings,
-    HuggingFaceEmbeddings,
+    LCAzureOpenAIEmbeddings,
+    LCCohereEmbdeddings,
+    LCHuggingFaceEmbeddings,
 )
 
 with open(Path(__file__).parent / "resources" / "embedding_openai_batch.json") as f:
@@ -21,7 +21,7 @@ with open(Path(__file__).parent / "resources" / "embedding_openai.json") as f:
     side_effect=lambda *args, **kwargs: openai_embedding,
 )
 def test_azureopenai_embeddings_raw(openai_embedding_call):
-    model = AzureOpenAIEmbeddings(
+    model = LCAzureOpenAIEmbeddings(
         model="text-embedding-ada-002",
         deployment="embedding-deployment",
         azure_endpoint="https://test.openai.azure.com/",
@@ -40,7 +40,7 @@ def test_azureopenai_embeddings_raw(openai_embedding_call):
     side_effect=lambda *args, **kwargs: openai_embedding_batch,
 )
 def test_azureopenai_embeddings_batch_raw(openai_embedding_call):
-    model = AzureOpenAIEmbeddings(
+    model = LCAzureOpenAIEmbeddings(
         model="text-embedding-ada-002",
         deployment="embedding-deployment",
         azure_endpoint="https://test.openai.azure.com/",
@@ -65,7 +65,7 @@ def test_azureopenai_embeddings_batch_raw(openai_embedding_call):
 def test_huggingface_embeddings(
     langchain_huggingface_embedding_call, sentence_transformers_init
 ):
-    model = HuggingFaceEmbeddings(
+    model = LCHuggingFaceEmbeddings(
         model_name="intfloat/multilingual-e5-large",
         model_kwargs={"device": "cpu"},
         encode_kwargs={"normalize_embeddings": False},
@@ -85,7 +85,7 @@ def test_huggingface_embeddings(
     side_effect=lambda *args, **kwargs: [[1.0, 2.1, 3.2]],
 )
 def test_cohere_embeddings(langchain_cohere_embedding_call):
-    model = CohereEmbdeddings(
+    model = LCCohereEmbdeddings(
         model="embed-english-light-v2.0", cohere_api_key="my-api-key"
     )
 

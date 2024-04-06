@@ -97,7 +97,7 @@ class LCEmbeddingMixin:
         raise ValueError(f"Invalid param {path}")
 
 
-class OpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
+class LCOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
     """Wrapper around Langchain's OpenAI embedding, focusing on key parameters"""
 
     def __init__(
@@ -129,7 +129,7 @@ class OpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
         return OpenAIEmbeddings
 
 
-class AzureOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
+class LCAzureOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
     """Wrapper around Langchain's AzureOpenAI embedding, focusing on key parameters"""
 
     def __init__(
@@ -159,7 +159,7 @@ class AzureOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
         return AzureOpenAIEmbeddings
 
 
-class CohereEmbdeddings(LCEmbeddingMixin, BaseEmbeddings):
+class LCCohereEmbdeddings(LCEmbeddingMixin, BaseEmbeddings):
     """Wrapper around Langchain's Cohere embedding, focusing on key parameters"""
 
     def __init__(
@@ -187,7 +187,7 @@ class CohereEmbdeddings(LCEmbeddingMixin, BaseEmbeddings):
         return CohereEmbeddings
 
 
-class HuggingFaceEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
+class LCHuggingFaceEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
     """Wrapper around Langchain's HuggingFace embedding, focusing on key parameters"""
 
     def __init__(
