@@ -2,4 +2,4 @@ from ktem.main import App
 
 app = App()
 demo = app.make()
-demo.queue().launch(favicon_path=app._favicon, inbrowser=True)
+demo.queue().launch(favicon_path=app._favicon)

@@ -4,6 +4,7 @@ import logging
 import re
 from collections import defaultdict
 from functools import partial
+from typing import Generator
 
 import tiktoken
 from ktem.llms.manager import llms
@@ -296,13 +297,95 @@ class AnswerWithContextPipeline(BaseComponent):
 
         return answer
 
+    def stream(  # type: ignore
+        self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
+    ) -> Generator[Document, None, Document]:
+        """Answer the question based on the evidence
 
-def extract_evidence_images(self, evidence: str):
-    """Util function to extract and isolate images from context/evidence"""
-    image_pattern = r"src='(data:image\/[^;]+;base64[^']+)'"
-    matches = re.findall(image_pattern, evidence)
-    context = re.sub(image_pattern, "", evidence)
-    return context, matches
+        In addition to the question and the evidence, this method also take into
+        account evidence_mode. The evidence_mode tells which kind of evidence is.
+        The kind of evidence affects:
+            1. How the evidence is represented.
+            2. The prompt to generate the answer.
+
+        By default, the evidence_mode is 0, which means the evidence is plain text with
+        no particular semantic representation. The evidence_mode can be:
+            1. "table": There will be HTML markup telling that there is a table
+                within the evidence.
+            2. "chatbot": There will be HTML markup telling that there is a chatbot.
+                This chatbot is a scenario, extracted from an Excel file, where each
+                row corresponds to an interaction.
+
+        Args:
+            question: the original question posed by user
+            evidence: the text that contain relevant information to answer the question
+                (determined by retrieval pipeline)
+            evidence_mode: the mode of evidence, 0 for text, 1 for table, 2 for chatbot
+        """
+        if evidence_mode == EVIDENCE_MODE_TEXT:
+            prompt_template = PromptTemplate(self.qa_template)
+        elif evidence_mode == EVIDENCE_MODE_TABLE:
+            prompt_template = PromptTemplate(self.qa_table_template)
+        elif evidence_mode == EVIDENCE_MODE_FIGURE:
+            prompt_template = PromptTemplate(self.qa_figure_template)
+        else:
+            prompt_template = PromptTemplate(self.qa_chatbot_template)
+
+        images = []
+        if evidence_mode == EVIDENCE_MODE_FIGURE:
+            # isolate image from evidence
+            evidence, images = self.extract_evidence_images(evidence)
+            prompt = prompt_template.populate(
+                context=evidence,
+                question=question,
+                lang=self.lang,
+            )
+        else:
+            prompt = prompt_template.populate(
+                context=evidence,
+                question=question,
+                lang=self.lang,
+            )
+
+        output = ""
+        if evidence_mode == EVIDENCE_MODE_FIGURE:
+            for text in stream_gpt4v(self.vlm_endpoint, images, prompt, max_tokens=768):
+                output += text
+                yield Document(channel="chat", content=text)
+        else:
+            messages = []
+            if self.system_prompt:
+                messages.append(SystemMessage(content=self.system_prompt))
+            messages.append(HumanMessage(content=prompt))
+
+            try:
+                # try streaming first
+                print("Trying LLM streaming")
+                for text in self.llm.stream(messages):
+                    output += text.text
+                    yield Document(channel="chat", content=text.text)
+            except NotImplementedError:
+                print("Streaming is not supported, falling back to normal processing")
+                output = self.llm(messages).text
+                yield Document(channel="chat", content=output)
+
+        # retrieve the citation
+        citation = None
+        if evidence and self.enable_citation:
+            citation = self.citation_pipeline.invoke(
+                context=evidence, question=question
+            )
+
+        answer = Document(text=output, metadata={"citation": citation})
+
+        return answer
+
+    def extract_evidence_images(self, evidence: str):
+        """Util function to extract and isolate images from context/evidence"""
+        image_pattern = r"src='(data:image\/[^;]+;base64[^']+)'"
+        matches = re.findall(image_pattern, evidence)
+        context = re.sub(image_pattern, "", evidence)
+        return context, matches
 
 
 class RewriteQuestionPipeline(BaseComponent):
@@ -319,22 +402,14 @@ class RewriteQuestionPipeline(BaseComponent):
 
     lang: str = "English"
 
-    async def run(self, question: str) -> Document:  # type: ignore
+    def run(self, question: str) -> Document:  # type: ignore
         prompt_template = PromptTemplate(self.rewrite_template)
         prompt = prompt_template.populate(question=question, lang=self.lang)
         messages = [
             SystemMessage(content="You are a helpful assistant"),
             HumanMessage(content=prompt),
         ]
-        output = ""
-        for text in self.llm(messages):
-            if "content" in text:
-                output += text[1]
-                self.report_output({"chat_input": text[1]})
-                break
-            await asyncio.sleep(0)
-
-        return Document(text=output)
+        return self.llm(messages)
 
 
 class FullQAPipeline(BaseReasoning):
@@ -350,7 +425,7 @@ class FullQAPipeline(BaseReasoning):
     rewrite_pipeline: RewriteQuestionPipeline = RewriteQuestionPipeline.withx()
     use_rewrite: bool = False
 
-    async def run(  # type: ignore
+    async def ainvoke(  # type: ignore
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Document:  # type: ignore
         import markdown
@@ -479,6 +554,132 @@ class FullQAPipeline(BaseReasoning):
                 )
 
         self.report_output(None)
+        return answer
+
+    def stream(  # type: ignore
+        self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
+    ) -> Generator[Document, None, Document]:
+        import markdown
+
+        docs = []
+        doc_ids = []
+        if self.use_rewrite:
+            message = self.rewrite_pipeline(question=message).text
+
+        for retriever in self.retrievers:
+            for doc in retriever(text=message):
+                if doc.doc_id not in doc_ids:
+                    docs.append(doc)
+                    doc_ids.append(doc.doc_id)
+        for doc in docs:
+            # TODO: a better approach to show the information
+            text = markdown.markdown(
+                doc.text, extensions=["markdown.extensions.tables"]
+            )
+            yield Document(
+                content=(
+                    "<details open>"
+                    f"<summary>{doc.metadata['file_name']}</summary>"
+                    f"{text}"
+                    "</details><br>"
+                ),
+                channel="info",
+            )
+
+        evidence_mode, evidence = self.evidence_pipeline(docs).content
+        answer = yield from self.answering_pipeline.stream(
+            question=message,
+            history=history,
+            evidence=evidence,
+            evidence_mode=evidence_mode,
+            conv_id=conv_id,
+            **kwargs,
+        )
+
+        # prepare citation
+        spans = defaultdict(list)
+        if answer.metadata["citation"] is not None:
+            for fact_with_evidence in answer.metadata["citation"].answer:
+                for quote in fact_with_evidence.substring_quote:
+                    for doc in docs:
+                        start_idx = doc.text.find(quote)
+                        if start_idx == -1:
+                            continue
+
+                        end_idx = start_idx + len(quote)
+
+                        current_idx = start_idx
+                        if "|" not in doc.text[start_idx:end_idx]:
+                            spans[doc.doc_id].append(
+                                {"start": start_idx, "end": end_idx}
+                            )
+                        else:
+                            while doc.text[current_idx:end_idx].find("|") != -1:
+                                match_idx = doc.text[current_idx:end_idx].find("|")
+                                spans[doc.doc_id].append(
+                                    {
+                                        "start": current_idx,
+                                        "end": current_idx + match_idx,
+                                    }
+                                )
+                                current_idx += match_idx + 2
+                                if current_idx > end_idx:
+                                    break
+                        break
+
+        id2docs = {doc.doc_id: doc for doc in docs}
+        lack_evidence = True
+        not_detected = set(id2docs.keys()) - set(spans.keys())
+        yield Document(channel="info", content=None)
+        for id, ss in spans.items():
+            if not ss:
+                not_detected.add(id)
+                continue
+            ss = sorted(ss, key=lambda x: x["start"])
+            text = id2docs[id].text[: ss[0]["start"]]
+            for idx, span in enumerate(ss):
+                text += (
+                    "<mark>" + id2docs[id].text[span["start"] : span["end"]] + "</mark>"
+                )
+                if idx < len(ss) - 1:
+                    text += id2docs[id].text[span["end"] : ss[idx + 1]["start"]]
+            text += id2docs[id].text[ss[-1]["end"] :]
+            text_out = markdown.markdown(
+                text, extensions=["markdown.extensions.tables"]
+            )
+            yield Document(
+                content=(
+                    "<details open>"
+                    f"<summary>{id2docs[id].metadata['file_name']}</summary>"
+                    f"{text_out}"
+                    "</details><br>"
+                ),
+                channel="info",
+            )
+            lack_evidence = False
+
+        if lack_evidence:
+            yield Document(channel="info", content="No evidence found.\n")
+
+        if not_detected:
+            yield Document(
+                channel="info",
+                content="Retrieved segments without matching evidence:\n",
+            )
+            for id in list(not_detected):
+                text_out = markdown.markdown(
+                    id2docs[id].text, extensions=["markdown.extensions.tables"]
+                )
+                yield Document(
+                    content=(
+                        "<details>"
+                        f"<summary>{id2docs[id].metadata['file_name']}</summary>"
+                        f"{text_out}"
+                        "</details><br>"
+                    ),
+                    channel="info",
+                )
+
         return answer
 
     @classmethod
