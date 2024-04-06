@@ -7,6 +7,7 @@ from openai.types.create_embedding_response import CreateEmbeddingResponse
 from kotaemon.base import Document
 from kotaemon.embeddings import (
     AzureOpenAIEmbeddings,
+    FastEmbedEmbeddings,
     LCAzureOpenAIEmbeddings,
     LCCohereEmbdeddings,
     LCHuggingFaceEmbeddings,
@@ -18,6 +19,13 @@ with open(Path(__file__).parent / "resources" / "embedding_openai_batch.json") a
 
 with open(Path(__file__).parent / "resources" / "embedding_openai.json") as f:
     openai_embedding = CreateEmbeddingResponse.model_validate(json.load(f))
+
+
+def assert_embedding_result(output):
+    assert isinstance(output, list)
+    assert isinstance(output[0], Document)
+    assert isinstance(output[0].embedding, list)
+    assert isinstance(output[0].embedding[0], float)
 
 
 @patch(
@@ -32,10 +40,7 @@ def test_lcazureopenai_embeddings_raw(openai_embedding_call):
         openai_api_key="some-key",
     )
     output = model("Hello world")
-    assert isinstance(output, list)
-    assert isinstance(output[0], Document)
-    assert isinstance(output[0].embedding, list)
-    assert isinstance(output[0].embedding[0], float)
+    assert_embedding_result(output)
     openai_embedding_call.assert_called()
 
 
@@ -51,10 +56,7 @@ def test_lcazureopenai_embeddings_batch_raw(openai_embedding_call):
         openai_api_key="some-key",
     )
     output = model(["Hello world", "Goodbye world"])
-    assert isinstance(output, list)
-    assert isinstance(output[0], Document)
-    assert isinstance(output[0].embedding, list)
-    assert isinstance(output[0].embedding[0], float)
+    assert_embedding_result(output)
     openai_embedding_call.assert_called()
 
 
@@ -70,10 +72,7 @@ def test_azureopenai_embeddings_raw(openai_embedding_call):
         azure_deployment="text-embedding-ada-002",
     )
     output = model("Hello world")
-    assert isinstance(output, list)
-    assert isinstance(output[0], Document)
-    assert isinstance(output[0].embedding, list)
-    assert isinstance(output[0].embedding[0], float)
+    assert_embedding_result(output)
     openai_embedding_call.assert_called()
 
 
@@ -89,10 +88,7 @@ def test_azureopenai_embeddings_batch_raw(openai_embedding_call):
         azure_deployment="text-embedding-ada-002",
     )
     output = model(["Hello world", "Goodbye world"])
-    assert isinstance(output, list)
-    assert isinstance(output[0], Document)
-    assert isinstance(output[0].embedding, list)
-    assert isinstance(output[0].embedding[0], float)
+    assert_embedding_result(output)
     openai_embedding_call.assert_called()
 
 
@@ -106,10 +102,7 @@ def test_openai_embeddings_raw(openai_embedding_call):
         model="text-embedding-ada-002",
     )
     output = model("Hello world")
-    assert isinstance(output, list)
-    assert isinstance(output[0], Document)
-    assert isinstance(output[0].embedding, list)
-    assert isinstance(output[0].embedding[0], float)
+    assert_embedding_result(output)
     openai_embedding_call.assert_called()
 
 
@@ -123,10 +116,7 @@ def test_openai_embeddings_batch_raw(openai_embedding_call):
         model="text-embedding-ada-002",
     )
     output = model(["Hello world", "Goodbye world"])
-    assert isinstance(output, list)
-    assert isinstance(output[0], Document)
-    assert isinstance(output[0].embedding, list)
-    assert isinstance(output[0].embedding[0], float)
+    assert_embedding_result(output)
     openai_embedding_call.assert_called()
 
 
@@ -148,10 +138,7 @@ def test_lchuggingface_embeddings(
     )
 
     output = model("Hello World")
-    assert isinstance(output, list)
-    assert isinstance(output[0], Document)
-    assert isinstance(output[0].embedding, list)
-    assert isinstance(output[0].embedding[0], float)
+    assert_embedding_result(output)
     sentence_transformers_init.assert_called()
     langchain_huggingface_embedding_call.assert_called()
 
@@ -166,8 +153,11 @@ def test_lccohere_embeddings(langchain_cohere_embedding_call):
     )
 
     output = model("Hello World")
-    assert isinstance(output, list)
-    assert isinstance(output[0], Document)
-    assert isinstance(output[0].embedding, list)
-    assert isinstance(output[0].embedding[0], float)
+    assert_embedding_result(output)
     langchain_cohere_embedding_call.assert_called()
+
+
+def test_fastembed_embeddings():
+    model = FastEmbedEmbeddings()
+    output = model("Hello World")
+    assert_embedding_result(output)

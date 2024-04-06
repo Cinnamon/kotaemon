@@ -41,15 +41,6 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
             return DEFAULT_MAX_RETRIES
         return self.max_retries
 
-    def prepare_input(
-        self, text: str | list[str] | Document | list[Document]
-    ) -> list[Document]:
-        if isinstance(text, (str, Document)):
-            return [Document(content=text)]
-        elif isinstance(text, list):
-            return [Document(content=_) for _ in text]
-        return text
-
     def prepare_client(self, async_version: bool = False):
         """Get the OpenAI client
 
