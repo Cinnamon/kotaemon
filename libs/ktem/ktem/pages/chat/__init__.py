@@ -441,7 +441,7 @@ class ChatPage(BasePage):
                 len_ref = len(refs)
 
             state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
-            yield chat_history + [(chat_input, text or "Thinking ...")], refs, state
+            yield chat_history + [(chat_input, text or msg_placeholder)], refs, state
 
     def regen_fn(self, conversation_id, chat_history, settings, state, *selecteds):
         """Regen function"""
