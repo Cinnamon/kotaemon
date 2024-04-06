@@ -36,10 +36,7 @@ class BaseApp:
     def __init__(self):
         self.dev_mode = getattr(settings, "KH_MODE", "") == "dev"
         self.f_user_management = getattr(settings, "KH_FEATURE_USER_MANAGEMENT", False)
-        self._theme = gr.themes.Base(
-            font=("ui-sans-serif", "system-ui", "sans-serif"),
-            font_mono=("ui-monospace", "Consolas", "monospace"),
-        )
+        self._theme = gr.Theme.from_hub("lone17/kotaemon")
 
         dir_assets = Path(__file__).parent / "assets"
         with (dir_assets / "css" / "main.css").open() as fi:
