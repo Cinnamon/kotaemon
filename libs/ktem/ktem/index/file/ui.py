@@ -97,49 +97,66 @@ class FileIndexPage(BasePage):
 
     def on_building_ui(self):
         """Build the UI of the app"""
-        with gr.Accordion(label="File upload", open=True) as self.upload:
-            msg = self.upload_instruction()
-            if msg:
-                gr.Markdown(msg)
+        with gr.Row():
+            with gr.Column(scale=1):
+                gr.Markdown("## File Upload")
+                with gr.Column() as self.upload:
+                    msg = self.upload_instruction()
+                    if msg:
+                        gr.Markdown(msg)
 
-            self.files = File(
-                file_types=self._supported_file_types,
-                file_count="multiple",
-                container=False,
-            )
-            with gr.Accordion("Advanced indexing options", open=False):
-                with gr.Row():
-                    self.reindex = gr.Checkbox(
-                        value=False, label="Force reindex file", container=False
+                    self.files = File(
+                        file_types=self._supported_file_types,
+                        file_count="multiple",
+                        container=True,
+                    )
+                    with gr.Accordion("Advanced indexing options", open=True):
+                        with gr.Row():
+                            self.reindex = gr.Checkbox(
+                                value=False, label="Force reindex file", container=False
+                            )
+
+                    self.upload_button = gr.Button(
+                        "Upload and Index", variant="primary"
+                    )
+                    self.file_output = gr.File(
+                        visible=False, label="Output files (debug purpose)"
                     )
 
-            self.upload_button = gr.Button("Upload and Index")
-            self.file_output = gr.File(
-                visible=False, label="Output files (debug purpose)"
-            )
+            with gr.Column(scale=4):
+                gr.Markdown("## File List")
+                self.file_list_state = gr.State(value=None)
+                self.file_list = gr.DataFrame(
+                    headers=["id", "name", "size", "text_length", "date_created"],
+                    interactive=False,
+                )
 
-        gr.Markdown("## File list")
-        self.file_list_state = gr.State(value=None)
-        self.file_list = gr.DataFrame(
-            headers=["id", "name", "size", "text_length", "date_created"],
-            interactive=False,
-        )
+                with gr.Row() as self.selection_info:
+                    self.selected_file_id = gr.State(value=None)
+                    with gr.Column(scale=2):
+                        self.selected_panel = gr.Markdown(self.selected_panel_false)
+                    with gr.Column(scale=1):
+                        self.deselect_button = gr.Button(
+                            "Deselect",
+                            scale=1,
+                            visible=False,
+                            elem_classes=["right-button"],
+                        )
 
-        with gr.Row() as self.selection_info:
-            self.selected_file_id = gr.State(value=None)
-            self.selected_panel = gr.Markdown(self.selected_panel_false)
-            self.deselect_button = gr.Button("Deselect", visible=False)
-
-        with gr.Row() as self.tools:
-            with gr.Column():
-                self.view_button = gr.Button("View Text (WIP)")
-            with gr.Column():
-                self.delete_button = gr.Button("Delete")
-                with gr.Row():
-                    self.delete_yes = gr.Button(
-                        "Confirm Delete", variant="primary", visible=False
-                    )
-                    self.delete_no = gr.Button("Cancel", visible=False)
+                self.delete_button = gr.Button(
+                    "Delete", variant="stop", elem_classes=["right-button"]
+                )
+                self.delete_yes = gr.Button(
+                    "Confirm Delete",
+                    variant="stop",
+                    visible=False,
+                    elem_classes=["right-button"],
+                )
+                self.delete_no = gr.Button(
+                    "Cancel",
+                    visible=False,
+                    elem_classes=["right-button"],
+                )
 
     def on_subscribe_public_events(self):
         """Subscribe to the declared public event of the app"""

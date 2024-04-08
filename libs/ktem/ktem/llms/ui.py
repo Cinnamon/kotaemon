@@ -52,13 +52,17 @@ class LLMManagement(BasePage):
 
                         with gr.Row(visible=False) as self._selected_panel_btn:
                             with gr.Column():
-                                self.btn_edit_save = gr.Button("Save", min_width=10)
+                                self.btn_edit_save = gr.Button(
+                                    "Save", min_width=10, variant="primary"
+                                )
                             with gr.Column():
-                                self.btn_delete = gr.Button("Delete", min_width=10)
+                                self.btn_delete = gr.Button(
+                                    "Delete", min_width=10, variant="stop"
+                                )
                                 with gr.Row():
                                     self.btn_delete_yes = gr.Button(
-                                        "Confirm delete",
-                                        variant="primary",
+                                        "Confirm Delete",
+                                        variant="stop",
                                         visible=False,
                                         min_width=10,
                                     )
@@ -98,7 +102,7 @@ class LLMManagement(BasePage):
                             "by default across the application."
                         ),
                     )
-                    self.btn_new = gr.Button("Create LLM")
+                    self.btn_new = gr.Button("Add LLM", variant="primary")
 
                 with gr.Column(scale=3):
                     self.spec_desc = gr.Markdown(self.spec_desc_default)

@@ -100,13 +100,18 @@ class SettingsPage(BasePage):
         self.on_building_ui()
 
     def on_building_ui(self):
-        self.setting_save_btn = gr.Button("Save settings")
         if self._app.f_user_management:
-            with gr.Tab("User settings"):
+            with gr.Tab("Users"):
                 self.user_tab()
-        self.app_tab()
-        self.index_tab()
-        self.reasoning_tab()
+        with gr.Tab("General"):
+            self.app_tab()
+        with gr.Tab("Document Indices"):
+            self.index_tab()
+        with gr.Tab("Reasoning Pipelines"):
+            self.reasoning_tab()
+        self.setting_save_btn = gr.Button(
+            "Save changes", variant="primary", scale=1, elem_classes=["right-button"]
+        )
 
     def on_subscribe_public_events(self):
         """

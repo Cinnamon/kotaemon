@@ -21,6 +21,7 @@ dependencies = [
     "sqlalchemy",
     "sqlmodel",
     "tiktoken",
+    "gradio>=4.0.0,<=4.22.0",
 ]
 readme = "README.md"
 license = { text = "MIT License" }
