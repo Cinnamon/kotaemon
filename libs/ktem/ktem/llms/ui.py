@@ -98,7 +98,7 @@ class LLMManagement(BasePage):
                             "by default across the application."
                         ),
                     )
-                    self.btn_new = gr.Button("Create LLM")
+                    self.btn_new = gr.Button("Add LLM", variant="primary")
 
                 with gr.Column(scale=3):
                     self.spec_desc = gr.Markdown(self.spec_desc_default)
