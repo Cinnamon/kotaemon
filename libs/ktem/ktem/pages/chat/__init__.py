@@ -41,7 +41,7 @@ class ChatPage(BasePage):
                         continue
 
                     index_ui.unrender()  # need to rerender later within Accordion
-                    with gr.Accordion(label=f"{index.name} Index", open=False):
+                    with gr.Accordion(label=f"{index.name} Index", open=True):
                         index_ui.render()
                         gr_index = index_ui.as_gradio_component()
                         if gr_index:

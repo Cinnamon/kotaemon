@@ -29,47 +29,42 @@ class ConversationControl(BasePage):
         self.on_building_ui()
 
     def on_building_ui(self):
-        with gr.Accordion(label="Conversation control", open=True):
-            self.conversation_id = gr.State(value="")
-            self.conversation = gr.Dropdown(
-                label="Chat sessions",
-                choices=[],
+        gr.Markdown("## Conversations")
+        self.conversation_id = gr.State(value="")
+        self.conversation = gr.Dropdown(
+            label="Chat sessions",
+            choices=[],
+            container=False,
+            filterable=False,
+            interactive=True,
+        )
+
+        with gr.Row() as self._new_delete:
+            self.btn_new = gr.Button(value="New", min_width=10, variant="primary")
+            self.btn_del = gr.Button(value="Delete", min_width=10, variant="stop")
+
+        with gr.Row(visible=False) as self._delete_confirm:
+            self.btn_del_conf = gr.Button(
+                value="Delete",
+                variant="stop",
+                min_width=10,
+            )
+            self.btn_del_cnl = gr.Button(value="Cancel", min_width=10)
+
+        with gr.Row():
+            self.conversation_rn = gr.Text(
+                placeholder="Conversation name",
                 container=False,
-                filterable=False,
+                scale=5,
+                min_width=10,
                 interactive=True,
             )
-
-            with gr.Row() as self._new_delete:
-                self.btn_new = gr.Button(value="New", min_width=10)
-                self.btn_del = gr.Button(value="Delete", min_width=10)
-
-            with gr.Row(visible=False) as self._delete_confirm:
-                self.btn_del_conf = gr.Button(
-                    value="Delete",
-                    variant="primary",
-                    min_width=10,
-                )
-                self.btn_del_cnl = gr.Button(value="Cancel", min_width=10)
-
-            with gr.Row():
-                self.conversation_rn = gr.Text(
-                    placeholder="Conversation name",
-                    container=False,
-                    scale=5,
-                    min_width=10,
-                    interactive=True,
-                )
-                self.conversation_rn_btn = gr.Button(
-                    value="Rename", scale=1, min_width=10
-                )
-
-        # current_state = gr.Text()
-        # show_current_state = gr.Button(value="Current")
-        # show_current_state.click(
-        #     lambda a, b: "\n".join([a, b]),
-        #     inputs=[cid, self.conversation],
-        #     outputs=[current_state],
-        # )
+            self.conversation_rn_btn = gr.Button(
+                value="Rename",
+                scale=1,
+                min_width=10,
+                elem_classes=["no-background", "body-text-color", "bold-text"],
+            )
 
     def load_chat_history(self, user_id):
         """Reload chat history"""
