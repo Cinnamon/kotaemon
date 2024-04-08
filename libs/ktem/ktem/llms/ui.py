@@ -52,13 +52,17 @@ class LLMManagement(BasePage):
 
                         with gr.Row(visible=False) as self._selected_panel_btn:
                             with gr.Column():
-                                self.btn_edit_save = gr.Button("Save", min_width=10)
+                                self.btn_edit_save = gr.Button(
+                                    "Save", min_width=10, variant="primary"
+                                )
                             with gr.Column():
-                                self.btn_delete = gr.Button("Delete", min_width=10)
+                                self.btn_delete = gr.Button(
+                                    "Delete", min_width=10, variant="stop"
+                                )
                                 with gr.Row():
                                     self.btn_delete_yes = gr.Button(
-                                        "Confirm delete",
-                                        variant="primary",
+                                        "Confirm Delete",
+                                        variant="stop",
                                         visible=False,
                                         min_width=10,
                                     )
