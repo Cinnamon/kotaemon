@@ -3,7 +3,7 @@ from typing import List
 
 from kotaemon.base import BaseComponent, Document, LLMInterface, Node, Param, lazy
 from kotaemon.contribs.promptui.logs import ResultLog
-from kotaemon.embeddings import AzureOpenAIEmbeddings
+from kotaemon.embeddings import LCAzureOpenAIEmbeddings
 from kotaemon.indices import VectorIndexing, VectorRetrieval
 from kotaemon.llms import LCAzureChatOpenAI
 from kotaemon.storages import ChromaVectorStore, SimpleFileDocumentStore
@@ -47,7 +47,7 @@ class QuestionAnsweringPipeline(BaseComponent):
         VectorRetrieval.withx(
             vector_store=lazy(ChromaVectorStore).withx(path="./tmp"),
             doc_store=lazy(SimpleFileDocumentStore).withx(path="docstore.json"),
-            embedding=AzureOpenAIEmbeddings.withx(
+            embedding=LCAzureOpenAIEmbeddings.withx(
                 model="text-embedding-ada-002",
                 deployment="dummy-q2-text-embedding",
                 azure_endpoint="https://bleh-dummy-2.openai.azure.com/",
@@ -82,7 +82,7 @@ class IndexingPipeline(VectorIndexing):
         lazy(SimpleFileDocumentStore).withx(path="docstore.json"),
         ignore_ui=True,
     )
-    embedding: AzureOpenAIEmbeddings = AzureOpenAIEmbeddings.withx(
+    embedding: LCAzureOpenAIEmbeddings = LCAzureOpenAIEmbeddings.withx(
         model="text-embedding-ada-002",
         deployment="dummy-q2-text-embedding",
         azure_endpoint="https://bleh-dummy-2.openai.azure.com/",

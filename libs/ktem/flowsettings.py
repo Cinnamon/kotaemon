@@ -57,7 +57,7 @@ if config("AZURE_OPENAI_API_KEY", default="") and config(
     if config("AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT", default=""):
         KH_EMBEDDINGS["azure"] = {
             "spec": {
-                "__type__": "kotaemon.embeddings.AzureOpenAIEmbeddings",
+                "__type__": "kotaemon.embeddings.LCAzureOpenAIEmbeddings",
                 "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
                 "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
                 "api_version": config("OPENAI_API_VERSION", default="")
@@ -87,7 +87,7 @@ if config("OPENAI_API_KEY", default=""):
     if len(KH_EMBEDDINGS) < 1:
         KH_EMBEDDINGS["openai"] = {
             "spec": {
-                "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
+                "__type__": "kotaemon.embeddings.LCOpenAIEmbeddings",
                 "base_url": config("OPENAI_API_BASE", default="")
                 or "https://api.openai.com/v1",
                 "api_key": config("OPENAI_API_KEY", default=""),
