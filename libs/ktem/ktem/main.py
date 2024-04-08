@@ -53,11 +53,11 @@ class App(BaseApp):
                     setattr(self, f"_index_{index.id}", page)
 
             with gr.Tab(
-                "Admin",
-                elem_id="admin-tab",
-                id="admin-tab",
+                "Resources",
+                elem_id="resources-tab",
+                id="resources-tab",
                 visible=not self.f_user_management,
-            ) as self._tabs["admin-tab"]:
+            ) as self._tabs["resources-tab"]:
                 self.admin_page = AdminPage(self)
 
             with gr.Tab(
@@ -111,7 +111,7 @@ class App(BaseApp):
                 for k in self._tabs.keys():
                     if k == "login-tab":
                         tabs_update.append(gr.update(visible=False))
-                    elif k == "admin-tab":
+                    elif k == "resources-tab":
                         tabs_update.append(gr.update(visible=is_admin))
                     else:
                         tabs_update.append(gr.update(visible=True))

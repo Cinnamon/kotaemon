@@ -73,30 +73,29 @@ if config("AZURE_OPENAI_API_KEY", default="") and config(
 
 if config("OPENAI_API_KEY", default=""):
     KH_LLMS["openai"] = {
-        "def": {
+        "spec": {
             "__type__": "kotaemon.llms.ChatOpenAI",
             "temperature": 0,
-            "openai_api_base": config("OPENAI_API_BASE", default="")
+            "base_url": config("OPENAI_API_BASE", default="")
             or "https://api.openai.com/v1",
-            "openai_api_key": config("OPENAI_API_KEY", default=""),
+            "api_key": config("OPENAI_API_KEY", default=""),
             "model": config("OPENAI_CHAT_MODEL", default="") or "gpt-3.5-turbo",
-            "request_timeout": 10,
-            "stream": False,
+            "timeout": 10,
         },
         "default": False,
     }
     if len(KH_EMBEDDINGS) < 1:
         KH_EMBEDDINGS["openai"] = {
-            "def": {
+            "spec": {
                 "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
-                "openai_api_base": config("OPENAI_API_BASE", default="")
+                "base_url": config("OPENAI_API_BASE", default="")
                 or "https://api.openai.com/v1",
-                "openai_api_key": config("OPENAI_API_KEY", default=""),
+                "api_key": config("OPENAI_API_KEY", default=""),
                 "model": config(
                     "OPENAI_EMBEDDINGS_MODEL", default="text-embedding-ada-002"
                 )
                 or "text-embedding-ada-002",
-                "request_timeout": 10,
+                "timeout": 10,
                 "chunk_size": 16,
             },
             "default": False,
@@ -104,7 +103,7 @@ if config("OPENAI_API_KEY", default=""):
 
 if config("LOCAL_MODEL", default=""):
     KH_LLMS["local"] = {
-        "def": {
+        "spec": {
             "__type__": "kotaemon.llms.EndpointChatLLM",
             "endpoint_url": "http://localhost:31415/v1/chat/completions",
         },
@@ -113,7 +112,7 @@ if config("LOCAL_MODEL", default=""):
     }
     if len(KH_EMBEDDINGS) < 1:
         KH_EMBEDDINGS["local"] = {
-            "def": {
+            "spec": {
                 "__type__": "kotaemon.embeddings.EndpointEmbeddings",
                 "endpoint_url": "http://localhost:31415/v1/embeddings",
             },
@@ -161,12 +160,6 @@ KH_INDICES = [
     {
         "id": 1,
         "name": "File",
-        "config": {},
-        "index_type": "ktem.index.file.FileIndex",
-    },
-    {
-        "id": 2,
-        "name": "Sample",
         "config": {},
         "index_type": "ktem.index.file.FileIndex",
     },
