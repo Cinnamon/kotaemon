@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../data-components/">
+        <link rel="prev" href="..">
       
       
-        <link rel="next" href="../ultilities/">
+        <link rel="next" href="../pages/app/features/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Creating a Component - kotaemon Docs</title>
+        <title>Basic Usage - kotaemon Docs</title>
       
     
     
@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#creating-a-component" class="md-skip">
+        <a href="#basic-usage" class="md-skip">
           Skip to content
         </a>
       
@@ -124,7 +124,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Creating a Component
+              Basic Usage
             
           </span>
         </div>
@@ -239,10 +239,12 @@
         
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href=".." class="md-tabs__link">
           
   
@@ -279,22 +281,17 @@
         
   
   
-    
   
-  
-    
-    
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../data-components/" class="md-tabs__link">
-          
+    <li class="md-tabs__item">
+      <a href="../development/" class="md-tabs__link">
+        
   
     
   
-  Tutorial
+  Development
 
-        </a>
-      </li>
-    
+      </a>
+    </li>
   
 
       
@@ -367,6 +364,8 @@
       
   
   
+    
+  
   
   
     
@@ -378,8 +377,6 @@
       
         
       
-        
-      
     
     
     
@@ -387,12 +384,12 @@
       
       
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
         
           
           
@@ -414,7 +411,7 @@
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_1">
             <span class="md-nav__icon md-icon"></span>
             Getting Started
@@ -427,39 +424,159 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../overview/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Basic Usage
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
-    Overview
+    Basic Usage
   </span>
   
 
       </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../contributing/" class="md-nav__link">
+      
         
-  
-  <span class="md-ellipsis">
-    Contributing
-  </span>
+
   
 
-      </a>
+<nav class="md-nav md-nav--secondary" aria-label="Page contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Page contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#chat-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      Chat tab
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Chat tab">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#conversation-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Conversation settings
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Conversation settings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#conversation-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      Conversation control
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#file-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      File index
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chat-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      Chat interface
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#information-panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      Information panel
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-index-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      File index tab
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="File index tab">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#file-upload" class="md-nav__link">
+    <span class="md-ellipsis">
+      File upload
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#file-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      File list
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -841,10 +958,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -854,6 +969,8 @@
       
         
       
+        
+      
     
     
     
@@ -861,29 +978,37 @@
       
       
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
-            
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../development/" class="md-nav__link ">
+              
   
   <span class="md-ellipsis">
-    Tutorial
+    Development
   </span>
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
-            Tutorial
+            Development
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -894,7 +1019,28 @@
   
   
     <li class="md-nav__item">
-      <a href="../data-components/" class="md-nav__link">
+      <a href="../development/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/data-components/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -912,30 +1058,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Creating a Component
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../development/create-a-component/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -944,37 +1070,6 @@
   
 
       </a>
-      
-        
-
-  
-
-<nav class="md-nav md-nav--secondary" aria-label="Page contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Page contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#benefits-of-component" class="md-nav__link">
-    <span class="md-ellipsis">
-      Benefits of component
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -987,7 +1082,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ultilities/" class="md-nav__link">
+      <a href="../development/utilities/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1336,6 +1431,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1423,11 +1522,53 @@
   
   
     <li class="md-nav__item">
+      <a href="../reference/embeddings/fastembed/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fastembed
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../reference/embeddings/langchain_based/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     Langchain Based
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/embeddings/openai/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Openai
   </span>
   
 
@@ -2094,6 +2235,8 @@
       
         
       
+        
+      
     
     
     
@@ -2207,6 +2350,27 @@
   
   <span class="md-ellipsis">
     Llamacpp
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/llms/chats/openai/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Openai
   </span>
   
 
@@ -2502,6 +2666,8 @@
         
       
         
+      
+        
           
         
       
@@ -2542,6 +2708,27 @@
             Loaders
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/loaders/adobe_loader/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Adobe Loader
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -2726,6 +2913,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -2735,7 +2926,7 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_8_9" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_8_10" >
         
           
           
@@ -2751,18 +2942,39 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_4_8_9" id="__nav_4_8_9_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_4_8_10" id="__nav_4_8_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_8_9_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_8_9">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_8_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_8_10">
             <span class="md-nav__icon md-icon"></span>
             Utils
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/loaders/utils/adobe/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Adobe
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -2776,6 +2988,27 @@
   
   <span class="md-ellipsis">
     Box
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/loaders/utils/gpt4v/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Gpt4V
   </span>
   
 
@@ -3314,11 +3547,101 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#benefits-of-component" class="md-nav__link">
+  <a href="#chat-tab" class="md-nav__link">
     <span class="md-ellipsis">
-      Benefits of component
+      Chat tab
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Chat tab">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#conversation-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Conversation settings
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Conversation settings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#conversation-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      Conversation control
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#file-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      File index
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chat-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      Chat interface
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#information-panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      Information panel
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-index-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      File index tab
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="File index tab">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#file-upload" class="md-nav__link">
+    <span class="md-ellipsis">
+      File upload
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#file-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      File list
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -3337,7 +3660,7 @@
                   
 
   
-    <a href="https://github.com/Cinnamon/kotaemon/edit/main/docs/create-a-component.md" title="Edit this page" class="md-content__button md-icon">
+    <a href="https://github.com/Cinnamon/kotaemon/edit/main/docs/usage.md" title="Edit this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25Z"/></svg>
     </a>
@@ -3345,95 +3668,41 @@
   
 
 
-<h1 id="creating-a-component">Creating a component<a class="headerlink" href="#creating-a-component" title="Permanent link">&para;</a></h1>
-<p>A fundamental concept in kotaemon is "component".</p>
-<p>Anything that isn't data or data structure is a "component". A component can be
-thought of as a step within a pipeline. It takes in some input, processes it,
-and returns an output, just the same as a Python function! The output will then
-become an input for the next component in a pipeline. In fact, a pipeline is just
-a component. More appropriately, a nested component: a component that makes use of one or more other components in
-the processing step. So in reality, there isn't a difference between a pipeline
-and a component! Because of that, in kotaemon, we will consider them the
-same as "component".</p>
-<p>To define a component, you will:</p>
-<ol>
-<li>Create a class that subclasses from <code>kotaemon.base.BaseComponent</code></li>
-<li>Declare init params with type annotation</li>
-<li>Declare nodes (nodes are just other components!) with type annotation</li>
-<li>Implement the processing logic in <code>run</code>.</li>
-</ol>
-<p>The syntax of a component is as follow:</p>
-<div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1"> 1</a></span>
-<span class="normal"><a href="#__codelineno-0-2"> 2</a></span>
-<span class="normal"><a href="#__codelineno-0-3"> 3</a></span>
-<span class="normal"><a href="#__codelineno-0-4"> 4</a></span>
-<span class="normal"><a href="#__codelineno-0-5"> 5</a></span>
-<span class="normal"><a href="#__codelineno-0-6"> 6</a></span>
-<span class="normal"><a href="#__codelineno-0-7"> 7</a></span>
-<span class="normal"><a href="#__codelineno-0-8"> 8</a></span>
-<span class="normal"><a href="#__codelineno-0-9"> 9</a></span>
-<span class="normal"><a href="#__codelineno-0-10">10</a></span>
-<span class="normal"><a href="#__codelineno-0-11">11</a></span>
-<span class="normal"><a href="#__codelineno-0-12">12</a></span>
-<span class="normal"><a href="#__codelineno-0-13">13</a></span>
-<span class="normal"><a href="#__codelineno-0-14">14</a></span>
-<span class="normal"><a href="#__codelineno-0-15">15</a></span>
-<span class="normal"><a href="#__codelineno-0-16">16</a></span>
-<span class="normal"><a href="#__codelineno-0-17">17</a></span>
-<span class="normal"><a href="#__codelineno-0-18">18</a></span>
-<span class="normal"><a href="#__codelineno-0-19">19</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="kn">from</span> <span class="nn">kotaemon.base</span> <span class="kn">import</span> <span class="n">BaseComponent</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">kotaemon.llms</span> <span class="kn">import</span> <span class="n">AzureChatOpenAI</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="kn">from</span> <span class="nn">kotaemon.parsers</span> <span class="kn">import</span> <span class="n">RegexExtractor</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5"></a>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="k">class</span> <span class="nc">FancyPipeline</span><span class="p">(</span><span class="n">BaseComponent</span><span class="p">):</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7"></a>    <span class="n">param1</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;This is param1&quot;</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8"></a>    <span class="n">param2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9"></a>    <span class="n">param3</span><span class="p">:</span> <span class="nb">float</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10"></a>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a>    <span class="n">node1</span><span class="p">:</span> <span class="n">BaseComponent</span>    <span class="c1"># this is a node because of BaseComponent type annotation</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a>    <span class="n">node2</span><span class="p">:</span> <span class="n">AzureChatOpenAI</span>  <span class="c1"># this is also a node because AzureChatOpenAI subclasses BaseComponent</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a>    <span class="n">node3</span><span class="p">:</span> <span class="n">RegexExtractor</span>   <span class="c1"># this is also a node bceause RegexExtractor subclasses BaseComponent</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">some_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a>        <span class="n">prompt</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param1</span> <span class="o">+</span> <span class="n">some_text</span><span class="p">)</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">param3</span><span class="p">)</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a>        <span class="n">llm_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node2</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a>        <span class="n">matches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node3</span><span class="p">(</span><span class="n">llm_pred</span><span class="p">)</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a>        <span class="k">return</span> <span class="n">matches</span>
-</span></code></pre></div></td></tr></table></div>
-<p>Then this component can be used as follow:</p>
-<div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-1-1"> 1</a></span>
-<span class="normal"><a href="#__codelineno-1-2"> 2</a></span>
-<span class="normal"><a href="#__codelineno-1-3"> 3</a></span>
-<span class="normal"><a href="#__codelineno-1-4"> 4</a></span>
-<span class="normal"><a href="#__codelineno-1-5"> 5</a></span>
-<span class="normal"><a href="#__codelineno-1-6"> 6</a></span>
-<span class="normal"><a href="#__codelineno-1-7"> 7</a></span>
-<span class="normal"><a href="#__codelineno-1-8"> 8</a></span>
-<span class="normal"><a href="#__codelineno-1-9"> 9</a></span>
-<span class="normal"><a href="#__codelineno-1-10">10</a></span>
-<span class="normal"><a href="#__codelineno-1-11">11</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="n">llm</span> <span class="o">=</span> <span class="n">AzureChatOpenAI</span><span class="p">(</span><span class="n">endpoint</span><span class="o">=</span><span class="s2">&quot;some-endpont&quot;</span><span class="p">)</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2"></a><span class="n">extractor</span> <span class="o">=</span> <span class="n">RegexExtractor</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;Yes&quot;</span><span class="p">])</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3"></a>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4"></a><span class="n">component</span> <span class="o">=</span> <span class="n">FancyPipeline</span><span class="p">(</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5"></a>    <span class="n">param1</span><span class="o">=</span><span class="s2">&quot;Hello&quot;</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6"></a>    <span class="n">param3</span><span class="o">=</span><span class="mf">1.5</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7"></a>    <span class="n">node1</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8"></a>    <span class="n">node2</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9"></a>    <span class="n">node3</span><span class="o">=</span><span class="n">extractor</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10"></a><span class="p">)</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11"></a><span class="n">component</span><span class="p">(</span><span class="s2">&quot;goodbye&quot;</span><span class="p">)</span>
-</span></code></pre></div></td></tr></table></div>
-<p>This way, we can define each operation as a reusable component, and use them to
-compose larger reusable components!</p>
-<h2 id="benefits-of-component">Benefits of component<a class="headerlink" href="#benefits-of-component" title="Permanent link">&para;</a></h2>
-<p>By defining a component as above, we formally encapsulate all the necessary
-information inside a single class. This introduces several benefits:</p>
-<ol>
-<li>Allow tools like promptui to inspect the inner working of a component in
-   order to automatically generate the promptui.</li>
-<li>Allow visualizing a pipeline for debugging purpose.</li>
-</ol>
+<h1 id="basic-usage">Basic Usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h1>
+<h2 id="chat-tab">Chat tab<a class="headerlink" href="#chat-tab" title="Permanent link">&para;</a></h2>
+<p><img alt="chat tab" src="../images/chat-tab.png" /></p>
+<p>The chat tab is divided into 3 columns:</p>
+<ul>
+<li>Left: Conversation settings</li>
+<li>Middle: Chat interface</li>
+<li>Right: Information panel</li>
+</ul>
+<h3 id="conversation-settings">Conversation settings<a class="headerlink" href="#conversation-settings" title="Permanent link">&para;</a></h3>
+<h4 id="conversation-control">Conversation control<a class="headerlink" href="#conversation-control" title="Permanent link">&para;</a></h4>
+<p>Create, rename, and delete conversations.</p>
+<p><img alt="covnerstaion control" src="../images/converstaion-control.png" /></p>
+<h4 id="file-index">File index<a class="headerlink" href="#file-index" title="Permanent link">&para;</a></h4>
+<p>Choose which files to retrieve references from. If no file is selected, all files will be used.</p>
+<p><img alt="file index" src="../images/file-index.png" /></p>
+<h3 id="chat-interface">Chat interface<a class="headerlink" href="#chat-interface" title="Permanent link">&para;</a></h3>
+<p>Interact with the chatbot.</p>
+<p><img alt="chat interface" src="../images/chat-interface.png" /></p>
+<h3 id="information-panel">Information panel<a class="headerlink" href="#information-panel" title="Permanent link">&para;</a></h3>
+<p>Supporting information such as the retrieved evidence and reference will be displayed
+here.</p>
+<p><img alt="info panel" src="../images/info-panel.png" /></p>
+<h2 id="file-index-tab">File index tab<a class="headerlink" href="#file-index-tab" title="Permanent link">&para;</a></h2>
+<p><img alt="file index tab" src="../images/file-index-tab.png" /></p>
+<h3 id="file-upload">File upload<a class="headerlink" href="#file-upload" title="Permanent link">&para;</a></h3>
+<p>In order for a file to be used as an index for retrieval, it must be processed by the
+application first. Do this uploading your file to the UI and then select <code>Upload and Index</code>.</p>
+<p><img alt="file upload" src="../images/file-upload.png" /></p>
+<p>The application will take some time to process the file and show a message once it is
+done. Then you will be able to select it in the <a href="#file-index">File index section</a> of the <a href="#chat-tab">Chat tab</a>.</p>
+<h3 id="file-list">File list<a class="headerlink" href="#file-list" title="Permanent link">&para;</a></h3>
+<p>This section shows the list of files that have been uploaded to the application and
+allows users to delete them.</p>
+<p><img alt="file-list" src="../images/file-list.png" /></p>
 
 
 
@@ -3456,7 +3725,7 @@ information inside a single class. This introduces several benefits:</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2023-12-20T04:30:25+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2023-12-20</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-03-29T12:47:03+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-03-29</span>
   </span>
 
     
@@ -3466,7 +3735,7 @@ information inside a single class. This introduces several benefits:</p>
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3h-2Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2023-12-20T04:30:25+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2023-12-20</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-03-29T12:47:03+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-03-29</span>
   </span>
 
     
@@ -3506,7 +3775,7 @@ information inside a single class. This introduces several benefits:</p>
     >
       
         <a
-          href="../data-components/"
+          href=".."
           class="md-footer__link md-footer__link--prev"
           rel="prev"
         >
@@ -3518,14 +3787,14 @@ information inside a single class. This introduces several benefits:</p>
               <span class="md-footer__direction">
                 Previous
               </span>
-              Data & Data Structure Components
+              Quick Start
             </div>
           </div>
         </a>
       
       
         <a
-          href="../ultilities/"
+          href="../pages/app/features/"
           class="md-footer__link md-footer__link--next"
           rel="next"
         >
@@ -3534,7 +3803,7 @@ information inside a single class. This introduces several benefits:</p>
               <span class="md-footer__direction">
                 Next
               </span>
-              Utilities
+              Features
             </div>
           </div>
           <div class="md-footer__button md-icon">

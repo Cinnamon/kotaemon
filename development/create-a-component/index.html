@@ -9,25 +9,25 @@
       
       
       
-        <link rel="prev" href="../pages/app/functional-description/">
+        <link rel="prev" href="../data-components/">
       
       
-        <link rel="next" href="../create-a-component/">
+        <link rel="next" href="../utilities/">
       
       
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.2">
     
     
       
-        <title>Data & Data Structure Components - kotaemon Docs</title>
+        <title>Creating a Component - kotaemon Docs</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.50c56a3b.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.50c56a3b.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -37,8 +37,8 @@
 
       
     
-<script src="../assets/pymdownx-extras/material-extra-theme-TVq-kNRT.js" type="text/javascript"></script>
-<script src="../assets/pymdownx-extras/material-extra-3rdparty-E-i8w1WA.js" type="text/javascript"></script>
+<script src="../../assets/pymdownx-extras/material-extra-theme-TVq-kNRT.js" type="text/javascript"></script>
+<script src="../../assets/pymdownx-extras/material-extra-3rdparty-E-i8w1WA.js" type="text/javascript"></script>
 
     
       
@@ -50,15 +50,15 @@
       
     
     
-      <link rel="stylesheet" href="../css/timeago.css">
+      <link rel="stylesheet" href="../../css/timeago.css">
     
-      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../extra/css/code_select.css">
+      <link rel="stylesheet" href="../../extra/css/code_select.css">
     
-      <link rel="stylesheet" href="../assets/pymdownx-extras/extra-fb5a2a1c86.css">
+      <link rel="stylesheet" href="../../assets/pymdownx-extras/extra-fb5a2a1c86.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#data-loader" class="md-skip">
+        <a href="#creating-a-component" class="md-skip">
           Skip to content
         </a>
       
@@ -101,7 +101,7 @@
     aria-label="header.title"
   >
     <a
-      href=".."
+      href="../.."
       title="kotaemon Docs"
       class="md-header__button md-logo"
       aria-label="kotaemon Docs"
@@ -124,7 +124,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Data & Data Structure Components
+              Creating a Component
             
           </span>
         </div>
@@ -243,7 +243,7 @@
     
     
       <li class="md-tabs__item">
-        <a href=".." class="md-tabs__link">
+        <a href="../.." class="md-tabs__link">
           
   
     
@@ -263,7 +263,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../pages/app/features/" class="md-tabs__link">
+        <a href="../../pages/app/features/" class="md-tabs__link">
           
   
     
@@ -282,19 +282,16 @@
     
   
   
-    
-    
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
-          
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="../" class="md-tabs__link">
+        
   
     
   
-  Tutorial
+  Development
 
-        </a>
-      </li>
-    
+      </a>
+    </li>
   
 
       
@@ -305,7 +302,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../reference/agents/" class="md-tabs__link">
+        <a href="../../reference/agents/" class="md-tabs__link">
           
   
     
@@ -340,7 +337,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="kotaemon Docs" class="md-nav__button md-logo" aria-label="kotaemon Docs" data-md-component="logo">
+    <a href="../.." title="kotaemon Docs" class="md-nav__button md-logo" aria-label="kotaemon Docs" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
@@ -378,8 +375,6 @@
       
         
       
-        
-      
     
     
     
@@ -397,7 +392,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href=".." class="md-nav__link ">
+            <a href="../.." class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -430,32 +425,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../overview/" class="md-nav__link">
+      <a href="../../usage/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Overview
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../contributing/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Contributing
+    Basic Usage
   </span>
   
 
@@ -535,7 +509,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../pages/app/features/" class="md-nav__link">
+      <a href="../../pages/app/features/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -597,7 +571,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../pages/app/index/file/" class="md-nav__link">
+      <a href="../../pages/app/index/file/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -644,7 +618,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../pages/app/settings/overview/" class="md-nav__link ">
+            <a href="../../pages/app/settings/overview/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -675,7 +649,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../pages/app/settings/user-settings/" class="md-nav__link">
+      <a href="../../pages/app/settings/user-settings/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -745,7 +719,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../pages/app/ext/user-management/" class="md-nav__link">
+      <a href="../../pages/app/ext/user-management/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -774,7 +748,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../pages/app/customize-flows/" class="md-nav__link">
+      <a href="../../pages/app/customize-flows/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -795,7 +769,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../pages/app/customize-ui/" class="md-nav__link">
+      <a href="../../pages/app/customize-ui/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -816,7 +790,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../pages/app/functional-description/" class="md-nav__link">
+      <a href="../../pages/app/functional-description/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -854,6 +828,8 @@
       
         
       
+        
+      
     
     
     
@@ -869,23 +845,73 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
-            
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
   
   <span class="md-ellipsis">
-    Tutorial
+    Development
   </span>
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
-            Tutorial
+            Development
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-components/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Data & Data Structure Components
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -900,12 +926,14 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
   
   <span class="md-ellipsis">
-    Data & Data Structure Components
+    Creating a Component
   </span>
   
 
@@ -916,7 +944,7 @@
         
   
   <span class="md-ellipsis">
-    Data & Data Structure Components
+    Creating a Component
   </span>
   
 
@@ -930,6 +958,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -938,27 +968,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#data-loader" class="md-nav__link">
+  <a href="#benefits-of-component" class="md-nav__link">
     <span class="md-ellipsis">
-      Data Loader
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#document-store" class="md-nav__link">
-    <span class="md-ellipsis">
-      Document Store
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#vector-store" class="md-nav__link">
-    <span class="md-ellipsis">
-      Vector Store
+      Benefits of component
     </span>
   </a>
   
@@ -980,28 +992,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../create-a-component/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Creating a Component
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../ultilities/" class="md-nav__link">
+      <a href="../utilities/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1086,7 +1077,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/agents/" class="md-nav__link ">
+            <a href="../../reference/agents/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -1139,7 +1130,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/base/" class="md-nav__link ">
+            <a href="../../reference/base/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -1170,7 +1161,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/base/component/" class="md-nav__link">
+      <a href="../../reference/base/component/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1191,7 +1182,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/base/schema/" class="md-nav__link">
+      <a href="../../reference/base/schema/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1240,7 +1231,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/chatbot/" class="md-nav__link ">
+            <a href="../../reference/chatbot/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -1271,7 +1262,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/chatbot/base/" class="md-nav__link">
+      <a href="../../reference/chatbot/base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1292,7 +1283,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/chatbot/simple_respondent/" class="md-nav__link">
+      <a href="../../reference/chatbot/simple_respondent/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1321,7 +1312,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/cli/" class="md-nav__link">
+      <a href="../../reference/cli/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1350,6 +1341,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1364,7 +1359,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/embeddings/" class="md-nav__link ">
+            <a href="../../reference/embeddings/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -1395,7 +1390,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/embeddings/base/" class="md-nav__link">
+      <a href="../../reference/embeddings/base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1416,7 +1411,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/embeddings/endpoint_based/" class="md-nav__link">
+      <a href="../../reference/embeddings/endpoint_based/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1437,11 +1432,53 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/embeddings/langchain_based/" class="md-nav__link">
+      <a href="../../reference/embeddings/fastembed/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fastembed
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/embeddings/langchain_based/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     Langchain Based
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/embeddings/openai/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Openai
   </span>
   
 
@@ -1506,7 +1543,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/indices/" class="md-nav__link ">
+            <a href="../../reference/indices/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -1537,7 +1574,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/indices/base/" class="md-nav__link">
+      <a href="../../reference/indices/base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1576,7 +1613,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/indices/extractors/" class="md-nav__link ">
+            <a href="../../reference/indices/extractors/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -1607,7 +1644,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/indices/extractors/doc_parsers/" class="md-nav__link">
+      <a href="../../reference/indices/extractors/doc_parsers/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1654,7 +1691,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/indices/ingests/" class="md-nav__link ">
+            <a href="../../reference/indices/ingests/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -1685,7 +1722,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/indices/ingests/files/" class="md-nav__link">
+      <a href="../../reference/indices/ingests/files/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1734,7 +1771,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/indices/qa/" class="md-nav__link ">
+            <a href="../../reference/indices/qa/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -1765,7 +1802,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/indices/qa/citation/" class="md-nav__link">
+      <a href="../../reference/indices/qa/citation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1786,7 +1823,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/indices/qa/text_based/" class="md-nav__link">
+      <a href="../../reference/indices/qa/text_based/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1837,7 +1874,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/indices/rankings/" class="md-nav__link ">
+            <a href="../../reference/indices/rankings/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -1868,7 +1905,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/indices/rankings/base/" class="md-nav__link">
+      <a href="../../reference/indices/rankings/base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1889,7 +1926,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/indices/rankings/cohere/" class="md-nav__link">
+      <a href="../../reference/indices/rankings/cohere/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1910,7 +1947,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/indices/rankings/llm/" class="md-nav__link">
+      <a href="../../reference/indices/rankings/llm/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1939,7 +1976,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/indices/splitters/" class="md-nav__link">
+      <a href="../../reference/indices/splitters/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1960,7 +1997,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/indices/vectorindex/" class="md-nav__link">
+      <a href="../../reference/indices/vectorindex/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2025,7 +2062,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/llms/" class="md-nav__link ">
+            <a href="../../reference/llms/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -2056,7 +2093,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/llms/base/" class="md-nav__link">
+      <a href="../../reference/llms/base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2077,7 +2114,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/llms/branching/" class="md-nav__link">
+      <a href="../../reference/llms/branching/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2108,6 +2145,8 @@
       
         
       
+        
+      
     
     
     
@@ -2122,7 +2161,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/llms/chats/" class="md-nav__link ">
+            <a href="../../reference/llms/chats/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -2153,7 +2192,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/llms/chats/base/" class="md-nav__link">
+      <a href="../../reference/llms/chats/base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2174,7 +2213,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/llms/chats/endpoint_based/" class="md-nav__link">
+      <a href="../../reference/llms/chats/endpoint_based/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2195,7 +2234,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/llms/chats/langchain_based/" class="md-nav__link">
+      <a href="../../reference/llms/chats/langchain_based/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2216,11 +2255,32 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/llms/chats/llamacpp/" class="md-nav__link">
+      <a href="../../reference/llms/chats/llamacpp/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     Llamacpp
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/llms/chats/openai/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Openai
   </span>
   
 
@@ -2265,7 +2325,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/llms/completions/" class="md-nav__link ">
+            <a href="../../reference/llms/completions/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -2296,7 +2356,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/llms/completions/base/" class="md-nav__link">
+      <a href="../../reference/llms/completions/base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2317,7 +2377,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/llms/completions/langchain_based/" class="md-nav__link">
+      <a href="../../reference/llms/completions/langchain_based/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2346,7 +2406,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/llms/cot/" class="md-nav__link">
+      <a href="../../reference/llms/cot/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2367,7 +2427,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/llms/linear/" class="md-nav__link">
+      <a href="../../reference/llms/linear/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2408,7 +2468,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/llms/prompts/" class="md-nav__link ">
+            <a href="../../reference/llms/prompts/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -2439,7 +2499,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/llms/prompts/base/" class="md-nav__link">
+      <a href="../../reference/llms/prompts/base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2460,7 +2520,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/llms/prompts/template/" class="md-nav__link">
+      <a href="../../reference/llms/prompts/template/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2516,6 +2576,8 @@
         
       
         
+      
+        
           
         
       
@@ -2533,7 +2595,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/loaders/" class="md-nav__link ">
+            <a href="../../reference/loaders/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -2564,7 +2626,28 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/loaders/base/" class="md-nav__link">
+      <a href="../../reference/loaders/adobe_loader/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Adobe Loader
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/loaders/base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2585,7 +2668,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/loaders/composite_loader/" class="md-nav__link">
+      <a href="../../reference/loaders/composite_loader/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2606,7 +2689,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/loaders/docx_loader/" class="md-nav__link">
+      <a href="../../reference/loaders/docx_loader/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2627,7 +2710,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/loaders/excel_loader/" class="md-nav__link">
+      <a href="../../reference/loaders/excel_loader/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2648,7 +2731,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/loaders/html_loader/" class="md-nav__link">
+      <a href="../../reference/loaders/html_loader/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2669,7 +2752,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/loaders/mathpix_loader/" class="md-nav__link">
+      <a href="../../reference/loaders/mathpix_loader/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2690,7 +2773,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/loaders/ocr_loader/" class="md-nav__link">
+      <a href="../../reference/loaders/ocr_loader/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2711,7 +2794,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/loaders/unstructured_loader/" class="md-nav__link">
+      <a href="../../reference/loaders/unstructured_loader/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2740,6 +2823,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -2749,12 +2836,12 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_8_9" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_8_10" >
         
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/loaders/utils/" class="md-nav__link ">
+            <a href="../../reference/loaders/utils/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -2765,14 +2852,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_4_8_9" id="__nav_4_8_9_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_4_8_10" id="__nav_4_8_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_8_9_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_8_9">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_8_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_8_10">
             <span class="md-nav__icon md-icon"></span>
             Utils
           </label>
@@ -2785,7 +2872,28 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/loaders/utils/box/" class="md-nav__link">
+      <a href="../../reference/loaders/utils/adobe/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Adobe
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/loaders/utils/box/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2806,7 +2914,28 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/loaders/utils/pdf_ocr/" class="md-nav__link">
+      <a href="../../reference/loaders/utils/gpt4v/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Gpt4V
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/loaders/utils/pdf_ocr/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2827,7 +2956,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/loaders/utils/table/" class="md-nav__link">
+      <a href="../../reference/loaders/utils/table/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2882,7 +3011,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/parsers/" class="md-nav__link ">
+            <a href="../../reference/parsers/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -2913,7 +3042,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/parsers/regex_extractor/" class="md-nav__link">
+      <a href="../../reference/parsers/regex_extractor/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2966,7 +3095,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/storages/" class="md-nav__link ">
+            <a href="../../reference/storages/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -3021,7 +3150,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/storages/docstores/" class="md-nav__link ">
+            <a href="../../reference/storages/docstores/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -3052,7 +3181,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/storages/docstores/base/" class="md-nav__link">
+      <a href="../../reference/storages/docstores/base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3073,7 +3202,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/storages/docstores/elasticsearch/" class="md-nav__link">
+      <a href="../../reference/storages/docstores/elasticsearch/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3094,7 +3223,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/storages/docstores/in_memory/" class="md-nav__link">
+      <a href="../../reference/storages/docstores/in_memory/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3115,7 +3244,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/storages/docstores/simple_file/" class="md-nav__link">
+      <a href="../../reference/storages/docstores/simple_file/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3168,7 +3297,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/storages/vectorstores/" class="md-nav__link ">
+            <a href="../../reference/storages/vectorstores/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -3199,7 +3328,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/storages/vectorstores/base/" class="md-nav__link">
+      <a href="../../reference/storages/vectorstores/base/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3220,7 +3349,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/storages/vectorstores/chroma/" class="md-nav__link">
+      <a href="../../reference/storages/vectorstores/chroma/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3241,7 +3370,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/storages/vectorstores/in_memory/" class="md-nav__link">
+      <a href="../../reference/storages/vectorstores/in_memory/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3262,7 +3391,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/storages/vectorstores/simple_file/" class="md-nav__link">
+      <a href="../../reference/storages/vectorstores/simple_file/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3318,6 +3447,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -3326,27 +3457,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#data-loader" class="md-nav__link">
+  <a href="#benefits-of-component" class="md-nav__link">
     <span class="md-ellipsis">
-      Data Loader
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#document-store" class="md-nav__link">
-    <span class="md-ellipsis">
-      Document Store
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#vector-store" class="md-nav__link">
-    <span class="md-ellipsis">
-      Vector Store
+      Benefits of component
     </span>
   </a>
   
@@ -3367,7 +3480,7 @@
                   
 
   
-    <a href="https://github.com/Cinnamon/kotaemon/edit/main/docs/data-components.md" title="Edit this page" class="md-content__button md-icon">
+    <a href="https://github.com/Cinnamon/kotaemon/edit/main/docs/development/create-a-component.md" title="Edit this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25Z"/></svg>
     </a>
@@ -3375,50 +3488,95 @@
   
 
 
-  <h1>Data & Data Structure Components</h1>
-
-<p>The data &amp; data structure components include:</p>
-<ul>
-<li>The <code>Document</code> class.</li>
-<li>The document store.</li>
-<li>The vector store.</li>
-</ul>
-<h3 id="data-loader">Data Loader<a class="headerlink" href="#data-loader" title="Permanent link">&para;</a></h3>
-<ul>
-<li>PdfLoader</li>
-<li>
-<p>Layout-aware with table parsing PdfLoader</p>
-<ul>
-<li>MathPixLoader: To use this loader, you need MathPix API key, refer to <a href="https://docs.mathpix.com/#introduction">mathpix docs</a> for more information</li>
-<li>OCRLoader: This loader uses lib-table and Flax pipeline to perform OCR and read table structure from PDF file (TODO: add more info about deployment of this module).</li>
-<li>
-<p>Output:</p>
-<ul>
-<li>
-<p>Document: text + metadata to identify whether it is table or not</p>
-<div class="language-text highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1">1</a></span>
-<span class="normal"><a href="#__codelineno-0-2">2</a></span>
-<span class="normal"><a href="#__codelineno-0-3">3</a></span>
-<span class="normal"><a href="#__codelineno-0-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1"></a>- &quot;source&quot;: source file name
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2"></a>- &quot;type&quot;: &quot;table&quot; or &quot;text&quot;
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3"></a>- &quot;table_origin&quot;: original table in markdown format (to be feed to LLM or visualize using external tools)
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4"></a>- &quot;page_label&quot;: page number in the original PDF document
+<h1 id="creating-a-component">Creating a component<a class="headerlink" href="#creating-a-component" title="Permanent link">&para;</a></h1>
+<p>A fundamental concept in kotaemon is "component".</p>
+<p>Anything that isn't data or data structure is a "component". A component can be
+thought of as a step within a pipeline. It takes in some input, processes it,
+and returns an output, just the same as a Python function! The output will then
+become an input for the next component in a pipeline. In fact, a pipeline is just
+a component. More appropriately, a nested component: a component that makes use of one or more other components in
+the processing step. So in reality, there isn't a difference between a pipeline
+and a component! Because of that, in kotaemon, we will consider them the
+same as "component".</p>
+<p>To define a component, you will:</p>
+<ol>
+<li>Create a class that subclasses from <code>kotaemon.base.BaseComponent</code></li>
+<li>Declare init params with type annotation</li>
+<li>Declare nodes (nodes are just other components!) with type annotation</li>
+<li>Implement the processing logic in <code>run</code>.</li>
+</ol>
+<p>The syntax of a component is as follow:</p>
+<div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-0-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-0-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-0-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-0-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-0-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-0-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-0-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-0-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-0-10">10</a></span>
+<span class="normal"><a href="#__codelineno-0-11">11</a></span>
+<span class="normal"><a href="#__codelineno-0-12">12</a></span>
+<span class="normal"><a href="#__codelineno-0-13">13</a></span>
+<span class="normal"><a href="#__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#__codelineno-0-19">19</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="kn">from</span> <span class="nn">kotaemon.base</span> <span class="kn">import</span> <span class="n">BaseComponent</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">kotaemon.llms</span> <span class="kn">import</span> <span class="n">LCAzureChatOpenAI</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="kn">from</span> <span class="nn">kotaemon.parsers</span> <span class="kn">import</span> <span class="n">RegexExtractor</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="k">class</span> <span class="nc">FancyPipeline</span><span class="p">(</span><span class="n">BaseComponent</span><span class="p">):</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7"></a>    <span class="n">param1</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;This is param1&quot;</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8"></a>    <span class="n">param2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9"></a>    <span class="n">param3</span><span class="p">:</span> <span class="nb">float</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a>    <span class="n">node1</span><span class="p">:</span> <span class="n">BaseComponent</span>    <span class="c1"># this is a node because of BaseComponent type annotation</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a>    <span class="n">node2</span><span class="p">:</span> <span class="n">LCAzureChatOpenAI</span>  <span class="c1"># this is also a node because LCAzureChatOpenAI subclasses BaseComponent</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a>    <span class="n">node3</span><span class="p">:</span> <span class="n">RegexExtractor</span>   <span class="c1"># this is also a node bceause RegexExtractor subclasses BaseComponent</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">some_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a>        <span class="n">prompt</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param1</span> <span class="o">+</span> <span class="n">some_text</span><span class="p">)</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">param3</span><span class="p">)</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a>        <span class="n">llm_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node2</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a>        <span class="n">matches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node3</span><span class="p">(</span><span class="n">llm_pred</span><span class="p">)</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a>        <span class="k">return</span> <span class="n">matches</span>
 </span></code></pre></div></td></tr></table></div>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<h3 id="document-store">Document Store<a class="headerlink" href="#document-store" title="Permanent link">&para;</a></h3>
-<ul>
-<li>InMemoryDocumentStore</li>
-</ul>
-<h3 id="vector-store">Vector Store<a class="headerlink" href="#vector-store" title="Permanent link">&para;</a></h3>
-<ul>
-<li>ChromaVectorStore</li>
-<li>InMemoryVectorStore</li>
-</ul>
+<p>Then this component can be used as follow:</p>
+<div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-1-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-1-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-1-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-1-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-1-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-1-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-1-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-1-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-1-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-1-10">10</a></span>
+<span class="normal"><a href="#__codelineno-1-11">11</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="n">llm</span> <span class="o">=</span> <span class="n">LCAzureChatOpenAI</span><span class="p">(</span><span class="n">endpoint</span><span class="o">=</span><span class="s2">&quot;some-endpont&quot;</span><span class="p">)</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2"></a><span class="n">extractor</span> <span class="o">=</span> <span class="n">RegexExtractor</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;yes&quot;</span><span class="p">,</span> <span class="s2">&quot;Yes&quot;</span><span class="p">])</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4"></a><span class="n">component</span> <span class="o">=</span> <span class="n">FancyPipeline</span><span class="p">(</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5"></a>    <span class="n">param1</span><span class="o">=</span><span class="s2">&quot;Hello&quot;</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6"></a>    <span class="n">param3</span><span class="o">=</span><span class="mf">1.5</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7"></a>    <span class="n">node1</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8"></a>    <span class="n">node2</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9"></a>    <span class="n">node3</span><span class="o">=</span><span class="n">extractor</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10"></a><span class="p">)</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11"></a><span class="n">component</span><span class="p">(</span><span class="s2">&quot;goodbye&quot;</span><span class="p">)</span>
+</span></code></pre></div></td></tr></table></div>
+<p>This way, we can define each operation as a reusable component, and use them to
+compose larger reusable components!</p>
+<h2 id="benefits-of-component">Benefits of component<a class="headerlink" href="#benefits-of-component" title="Permanent link">&para;</a></h2>
+<p>By defining a component as above, we formally encapsulate all the necessary
+information inside a single class. This introduces several benefits:</p>
+<ol>
+<li>Allow tools like promptui to inspect the inner working of a component in
+   order to automatically generate the promptui.</li>
+<li>Allow visualizing a pipeline for debugging purpose.</li>
+</ol>
 
 
 
@@ -3441,7 +3599,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2023-12-20T04:30:25+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2023-12-20</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-04-06T04:53:17+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-04-06</span>
   </span>
 
     
@@ -3491,7 +3649,7 @@
     >
       
         <a
-          href="../pages/app/functional-description/"
+          href="../data-components/"
           class="md-footer__link md-footer__link--prev"
           rel="prev"
         >
@@ -3503,14 +3661,14 @@
               <span class="md-footer__direction">
                 Previous
               </span>
-              Functional description
+              Data & Data Structure Components
             </div>
           </div>
         </a>
       
       
         <a
-          href="../create-a-component/"
+          href="../utilities/"
           class="md-footer__link md-footer__link--next"
           rel="next"
         >
@@ -3519,7 +3677,7 @@
               <span class="md-footer__direction">
                 Next
               </span>
-              Creating a Component
+              Utilities
             </div>
           </div>
           <div class="md-footer__button md-icon">
@@ -3537,16 +3695,16 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": ["content.action.edit", "content.tabs.link", "content.code.annotate", "content.code.annotations", "content.code.copy", "navigation.tabs", "navigation.top", "navigation.instant", "navigation.indexes", "toc.follow", "search.share", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.action.edit", "content.tabs.link", "content.code.annotate", "content.code.annotations", "content.code.copy", "navigation.tabs", "navigation.top", "navigation.instant", "navigation.indexes", "toc.follow", "search.share", "search.highlight", "search.suggest"], "search": "../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.d7c377c4.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7c377c4.min.js"></script>
       
-        <script src="../js/timeago.min.js"></script>
+        <script src="../../js/timeago.min.js"></script>
       
-        <script src="../js/timeago_mkdocs_material.js"></script>
+        <script src="../../js/timeago_mkdocs_material.js"></script>
       
-        <script src="../assets/pymdownx-extras/extra-loader-MCFnu0Wd.js"></script>
+        <script src="../../assets/pymdownx-extras/extra-loader-MCFnu0Wd.js"></script>
       
     
   </body>
