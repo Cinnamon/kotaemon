@@ -88,7 +88,7 @@ if config("OPENAI_API_KEY", default=""):
     if len(KH_EMBEDDINGS) < 1:
         KH_EMBEDDINGS["openai"] = {
             "spec": {
-                "__type__": "kotaemon.embeddings.LCOpenAIEmbeddings",
+                "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
                 "base_url": config("OPENAI_API_BASE", default="")
                 or "https://api.openai.com/v1",
                 "api_key": config("OPENAI_API_KEY", default=""),
