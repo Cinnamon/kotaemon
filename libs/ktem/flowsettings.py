@@ -59,12 +59,13 @@ if config("AZURE_OPENAI_API_KEY", default="") and config(
             "spec": {
                 "__type__": "kotaemon.embeddings.LCAzureOpenAIEmbeddings",
                 "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
-                "openai_api_key": config("AZURE_OPENAI_API_KEY", default=""),
+                "api_key": config("AZURE_OPENAI_API_KEY", default=""),
                 "api_version": config("OPENAI_API_VERSION", default="")
                 or "2024-02-15-preview",
-                "deployment": config("AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT", default=""),
-                "request_timeout": 10,
-                "chunk_size": 16,
+                "azure_deployment": config(
+                    "AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT", default=""
+                ),
+                "timeout": 10,
             },
             "default": False,
             "accuracy": 5,
@@ -96,7 +97,6 @@ if config("OPENAI_API_KEY", default=""):
                 )
                 or "text-embedding-ada-002",
                 "timeout": 10,
-                "chunk_size": 16,
             },
             "default": False,
         }

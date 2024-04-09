@@ -59,7 +59,7 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
         input_ = self.prepare_input(text)
         client = self.prepare_client(async_version=False)
         resp = self.openai_response(
-            client, input=[_.text for _ in input_], **kwargs
+            client, input=[_.text if _.text else " " for _ in input_], **kwargs
         ).dict()
         output_ = sorted(resp["data"], key=lambda x: x["index"])
         return [
@@ -73,7 +73,7 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
         input_ = self.prepare_input(text)
         client = self.prepare_client(async_version=True)
         resp = await self.openai_response(
-            client, input=[_.text for _ in input_], **kwargs
+            client, input=[_.text if _.text else " " for _ in input_], **kwargs
         ).dict()
         output_ = sorted(resp["data"], key=lambda x: x["index"])
         return [
