@@ -32,15 +32,7 @@ KH_VECTORSTORE = {
     "path": str(user_cache_dir / "vectorstore"),
 }
 KH_LLMS = {}
-KH_EMBEDDINGS = {
-    "local-mxbai-large-v1": {
-        "spec": {
-            "__type__": "kotaemon.embeddings.FastEmbedEmbeddings",
-            "model_name": "mixedbread-ai/mxbai-embed-large-v1",
-        },
-        "default": True,
-    }
-}
+KH_EMBEDDINGS = {}
 
 # populate options from config
 if config("AZURE_OPENAI_API_KEY", default="") and config(
@@ -126,6 +118,13 @@ if config("LOCAL_MODEL", default=""):
             "cost": 0,
         }
 
+        KH_EMBEDDINGS["local-mxbai-large-v1"] = {
+            "spec": {
+                "__type__": "kotaemon.embeddings.FastEmbedEmbeddings",
+                "model_name": "mixedbread-ai/mxbai-embed-large-v1",
+            },
+            "default": True,
+        }
 
 KH_REASONINGS = ["ktem.reasoning.simple.FullQAPipeline"]
 KH_VLM_ENDPOINT = "{0}/openai/deployments/{1}/chat/completions?api-version={2}".format(
