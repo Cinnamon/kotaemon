@@ -57,7 +57,7 @@ if config("AZURE_OPENAI_API_KEY", default="") and config(
     if config("AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT", default=""):
         KH_EMBEDDINGS["azure"] = {
             "spec": {
-                "__type__": "kotaemon.embeddings.LCAzureOpenAIEmbeddings",
+                "__type__": "kotaemon.embeddings.AzureOpenAIEmbeddings",
                 "azure_endpoint": config("AZURE_OPENAI_ENDPOINT", default=""),
                 "api_key": config("AZURE_OPENAI_API_KEY", default=""),
                 "api_version": config("OPENAI_API_VERSION", default="")
@@ -68,8 +68,6 @@ if config("AZURE_OPENAI_API_KEY", default="") and config(
                 "timeout": 10,
             },
             "default": False,
-            "accuracy": 5,
-            "cost": 5,
         }
 
 if config("OPENAI_API_KEY", default=""):
@@ -88,7 +86,7 @@ if config("OPENAI_API_KEY", default=""):
     if len(KH_EMBEDDINGS) < 1:
         KH_EMBEDDINGS["openai"] = {
             "spec": {
-                "__type__": "kotaemon.embeddings.LCOpenAIEmbeddings",
+                "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
                 "base_url": config("OPENAI_API_BASE", default="")
                 or "https://api.openai.com/v1",
                 "api_key": config("OPENAI_API_KEY", default=""),
@@ -120,6 +118,14 @@ if config("LOCAL_MODEL", default=""):
             "cost": 0,
         }
 
+if len(KH_EMBEDDINGS) < 1:
+    KH_EMBEDDINGS["local-mxbai-large-v1"] = {
+        "spec": {
+            "__type__": "kotaemon.embeddings.FastEmbedEmbeddings",
+            "model_name": "mixedbread-ai/mxbai-embed-large-v1",
+        },
+        "default": True,
+    }
 
 KH_REASONINGS = ["ktem.reasoning.simple.FullQAPipeline"]
 KH_VLM_ENDPOINT = "{0}/openai/deployments/{1}/chat/completions?api-version={2}".format(

@@ -182,7 +182,5 @@ class ModelPool:
         return self._models[self._cost[0]]
 
 
-llms = ModelPool("LLMs", settings.KH_LLMS)
-embeddings = ModelPool("Embeddings", settings.KH_EMBEDDINGS)
 reasonings: dict = {}
 tools = ModelPool("Tools", {})
