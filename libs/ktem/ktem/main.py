@@ -1,8 +1,8 @@
 import gradio as gr
 from ktem.app import BaseApp
-from ktem.pages.admin import AdminPage
 from ktem.pages.chat import ChatPage
 from ktem.pages.help import HelpPage
+from ktem.pages.resources import ResourcesTab
 from ktem.pages.settings import SettingsPage
 
 
@@ -57,14 +57,16 @@ class App(BaseApp):
                 elem_id="resources-tab",
                 id="resources-tab",
                 visible=not self.f_user_management,
+                elem_classes=["fill-main-area-height", "scrollable"],
             ) as self._tabs["resources-tab"]:
-                self.admin_page = AdminPage(self)
+                self.resources_page = ResourcesTab(self)
 
             with gr.Tab(
                 "Settings",
                 elem_id="settings-tab",
                 id="settings-tab",
                 visible=not self.f_user_management,
+                elem_classes=["fill-main-area-height", "scrollable"],
             ) as self._tabs["settings-tab"]:
                 self.settings_page = SettingsPage(self)
 
@@ -73,6 +75,7 @@ class App(BaseApp):
                 elem_id="help-tab",
                 id="help-tab",
                 visible=not self.f_user_management,
+                elem_classes=["fill-main-area-height", "scrollable"],
             ) as self._tabs["help-tab"]:
                 self.help_page = HelpPage(self)
 
