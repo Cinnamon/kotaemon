@@ -432,7 +432,7 @@ class FileIndexPage(BasePage):
                     "name": each[0].name,
                     "size": each[0].size,
                     "text_length": each[0].text_length,
-                    "date_created": each[0].date_created,
+                    "date_created": each[0].date_created.strftime("%Y-%m-%d %H:%M:%S"),
                 }
                 for each in session.execute(statement).all()
             ]

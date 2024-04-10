@@ -32,7 +32,15 @@ KH_VECTORSTORE = {
     "path": str(user_cache_dir / "vectorstore"),
 }
 KH_LLMS = {}
-KH_EMBEDDINGS = {}
+KH_EMBEDDINGS = {
+    "local-mxbai-large-v1": {
+        "spec": {
+            "__type__": "kotaemon.embeddings.FastEmbedEmbeddings",
+            "model_name": "mixedbread-ai/mxbai-embed-large-v1",
+        },
+        "default": True,
+    }
+}
 
 # populate options from config
 if config("AZURE_OPENAI_API_KEY", default="") and config(
@@ -68,8 +76,6 @@ if config("AZURE_OPENAI_API_KEY", default="") and config(
                 "timeout": 10,
             },
             "default": False,
-            "accuracy": 5,
-            "cost": 5,
         }
 
 if config("OPENAI_API_KEY", default=""):
