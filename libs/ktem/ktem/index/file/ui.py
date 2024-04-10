@@ -42,14 +42,17 @@ class DirectoryUpload(BasePage):
     def __init__(self, app, index):
         super().__init__(app)
         self._index = index
-        self._supported_file_types = self._index.config.get("supported_file_types", [])
+        self._supported_file_types_str = self._index.config.get(
+            "supported_file_types", ""
+        )
+        self._supported_file_types = [
+            each.strip() for each in self._supported_file_types_str.split(",")
+        ]
         self.on_building_ui()
 
     def on_building_ui(self):
         with gr.Accordion(label="Directory upload", open=False):
-            gr.Markdown(
-                f"Supported file types: {', '.join(self._supported_file_types)}",
-            )
+            gr.Markdown(f"Supported file types: {self._supported_file_types_str}")
             self.path = gr.Textbox(
                 placeholder="Directory path...", lines=1, max_lines=1, container=False
             )
@@ -69,7 +72,12 @@ class FileIndexPage(BasePage):
     def __init__(self, app, index):
         super().__init__(app)
         self._index = index
-        self._supported_file_types = self._index.config.get("supported_file_types", [])
+        self._supported_file_types_str = self._index.config.get(
+            "supported_file_types", ""
+        )
+        self._supported_file_types = [
+            each.strip() for each in self._supported_file_types_str.split(",")
+        ]
         self.selected_panel_false = "Selected file: (please select above)"
         self.selected_panel_true = "Selected file: {name}"
         # TODO: on_building_ui is not correctly named if it's always called in
@@ -80,9 +88,7 @@ class FileIndexPage(BasePage):
     def upload_instruction(self) -> str:
         msgs = []
         if self._supported_file_types:
-            msgs.append(
-                f"- Supported file types: {', '.join(self._supported_file_types)}"
-            )
+            msgs.append(f"- Supported file types: {self._supported_file_types_str}")
 
         if max_file_size := self._index.config.get("max_file_size", 0):
             msgs.append(f"- Maximum file size: {max_file_size} MB")

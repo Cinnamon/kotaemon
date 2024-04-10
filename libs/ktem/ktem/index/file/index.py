@@ -81,11 +81,6 @@ class FileIndex(BaseIndex):
         self._index_ui_cls: Type
         self._index_ui: Any = None
 
-        self._setup_indexing_cls()
-        self._setup_retriever_cls()
-        self._setup_file_index_ui_cls()
-        self._setup_file_selector_ui_cls()
-
         self._default_settings: dict[str, dict] = {}
         self._setting_mappings: dict[str, dict] = {}
 
@@ -249,10 +244,6 @@ class FileIndex(BaseIndex):
         # user's modification
         config.update(self.config)
 
-        # clean
-        file_types_str = config["supported_file_types"]
-        file_types = [each.strip() for each in file_types_str.split(",")]
-        config["supported_file_types"] = file_types
         self.config = config
 
         # create the resources
@@ -269,6 +260,13 @@ class FileIndex(BaseIndex):
         self._vs.drop()
         self._docstore.drop()
         shutil.rmtree(self._fs_path)
+
+    def on_start(self):
+        """Setup the classes and hooks"""
+        self._setup_indexing_cls()
+        self._setup_retriever_cls()
+        self._setup_file_index_ui_cls()
+        self._setup_file_selector_ui_cls()
 
     def get_selector_component_ui(self):
         if self._selector_ui is None:
