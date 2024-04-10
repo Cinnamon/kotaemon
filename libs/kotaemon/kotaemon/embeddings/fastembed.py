@@ -18,10 +18,11 @@ class FastEmbedEmbeddings(BaseEmbeddings):
     model_name: str = Param(
         "BAAI/bge-small-en-v1.5",
         help=(
-            "Model name for fastembed. "
-            "Supported model: "
-            "https://qdrant.github.io/fastembed/examples/Supported_Models/"
+            "Model name for fastembed. Please refer "
+            "[here](https://qdrant.github.io/fastembed/examples/Supported_Models/) "
+            "for the list of supported models."
         ),
+        required=True,
     )
     batch_size: int = Param(
         256,
@@ -34,7 +35,7 @@ class FastEmbedEmbeddings(BaseEmbeddings):
             "If > 1, data-parallel encoding will be used. "
             "If 0, use all available CPUs. "
             "If None, use default onnxruntime threading. "
-            "Defaults to None"
+            "Defaults to None."
         ),
     )
 
