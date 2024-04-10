@@ -1,4 +1,4 @@
-Utilities detail can be referred in the sub-pages of this section.
+# Utilities
 
 ## Prompt engineering UI
 
@@ -36,7 +36,7 @@ done by the developers, while step 7 happens exclusively in Excel file).
 
 Command:
 
-```
+```shell
 $ kotaemon promptui export <module.path.piplineclass> --output <path/to/config/file.yml>
 ```
 
@@ -59,38 +59,32 @@ Declared as above, and `param1` will show up in the config YAML file, while `par
 
 developers can further edit the config file in this step to get the most suitable UI (step 4) with their tasks. The exported config will have this overall schema:
 
-```
+```yml
 <module.path.pipelineclass1>:
-  params:
-    ... (Detail param information to initiate a pipeline. This corresponds to the pipeline init parameters.)
-  inputs:
-    ... (Detail the input of the pipeline e.g. a text prompt. This corresponds to the params of `run(...)` method.)
-  outputs:
-    ... (Detail the output of the pipeline e.g. prediction, accuracy... This is the output information we wish to see in the UI.)
-  logs:
-    ... (Detail what information should show up in the log.)
+  params: ... (Detail param information to initiate a pipeline. This corresponds to the pipeline init parameters.)
+  inputs: ... (Detail the input of the pipeline e.g. a text prompt. This corresponds to the params of `run(...)` method.)
+  outputs: ... (Detail the output of the pipeline e.g. prediction, accuracy... This is the output information we wish to see in the UI.)
+  logs: ... (Detail what information should show up in the log.)
 ```
 
 ##### Input and params
 
 The inputs section have the overall schema as follow:
 
-```
+```yml
 inputs:
   <input-variable-name-1>:
     component: <supported-UI-component>
     params: # this section is optional)
       value: <default-value>
-  <input-variable-name-2>:
-    ... # similar to above
+  <input-variable-name-2>: ... # similar to above
 params:
-  <param-variable-name-1>:
-    ... # similar to those in the inputs
+  <param-variable-name-1>: ... # similar to those in the inputs
 ```
 
 The list of supported prompt UI and their corresponding gradio UI components:
 
-```
+```python
 COMPONENTS_CLASS = {
     "text": gr.components.Textbox,
     "checkbox": gr.components.CheckboxGroup,
@@ -107,7 +101,7 @@ COMPONENTS_CLASS = {
 
 The outputs are a list of variables that we wish to show in the UI. Since in Python, the function output doesn't have variable name, so output declaration is a little bit different than input and param declaration:
 
-```
+```yml
 outputs:
   - component: <supported-UI-component>
     step: <name-of-pipeline-step>
@@ -125,7 +119,7 @@ where:
 
 The logs show a list of sheetname and how to retrieve the desired information.
 
-```
+```yml
 logs:
   <logname>:
     inputs:
@@ -143,7 +137,7 @@ logs:
 
 Command:
 
-```
+```shell
 $ kotaemon promptui run <path/to/config/file.yml>
 ```
 

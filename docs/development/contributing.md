@@ -1,4 +1,6 @@
-# Package overview
+# Contributing
+
+## Package overview
 
 `kotaemon` library focuses on the AI building blocks to implement a RAG-based QA application. It consists of base interfaces, core components and a list of utilities:
 
@@ -47,14 +49,14 @@ mindmap
       Documentation Support
 ```
 
-# Common conventions
+## Common conventions
 
 - PR title: One-line description (example: Feat: Declare BaseComponent and decide LLM call interface).
 - [Encouraged] Provide a quick description in the PR, so that:
   - Reviewers can quickly understand the direction of the PR.
   - It will be included in the commit message when the PR is merged.
 
-# Environment caching on PR
+## Environment caching on PR
 
 - To speed up CI, environments are cached based on the version specified in `__init__.py`.
 - Since dependencies versions in `setup.py` are not pinned, you need to pump the version in order to use a new environment. That environment will then be cached and used by your subsequence commits within the PR, until you pump the version again
@@ -65,7 +67,7 @@ mindmap
   - When you want to run the CI, push a commit with the message containing `[ignore cache]`.
   - Once the PR is final, pump the version in `__init__.py` and push a final commit not containing `[ignore cache]`.
 
-# Merge PR guideline
+## Merge PR guideline
 
 - Use squash and merge option
 - 1st line message is the PR title.

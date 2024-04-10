@@ -1,10 +1,12 @@
+# Data & Data Structure Components
+
 The data & data structure components include:
 
 - The `Document` class.
 - The document store.
 - The vector store.
 
-### Data Loader
+## Data Loader
 
 - PdfLoader
 - Layout-aware with table parsing PdfLoader
@@ -22,11 +24,11 @@ The data & data structure components include:
       - "page_label": page number in the original PDF document
       ```
 
-### Document Store
+## Document Store
 
 - InMemoryDocumentStore
 
-### Vector Store
+## Vector Store
 
 - ChromaVectorStore
 - InMemoryVectorStore
