@@ -1,3 +1,7 @@
+:root {
+  --main-area-height: calc(100vh - 110px);
+}
+
 /* no footer */
 footer {
   display: none !important;
@@ -14,11 +18,13 @@ footer {
   background-clip: content-box;
 }
 ::-webkit-scrollbar-corner {
-  background: var(--border-color-primary);
+  background: var(--background-fill-primary);
 }
 
 .gradio-container {
   max-width: 100% !important;
+  /* overflow: scroll !important;
+  height: 100% !important; */
 }
 
 /* styling for header bar */
@@ -70,13 +76,23 @@ button.selected {
 }
 
 #main-chat-bot {
-  /* span the chat area to occupy full height minus space for chat input */
-  height: calc(100vh - 180px) !important;
+  flex: 1;
+}
+
+#chat-area {
+  height: var(--main-area-height) !important;
 }
 
 #chat-info-panel {
-  max-height: calc(100vh - 180px) !important;
+  max-height: var(--main-area-height) !important;
   overflow-y: scroll !important;
+}
+
+#conv-settings-panel {
+  max-height: var(--main-area-height) !important;
+  flex-wrap: unset;
+  overflow-y: scroll !important;
+  position: sticky;
 }
 
 .setting-answer-mode-description {
@@ -124,6 +140,18 @@ button.selected {
 }
 
 /* for setting height limit for buttons */
-.cap-height {
+.cap-button-height {
   max-height: 42px;
+}
+
+.scrollable {
+  overflow-y: auto;
+}
+
+.fill-main-area-height {
+  max-height: var(--main-area-height);
+}
+
+.unset-overflow {
+  overflow: unset !important;
 }

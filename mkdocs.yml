@@ -20,6 +20,7 @@ nav:
       - Customize UI: pages/app/customize-ui.md
       - Functional description: pages/app/functional-description.md
   - Development:
+      - development/index.md
       - Contributing: development/contributing.md
       - Data & Data Structure Components: development/data-components.md
       - Creating a Component: development/create-a-component.md

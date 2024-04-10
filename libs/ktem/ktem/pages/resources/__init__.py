@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 from .user import UserManagement
 
 
-class AdminPage(BasePage):
+class ResourcesTab(BasePage):
     def __init__(self, app):
         self._app = app
         self.on_building_ui()
@@ -21,7 +21,7 @@ class AdminPage(BasePage):
         with gr.Tab("LLMs") as self.llm_management_tab:
             self.llm_management = LLMManagement(self._app)
 
-        with gr.Tab("Embeddings") as self.llm_management_tab:
+        with gr.Tab("Embedding Models") as self.llm_management_tab:
             self.emb_management = EmbeddingManagement(self._app)
 
     def on_subscribe_public_events(self):

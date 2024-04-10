@@ -22,19 +22,20 @@ class ChatPanel(BasePage):
                 placeholder="Chat input",
                 scale=15,
                 container=False,
+                max_lines=10,
             )
             self.submit_btn = gr.Button(
                 value="Send",
                 scale=1,
                 min_width=10,
                 variant="primary",
-                elem_classes=["cap-height"],
+                elem_classes=["cap-button-height"],
             )
             self.regen_btn = gr.Button(
                 value="Regen",
                 scale=1,
                 min_width=10,
-                elem_classes=["cap-height"],
+                elem_classes=["cap-button-height"],
             )
 
     def submit_msg(self, chat_input, chat_history):
