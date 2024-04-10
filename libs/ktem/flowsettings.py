@@ -118,13 +118,14 @@ if config("LOCAL_MODEL", default=""):
             "cost": 0,
         }
 
-        KH_EMBEDDINGS["local-mxbai-large-v1"] = {
-            "spec": {
-                "__type__": "kotaemon.embeddings.FastEmbedEmbeddings",
-                "model_name": "mixedbread-ai/mxbai-embed-large-v1",
-            },
-            "default": True,
-        }
+if len(KH_EMBEDDINGS) < 1:
+    KH_EMBEDDINGS["local-mxbai-large-v1"] = {
+        "spec": {
+            "__type__": "kotaemon.embeddings.FastEmbedEmbeddings",
+            "model_name": "mixedbread-ai/mxbai-embed-large-v1",
+        },
+        "default": True,
+    }
 
 KH_REASONINGS = ["ktem.reasoning.simple.FullQAPipeline"]
 KH_VLM_ENDPOINT = "{0}/openai/deployments/{1}/chat/completions?api-version={2}".format(
