@@ -37,6 +37,7 @@ class ConversationControl(BasePage):
             container=False,
             filterable=False,
             interactive=True,
+            elem_classes=["unset-overflow"],
         )
 
         with gr.Row() as self._new_delete:

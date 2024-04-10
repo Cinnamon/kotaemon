@@ -27,7 +27,7 @@ class ChatPage(BasePage):
     def on_building_ui(self):
         with gr.Row():
             self.chat_state = gr.State(STATE)
-            with gr.Column(scale=1):
+            with gr.Column(scale=1, elem_id="conv-settings-panel"):
                 self.chat_control = ConversationControl(self._app)
 
                 if getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False):
@@ -60,7 +60,7 @@ class ChatPage(BasePage):
 
                 self.report_issue = ReportIssue(self._app)
 
-            with gr.Column(scale=6):
+            with gr.Column(scale=6, elem_id="chat-area"):
                 self.chat_panel = ChatPanel(self._app)
 
             with gr.Column(scale=3):

@@ -7,17 +7,14 @@ class HelpPage:
     def __init__(self, app):
         self._app = app
         self.dir_md = Path(__file__).parent.parent / "assets" / "md"
+        self.doc_dir = Path(__file__).parents[4] / "docs"
+
+        with gr.Accordion("User Guide"):
+            with (self.doc_dir / "usage.md").open(encoding="utf-8") as fi:
+                gr.Markdown(fi.read())
 
         with gr.Accordion("Changelogs"):
             gr.Markdown(self.get_changelogs())
-
-        with gr.Accordion("About Kotaemon (temporary)"):
-            with (self.dir_md / "about_kotaemon.md").open(encoding="utf-8") as fi:
-                gr.Markdown(fi.read())
-
-        with gr.Accordion("About Cinnamon AI (temporary)", open=False):
-            with (self.dir_md / "about_cinnamon.md").open(encoding="utf-8") as fi:
-                gr.Markdown(fi.read())
 
     def get_changelogs(self):
         with (self.dir_md / "changelogs.md").open(encoding="utf-8") as fi:

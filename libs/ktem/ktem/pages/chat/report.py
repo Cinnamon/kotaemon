@@ -28,8 +28,10 @@ class ReportIssue(BasePage):
                 label="Other issue:",
             )
             self.more_detail = gr.Textbox(
-                placeholder="More detail (e.g. how wrong is it, what is the "
-                "correct answer, etc...)",
+                placeholder=(
+                    "More detail (e.g. how wrong is it, what is the "
+                    "correct answer, etc...)"
+                ),
                 container=False,
                 lines=3,
             )

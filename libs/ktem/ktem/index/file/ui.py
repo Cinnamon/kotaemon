@@ -101,15 +101,16 @@ class FileIndexPage(BasePage):
             with gr.Column(scale=1):
                 gr.Markdown("## File Upload")
                 with gr.Column() as self.upload:
-                    msg = self.upload_instruction()
-                    if msg:
-                        gr.Markdown(msg)
-
                     self.files = File(
                         file_types=self._supported_file_types,
                         file_count="multiple",
                         container=True,
                     )
+
+                    msg = self.upload_instruction()
+                    if msg:
+                        gr.Markdown(msg)
+
                     with gr.Accordion("Advanced indexing options", open=True):
                         with gr.Row():
                             self.reindex = gr.Checkbox(
@@ -346,7 +347,7 @@ class FileIndexPage(BasePage):
         # download the file
         text = "\n\n".join([each.text for each in output_nodes])
         handler, file_path = tempfile.mkstemp(suffix=".txt")
-        with open(file_path, "w") as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(text)
         os.close(handler)
 
