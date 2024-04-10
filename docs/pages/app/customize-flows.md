@@ -193,7 +193,7 @@ information panel.
 You can access users' collections of LLMs and embedding models with:
 
 ```python
-from ktem.components import embeddings
+from ktem.embeddings.manager import embeddings
 from ktem.llms.manager import llms
 
 

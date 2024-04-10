@@ -236,17 +236,26 @@ class FileIndex(BaseIndex):
         """Create the index for the first time
 
         For the file index, this will:
-            1. Create the index and the source table if not already exists
-            2. Create the vectorstore
-            3. Create the docstore
+            1. Postprocess the config
+            2. Create the index and the source table if not already exists
+            3. Create the vectorstore
+            4. Create the docstore
         """
-        file_types_str = self.config.get(
-            "supported_file_types",
-            self.get_admin_settings()["supported_file_types"]["value"],
-        )
-        file_types = [each.strip() for each in file_types_str.split(",")]
-        self.config["supported_file_types"] = file_types
+        # default user's value
+        config = {}
+        for key, value in self.get_admin_settings().items():
+            config[key] = value["value"]
 
+        # user's modification
+        config.update(self.config)
+
+        # clean
+        file_types_str = config["supported_file_types"]
+        file_types = [each.strip() for each in file_types_str.split(",")]
+        config["supported_file_types"] = file_types
+        self.config = config
+
+        # create the resources
         self._resources["Source"].metadata.create_all(engine)  # type: ignore
         self._resources["Index"].metadata.create_all(engine)  # type: ignore
         self._fs_path.mkdir(parents=True, exist_ok=True)
@@ -285,7 +294,7 @@ class FileIndex(BaseIndex):
 
     @classmethod
     def get_admin_settings(cls):
-        from ktem.components import embeddings
+        from ktem.embeddings.manager import embeddings
 
         embedding_default = embeddings.get_default_name()
         embedding_choices = list(embeddings.options().keys())

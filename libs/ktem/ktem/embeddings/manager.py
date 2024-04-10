@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
 from theflow.utils.modules import deserialize
 
-from kotaemon.base import BaseComponent
+from kotaemon.embeddings.base import BaseEmbeddings
 
 from .db import EmbeddingTable, engine
 
@@ -14,7 +14,7 @@ class EmbeddingManager:
     """Represent a pool of models"""
 
     def __init__(self):
-        self._models: dict[str, BaseComponent] = {}
+        self._models: dict[str, BaseEmbeddings] = {}
         self._info: dict[str, dict] = {}
         self._default: str = ""
         self._vendors: list[Type] = []
@@ -60,7 +60,7 @@ class EmbeddingManager:
 
         self._vendors = [AzureOpenAIEmbeddings, OpenAIEmbeddings, FastEmbedEmbeddings]
 
-    def __getitem__(self, key: str) -> BaseComponent:
+    def __getitem__(self, key: str) -> BaseEmbeddings:
         """Get model by name"""
         return self._models[key]
 
@@ -69,8 +69,8 @@ class EmbeddingManager:
         return key in self._models
 
     def get(
-        self, key: str, default: Optional[BaseComponent] = None
-    ) -> Optional[BaseComponent]:
+        self, key: str, default: Optional[BaseEmbeddings] = None
+    ) -> Optional[BaseEmbeddings]:
         """Get model by name with default value"""
         return self._models.get(key, default)
 
@@ -116,18 +116,18 @@ class EmbeddingManager:
 
         return self._default
 
-    def get_random(self) -> BaseComponent:
+    def get_random(self) -> BaseEmbeddings:
         """Get random model"""
         return self._models[self.get_random_name()]
 
-    def get_default(self) -> BaseComponent:
+    def get_default(self) -> BaseEmbeddings:
         """Get default model
 
         In case there is no default model, choose random model from pool. In
         case there are multiple default models, choose random from them.
 
         Returns:
-            BaseComponent: model
+            BaseEmbeddings: model
         """
         return self._models[self.get_default_name()]
 

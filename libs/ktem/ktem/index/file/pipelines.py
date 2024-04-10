@@ -10,8 +10,9 @@ from pathlib import Path
 from typing import Optional
 
 import gradio as gr
-from ktem.components import embeddings, filestorage_path
+from ktem.components import filestorage_path
 from ktem.db.models import engine
+from ktem.embeddings.manager import embeddings
 from llama_index.vector_stores import (
     FilterCondition,
     FilterOperator,
@@ -68,9 +69,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             for surrounding tables (e.g. within the page)
     """
 
-    vector_retrieval: VectorRetrieval = VectorRetrieval.withx(
-        embedding=embeddings.get_default(),
-    )
+    vector_retrieval: VectorRetrieval = VectorRetrieval.withx()
     reranker: BaseReranking
     get_extra_table: bool = False
 
@@ -226,6 +225,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
         if not user_settings["use_reranking"]:
             retriever.reranker = None  # type: ignore
 
+        retriever.vector_retrieval.embedding = embeddings[index_settings["embedding"]]
         kwargs = {
             ".top_k": int(user_settings["num_retrieval"]),
             ".mmr": user_settings["mmr"],
@@ -248,9 +248,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         file_ingestor: ingestor to ingest the documents
     """
 
-    indexing_vector_pipeline: VectorIndexing = VectorIndexing.withx(
-        embedding=embeddings.get_default(),
-    )
+    indexing_vector_pipeline: VectorIndexing = VectorIndexing.withx()
     file_ingestor: DocumentIngestor = DocumentIngestor.withx()
 
     def run(
@@ -437,6 +435,8 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
             obj.file_ingestor.text_splitter.chunk_size = chunk_size
         if chunk_overlap:
             obj.file_ingestor.text_splitter.chunk_overlap = chunk_overlap
+
+        obj.indexing_vector_pipeline.embedding = embeddings[index_settings["embedding"]]
 
         return obj
 
