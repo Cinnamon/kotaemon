@@ -19,7 +19,7 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
 
     _dependencies = ["openai"]
 
-    api_key: str = Param(help="API key", required=True)
+    api_key: str = Param(None, help="API key", required=True)
     timeout: Optional[float] = Param(None, help="Timeout for the API request.")
     max_retries: Optional[int] = Param(
         None, help="Maximum number of retries for the API request."
@@ -88,6 +88,7 @@ class OpenAIEmbeddings(BaseOpenAIEmbeddings):
     base_url: Optional[str] = Param(None, help="OpenAI base URL")
     organization: Optional[str] = Param(None, help="OpenAI organization")
     model: str = Param(
+        None,
         help=(
             "ID of the model to use. You can go to [Model overview](https://platform."
             "openai.com/docs/models/overview) to see the available models."
@@ -131,14 +132,16 @@ class OpenAIEmbeddings(BaseOpenAIEmbeddings):
 
 class AzureOpenAIEmbeddings(BaseOpenAIEmbeddings):
     azure_endpoint: str = Param(
+        None,
         help=(
             "HTTPS endpoint for the Azure OpenAI model. The azure_endpoint, "
             "azure_deployment, and api_version parameters are used to construct "
             "the full URL for the Azure OpenAI model."
-        )
+        ),
+        required=True,
     )
-    azure_deployment: str = Param(help="Azure deployment name", required=True)
-    api_version: str = Param(help="Azure model version", required=True)
+    azure_deployment: str = Param(None, help="Azure deployment name", required=True)
+    api_version: str = Param(None, help="Azure model version", required=True)
     azure_ad_token: Optional[str] = Param(None, help="Azure AD token")
     azure_ad_token_provider: Optional[str] = Param(None, help="Azure AD token provider")
 
