@@ -129,7 +129,7 @@ class EmbeddingManagement(BasePage):
         desc = vendor.describe()
         for key, value in desc["params"].items():
             if value.get("required", False):
-                required[key] = None
+                required[key] = value.get("default", None)
 
         return yaml.dump(required), format_description(vendor)
 
@@ -143,7 +143,7 @@ class EmbeddingManagement(BasePage):
             self.create_emb,
             inputs=[self.name, self.emb_choices, self.spec, self.default],
             outputs=None,
-        ).then(self.list_embeddings, inputs=None, outputs=[self.emb_list],).then(
+        ).success(self.list_embeddings, inputs=None, outputs=[self.emb_list]).success(
             lambda: ("", None, "", False, self.spec_desc_default),
             outputs=[
                 self.name,
@@ -232,7 +232,7 @@ class EmbeddingManagement(BasePage):
             embeddings.add(name, spec=spec, default=default)
             gr.Info(f'Create Embedding model "{name}" successfully')
         except Exception as e:
-            gr.Error(f"Failed to create Embedding model {name}: {e}")
+            raise gr.Error(f"Failed to create Embedding model {name}: {e}")
 
     def list_embeddings(self):
         """List the Embedding models"""

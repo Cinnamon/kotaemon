@@ -21,8 +21,8 @@ class EmbeddingManager:
 
         # populate the pool if empty
         if hasattr(flowsettings, "KH_EMBEDDINGS"):
-            with Session(engine) as session:
-                count = session.query(EmbeddingTable).count()
+            with Session(engine) as sess:
+                count = sess.query(EmbeddingTable).count()
             if not count:
                 for name, model in flowsettings.KH_EMBEDDINGS.items():
                     self.add(
@@ -37,9 +37,9 @@ class EmbeddingManager:
     def load(self):
         """Load the model pool from database"""
         self._models, self._info, self._defaut = {}, {}, ""
-        with Session(engine) as session:
+        with Session(engine) as sess:
             stmt = select(EmbeddingTable)
-            items = session.execute(stmt)
+            items = sess.execute(stmt)
 
             for (item,) in items:
                 self._models[item.name] = deserialize(item.spec, safe=False)
@@ -137,11 +137,19 @@ class EmbeddingManager:
 
     def add(self, name: str, spec: dict, default: bool):
         """Add a new model to the pool"""
+        if not name:
+            raise ValueError("Name must not be empty")
+
         try:
-            with Session(engine) as session:
+            with Session(engine) as sess:
+                if default:
+                    # turn all models to non-default
+                    sess.query(EmbeddingTable).update({"default": False})
+                    sess.commit()
+
                 item = EmbeddingTable(name=name, spec=spec, default=default)
-                session.add(item)
-                session.commit()
+                sess.add(item)
+                sess.commit()
         except Exception as e:
             raise ValueError(f"Failed to add model {name}: {e}")
 
@@ -150,10 +158,10 @@ class EmbeddingManager:
     def delete(self, name: str):
         """Delete a model from the pool"""
         try:
-            with Session(engine) as session:
-                item = session.query(EmbeddingTable).filter_by(name=name).first()
-                session.delete(item)
-                session.commit()
+            with Session(engine) as sess:
+                item = sess.query(EmbeddingTable).filter_by(name=name).first()
+                sess.delete(item)
+                sess.commit()
         except Exception as e:
             raise ValueError(f"Failed to delete model {name}: {e}")
 
@@ -161,20 +169,23 @@ class EmbeddingManager:
 
     def update(self, name: str, spec: dict, default: bool):
         """Update a model in the pool"""
+        if not name:
+            raise ValueError("Name must not be empty")
+
         try:
-            with Session(engine) as session:
+            with Session(engine) as sess:
 
                 if default:
                     # turn all models to non-default
-                    session.query(EmbeddingTable).update({"default": False})
-                    session.commit()
+                    sess.query(EmbeddingTable).update({"default": False})
+                    sess.commit()
 
-                item = session.query(EmbeddingTable).filter_by(name=name).first()
+                item = sess.query(EmbeddingTable).filter_by(name=name).first()
                 if not item:
                     raise ValueError(f"Model {name} not found")
                 item.spec = spec
                 item.default = default
-                session.commit()
+                sess.commit()
         except Exception as e:
             raise ValueError(f"Failed to update model {name}: {e}")
 
