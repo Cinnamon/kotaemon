@@ -25,9 +25,7 @@ This repository is under active development. Feedback, issues, and PRs are highl
 appreciated. Your input is valuable as it helps us persuade our business guys to support
 open source.
 
-## Installation
-
-### Manual installation
+## Setting up
 
 - Clone the repo
 
@@ -68,21 +66,3 @@ open source.
   ```shell
   pytest tests
   ```
-
-### From installation scripts
-
-1. Clone the repository.
-2. Navigate to the `scripts` folder and start an installer that matches your OS:
-   - Linux: `run_linux.sh`
-   - Windows: `run_windows.bat`
-   - macOS: `run_macos.sh`
-3. After the installation, the installer will ask to launch the ktem's UI,answer to continue.
-4. If launched, the application will be available at `http://localhost:7860/`.
-5. The conda environment is located in the `install_dir/env` folder.
-
-Here is the setup and update strategy:
-
-- **Run the `run_*` script**: This setup environment, including downloading Miniconda (in case Conda is not available in your machine) and installing necessary dependencies in `install_dir` folder.
-- **Launch the UI**: To launch the ktem's UI after initial setup or any changes, simply run `run_*` script again.
-- **Reinstall dependencies**: Simply delete the `install_dir/env` folder and run `run_*`
-  script again. The script will recreate the folder with fresh dependencies.

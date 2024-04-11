@@ -14,18 +14,19 @@
 To add a model:
 
 1. Navigate to the `Resources` tab.
-2. Select `LLM Management`.
-3. Select `Add`.
+2. Select the `LLMs` sub-tab.
+3. Select the `Add` sub-tab.
 4. Config the model to add:
    - Give it a name.
    - Pick a vendor/provider (e.g. `ChatOpenAI`).
    - Provide the specifications.
-   - Optionally, set the model as default.
-5. Click `Add LLM`.
+   - (Optional) Set the model as default.
+5. Click `Add` to add the model.
+6. Select `Embedding Models` sub-tab and repeat the step 3 to 5 to add an embedding model.
 
-<details close>
+<details markdown>
 
-<summary>Configures model via the .env file</summary>
+<summary>(Optional) Configure model via the .env file</summary>
 
 Alternatively, you can configure the models via the `.env` file with the information needed to connect to the LLMs. This file is located in
 the folder of the application. If you don't see it, you can create one.
@@ -104,7 +105,7 @@ Here is how to get the full path of your model file:
 - On Windows 11: right click the file and select `Copy as Path`.
 </details>
 
-## Upload your documents
+## 2. Upload your documents
 
 ![file index tab](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/file-index-tab.png)
 
@@ -118,7 +119,7 @@ Navigate to the `File Index` tab and you will see 2 sections:
 2. File list:
    - This section shows the list of files that have been uploaded to the application and allows users to delete them.
 
-## Chat with your documents
+## 3. Chat with your documents
 
 ![chat tab](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/chat-tab.png)
 
