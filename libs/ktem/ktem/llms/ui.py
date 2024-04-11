@@ -140,7 +140,7 @@ class LLMManagement(BasePage):
             self.create_llm,
             inputs=[self.name, self.llm_choices, self.spec, self.default],
             outputs=None,
-        ).then(self.list_llms, inputs=None, outputs=[self.llm_list],).then(
+        ).success(self.list_llms, inputs=None, outputs=[self.llm_list]).success(
             lambda: ("", None, "", False, self.spec_desc_default),
             outputs=[
                 self.name,
@@ -229,7 +229,7 @@ class LLMManagement(BasePage):
             llms.add(name, spec=spec, default=default)
             gr.Info(f"LLM {name} created successfully")
         except Exception as e:
-            gr.Error(f"Failed to create LLM {name}: {e}")
+            raise gr.Error(f"Failed to create LLM {name}: {e}")
 
     def list_llms(self):
         """List the LLMs"""

@@ -140,8 +140,17 @@ class LLMManager:
 
     def add(self, name: str, spec: dict, default: bool):
         """Add a new model to the pool"""
+        if not name:
+            raise ValueError("Name must not be empty")
+
         try:
             with Session(engine) as session:
+
+                if default:
+                    # turn all models to non-default
+                    session.query(LLMTable).update({"default": False})
+                    session.commit()
+
                 item = LLMTable(name=name, spec=spec, default=default)
                 session.add(item)
                 session.commit()
@@ -164,6 +173,9 @@ class LLMManager:
 
     def update(self, name: str, spec: dict, default: bool):
         """Update a model in the pool"""
+        if not name:
+            raise ValueError("Name must not be empty")
+
         try:
             with Session(engine) as session:
 
