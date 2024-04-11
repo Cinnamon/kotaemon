@@ -53,13 +53,13 @@ class IndexManager:
         index = index_cls(app=self._app, id=id, name=name, config=config)
         index.on_create()
 
-        with Session(engine) as session:
+        with Session(engine) as sess:
             index_entry = Index(
                 id=index.id, name=index.name, config=index.config, index_type=index_type
             )
-            session.add(index_entry)
-            session.commit()
-            session.refresh(index_entry)
+            sess.add(index_entry)
+            sess.commit()
+            sess.refresh(index_entry)
 
             index.id = index_entry.id
 
@@ -91,15 +91,13 @@ class IndexManager:
             bool: True if the index exists, False otherwise
         """
         if id:
-            with Session(engine) as session:
-                index = session.get(Index, id)
+            with Session(engine) as sess:
+                index = sess.get(Index, id)
                 return index is not None
 
         if name:
-            with Session(engine) as session:
-                index = session.exec(
-                    select(Index).where(Index.name == name)
-                ).one_or_none()
+            with Session(engine) as sess:
+                index = sess.exec(select(Index).where(Index.name == name)).one_or_none()
                 return index is not None
 
         return False
@@ -117,11 +115,14 @@ class IndexManager:
             if not self.exists(index["id"]):
                 self.build_index(**index)
 
-        with Session(engine) as session:
-            index_defs = session.exec(select(Index))
+        with Session(engine) as sess:
+            index_defs = sess.exec(select(Index))
             for index_def in index_defs:
-                self.start_index(**index_def.dict())
+                self.start_index(**index_def.model_dump())
 
     @property
     def indices(self):
         return self._indices
+
+    def info(self):
+        return {index.id: index for index in self._indices}

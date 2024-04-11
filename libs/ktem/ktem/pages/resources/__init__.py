@@ -2,6 +2,7 @@ import gradio as gr
 from ktem.app import BasePage
 from ktem.db.models import User, engine
 from ktem.embeddings.ui import EmbeddingManagement
+from ktem.index.ui import IndexManagement
 from ktem.llms.ui import LLMManagement
 from sqlmodel import Session, select
 
@@ -21,8 +22,11 @@ class ResourcesTab(BasePage):
         with gr.Tab("LLMs") as self.llm_management_tab:
             self.llm_management = LLMManagement(self._app)
 
-        with gr.Tab("Embedding Models") as self.llm_management_tab:
+        with gr.Tab("Embedding Models") as self.emb_management_tab:
             self.emb_management = EmbeddingManagement(self._app)
+
+        with gr.Tab("Index Management") as self.index_management_tab:
+            self.index_management = IndexManagement(self._app)
 
     def on_subscribe_public_events(self):
         if self._app.f_user_management:
