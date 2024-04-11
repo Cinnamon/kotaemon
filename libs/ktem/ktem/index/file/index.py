@@ -308,11 +308,9 @@ class FileIndex(BaseIndex):
             },
             "supported_file_types": {
                 "name": "Supported file types",
-                "value": (
-                    "image, .pdf, .txt, .csv, .xlsx, .doc, .docx, .pptx, .html, .zip"
-                ),
+                "value": ".pdf, .txt",
                 "component": "text",
-                "info": "The file types that can be indexed.",
+                "info": "The file types that can be indexed, separated by comma.",
             },
             "max_file_size": {
                 "name": "Max file size (MB)",
