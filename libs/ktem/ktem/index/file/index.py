@@ -16,7 +16,8 @@ from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
 
 
 class FileIndex(BaseIndex):
-    """Index for the uploaded files
+    """
+    File index to store and allow retrieval of files
 
     The file index stores files in a local folder and index them for retrieval.
     This file index provides the following infrastructure to support the indexing:
@@ -303,30 +304,28 @@ class FileIndex(BaseIndex):
                 "value": embedding_default,
                 "component": "dropdown",
                 "choices": embedding_choices,
+                "info": "The name of embedding model to use.",
             },
             "supported_file_types": {
                 "name": "Supported file types",
-                "value": (
-                    "image, .pdf, .txt, .csv, .xlsx, .doc, .docx, .pptx, .html, .zip"
-                ),
+                "value": ".pdf, .txt",
                 "component": "text",
+                "info": "The file types that can be indexed, separated by comma.",
             },
             "max_file_size": {
-                "name": "Max file size (MB) - set 0 to disable",
+                "name": "Max file size (MB)",
                 "value": 1000,
                 "component": "number",
+                "info": "The maximum size of file. Set 0 to disable.",
             },
             "max_number_of_files": {
-                "name": "Max number of files that can be indexed - set 0 to disable",
+                "name": "Max number of files that can be indexed",
                 "value": 0,
                 "component": "number",
-            },
-            "max_number_of_text_length": {
-                "name": (
-                    "Max amount of characters that can be indexed - set 0 to disable"
+                "info": (
+                    "The total number of files that can be indexed on the system. "
+                    "Set 0 to disable."
                 ),
-                "value": 0,
-                "component": "number",
             },
         }
 

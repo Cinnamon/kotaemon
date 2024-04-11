@@ -17,11 +17,10 @@ dependencies = [
     "platformdirs",
     "pluggy",
     "python-decouple",
-    "python-pptx",
     "sqlalchemy",
     "sqlmodel",
     "tiktoken",
-    "gradio>=4.0.0,<=4.22.0",
+    "gradio>=4.26.0",
 ]
 readme = "README.md"
 license = { text = "MIT License" }
