@@ -1,6 +1,8 @@
 # Getting Started with Kotaemon
 
-This page is intended for end users who want to use the `kotaemon` tool for Question Answering on local documents.
+This page is intended for end users who want to use the `kotaemon` tool for Question
+Answering on local documents. If you are a developer who wants contribute to the
+project, please visit the [development](development/index.md) page.
 
 ## Download
 
@@ -31,9 +33,9 @@ A browser window will be opened and greet you with this screen:
 
 ## Usage
 
-For how to use the application, see [Usage](/usage). This page will also be available to
+For how to use the application, see [Usage](usage.md). This page will also be available to
 you within the application.
 
 ## Feedback
 
-Feel free to create a bug report or a feature request or join a discussion at https://github.com/Cinnamon/kotaemon/issues.
+Feel free to create a bug report or a feature request on our [repo](https://github.com/Cinnamon/kotaemon/issues).

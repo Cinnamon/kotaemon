@@ -68,7 +68,7 @@ def generate_docs_for_src_code(
             full_doc_path, Path("..") / path.relative_to(code_dir.parent)
         )
 
-    with mkdocs_gen_files.open(f"{target_doc_folder}/NAV.md", "w") as nav_file:
+    with mkdocs_gen_files.open(f"{target_doc_folder}/Summary.md", "w") as nav_file:
         nav_file.writelines(nav.build_literate_nav())
 
 

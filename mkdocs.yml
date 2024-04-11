@@ -7,29 +7,31 @@ nav:
   - Getting Started:
       - Quick Start: index.md
       - Basic Usage: usage.md
-  - Application:
-      - Features: pages/app/features.md
-      - Index:
-          - File index: pages/app/index/file.md
-      - Settings:
-          - pages/app/settings/overview.md
-          - pages/app/settings/user-settings.md
-      - Extension:
-          - User management: pages/app/ext/user-management.md
-      - Customize flow logic: pages/app/customize-flows.md
-      - Customize UI: pages/app/customize-ui.md
-      - Functional description: pages/app/functional-description.md
+  # - Application:
+  #     - Customize UI: pages/app/customize-ui.md
+  # - Functional description: pages/app/functional-description.md
   - Development:
       - development/index.md
       - Contributing: development/contributing.md
-      - Data & Data Structure Components: development/data-components.md
+      # - Data & Data Structure Components: development/data-components.md
+      # - Features: pages/app/features.md
+      - Components:
+          - Index:
+              - File index: pages/app/index/file.md
+          - Settings:
+              - pages/app/settings/overview.md
+              - pages/app/settings/user-settings.md
+          - Extension:
+              - User management: pages/app/ext/user-management.md
+      - Customize flow logic: pages/app/customize-flows.md
       - Creating a Component: development/create-a-component.md
-      - Utilities: development/utilities.md
   # generated using gen-files + literate-nav
   - API Reference: reference/
+  - Issue Tracker: "https://github.com/Cinnamon/kotaemon/issues"
 
 markdown_extensions:
   - admonition
+  - md_in_html
   - pymdownx.highlight:
       use_pygments: true
       anchor_linenums: true
@@ -58,7 +60,7 @@ plugins:
       scripts:
         - docs/scripts/generate_reference_docs.py
   - literate-nav:
-      nav_file: NAV.md
+      nav_file: Summary.md
   - mkdocstrings:
       handlers:
         python:
