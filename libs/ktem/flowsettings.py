@@ -164,7 +164,6 @@ SETTINGS_REASONING = {
 KH_INDEX_TYPES = ["ktem.index.file.FileIndex"]
 KH_INDICES = [
     {
-        "id": 1,
         "name": "File",
         "config": {},
         "index_type": "ktem.index.file.FileIndex",
