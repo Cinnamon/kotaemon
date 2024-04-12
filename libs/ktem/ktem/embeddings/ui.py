@@ -5,7 +5,7 @@ import pandas as pd
 import yaml
 from ktem.app import BasePage
 
-from .manager import embeddings
+from .manager import embedding_models_manager
 
 
 def format_description(cls):
@@ -118,12 +118,12 @@ class EmbeddingManagement(BasePage):
             outputs=[self.emb_list],
         )
         self._app.app.load(
-            lambda: gr.update(choices=list(embeddings.vendors().keys())),
+            lambda: gr.update(choices=list(embedding_models_manager.vendors().keys())),
             outputs=[self.emb_choices],
         )
 
     def on_emb_vendor_change(self, vendor):
-        vendor = embeddings.vendors()[vendor]
+        vendor = embedding_models_manager.vendors()[vendor]
 
         required: dict = {}
         desc = vendor.describe()
@@ -224,12 +224,12 @@ class EmbeddingManagement(BasePage):
         try:
             spec = yaml.safe_load(spec)
             spec["__type__"] = (
-                embeddings.vendors()[choices].__module__
+                embedding_models_manager.vendors()[choices].__module__
                 + "."
-                + embeddings.vendors()[choices].__qualname__
+                + embedding_models_manager.vendors()[choices].__qualname__
             )
 
-            embeddings.add(name, spec=spec, default=default)
+            embedding_models_manager.add(name, spec=spec, default=default)
             gr.Info(f'Create Embedding model "{name}" successfully')
         except Exception as e:
             raise gr.Error(f"Failed to create Embedding model {name}: {e}")
@@ -237,7 +237,7 @@ class EmbeddingManagement(BasePage):
     def list_embeddings(self):
         """List the Embedding models"""
         items = []
-        for item in embeddings.info().values():
+        for item in embedding_models_manager.info().values():
             record = {}
             record["name"] = item["name"]
             record["vendor"] = item["spec"].get("__type__", "-").split(".")[-1]
@@ -280,9 +280,9 @@ class EmbeddingManagement(BasePage):
             btn_delete_yes = gr.update(visible=False)
             btn_delete_no = gr.update(visible=False)
 
-            info = deepcopy(embeddings.info()[selected_emb_name])
+            info = deepcopy(embedding_models_manager.info()[selected_emb_name])
             vendor_str = info["spec"].pop("__type__", "-").split(".")[-1]
-            vendor = embeddings.vendors()[vendor_str]
+            vendor = embedding_models_manager.vendors()[vendor_str]
 
             edit_spec = yaml.dump(info["spec"])
             edit_spec_desc = format_description(vendor)
@@ -309,15 +309,19 @@ class EmbeddingManagement(BasePage):
     def save_emb(self, selected_emb_name, default, spec):
         try:
             spec = yaml.safe_load(spec)
-            spec["__type__"] = embeddings.info()[selected_emb_name]["spec"]["__type__"]
-            embeddings.update(selected_emb_name, spec=spec, default=default)
+            spec["__type__"] = embedding_models_manager.info()[selected_emb_name][
+                "spec"
+            ]["__type__"]
+            embedding_models_manager.update(
+                selected_emb_name, spec=spec, default=default
+            )
             gr.Info(f'Save Embedding model "{selected_emb_name}" successfully')
         except Exception as e:
             gr.Error(f'Failed to save Embedding model "{selected_emb_name}": {e}')
 
     def delete_emb(self, selected_emb_name):
         try:
-            embeddings.delete(selected_emb_name)
+            embedding_models_manager.delete(selected_emb_name)
         except Exception as e:
             gr.Error(f'Failed to delete Embedding model "{selected_emb_name}": {e}')
             return selected_emb_name
