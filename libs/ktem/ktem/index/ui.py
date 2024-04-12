@@ -3,6 +3,8 @@ import pandas as pd
 import yaml
 from ktem.app import BasePage
 
+from .manager import IndexManager
+
 
 def format_description(cls):
     user_settings = cls.get_admin_settings()
@@ -17,7 +19,7 @@ def format_description(cls):
 class IndexManagement(BasePage):
     def __init__(self, app):
         self._app = app
-        self.manager = app.index_manager
+        self.manager: IndexManager = app.index_manager
         self.spec_desc_default = (
             "# Spec description\n\nSelect an index to view the spec description."
         )
@@ -159,6 +161,16 @@ class IndexManagement(BasePage):
             ],
             show_progress="hidden",
         )
+        self.btn_delete_yes.click(
+            self.delete_index,
+            inputs=[self.selected_index_id],
+            outputs=[self.selected_index_id],
+            show_progress="hidden",
+        ).then(
+            self.list_indices,
+            inputs=None,
+            outputs=[self.index_list],
+        )
         self.btn_delete_no.click(
             lambda: (
                 gr.update(visible=True),
@@ -267,3 +279,12 @@ class IndexManagement(BasePage):
             edit_spec_desc,
             edit_name,
         )
+
+    def delete_index(self, selected_index_id):
+        try:
+            self.manager.delete_index(selected_index_id)
+        except Exception as e:
+            gr.Warning(f'Failed to delete Embedding model "{selected_index_id}": {e}')
+            return selected_index_id
+
+        return -1

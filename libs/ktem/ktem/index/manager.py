@@ -81,6 +81,35 @@ class IndexManager:
         self._indices.append(index)
         return index
 
+    def delete_index(self, id: int):
+        """Delete the index from the database"""
+        index: Optional[BaseIndex] = None
+        for _ in self._indices:
+            if _.id == id:
+                index = _
+                break
+
+        if index is None:
+            raise ValueError(
+                "Index does not exist. If you have already removed the index, "
+                "please restart to reflect the changes."
+            )
+
+        try:
+            # clean up
+            index.on_delete()
+
+            # remove from database
+            with Session(engine) as sess:
+                item = sess.query(Index).filter_by(id=id).first()
+                sess.delete(item)
+                sess.commit()
+
+            new_indices = [_ for _ in self._indices if _.id != id]
+            self._indices = new_indices
+        except Exception as e:
+            raise ValueError(f"Cannot delete index {index.name}: {e}")
+
     def load_index_types(self):
         """Load the supported index types"""
         self._index_types = {}
