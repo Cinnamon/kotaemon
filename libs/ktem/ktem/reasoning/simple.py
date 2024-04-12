@@ -8,6 +8,7 @@ from typing import Generator
 
 import tiktoken
 from ktem.llms.manager import llms
+from ktem.utils.render import Render
 
 from kotaemon.base import (
     BaseComponent,
@@ -559,8 +560,6 @@ class FullQAPipeline(BaseReasoning):
     def stream(  # type: ignore
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Generator[Document, None, Document]:
-        import markdown
-
         docs = []
         doc_ids = []
         if self.use_rewrite:
@@ -571,19 +570,15 @@ class FullQAPipeline(BaseReasoning):
                 if doc.doc_id not in doc_ids:
                     docs.append(doc)
                     doc_ids.append(doc.doc_id)
+
         for doc in docs:
-            # TODO: a better approach to show the information
-            text = markdown.markdown(
-                doc.text, extensions=["markdown.extensions.tables"]
-            )
             yield Document(
-                content=(
-                    "<details open>"
-                    f"<summary>{doc.metadata['file_name']}</summary>"
-                    f"{text}"
-                    "</details><br>"
-                ),
                 channel="info",
+                content=Render.collapsible(
+                    header=doc.metadata["file_name"],
+                    content=Render.table(doc.text),
+                    open=True,
+                ),
             )
 
         evidence_mode, evidence = self.evidence_pipeline(docs).content
@@ -638,23 +633,17 @@ class FullQAPipeline(BaseReasoning):
             ss = sorted(ss, key=lambda x: x["start"])
             text = id2docs[id].text[: ss[0]["start"]]
             for idx, span in enumerate(ss):
-                text += (
-                    "<mark>" + id2docs[id].text[span["start"] : span["end"]] + "</mark>"
-                )
+                text += Render.highlight(id2docs[id].text[span["start"] : span["end"]])
                 if idx < len(ss) - 1:
                     text += id2docs[id].text[span["end"] : ss[idx + 1]["start"]]
             text += id2docs[id].text[ss[-1]["end"] :]
-            text_out = markdown.markdown(
-                text, extensions=["markdown.extensions.tables"]
-            )
             yield Document(
-                content=(
-                    "<details open>"
-                    f"<summary>{id2docs[id].metadata['file_name']}</summary>"
-                    f"{text_out}"
-                    "</details><br>"
-                ),
                 channel="info",
+                content=Render.collapsible(
+                    header=id2docs[id].metadata["file_name"],
+                    content=Render.table(text),
+                    open=True,
+                ),
             )
             lack_evidence = False
 
@@ -667,17 +656,13 @@ class FullQAPipeline(BaseReasoning):
                 content="Retrieved segments without matching evidence:\n",
             )
             for id in list(not_detected):
-                text_out = markdown.markdown(
-                    id2docs[id].text, extensions=["markdown.extensions.tables"]
-                )
                 yield Document(
-                    content=(
-                        "<details>"
-                        f"<summary>{id2docs[id].metadata['file_name']}</summary>"
-                        f"{text_out}"
-                        "</details><br>"
-                    ),
                     channel="info",
+                    content=Render.collapsible(
+                        header=id2docs[id].metadata["file_name"],
+                        content=Render.table(id2docs[id].text),
+                        open=False,
+                    ),
                 )
 
         return answer
