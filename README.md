@@ -1,6 +1,8 @@
 # kotaemon
 
-[Documentation](https://cinnamon.github.io/kotaemon/)
+![demo](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/chat-tab-demo.png)
+
+[User Guide](https://cinnamon.github.io/kotaemon/) | [Developer Guide](https://cinnamon.github.io/kotaemon/development/)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-31013/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
