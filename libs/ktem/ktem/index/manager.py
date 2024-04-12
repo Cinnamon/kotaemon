@@ -65,6 +65,29 @@ class IndexManager:
 
         return index
 
+    def update_index(self, id: int, name: str, config: dict):
+        """Update the index information
+
+        Args:
+            id: the id of the index
+            name: the new name of the index
+            config: the new config of the index
+        """
+        with Session(engine) as sess:
+            entry = sess.get(Index, id)
+            if entry is None:
+                raise ValueError(f"Index with id {id} does not exist")
+
+            entry.name = name
+            entry.config = config
+            sess.commit()
+
+        for index in self._indices:
+            if index.id == id:
+                index.name = name
+                index.config = config
+                break
+
     def start_index(self, id: int, name: str, config: dict, index_type: str):
         """Start the index
 

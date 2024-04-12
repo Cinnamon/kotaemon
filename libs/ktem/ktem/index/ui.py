@@ -40,16 +40,15 @@ class IndexManagement(BasePage):
                             label="Index name",
                         )
                         self.edit_spec = gr.Textbox(
-                            label="Specification",
-                            info="Specification of the Index in YAML format",
+                            label="Index config",
+                            info="Admin configuration of the Index in YAML format",
                             lines=10,
                         )
 
                         gr.Markdown(
-                            "IMPORTANT: Changing or deleting the name or "
-                            "specification of the index will require restarting "
-                            "the system. Some settings will require rebuilding "
-                            "the index."
+                            "IMPORTANT: Changing or deleting the index will require "
+                            "restarting the system. Some config settings will require "
+                            "rebuilding the index for the index to work properly."
                         )
                         with gr.Row():
                             self.btn_edit_save = gr.Button(
@@ -187,6 +186,19 @@ class IndexManagement(BasePage):
             ],
             show_progress="hidden",
         )
+        self.btn_edit_save.click(
+            self.update_index,
+            inputs=[
+                self.selected_index_id,
+                self.edit_name,
+                self.edit_spec,
+            ],
+            show_progress="hidden",
+        ).then(
+            self.list_indices,
+            inputs=None,
+            outputs=[self.index_list],
+        )
         self.btn_close.click(
             lambda: -1,
             outputs=[self.selected_index_id],
@@ -279,6 +291,14 @@ class IndexManagement(BasePage):
             edit_spec_desc,
             edit_name,
         )
+
+    def update_index(self, selected_index_id: int, name: str, config: str):
+        try:
+            spec = yaml.safe_load(config)
+            self.manager.update_index(selected_index_id, name, spec)
+            gr.Info(f'Update index "{name}" successfully. Please restart the app!')
+        except Exception as e:
+            raise gr.Error(f'Failed to save index "{name}": {e}')
 
     def delete_index(self, selected_index_id):
         try:
