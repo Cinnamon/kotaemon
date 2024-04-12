@@ -111,6 +111,7 @@ class FileIndexPage(BasePage):
                         file_types=self._supported_file_types,
                         file_count="multiple",
                         container=True,
+                        show_label=False,
                     )
 
                     msg = self.upload_instruction()
