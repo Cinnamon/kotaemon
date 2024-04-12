@@ -41,16 +41,32 @@ class App(BaseApp):
             ) as self._tabs["chat-tab"]:
                 self.chat_page = ChatPage(self)
 
-            for index in self.index_manager.indices:
+            if len(self.index_manager.indices) == 1:
+                for index in self.index_manager.indices:
+                    with gr.Tab(
+                        f"{index.name} Index",
+                        elem_id=f"{index.id}-tab",
+                        elem_classes="indices-tab",
+                        id=f"{index.id}-tab",
+                        visible=not self.f_user_management,
+                    ) as self._tabs[f"{index.id}-tab"]:
+                        page = index.get_index_page_ui()
+                        setattr(self, f"_index_{index.id}", page)
+            elif len(self.index_manager.indices) > 1:
                 with gr.Tab(
-                    f"{index.name} Index",
-                    elem_id=f"{index.id}-tab",
-                    elem_classes="indices-tab",
-                    id=f"{index.id}-tab",
+                    "Indices",
+                    elem_id="indices-tab",
+                    id="indices-tab",
                     visible=not self.f_user_management,
-                ) as self._tabs[f"{index.id}-tab"]:
-                    page = index.get_index_page_ui()
-                    setattr(self, f"_index_{index.id}", page)
+                ) as self._tabs["indices-tab"]:
+                    for index in self.index_manager.indices:
+                        with gr.Tab(
+                            f"{index.name}",
+                            elem_id=f"{index.id}-tab",
+                            id=f"{index.id}-tab",
+                        ) as self._tabs[f"{index.id}-tab"]:
+                            page = index.get_index_page_ui()
+                            setattr(self, f"_index_{index.id}", page)
 
             with gr.Tab(
                 "Resources",

@@ -303,8 +303,9 @@ class IndexManagement(BasePage):
     def delete_index(self, selected_index_id):
         try:
             self.manager.delete_index(selected_index_id)
+            gr.Info("Delete index successfully. Please restart the app!")
         except Exception as e:
-            gr.Warning(f'Failed to delete Embedding model "{selected_index_id}": {e}')
+            gr.Warning(f"Fail to delete index: {e}")
             return selected_index_id
 
         return -1
