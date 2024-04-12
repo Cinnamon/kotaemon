@@ -23,17 +23,14 @@ class IndexManager:
     def __init__(self, app):
         self._app = app
         self._indices = []
-        self._index_types = {}
+        self._index_types: dict[str, Type[BaseIndex]] = {}
 
-    def add_index_type(self, cls: Type[BaseIndex]):
-        """Register index type to the system"""
-        self._index_types[cls.__name__] = cls
-
-    def list_index_types(self) -> dict:
+    @property
+    def index_types(self) -> dict:
         """List the index_type of the index"""
         return self._index_types
 
-    def build_index(self, name: str, config: dict, index_type: str, id=None):
+    def build_index(self, name: str, config: dict, index_type: str):
         """Build the index
 
         Building the index simply means recording the index information into the
@@ -49,19 +46,22 @@ class IndexManager:
         Returns:
             BaseIndex: the index object
         """
-        index_cls = import_dotted_string(index_type, safe=False)
-        index = index_cls(app=self._app, id=id, name=name, config=config)
-        index.on_create()
 
         with Session(engine) as sess:
-            index_entry = Index(
-                id=index.id, name=index.name, config=index.config, index_type=index_type
-            )
-            sess.add(index_entry)
+            entry = Index(name=name, config=config, index_type=index_type)
+            sess.add(entry)
             sess.commit()
-            sess.refresh(index_entry)
+            sess.refresh(entry)
 
-            index.id = index_entry.id
+            try:
+                # build the index
+                index_cls = import_dotted_string(index_type, safe=False)
+                index = index_cls(app=self._app, id=entry.id, name=name, config=config)
+                index.on_create()
+            except Exception as e:
+                sess.delete(entry)
+                sess.commit()
+                raise ValueError(f'Cannot create index "{name}": {e}')
 
         return index
 
@@ -80,6 +80,21 @@ class IndexManager:
 
         self._indices.append(index)
         return index
+
+    def load_index_types(self):
+        """Load the supported index types"""
+        self._index_types = {}
+
+        # built-in index types
+        from .file.index import FileIndex
+
+        for index in [FileIndex]:
+            self._index_types[f"{index.__module__}.{index.__qualname__}"] = index
+
+        # developer-defined custom index types
+        for index_str in settings.KH_INDEX_TYPES:
+            cls: Type[BaseIndex] = import_dotted_string(index_str, safe=False)
+            self._index_types[f"{cls.__module__}.{cls.__qualname__}"] = cls
 
     def exists(self, id: Optional[int] = None, name: Optional[str] = None) -> bool:
         """Check if the index exists
@@ -107,9 +122,7 @@ class IndexManager:
 
         Load the index from database
         """
-        for index in settings.KH_INDEX_TYPES:
-            index_cls = import_dotted_string(index, safe=False)
-            self.add_index_type(index_cls)
+        self.load_index_types()
 
         for index in settings.KH_INDICES:
             if not self.exists(index["id"]):

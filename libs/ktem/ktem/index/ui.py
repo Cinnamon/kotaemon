@@ -68,6 +68,27 @@ class IndexManagement(BasePage):
                     with gr.Column():
                         self.edit_spec_desc = gr.Markdown("# Spec description")
 
+        with gr.Tab(label="Add"):
+            with gr.Row():
+                with gr.Column(scale=2):
+                    self.name = gr.Textbox(
+                        label="Index name",
+                        info="Must be unique and non-empty.",
+                    )
+                    self.index_type = gr.Dropdown(label="Index type")
+                    self.spec = gr.Textbox(
+                        label="Specification",
+                        info="Specification of the index in YAML format.",
+                    )
+                    gr.Markdown(
+                        "<mark>Note</mark>: "
+                        "After creating index, please restart the app"
+                    )
+                    self.btn_new = gr.Button("Add", variant="primary")
+
+                with gr.Column(scale=3):
+                    self.spec_desc = gr.Markdown(self.spec_desc_default)
+
     def _on_app_created(self):
         """Called when the app is created"""
         self._app.app.load(
@@ -75,8 +96,34 @@ class IndexManagement(BasePage):
             inputs=None,
             outputs=[self.index_list],
         )
+        self._app.app.load(
+            lambda: gr.update(
+                choices=[
+                    (key.split(".")[-1], key) for key in self.manager.index_types.keys()
+                ]
+            ),
+            outputs=[self.index_type],
+        )
 
     def on_register_events(self):
+        self.index_type.select(
+            self.on_index_type_change,
+            inputs=[self.index_type],
+            outputs=[self.spec, self.spec_desc],
+        )
+        self.btn_new.click(
+            self.create_index,
+            inputs=[self.name, self.index_type, self.spec],
+            outputs=None,
+        ).success(self.list_indices, inputs=None, outputs=[self.index_list]).success(
+            lambda: ("", None, "", self.spec_desc_default),
+            outputs=[
+                self.name,
+                self.index_type,
+                self.spec,
+                self.spec_desc,
+            ],
+        )
         self.index_list.select(
             self.select_index,
             inputs=self.index_list,
@@ -85,7 +132,7 @@ class IndexManagement(BasePage):
         )
 
         self.selected_index_id.change(
-            self.on_change_selected_index,
+            self.on_selected_index_change,
             inputs=[self.selected_index_id],
             outputs=[
                 self._selected_panel,
@@ -133,6 +180,39 @@ class IndexManagement(BasePage):
             outputs=[self.selected_index_id],
         )
 
+    def on_index_type_change(self, index_type: str):
+        """Update the spec description and pre-fill the default values
+
+        Args:
+            index_type: the name of the index type, this is usually the class name
+
+        Returns:
+            A tuple of the default spec and the description
+        """
+        index_type_cls = self.manager.index_types[index_type]
+        required: dict = {
+            key: value.get("value", None)
+            for key, value in index_type_cls.get_admin_settings().items()
+        }
+
+        return yaml.dump(required, sort_keys=False), format_description(index_type_cls)
+
+    def create_index(self, name: str, index_type: str, config: str):
+        """Create the index
+
+        Args:
+            name: the name of the index
+            index_type: the type of the index
+            config: the expected config of the index
+        """
+        try:
+            self.manager.build_index(
+                name=name, config=yaml.safe_load(config), index_type=index_type
+            )
+            gr.Info(f'Create index "{name}" successfully. Please restart the app!')
+        except Exception as e:
+            raise gr.Error(f"Failed to create Embedding model {name}: {e}")
+
     def list_indices(self):
         """List the indices constructed by the user"""
         items = []
@@ -163,7 +243,12 @@ class IndexManagement(BasePage):
 
         return int(index_list["ID"][ev.index[0]])
 
-    def on_change_selected_index(self, selected_index_id: int):
+    def on_selected_index_change(self, selected_index_id: int):
+        """Show the relevant index as user selects it on the UI
+
+        Args:
+            selected_index_id: the id of the selected index
+        """
         if selected_index_id == -1:
             _selected_panel = gr.update(visible=False)
             edit_spec = gr.update(value="")

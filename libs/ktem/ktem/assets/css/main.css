@@ -98,7 +98,8 @@ button.selected {
 .setting-answer-mode-description {
   margin: 5px 5px 2px !important;
 }
-*/ mark {
+
+mark {
   background-color: #1496bb;
 }
 
