@@ -45,9 +45,13 @@ class App(BaseApp):
                 for index in self.index_manager.indices:
                     with gr.Tab(
                         f"{index.name} Index",
-                        elem_id=f"{index.id}-tab",
-                        elem_classes="indices-tab",
-                        id=f"{index.id}-tab",
+                        elem_id="indices-tab",
+                        elem_classes=[
+                            "fill-main-area-height",
+                            "scrollable",
+                            "indices-tab",
+                        ],
+                        id="indices-tab",
                         visible=not self.f_user_management,
                     ) as self._tabs[f"{index.id}-tab"]:
                         page = index.get_index_page_ui()
@@ -56,6 +60,7 @@ class App(BaseApp):
                 with gr.Tab(
                     "Indices",
                     elem_id="indices-tab",
+                    elem_classes=["fill-main-area-height", "scrollable", "indices-tab"],
                     id="indices-tab",
                     visible=not self.f_user_management,
                 ) as self._tabs["indices-tab"]:
@@ -63,7 +68,6 @@ class App(BaseApp):
                         with gr.Tab(
                             f"{index.name}",
                             elem_id=f"{index.id}-tab",
-                            id=f"{index.id}-tab",
                         ) as self._tabs[f"{index.id}-tab"]:
                             page = index.get_index_page_ui()
                             setattr(self, f"_index_{index.id}", page)
