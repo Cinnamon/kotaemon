@@ -236,6 +236,11 @@ class AnswerWithContextPipeline(BaseComponent):
 
         return prompt, images
 
+    async def run(
+        self, question: str, evidence: str, evidence_mode: int = 0
+    ) -> Document:
+        return await self.ainvoke(question, evidence, evidence_mode)
+
     async def ainvoke(  # type: ignore
         self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
     ) -> Document:
