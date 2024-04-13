@@ -1,14 +1,30 @@
+import os
+from inspect import currentframe, getframeinfo
 from pathlib import Path
 
 from decouple import config
-from platformdirs import user_cache_dir
 from theflow.settings.default import *  # noqa
 
-user_cache_dir = Path(
-    user_cache_dir(str(config("KH_APP_NAME", default="ktem")), "Cinnamon")
-)
-user_cache_dir.mkdir(parents=True, exist_ok=True)
+cur_frame = currentframe()
+if cur_frame is None:
+    raise ValueError("Cannot get the current frame.")
+this_file = getframeinfo(cur_frame).filename
+this_dir = Path(this_file).parent
 
+# App can be ran from anywhere and it's not trivial to decide where to store app data.
+# So let's use the same directory as the flowsetting.py file.
+KH_APP_DATA_DIR = this_dir / "ktem_app_data"
+KH_APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# User data directory
+KH_USER_DATA_DIR = KH_APP_DATA_DIR / "user_data"
+KH_USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# HF models can be big, let's store them in the app data directory so that it's easier
+# for users to manage their storage.
+# ref: https://huggingface.co/docs/huggingface_hub/en/guides/manage-cache
+os.environ["HF_HOME"] = str(KH_APP_DATA_DIR / "huggingface")
+os.environ["HF_HUB_CACHE"] = str(KH_APP_DATA_DIR / "huggingface")
 
 COHERE_API_KEY = config("COHERE_API_KEY", default="")
 KH_MODE = "dev"
@@ -20,16 +36,16 @@ KH_FEATURE_USER_MANAGEMENT_PASSWORD = str(
     config("KH_FEATURE_USER_MANAGEMENT_PASSWORD", default="XsdMbe8zKP8KdeE@")
 )
 KH_ENABLE_ALEMBIC = False
-KH_DATABASE = f"sqlite:///{user_cache_dir / 'sql.db'}"
-KH_FILESTORAGE_PATH = str(user_cache_dir / "files")
+KH_DATABASE = f"sqlite:///{KH_USER_DATA_DIR / 'sql.db'}"
+KH_FILESTORAGE_PATH = str(KH_USER_DATA_DIR / "files")
 
 KH_DOCSTORE = {
     "__type__": "kotaemon.storages.SimpleFileDocumentStore",
-    "path": str(user_cache_dir / "docstore"),
+    "path": str(KH_USER_DATA_DIR / "docstore"),
 }
 KH_VECTORSTORE = {
     "__type__": "kotaemon.storages.ChromaVectorStore",
-    "path": str(user_cache_dir / "vectorstore"),
+    "path": str(KH_USER_DATA_DIR / "vectorstore"),
 }
 KH_LLMS = {}
 KH_EMBEDDINGS = {}

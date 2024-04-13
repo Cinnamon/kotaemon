@@ -2,7 +2,12 @@
 
 ![demo](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/chat-tab-demo.png)
 
-[User Guide](https://cinnamon.github.io/kotaemon/) | [Developer Guide](https://cinnamon.github.io/kotaemon/development/)
+[Source Code](https://github.com/Cinnamon/kotaemon) |
+[Demo](https://huggingface.co/spaces/lone17/kotaemon-app)
+
+[User Guide](https://cinnamon.github.io/kotaemon/) |
+[Developer Guide](https://cinnamon.github.io/kotaemon/development/) |
+[Feedback](https://github.com/Cinnamon/kotaemon/issues)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-31013/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -68,3 +73,6 @@ open source.
   ```shell
   pytest tests
   ```
+
+Please refer to the [Developer Guide](https://cinnamon.github.io/kotaemon/development/)
+for more details.

@@ -468,3 +468,6 @@ storage/*
 # Conda and env storages
 *install_dir/
 doc_env/
+
+# application data
+ktem_app_data/
