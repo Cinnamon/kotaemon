@@ -63,9 +63,9 @@ class ChatPage(BasePage):
             with gr.Column(scale=6, elem_id="chat-area"):
                 self.chat_panel = ChatPanel(self._app)
 
-            with gr.Column(scale=3):
+            with gr.Column(scale=3, elem_id="chat-info-panel"):
                 with gr.Accordion(label="Information panel", open=True):
-                    self.info_panel = gr.HTML(elem_id="chat-info-panel")
+                    self.info_panel = gr.HTML()
 
     def on_register_events(self):
         gr.on(

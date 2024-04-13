@@ -87,7 +87,7 @@ button.selected {
 
 #chat-info-panel {
   max-height: var(--main-area-height) !important;
-  overflow-y: scroll !important;
+  overflow: auto !important;
 }
 
 #conv-settings-panel {
