@@ -11,7 +11,7 @@ if cur_frame is None:
 this_file = getframeinfo(cur_frame).filename
 this_dir = Path(this_file).parent
 
-# App can be ran from anywhere and it's not trivial to decide where to store app data
+# App can be ran from anywhere and it's not trivial to decide where to store app data.
 # So let's use the same directory as the flowsetting.py file.
 KH_APP_DATA_DIR = this_dir / "ktem_app_data"
 KH_APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -20,7 +20,7 @@ KH_APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
 KH_USER_DATA_DIR = KH_APP_DATA_DIR / "user_data"
 KH_USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# HF model can be big, so let's store it in the app data directory so that it's easier
+# HF models can be big, let's store them in the app data directory so that it's easier
 # for users to manage their storage.
 # ref: https://huggingface.co/docs/huggingface_hub/en/guides/manage-cache
 os.environ["HF_HOME"] = str(KH_APP_DATA_DIR / "huggingface")
