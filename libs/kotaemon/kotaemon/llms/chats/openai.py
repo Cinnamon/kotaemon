@@ -270,7 +270,7 @@ class ChatOpenAI(BaseChatOpenAI):
 
     def openai_response(self, client, **kwargs):
         """Get the openai response"""
-        params = {
+        params_ = {
             "model": self.model,
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
@@ -285,6 +285,7 @@ class ChatOpenAI(BaseChatOpenAI):
             "top_logprobs": self.top_logprobs,
             "top_p": self.top_p,
         }
+        params = {k: v for k, v in params_.items() if v is not None}
         params.update(kwargs)
 
         return client.chat.completions.create(**params)
