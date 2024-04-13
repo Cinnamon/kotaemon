@@ -1,3 +1,21 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = false
+packages.find.include = []
+
+[project]
+name = "kotaemon-app"
+version = "0.0.1"
+requires-python = ">= 3.10"
+description = "Kotaemon App"
+dependencies = [
+    "kotaemon @ git+https://github.com/Cinnamon/kotaemon.git/@main#subdirectory=libs/kotaemon",
+    "ktem @ git+https://github.com/Cinnamon/kotaemon.git@main#subdirectory=libs/ktem"
+]
+
 [tool.codespell]
 skip = "*.js,*.css,*.map"
 # `llm` abbreviation for large language models
