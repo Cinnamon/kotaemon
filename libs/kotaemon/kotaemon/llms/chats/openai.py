@@ -299,7 +299,8 @@ class AzureChatOpenAI(BaseChatOpenAI):
             "HTTPS endpoint for the Azure OpenAI model. The azure_endpoint, "
             "azure_deployment, and api_version parameters are used to construct "
             "the full URL for the Azure OpenAI model."
-        )
+        ),
+        require=True,
     )
     azure_deployment: str = Param(help="Azure deployment name", required=True)
     api_version: str = Param(help="Azure model version", required=True)
