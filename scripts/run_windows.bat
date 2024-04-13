@@ -136,7 +136,7 @@ python "%CD%\scripts\serve_local.py"
 GOTO :eof
 
 :launch_ui
-CALL gradio "%CD%\libs\ktem\launch.py" || ( ECHO. && ECHO Will exit now... && GOTO :exit_func_with_error )
+CALL python "%CD%\libs\ktem\launch.py" || ( ECHO. && ECHO Will exit now... && GOTO :exit_func_with_error )
 GOTO :eof
 
 :print_highlight
