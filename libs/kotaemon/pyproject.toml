@@ -22,7 +22,7 @@ dependencies = [
     "theflow",
     "llama-index>=0.9.0,<0.10.0",
     "llama-hub",
-    "gradio>=4.0.0,<=4.22.0",
+    "gradio>=4.26.0",
     "openpyxl",
     "cookiecutter",
     "click",
@@ -34,6 +34,7 @@ dependencies = [
     "unstructured",
     "pypdf",
     "html2text",
+    "fastembed",
 ]
 readme = "README.md"
 license = { text = "MIT License" }
