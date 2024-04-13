@@ -19,7 +19,6 @@ dependencies = [
     "python-decouple",
     "sqlalchemy",
     "sqlmodel",
-    "fastembed",
     "tiktoken",
     "gradio>=4.26.0",
     "markdown",
