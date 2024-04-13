@@ -1,6 +1,6 @@
 # Changelogs
 
-## v1.0.0
+## v0.0.1
 
 - Chat: interact with chatbot with simple pipeline, rewoo and react agents
 - Chat: conversation management: create, delete, rename conversations
