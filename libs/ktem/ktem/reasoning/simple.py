@@ -21,7 +21,7 @@ from kotaemon.base import (
 from kotaemon.indices.qa.citation import CitationPipeline
 from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import ChatLLM, PromptTemplate
-from kotaemon.loaders.utils.gpt4v import stream_gpt4v
+from kotaemon.loaders.utils.gpt4v import generate_gpt4v, stream_gpt4v
 
 from .base import BaseReasoning
 
@@ -236,10 +236,36 @@ class AnswerWithContextPipeline(BaseComponent):
 
         return prompt, images
 
-    async def run(
-        self, question: str, evidence: str, evidence_mode: int = 0
+    def run(
+        self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
     ) -> Document:
-        return await self.ainvoke(question, evidence, evidence_mode)
+        return self.invoke(question, evidence, evidence_mode, **kwargs)
+
+    def invoke(
+        self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
+    ) -> Document:
+        prompt, images = self.get_prompt(question, evidence, evidence_mode)
+
+        output = ""
+        if evidence_mode == EVIDENCE_MODE_FIGURE:
+            output = generate_gpt4v(self.vlm_endpoint, images, prompt, max_tokens=768):
+        else:
+            messages = []
+            if self.system_prompt:
+                messages.append(SystemMessage(content=self.system_prompt))
+            messages.append(HumanMessage(content=prompt))
+            output = self.llm(messages).text
+
+        # retrieve the citation
+        citation = None
+        if evidence and self.enable_citation:
+            citation = self.citation_pipeline.invoke(
+                context=evidence, question=question
+            )
+
+        answer = Document(text=output, metadata={"citation": citation})
+
+        return answer
 
     async def ainvoke(  # type: ignore
         self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
