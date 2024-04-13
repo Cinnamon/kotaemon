@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
 from theflow.utils.modules import deserialize
 
-from kotaemon.base import BaseComponent
+from kotaemon.llms import ChatLLM
 
 from .db import LLMTable, engine
 
@@ -14,7 +14,7 @@ class LLMManager:
     """Represent a pool of models"""
 
     def __init__(self):
-        self._models: dict[str, BaseComponent] = {}
+        self._models: dict[str, ChatLLM] = {}
         self._info: dict[str, dict] = {}
         self._default: str = ""
         self._vendors: list[Type] = []
@@ -63,7 +63,7 @@ class LLMManager:
 
         self._vendors = [ChatOpenAI, AzureChatOpenAI, LlamaCppChat, EndpointChatLLM]
 
-    def __getitem__(self, key: str) -> BaseComponent:
+    def __getitem__(self, key: str) -> ChatLLM:
         """Get model by name"""
         return self._models[key]
 
@@ -71,9 +71,7 @@ class LLMManager:
         """Check if model exists"""
         return key in self._models
 
-    def get(
-        self, key: str, default: Optional[BaseComponent] = None
-    ) -> Optional[BaseComponent]:
+    def get(self, key: str, default: Optional[ChatLLM] = None) -> Optional[ChatLLM]:
         """Get model by name with default value"""
         return self._models.get(key, default)
 
@@ -119,18 +117,18 @@ class LLMManager:
 
         return self._default
 
-    def get_random(self) -> BaseComponent:
+    def get_random(self) -> ChatLLM:
         """Get random model"""
         return self._models[self.get_random_name()]
 
-    def get_default(self) -> BaseComponent:
+    def get_default(self) -> ChatLLM:
         """Get default model
 
         In case there is no default model, choose random model from pool. In
         case there are multiple default models, choose random from them.
 
         Returns:
-            BaseComponent: model
+            ChatLLM: model
         """
         return self._models[self.get_default_name()]
 

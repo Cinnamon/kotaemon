@@ -39,7 +39,7 @@ class BaseComponent(Function):
             if isinstance(node, BaseComponent):
                 node.set_output_queue(queue)
 
-    def report_output(self, output: Optional[dict]):
+    def report_output(self, output: Optional[Document]):
         if self._queue is not None:
             self._queue.put_nowait(output)
 
