@@ -77,7 +77,8 @@ button.selected {
 }
 
 #main-chat-bot {
-  flex: 1;
+  background: var(--background-fill-primary);
+  flex: auto;
 }
 
 #chat-area {

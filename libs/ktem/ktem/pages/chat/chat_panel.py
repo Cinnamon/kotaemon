@@ -10,8 +10,8 @@ class ChatPanel(BasePage):
     def on_building_ui(self):
         self.chatbot = gr.Chatbot(
             label="Kotaemon",
-            # placeholder="This is the beginning of a new conversation.",
-            show_label=True,
+            placeholder="This is the beginning of a new conversation.",
+            show_label=False,
             elem_id="main-chat-bot",
             show_copy_button=True,
             likeable=True,
