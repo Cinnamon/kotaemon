@@ -128,7 +128,7 @@ function setup_local_model() {
 }
 
 function launch_ui() {
-    gradio $(pwd)/libs/ktem/launch.py || {
+    python $(pwd)/libs/ktem/launch.py || {
         echo "" && echo "Will exit now..."
         exit 1
     }
