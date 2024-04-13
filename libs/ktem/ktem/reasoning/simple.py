@@ -248,7 +248,7 @@ class AnswerWithContextPipeline(BaseComponent):
 
         output = ""
         if evidence_mode == EVIDENCE_MODE_FIGURE:
-            output = generate_gpt4v(self.vlm_endpoint, images, prompt, max_tokens=768):
+            output = generate_gpt4v(self.vlm_endpoint, images, prompt, max_tokens=768)
         else:
             messages = []
             if self.system_prompt:
