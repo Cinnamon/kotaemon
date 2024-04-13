@@ -119,10 +119,10 @@ if config("LOCAL_MODEL", default=""):
         }
 
 if len(KH_EMBEDDINGS) < 1:
-    KH_EMBEDDINGS["local-mxbai-large-v1"] = {
+    KH_EMBEDDINGS["local-bge-base-en-v1.5"] = {
         "spec": {
             "__type__": "kotaemon.embeddings.FastEmbedEmbeddings",
-            "model_name": "mixedbread-ai/mxbai-embed-large-v1",
+            "model_name": "BAAI/bge-base-en-v1.5",
         },
         "default": True,
     }
