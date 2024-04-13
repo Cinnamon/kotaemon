@@ -1,8 +1,9 @@
 # Getting Started with Kotaemon
 
-This page is intended for end users who want to use the `kotaemon` tool for Question
-Answering on local documents. If you are a developer who wants contribute to the
-project, please visit the [development](development/index.md) page.
+![demo](images/chat-tab-demo.png)
+
+This page is intended for **end users** who want to use the `kotaemon` tool for Question
+Answering on local documents. If you are a **developer** who wants contribute to the project, please visit the [development](development/index.md) page.
 
 ## Download
 
@@ -18,8 +19,7 @@ Download and upzip the latest version of `kotaemon` by clicking this
      2. Enable All Applications and choose Terminal.
      3. NOTE: If you always want to open that file with Terminal, then check Always Open With.
      4. From now on, double click on your file and it should work.
-   - Linux: `run_linux.sh`. If you are using Linux, you would know how to run a bash
-     script, right ?
+   - Linux: `run_linux.sh`. If you are using Linux, you would know how to run a bash script, right ?
 2. After the installation, the installer will ask to launch the ktem's UI, answer to continue.
 3. If launched, the application will be open automatically in your browser.
 

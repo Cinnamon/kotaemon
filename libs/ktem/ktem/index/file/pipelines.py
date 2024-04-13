@@ -12,7 +12,7 @@ from typing import Optional
 import gradio as gr
 from ktem.components import filestorage_path
 from ktem.db.models import engine
-from ktem.embeddings.manager import embeddings
+from ktem.embeddings.manager import embedding_models_manager
 from llama_index.vector_stores import (
     FilterCondition,
     FilterOperator,
@@ -225,7 +225,9 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
         if not user_settings["use_reranking"]:
             retriever.reranker = None  # type: ignore
 
-        retriever.vector_retrieval.embedding = embeddings[index_settings["embedding"]]
+        retriever.vector_retrieval.embedding = embedding_models_manager[
+            index_settings.get("embedding", embedding_models_manager.get_default_name())
+        ]
         kwargs = {
             ".top_k": int(user_settings["num_retrieval"]),
             ".mmr": user_settings["mmr"],
@@ -436,7 +438,9 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         if chunk_overlap:
             obj.file_ingestor.text_splitter.chunk_overlap = chunk_overlap
 
-        obj.indexing_vector_pipeline.embedding = embeddings[index_settings["embedding"]]
+        obj.indexing_vector_pipeline.embedding = embedding_models_manager[
+            index_settings.get("embedding", embedding_models_manager.get_default_name())
+        ]
 
         return obj
 

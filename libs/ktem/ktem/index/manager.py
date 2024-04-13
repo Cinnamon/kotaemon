@@ -58,6 +58,10 @@ class IndexManager:
                 index_cls = import_dotted_string(index_type, safe=False)
                 index = index_cls(app=self._app, id=entry.id, name=name, config=config)
                 index.on_create()
+
+                # update the entry
+                entry.config = index.config
+                sess.commit()
             except Exception as e:
                 sess.delete(entry)
                 sess.commit()
@@ -177,7 +181,7 @@ class IndexManager:
         self.load_index_types()
 
         for index in settings.KH_INDICES:
-            if not self.exists(index["id"]):
+            if not self.exists(name=index["name"]):
                 self.build_index(**index)
 
         with Session(engine) as sess:

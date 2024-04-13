@@ -196,4 +196,4 @@ class EmbeddingManager:
         return {vendor.__qualname__: vendor for vendor in self._vendors}
 
 
-embeddings = EmbeddingManager()
+embedding_models_manager = EmbeddingManager()
