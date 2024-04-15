@@ -3,7 +3,7 @@
 from kotaemon.llms import PromptTemplate
 
 zero_shot_react_prompt = PromptTemplate(
-    template="""Answer the following questions as best you can. You have access to the following tools:
+    template="""Answer the following questions as best you can. Give answer in {lang}. You have access to the following tools:
 {tool_description}
 Use the following format:
 
@@ -12,7 +12,7 @@ Thought: you should always think about what to do
 
 Action: the action to take, should be one of [{tool_names}]
 
-Action Input: the input to the action
+Action Input: the input to the action, should be different from the action input of the same action in previous steps.
 
 Observation: the result of the action
 

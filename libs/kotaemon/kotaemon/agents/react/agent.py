@@ -1,11 +1,15 @@
 import logging
 import re
+from functools import partial
 from typing import Optional
+
+import tiktoken
 
 from kotaemon.agents.base import BaseAgent, BaseLLM
 from kotaemon.agents.io import AgentAction, AgentFinish, AgentOutput, AgentType
 from kotaemon.agents.tools import BaseTool
-from kotaemon.base import Param
+from kotaemon.base import Document, Param
+from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import PromptTemplate
 
 FINAL_ANSWER_ACTION = "Final Answer:"
@@ -22,6 +26,7 @@ class ReactAgent(BaseAgent):
     description: str = "ReactAgent for answering multi-step reasoning questions"
     llm: BaseLLM
     prompt_template: Optional[PromptTemplate] = None
+    output_lang: str = "English"
     plugins: list[BaseTool] = Param(
         default_callback=lambda _: [], help="List of tools to be used in the agent. "
     )
@@ -34,6 +39,16 @@ class ReactAgent(BaseAgent):
     )
     max_iterations: int = 10
     strict_decode: bool = False
+    trim_func: TokenSplitter = TokenSplitter.withx(
+        chunk_size=1000,
+        chunk_overlap=0,
+        separator=" ",
+        tokenizer=partial(
+            tiktoken.encoding_for_model("gpt-3.5-turbo").encode,
+            allowed_special=set(),
+            disallowed_special="all",
+        ),
+    )
 
     def _compose_plugin_description(self) -> str:
         """
@@ -119,6 +134,7 @@ class ReactAgent(BaseAgent):
             agent_scratchpad=agent_scratchpad,
             tool_description=tool_description,
             tool_names=tool_names,
+            lang=self.output_lang,
         )
 
     def _format_function_map(self) -> dict[str, BaseTool]:
@@ -132,6 +148,20 @@ class ReactAgent(BaseAgent):
         for plugin in self.plugins:
             function_map[plugin.name] = plugin
         return function_map
+
+    def _trim(self, text: str) -> str:
+        """
+        Trim the text to the maximum token length.
+        """
+        if isinstance(text, str):
+            texts = self.trim_func([Document(text=text)])
+        elif isinstance(text, Document):
+            texts = self.trim_func([text])
+        else:
+            raise ValueError("Invalid text type to trim")
+        trim_text = texts[0].text
+        logging.info(f"len (trimmed): {len(trim_text)}")
+        return trim_text
 
     def clear(self):
         """
@@ -183,6 +213,11 @@ class ReactAgent(BaseAgent):
                 logging.info(f"Action: {action_name}")
                 logging.info(f"Tool Input: {tool_input}")
                 result = self._format_function_map()[action_name](tool_input)
+
+                # trim the worker output to 1000 tokens, as we are appending
+                # all workers' logs and it can exceed the token limit if we
+                # don't limit each. Fix this number regarding to the LLM capacity.
+                result = self._trim(result)
                 logging.info(f"Result: {result}")
 
             self.intermediate_steps.append((action_step, result))
