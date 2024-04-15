@@ -63,7 +63,6 @@ class FileIndex(BaseIndex):
                 "relation_type": Column(Integer),
             },
         )
-        self._db_tables: dict[str, Any] = {"Source": Source, "Index": Index}
         self._vs: BaseVectorStore = get_vectorstore(f"index_{self.id}")
         self._docstore: BaseDocumentStore = get_docstore(f"index_{self.id}")
         self._fs_path = filestorage_path / f"index_{self.id}"
