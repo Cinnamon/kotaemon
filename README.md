@@ -1,6 +1,6 @@
 # kotaemon
 
-![demo](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/chat-tab-demo.png)
+![demo](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/chat-demo.gif)
 
 [Source Code](https://github.com/Cinnamon/kotaemon) |
 [Demo](https://huggingface.co/spaces/lone17/kotaemon-app)

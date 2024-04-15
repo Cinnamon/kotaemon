@@ -1,6 +1,6 @@
 # Getting Started with Kotaemon
 
-![demo](images/chat-tab-demo.png)
+![chat demo](images/chat-demo.gif)
 
 This page is intended for **end users** who want to use the `kotaemon` tool for Question
 Answering on local documents. If you are a **developer** who wants contribute to the project, please visit the [development](development/index.md) page.
