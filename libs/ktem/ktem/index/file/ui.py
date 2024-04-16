@@ -512,20 +512,55 @@ class FileSelector(BasePage):
         self._index = index
         self.on_building_ui()
 
+    def default(self):
+        return "disabled", []
+
     def on_building_ui(self):
+        default_mode, default_selector = self.default()
+
+        self.mode = gr.Radio(
+            value=default_mode,
+            choices=[
+                ("Disabled", "disabled"),
+                ("Search All", "all"),
+                ("Select", "select"),
+            ],
+            container=False,
+        )
         self.selector = gr.Dropdown(
             label="Files",
-            choices=[],
+            choices=default_selector,
             multiselect=True,
             container=False,
             interactive=True,
+            visible=False,
+        )
+
+    def on_register_events(self):
+        self.mode.change(
+            fn=lambda mode: gr.update(visible=mode == "select"),
+            inputs=[self.mode],
+            outputs=[self.selector],
         )
 
     def as_gradio_component(self):
-        return self.selector
+        return [self.mode, self.selector]
 
-    def get_selected_ids(self, selected):
-        return selected
+    def get_selected_ids(self, components):
+        mode, selected = components[0], components[1]
+        if mode == "disabled":
+            return []
+        elif mode == "select":
+            return selected
+
+        file_ids = []
+        with Session(engine) as session:
+            statement = select(self._index._resources["Source"].id)
+            results = session.execute(statement).all()
+            for (id,) in results:
+                file_ids.append(id)
+
+        return file_ids
 
     def load_files(self, selected_files):
         options = []
