@@ -245,6 +245,7 @@ class AnswerWithContextPipeline(BaseComponent):
     def invoke(
         self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
     ) -> Document:
+        history = kwargs.get("history", [])
         prompt, images = self.get_prompt(question, evidence, evidence_mode)
 
         output = ""
@@ -254,6 +255,9 @@ class AnswerWithContextPipeline(BaseComponent):
             messages = []
             if self.system_prompt:
                 messages.append(SystemMessage(content=self.system_prompt))
+            for human, ai in history[-5:]:
+                messages.append(HumanMessage(content=human))
+                messages.append(AIMessage(content=ai))
             messages.append(HumanMessage(content=prompt))
             output = self.llm(messages).text
 
@@ -293,6 +297,7 @@ class AnswerWithContextPipeline(BaseComponent):
                 (determined by retrieval pipeline)
             evidence_mode: the mode of evidence, 0 for text, 1 for table, 2 for chatbot
         """
+        history = kwargs.get("history", [])
         prompt, images = self.get_prompt(question, evidence, evidence_mode)
 
         citation_task = None
@@ -312,6 +317,9 @@ class AnswerWithContextPipeline(BaseComponent):
             messages = []
             if self.system_prompt:
                 messages.append(SystemMessage(content=self.system_prompt))
+            for human, ai in history[-5:]:
+                messages.append(HumanMessage(content=human))
+                messages.append(AIMessage(content=ai))
             messages.append(HumanMessage(content=prompt))
 
             try:
@@ -340,6 +348,7 @@ class AnswerWithContextPipeline(BaseComponent):
     def stream(  # type: ignore
         self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
     ) -> Generator[Document, None, Document]:
+        history = kwargs.get("history", [])
         prompt, images = self.get_prompt(question, evidence, evidence_mode)
 
         output = ""
@@ -351,6 +360,9 @@ class AnswerWithContextPipeline(BaseComponent):
             messages = []
             if self.system_prompt:
                 messages.append(SystemMessage(content=self.system_prompt))
+            for human, ai in history[-5:]:
+                messages.append(HumanMessage(content=human))
+                messages.append(AIMessage(content=ai))
             messages.append(HumanMessage(content=prompt))
 
             try:
