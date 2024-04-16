@@ -96,7 +96,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
 
         Index = self._Index
 
-        vrkwargs = {}
+        retrieval_kwargs = {}
         with Session(engine) as session:
             stmt = select(Index).where(
                 Index.relation_type == "vector",
@@ -105,7 +105,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             results = session.execute(stmt)
             vs_ids = [r[0].target_id for r in results.all()]
 
-        vrkwargs["filters"] = MetadataFilters(
+        retrieval_kwargs["filters"] = MetadataFilters(
             filters=[
                 MetadataFilter(
                     key="doc_id",
@@ -119,11 +119,11 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
 
         if self.mmr:
             # TODO: double check that llama-index MMR works correctly
-            vrkwargs["mode"] = VectorStoreQueryMode.MMR
-            vrkwargs["mmr_threshold"] = 0.5
+            retrieval_kwargs["mode"] = VectorStoreQueryMode.MMR
+            retrieval_kwargs["mmr_threshold"] = 0.5
 
         # rerank
-        docs = self.vector_retrieval(text=text, top_k=self.top_k, **vrkwargs)
+        docs = self.vector_retrieval(text=text, top_k=self.top_k, **retrieval_kwargs)
         if docs and self.get_from_path("reranker"):
             docs = self.reranker(docs, query=text)
 
