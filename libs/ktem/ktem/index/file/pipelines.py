@@ -67,58 +67,64 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             documents
         get_extra_table: if True, for each retrieved document, the pipeline will look
             for surrounding tables (e.g. within the page)
+        top_k: number of documents to retrieve
+        mmr: whether to use mmr to re-rank the documents
+        disabled: whether the pipeline is disabled
     """
 
     vector_retrieval: VectorRetrieval = VectorRetrieval.withx()
     reranker: BaseReranking
     get_extra_table: bool = False
+    mmr: bool = False
+    top_k: int = 5
 
     def run(
         self,
         text: str,
-        top_k: int = 5,
-        mmr: bool = False,
         doc_ids: Optional[list[str]] = None,
+        *args,
+        **kwargs,
     ) -> list[RetrievedDocument]:
         """Retrieve document excerpts similar to the text
 
         Args:
             text: the text to retrieve similar documents
-            top_k: number of documents to retrieve
-            mmr: whether to use mmr to re-rank the documents
             doc_ids: list of document ids to constraint the retrieval
         """
+        if not doc_ids:
+            logger.info(f"Skip retrieval because of no selected files: {self}")
+            return []
+
         Index = self._Index
 
-        kwargs = {}
-        if doc_ids:
-            with Session(engine) as session:
-                stmt = select(Index).where(
-                    Index.relation_type == "vector",
-                    Index.source_id.in_(doc_ids),  # type: ignore
-                )
-                results = session.execute(stmt)
-                vs_ids = [r[0].target_id for r in results.all()]
-
-            kwargs["filters"] = MetadataFilters(
-                filters=[
-                    MetadataFilter(
-                        key="doc_id",
-                        value=vs_id,
-                        operator=FilterOperator.EQ,
-                    )
-                    for vs_id in vs_ids
-                ],
-                condition=FilterCondition.OR,
+        vrkwargs = {}
+        with Session(engine) as session:
+            stmt = select(Index).where(
+                Index.relation_type == "vector",
+                Index.source_id.in_(doc_ids),  # type: ignore
             )
+            results = session.execute(stmt)
+            vs_ids = [r[0].target_id for r in results.all()]
 
-        if mmr:
+        vrkwargs["filters"] = MetadataFilters(
+            filters=[
+                MetadataFilter(
+                    key="doc_id",
+                    value=vs_id,
+                    operator=FilterOperator.EQ,
+                )
+                for vs_id in vs_ids
+            ],
+            condition=FilterCondition.OR,
+        )
+
+        if self.mmr:
             # TODO: double check that llama-index MMR works correctly
-            kwargs["mode"] = VectorStoreQueryMode.MMR
-            kwargs["mmr_threshold"] = 0.5
+            vrkwargs["mode"] = VectorStoreQueryMode.MMR
+            vrkwargs["mmr_threshold"] = 0.5
 
         # rerank
-        docs = self.vector_retrieval(text=text, top_k=top_k, **kwargs)
+        docs = self.vector_retrieval(text=text, top_k=self.top_k, **vrkwargs)
         if docs and self.get_from_path("reranker"):
             docs = self.reranker(docs, query=text)
 
@@ -221,6 +227,8 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
         retriever = cls(
             get_extra_table=user_settings["prioritize_table"],
             reranker=user_settings["reranking_llm"],
+            top_k=user_settings["num_retrieval"],
+            mmr=user_settings["mmr"],
         )
         if not user_settings["use_reranking"]:
             retriever.reranker = None  # type: ignore
@@ -228,11 +236,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
         retriever.vector_retrieval.embedding = embedding_models_manager[
             index_settings.get("embedding", embedding_models_manager.get_default_name())
         ]
-        kwargs = {
-            ".top_k": int(user_settings["num_retrieval"]),
-            ".mmr": user_settings["mmr"],
-            ".doc_ids": selected,
-        }
+        kwargs = {".doc_ids": selected}
         retriever.set_run(kwargs, temp=True)
         return retriever
 
