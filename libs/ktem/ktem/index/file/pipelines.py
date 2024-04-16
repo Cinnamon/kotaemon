@@ -69,7 +69,6 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             for surrounding tables (e.g. within the page)
         top_k: number of documents to retrieve
         mmr: whether to use mmr to re-rank the documents
-        disabled: whether the pipeline is disabled
     """
 
     vector_retrieval: VectorRetrieval = VectorRetrieval.withx()
