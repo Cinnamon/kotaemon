@@ -11,6 +11,7 @@ from ktem.llms.manager import llms
 from ktem.utils.render import Render
 
 from kotaemon.base import (
+    AIMessage,
     BaseComponent,
     Document,
     HumanMessage,
@@ -406,6 +407,45 @@ class RewriteQuestionPipeline(BaseComponent):
         return self.llm(messages)
 
 
+class AddQueryContextPipeline(BaseComponent):
+
+    llm: ChatLLM = Node(default_callback=lambda _: llms.get_default())
+
+    def run(self, question: str, history: list) -> Document:
+        messages = [
+            SystemMessage(
+                content="Below is a history of the conversation so far, and a new "
+                "question asked by the user that needs to be answered by searching "
+                "in a knowledge base.\nYou have access to a Search index "
+                "with 100's of documents.\nGenerate a search query based on the "
+                "conversation and the new question.\nDo not include cited source "
+                "filenames and document names e.g info.txt or doc.pdf in the search "
+                "query terms.\nDo not include any text inside [] or <<>> in the "
+                "search query terms.\nDo not include any special characters like "
+                "'+'.\nIf the question is not in English, rewrite the query in "
+                "the language used in the question.\n If you cannot "
+                "generate a search query, return just the number 0."
+            ),
+            HumanMessage(content="How did crypto do last year?"),
+            AIMessage(
+                content="Summarize Cryptocurrency Market Dynamics from last year"
+            ),
+            HumanMessage(content="What are my health plans?"),
+            AIMessage(content="Show available health plans"),
+        ]
+        for human, ai in history[-3:]:
+            messages.append(HumanMessage(content=human))
+            messages.append(AIMessage(content=ai))
+
+        messages.append(HumanMessage(content=f"Generate search query for: {question}"))
+
+        resp = self.llm(messages).text
+        if resp == "0":
+            return Document(content="")
+
+        return Document(content=resp)
+
+
 class FullQAPipeline(BaseReasoning):
     """Question answering pipeline. Handle from question to answer"""
 
@@ -417,13 +457,21 @@ class FullQAPipeline(BaseReasoning):
     evidence_pipeline: PrepareEvidencePipeline = PrepareEvidencePipeline.withx()
     answering_pipeline: AnswerWithContextPipeline = AnswerWithContextPipeline.withx()
     rewrite_pipeline: RewriteQuestionPipeline = RewriteQuestionPipeline.withx()
+    add_query_context: AddQueryContextPipeline = AddQueryContextPipeline.withx()
     use_rewrite: bool = False
 
-    def retrieve(self, message: str) -> tuple[list[RetrievedDocument], list[Document]]:
+    def retrieve(
+        self, message: str, history: list
+    ) -> tuple[list[RetrievedDocument], list[Document]]:
         """Retrieve the documents based on the message"""
+        query = self.add_query_context(message, history)
+        print(f"Rewritten query: {query.content}")
+        if not query.content:
+            return [], []
+
         docs, doc_ids = [], []
         for retriever in self.retrievers:
-            for doc in retriever(text=message):
+            for doc in retriever(text=query.content):
                 if doc.doc_id not in doc_ids:
                     docs.append(doc)
                     doc_ids.append(doc.doc_id)
@@ -522,7 +570,7 @@ class FullQAPipeline(BaseReasoning):
             rewrite = await self.rewrite_pipeline(question=message)
             message = rewrite.text
 
-        docs, infos = self.retrieve(message)
+        docs, infos = self.retrieve(message, history)
         for _ in infos:
             self.report_output(_)
         await asyncio.sleep(0.1)
@@ -564,7 +612,8 @@ class FullQAPipeline(BaseReasoning):
         if self.use_rewrite:
             message = self.rewrite_pipeline(question=message).text
 
-        docs, infos = self.retrieve(message)
+        # should populate the context
+        docs, infos = self.retrieve(message, history)
         for _ in infos:
             yield _
 
@@ -609,6 +658,8 @@ class FullQAPipeline(BaseReasoning):
         pipeline = FullQAPipeline(retrievers=retrievers)
         pipeline.answering_pipeline.llm = llms.get_default()
         pipeline.answering_pipeline.citation_pipeline.llm = llms.get_default()
+
+        pipeline.add_query_context.llm = llms.get_default()
 
         pipeline.answering_pipeline.enable_citation = settings[
             f"reasoning.options.{_id}.highlight_citation"
