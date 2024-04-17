@@ -13,6 +13,7 @@ import gradio as gr
 from ktem.components import filestorage_path
 from ktem.db.models import engine
 from ktem.embeddings.manager import embedding_models_manager
+from ktem.llms.manager import llms
 from llama_index.vector_stores import (
     FilterCondition,
     FilterOperator,
@@ -28,7 +29,7 @@ from theflow.utils.modules import import_dotted_string
 from kotaemon.base import RetrievedDocument
 from kotaemon.indices import VectorIndexing, VectorRetrieval
 from kotaemon.indices.ingests import DocumentIngestor
-from kotaemon.indices.rankings import BaseReranking
+from kotaemon.indices.rankings import BaseReranking, LLMReranking
 
 from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
 
@@ -72,7 +73,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
     """
 
     vector_retrieval: VectorRetrieval = VectorRetrieval.withx()
-    reranker: BaseReranking
+    reranker: BaseReranking = LLMReranking.withx()
     get_extra_table: bool = False
     mmr: bool = False
     top_k: int = 5
@@ -225,12 +226,15 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
         """
         retriever = cls(
             get_extra_table=user_settings["prioritize_table"],
-            reranker=user_settings["reranking_llm"],
             top_k=user_settings["num_retrieval"],
             mmr=user_settings["mmr"],
         )
         if not user_settings["use_reranking"]:
             retriever.reranker = None  # type: ignore
+        else:
+            retriever.reranker.llm = llms.get(
+                user_settings["reranking_llm"], llms.get_default()
+            )
 
         retriever.vector_retrieval.embedding = embedding_models_manager[
             index_settings.get("embedding", embedding_models_manager.get_default_name())
