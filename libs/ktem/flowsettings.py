@@ -181,7 +181,12 @@ KH_INDEX_TYPES = ["ktem.index.file.FileIndex"]
 KH_INDICES = [
     {
         "name": "File",
-        "config": {},
+        "config": {
+            "supported_file_types": (
+                ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
+                ".pptx, .csv, .html, .mhtml, .txt"
+            ),
+        },
         "index_type": "ktem.index.file.FileIndex",
     },
 ]
