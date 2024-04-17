@@ -476,14 +476,17 @@ class FullQAPipeline(BaseReasoning):
         self, message: str, history: list
     ) -> tuple[list[RetrievedDocument], list[Document]]:
         """Retrieve the documents based on the message"""
-        query = self.add_query_context(message, history)
-        print(f"Rewritten query: {query.content}")
-        if not query.content:
+        if len(message) < 150:
+            query = self.add_query_context(message, history).content
+        else:
+            query = message
+        print(f"Rewritten query: {query}")
+        if not query:
             return [], []
 
         docs, doc_ids = [], []
         for retriever in self.retrievers:
-            for doc in retriever(text=query.content):
+            for doc in retriever(text=query):
                 if doc.doc_id not in doc_ids:
                     docs.append(doc)
                     doc_ids.append(doc.doc_id)
