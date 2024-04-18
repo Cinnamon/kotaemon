@@ -346,6 +346,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                 name=Path(file_path).name,
                 path=file_hash,
                 size=Path(file_path).stat().st_size,
+                user=self._user_id,  # type: ignore
             )
             file_to_source[file_path] = source
 

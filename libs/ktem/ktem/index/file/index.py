@@ -31,6 +31,26 @@ class FileIndex(BaseIndex):
 
     def __init__(self, app, id: int, name: str, config: dict):
         super().__init__(app, id, name, config)
+
+        self._indexing_pipeline_cls: Type[BaseFileIndexIndexing]
+        self._retriever_pipeline_cls: list[Type[BaseFileIndexRetriever]]
+        self._selector_ui_cls: Type
+        self._selector_ui: Any = None
+        self._index_ui_cls: Type
+        self._index_ui: Any = None
+
+        self._default_settings: dict[str, dict] = {}
+        self._setting_mappings: dict[str, dict] = {}
+
+    def _setup_resources(self):
+        """Setup resources for the file index
+
+        The resources include:
+            - Database table
+            - Vector store
+            - Document store
+            - File storage path
+        """
         Base = declarative_base()
         Source = type(
             "Source",
@@ -50,6 +70,7 @@ class FileIndex(BaseIndex):
                 "date_created": Column(
                     DateTime(timezone=True), server_default=func.now()
                 ),
+                "user": Column(Integer, default=1),
             },
         )
         Index = type(
@@ -61,6 +82,7 @@ class FileIndex(BaseIndex):
                 "source_id": Column(String),
                 "target_id": Column(String),
                 "relation_type": Column(Integer),
+                "user": Column(Integer, default=1),
             },
         )
         self._vs: BaseVectorStore = get_vectorstore(f"index_{self.id}")
@@ -73,16 +95,6 @@ class FileIndex(BaseIndex):
             "DocStore": self._docstore,
             "FileStoragePath": self._fs_path,
         }
-
-        self._indexing_pipeline_cls: Type[BaseFileIndexIndexing]
-        self._retriever_pipeline_cls: list[Type[BaseFileIndexRetriever]]
-        self._selector_ui_cls: Type
-        self._selector_ui: Any = None
-        self._index_ui_cls: Type
-        self._index_ui: Any = None
-
-        self._default_settings: dict[str, dict] = {}
-        self._setting_mappings: dict[str, dict] = {}
 
     def _setup_indexing_cls(self):
         """Retrieve the indexing class for the file index
@@ -247,6 +259,7 @@ class FileIndex(BaseIndex):
         self.config = config
 
         # create the resources
+        self._setup_resources()
         self._resources["Source"].metadata.create_all(engine)  # type: ignore
         self._resources["Index"].metadata.create_all(engine)  # type: ignore
         self._fs_path.mkdir(parents=True, exist_ok=True)
@@ -255,6 +268,7 @@ class FileIndex(BaseIndex):
         """Clean up the index when the user delete it"""
         import shutil
 
+        self._setup_resources()
         self._resources["Source"].__table__.drop(engine)  # type: ignore
         self._resources["Index"].__table__.drop(engine)  # type: ignore
         self._vs.drop()
@@ -263,6 +277,7 @@ class FileIndex(BaseIndex):
 
     def on_start(self):
         """Setup the classes and hooks"""
+        self._setup_resources()
         self._setup_indexing_cls()
         self._setup_retriever_cls()
         self._setup_file_index_ui_cls()
@@ -326,9 +341,16 @@ class FileIndex(BaseIndex):
                     "Set 0 to disable."
                 ),
             },
+            "private": {
+                "name": "Make private",
+                "value": False,
+                "component": "radio",
+                "choices": [("Yes", True), ("No", False)],
+                "info": "If private, files will not be accessible across users.",
+            },
         }
 
-    def get_indexing_pipeline(self, settings) -> BaseFileIndexIndexing:
+    def get_indexing_pipeline(self, settings, user_id) -> BaseFileIndexIndexing:
         """Define the interface of the indexing pipeline"""
 
         prefix = f"index.options.{self.id}."
@@ -341,6 +363,7 @@ class FileIndex(BaseIndex):
 
         obj = self._indexing_pipeline_cls.get_pipeline(stripped_settings, self.config)
         obj.set_resources(resources=self._resources)
+        obj._user_id = user_id
 
         return obj
 
