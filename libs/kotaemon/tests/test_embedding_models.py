@@ -9,7 +9,7 @@ from kotaemon.embeddings import (
     AzureOpenAIEmbeddings,
     FastEmbedEmbeddings,
     LCAzureOpenAIEmbeddings,
-    LCCohereEmbdeddings,
+    LCCohereEmbeddings,
     LCHuggingFaceEmbeddings,
     OpenAIEmbeddings,
 )
@@ -148,7 +148,7 @@ def test_lchuggingface_embeddings(
     side_effect=lambda *args, **kwargs: [[1.0, 2.1, 3.2]],
 )
 def test_lccohere_embeddings(langchain_cohere_embedding_call):
-    model = LCCohereEmbdeddings(
+    model = LCCohereEmbeddings(
         model="embed-english-light-v2.0", cohere_api_key="my-api-key"
     )
 

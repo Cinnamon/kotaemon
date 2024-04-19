@@ -159,7 +159,7 @@ class LCAzureOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
         return AzureOpenAIEmbeddings
 
 
-class LCCohereEmbdeddings(LCEmbeddingMixin, BaseEmbeddings):
+class LCCohereEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
     """Wrapper around Langchain's Cohere embedding, focusing on key parameters"""
 
     def __init__(
