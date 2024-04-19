@@ -75,8 +75,8 @@ class CitationPipeline(BaseComponent):
             "parameters": schema,
         }
         llm_kwargs = {
-            "functions": [function],
-            "function_call": {"name": function["name"]},
+            "tools": [{"type": "function", "function": function}],
+            "tool_choice": "auto",
         }
         messages = [
             SystemMessage(
@@ -99,14 +99,13 @@ class CitationPipeline(BaseComponent):
 
     def invoke(self, context: str, question: str):
         messages, llm_kwargs = self.prepare_llm(context, question)
-
         try:
             print("CitationPipeline: invoking LLM")
             llm_output = self.get_from_path("llm").invoke(messages, **llm_kwargs)
             print("CitationPipeline: finish invoking LLM")
             if not llm_output.messages:
                 return None
-            function_output = llm_output.messages[0].additional_kwargs["function_call"][
+            function_output = llm_output.additional_kwargs["tool_calls"][0]["function"][
                 "arguments"
             ]
             output = QuestionAnswer.parse_raw(function_output)
@@ -123,16 +122,12 @@ class CitationPipeline(BaseComponent):
             print("CitationPipeline: async invoking LLM")
             llm_output = await self.get_from_path("llm").ainvoke(messages, **llm_kwargs)
             print("CitationPipeline: finish async invoking LLM")
+            function_output = llm_output.additional_kwargs["tool_calls"][0]["function"][
+                "arguments"
+            ]
+            output = QuestionAnswer.parse_raw(function_output)
         except Exception as e:
             print(e)
             return None
-
-        if not llm_output.messages:
-            return None
-
-        function_output = llm_output.messages[0].additional_kwargs["function_call"][
-            "arguments"
-        ]
-        output = QuestionAnswer.parse_raw(function_output)
 
         return output
