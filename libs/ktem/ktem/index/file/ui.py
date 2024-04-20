@@ -199,8 +199,8 @@ class FileIndexPage(BasePage):
     def delete_yes_event(self, file_id):
         with Session(engine) as session:
             source = session.execute(
-                select(self._index._db_tables["Source"]).where(
-                    self._index._db_tables["Source"].id == file_id
+                select(self._index._resources["Source"]).where(
+                    self._index._resources["Source"].id == file_id
                 )
             ).first()
             if source:
@@ -208,8 +208,8 @@ class FileIndexPage(BasePage):
 
             vs_ids, ds_ids = [], []
             index = session.execute(
-                select(self._index._db_tables["Index"]).where(
-                    self._index._db_tables["Index"].source_id == file_id
+                select(self._index._resources["Index"]).where(
+                    self._index._resources["Index"].source_id == file_id
                 )
             ).all()
             for each in index:
@@ -431,7 +431,7 @@ class FileIndexPage(BasePage):
         return self.index_fn(files, reindex, settings)
 
     def list_file(self):
-        Source = self._index._db_tables["Source"]
+        Source = self._index._resources["Source"]
         with Session(engine) as session:
             statement = select(Source)
             results = [
@@ -494,7 +494,7 @@ class FileIndexPage(BasePage):
         if max_number_of_files := self._index.config.get("max_number_of_files", 0):
             with Session(engine) as session:
                 current_num_files = session.query(
-                    self._index._db_tables["Source"].id
+                    self._index._resources["Source"].id
                 ).count()
             if len(paths) + current_num_files > max_number_of_files:
                 errors.append(
@@ -566,7 +566,7 @@ class FileSelector(BasePage):
         options = []
         available_ids = []
         with Session(engine) as session:
-            statement = select(self._index._db_tables["Source"])
+            statement = select(self._index._resources["Source"])
             results = session.execute(statement).all()
             for result in results:
                 available_ids.append(result[0].id)
