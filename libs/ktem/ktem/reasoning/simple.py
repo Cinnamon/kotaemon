@@ -206,6 +206,7 @@ class AnswerWithContextPipeline(BaseComponent):
     enable_citation: bool = False
     system_prompt: str = ""
     lang: str = "English"  # support English and Japanese
+    n_last_interactions: int = 5
 
     def get_prompt(self, question, evidence, evidence_mode: int):
         """Prepare the prompt and other information for LLM"""
@@ -255,7 +256,7 @@ class AnswerWithContextPipeline(BaseComponent):
             messages = []
             if self.system_prompt:
                 messages.append(SystemMessage(content=self.system_prompt))
-            for human, ai in history[-5:]:
+            for human, ai in history[-self.n_last_interactions :]:
                 messages.append(HumanMessage(content=human))
                 messages.append(AIMessage(content=ai))
             messages.append(HumanMessage(content=prompt))
@@ -435,8 +436,9 @@ class AddQueryContextPipeline(BaseComponent):
                 "query terms.\nDo not include any text inside [] or <<>> in the "
                 "search query terms.\nDo not include any special characters like "
                 "'+'.\nIf the question is not in English, rewrite the query in "
-                "the language used in the question.\n If you cannot "
-                "generate a search query, return just the number 0."
+                "the language used in the question.\n If the question contains enough "
+                "information, return just the number 1\n If it's unnecessary to do "
+                "the searching, return just the number 0."
             ),
             HumanMessage(content="How did crypto do last year?"),
             AIMessage(
@@ -455,6 +457,9 @@ class AddQueryContextPipeline(BaseComponent):
         if resp == "0":
             return Document(content="")
 
+        if resp == "1":
+            return Document(content=question)
+
         return Document(content=resp)
 
 
@@ -470,13 +475,18 @@ class FullQAPipeline(BaseReasoning):
     answering_pipeline: AnswerWithContextPipeline = AnswerWithContextPipeline.withx()
     rewrite_pipeline: RewriteQuestionPipeline = RewriteQuestionPipeline.withx()
     add_query_context: AddQueryContextPipeline = AddQueryContextPipeline.withx()
+    trigger_context: int = 150
     use_rewrite: bool = False
 
     def retrieve(
         self, message: str, history: list
     ) -> tuple[list[RetrievedDocument], list[Document]]:
         """Retrieve the documents based on the message"""
-        if len(message) < 150:
+        if len(message) < self.trigger_context:
+            # prefer adding context for short user questions, avoid adding context for
+            # long questions, as they are likely to contain enough information
+            # plus, avoid the situation where the original message is already too long
+            # for the model to handle
             query = self.add_query_context(message, history).content
         else:
             query = message
@@ -668,26 +678,24 @@ class FullQAPipeline(BaseReasoning):
             settings: the settings for the pipeline
             retrievers: the retrievers to use
         """
-        _id = cls.get_info()["id"]
-
+        prefix = f"reasoning.options.{cls.get_info()['id']}"
         pipeline = FullQAPipeline(retrievers=retrievers)
-        pipeline.answering_pipeline.llm = llms.get_default()
-        pipeline.answering_pipeline.citation_pipeline.llm = llms.get_default()
+
+        # answering pipeline configuration
+        answer_pipeline = pipeline.answering_pipeline
+        answer_pipeline.llm = llms.get_default()
+        answer_pipeline.citation_pipeline.llm = llms.get_default()
+        answer_pipeline.n_last_interactions = settings[f"{prefix}.n_last_interactions"]
+        answer_pipeline.enable_citation = settings[f"{prefix}.highlight_citation"]
+        answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
+        answer_pipeline.qa_template = settings[f"{prefix}.qa_prompt"]
+        answer_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
+            settings["reasoning.lang"], "English"
+        )
 
         pipeline.add_query_context.llm = llms.get_default()
 
-        pipeline.answering_pipeline.enable_citation = settings[
-            f"reasoning.options.{_id}.highlight_citation"
-        ]
-        pipeline.answering_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
-            settings["reasoning.lang"], "English"
-        )
-        pipeline.answering_pipeline.system_prompt = settings[
-            f"reasoning.options.{_id}.system_prompt"
-        ]
-        pipeline.answering_pipeline.qa_template = settings[
-            f"reasoning.options.{_id}.qa_prompt"
-        ]
+        pipeline.trigger_context = settings[f"{prefix}.trigger_context"]
         pipeline.use_rewrite = states.get("app", {}).get("regen", False)
         pipeline.rewrite_pipeline.llm = llms.get_default()
         pipeline.rewrite_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
@@ -710,6 +718,21 @@ class FullQAPipeline(BaseReasoning):
             "qa_prompt": {
                 "name": "QA Prompt (contains {context}, {question}, {lang})",
                 "value": DEFAULT_QA_TEXT_PROMPT,
+            },
+            "n_last_interactions": {
+                "name": "Number of interactions to include",
+                "value": 5,
+                "component": "number",
+                "info": "The maximum number of chat interactions to include in the LLM",
+            },
+            "trigger_context": {
+                "name": "Maximum message length for context rewriting",
+                "value": 150,
+                "component": "number",
+                "info": (
+                    "The maximum length of the message to trigger context addition. "
+                    "Exceeding this length, the message will be used as is."
+                ),
             },
         }
 
