@@ -128,9 +128,12 @@ Now navigate back to the `Chat` tab. The chat tab is divided into 3 regions:
 1. Conversation Settings Panel
    - Here you can select, create, rename, and delete conversations.
      - By default, a new conversation is created automatically if no conversation is selected.
-   - Below that you have the file index, where you can select which files to retrieve references from.
-     - These are the files you have uploaded to the application from the `File Index` tab.
-     - If no file is selected, all files will be used.
+   - Below that you have the file index, where you can choose whether to disable, select all files, or select which files to retrieve references from.
+     - If you choose "Disabled", no files will be considered as context during chat.
+     - If you choose "Search All", all files will be considered during chat.
+     - If you choose "Select", a dropdown will appear for you to select the
+       files to be considered during chat. If no files are selected, then no
+       files will be considered during chat.
 2. Chat Panel
    - This is where you can chat with the chatbot.
 3. Information panel

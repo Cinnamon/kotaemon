@@ -199,8 +199,8 @@ class FileIndexPage(BasePage):
     def delete_yes_event(self, file_id):
         with Session(engine) as session:
             source = session.execute(
-                select(self._index._db_tables["Source"]).where(
-                    self._index._db_tables["Source"].id == file_id
+                select(self._index._resources["Source"]).where(
+                    self._index._resources["Source"].id == file_id
                 )
             ).first()
             if source:
@@ -208,8 +208,8 @@ class FileIndexPage(BasePage):
 
             vs_ids, ds_ids = [], []
             index = session.execute(
-                select(self._index._db_tables["Index"]).where(
-                    self._index._db_tables["Index"].source_id == file_id
+                select(self._index._resources["Index"]).where(
+                    self._index._resources["Index"].source_id == file_id
                 )
             ).all()
             for each in index:
@@ -431,7 +431,7 @@ class FileIndexPage(BasePage):
         return self.index_fn(files, reindex, settings)
 
     def list_file(self):
-        Source = self._index._db_tables["Source"]
+        Source = self._index._resources["Source"]
         with Session(engine) as session:
             statement = select(Source)
             results = [
@@ -494,7 +494,7 @@ class FileIndexPage(BasePage):
         if max_number_of_files := self._index.config.get("max_number_of_files", 0):
             with Session(engine) as session:
                 current_num_files = session.query(
-                    self._index._db_tables["Source"].id
+                    self._index._resources["Source"].id
                 ).count()
             if len(paths) + current_num_files > max_number_of_files:
                 errors.append(
@@ -512,26 +512,61 @@ class FileSelector(BasePage):
         self._index = index
         self.on_building_ui()
 
+    def default(self):
+        return "disabled", []
+
     def on_building_ui(self):
+        default_mode, default_selector = self.default()
+
+        self.mode = gr.Radio(
+            value=default_mode,
+            choices=[
+                ("Disabled", "disabled"),
+                ("Search All", "all"),
+                ("Select", "select"),
+            ],
+            container=False,
+        )
         self.selector = gr.Dropdown(
             label="Files",
-            choices=[],
+            choices=default_selector,
             multiselect=True,
             container=False,
             interactive=True,
+            visible=False,
+        )
+
+    def on_register_events(self):
+        self.mode.change(
+            fn=lambda mode: gr.update(visible=mode == "select"),
+            inputs=[self.mode],
+            outputs=[self.selector],
         )
 
     def as_gradio_component(self):
-        return self.selector
+        return [self.mode, self.selector]
 
-    def get_selected_ids(self, selected):
-        return selected
+    def get_selected_ids(self, components):
+        mode, selected = components[0], components[1]
+        if mode == "disabled":
+            return []
+        elif mode == "select":
+            return selected
+
+        file_ids = []
+        with Session(engine) as session:
+            statement = select(self._index._resources["Source"].id)
+            results = session.execute(statement).all()
+            for (id,) in results:
+                file_ids.append(id)
+
+        return file_ids
 
     def load_files(self, selected_files):
         options = []
         available_ids = []
         with Session(engine) as session:
-            statement = select(self._index._db_tables["Source"])
+            statement = select(self._index._resources["Source"])
             results = session.execute(statement).all()
             for result in results:
                 available_ids.append(result[0].id)

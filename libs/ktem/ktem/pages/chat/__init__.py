@@ -52,9 +52,11 @@ class ChatPage(BasePage):
                                         len(self._indices_input) + len(gr_index),
                                     )
                                 )
+                                index.default_selector = index_ui.default()
                                 self._indices_input.extend(gr_index)
                             else:
                                 index.selector = len(self._indices_input)
+                                index.default_selector = index_ui.default()
                                 self._indices_input.append(gr_index)
                         setattr(self, f"_index_{index.id}", index_ui)
 
