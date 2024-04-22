@@ -253,11 +253,6 @@ class ReactAgentPipeline(BaseReasoning):
         tool_choices = ["Wikipedia", "Google", "LLM", "SearchDoc"]
 
         return {
-            "highlight_citation": {
-                "name": "Highlight Citation",
-                "value": False,
-                "component": "checkbox",
-            },
             "tools": {
                 "name": "Tools for knowledge retrieval",
                 "value": ["SearchDoc", "LLM"],

@@ -180,6 +180,7 @@ class RewooAgentPipeline(BaseReasoning):
     rewoo_agent: RewooAgent = RewooAgent.withx()
     rewrite_pipeline: RewriteQuestionPipeline = RewriteQuestionPipeline.withx()
     use_rewrite: bool = False
+    enable_citation: bool = False
 
     def prepare_citation(self, answer) -> list[Document]:
         """Prepare citation to show on the UI"""
@@ -215,18 +216,21 @@ class RewooAgentPipeline(BaseReasoning):
                 else:
                     text += span
 
-            # separate text by detect header: #Plan
-            for line in text.splitlines():
-                if line.startswith("#Plan"):
-                    # line starts with #Plan should be marked as a new segment
-                    new_segment = [line]
-                    segments.append(new_segment)
-                elif line.startswith("#"):
-                    # stop markdown from rendering big headers
-                    line = "### " + line
-                    segments[-1].append(line)
-                else:
-                    segments[-1].append(line)
+        else:
+            text = answer.metadata["worker_log"]
+
+        # separate text by detect header: #Plan
+        for line in text.splitlines():
+            if line.startswith("#Plan"):
+                # line starts with #Plan should be marked as a new segment
+                new_segment = [line]
+                segments.append(new_segment)
+            elif line.startswith("#"):
+                # stop markdown from rendering big headers
+                line = "### " + line
+                segments[-1].append(line)
+            else:
+                segments[-1].append(line)
 
         outputs = []
         for segment in segments:
@@ -264,7 +268,9 @@ class RewooAgentPipeline(BaseReasoning):
             message = rewrite.text
 
         answer = None
-        for answer in self.rewoo_agent.stream(message, use_citation=True):
+        for answer in self.rewoo_agent.stream(
+            message, use_citation=self.enable_citation
+        ):
             yield Document(channel="info", content=answer.metadata["worker_log"])
             yield Document(channel="chat", content=answer.text)
 
@@ -296,6 +302,9 @@ class RewooAgentPipeline(BaseReasoning):
         pipeline.rewoo_agent.output_lang = {"en": "English", "ja": "Japanese"}.get(
             settings["reasoning.lang"], "English"
         )
+        pipeline.enable_citation = settings[
+            f"reasoning.options.{_id}.highlight_citation"
+        ]
         pipeline.use_rewrite = states.get("app", {}).get("regen", False)
 
         return pipeline
