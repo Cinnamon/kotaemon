@@ -47,6 +47,8 @@ class DocumentIngestor(BaseComponent):
     text_splitter: BaseSplitter = TokenSplitter.withx(
         chunk_size=1024,
         chunk_overlap=256,
+        separator="\n\n",
+        backup_separators=["\n", ".", " ", "\u200B"],
     )
     override_file_extractors: dict[str, Type[BaseReader]] = {}
 
