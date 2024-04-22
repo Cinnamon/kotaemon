@@ -1,14 +1,19 @@
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from typing import Any
+
+import tiktoken
+from ktem.llms.manager import llms
 
 from kotaemon.agents.base import BaseAgent
 from kotaemon.agents.io import AgentOutput, AgentType, BaseScratchPad
 from kotaemon.agents.tools import BaseTool
 from kotaemon.agents.utils import get_plugin_response_content
-from kotaemon.base import Node, Param
-from kotaemon.indices.qa import CitationPipeline
+from kotaemon.base import Document, Node, Param
+from kotaemon.indices.qa.citation import CitationPipeline
+from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import BaseLLM, PromptTemplate
 
 from .planner import Planner
@@ -22,6 +27,7 @@ class RewooAgent(BaseAgent):
     name: str = "RewooAgent"
     agent_type: AgentType = AgentType.rewoo
     description: str = "RewooAgent for answering multi-step reasoning questions"
+    output_lang: str = "English"
     planner_llm: BaseLLM
     solver_llm: BaseLLM
     prompt_template: dict[str, PromptTemplate] = Param(
@@ -33,6 +39,16 @@ class RewooAgent(BaseAgent):
     )
     examples: dict[str, str | list[str]] = Param(
         default_callback=lambda _: {}, help="Examples to be used in the agent."
+    )
+    trim_func: TokenSplitter = TokenSplitter.withx(
+        chunk_size=3000,
+        chunk_overlap=0,
+        separator=" ",
+        tokenizer=partial(
+            tiktoken.encoding_for_model("gpt-3.5-turbo").encode,
+            allowed_special=set(),
+            disallowed_special="all",
+        ),
     )
 
     @Node.auto(depends_on=["planner_llm", "plugins", "prompt_template", "examples"])
@@ -50,6 +66,7 @@ class RewooAgent(BaseAgent):
             model=self.solver_llm,
             prompt_template=self.prompt_template.get("Solver", None),
             examples=self.examples.get("Solver", None),
+            output_lang=self.output_lang,
         )
 
     def _parse_plan_map(
@@ -216,7 +233,7 @@ class RewooAgent(BaseAgent):
                     resp = r.result()
                     plugin_cost += resp["plugin_cost"]
                     plugin_token += resp["plugin_token"]
-                    worker_evidences[resp["e"]] = resp["evidence"]
+                    worker_evidences[resp["e"]] = self._trim_evidence(resp["evidence"])
                 output.done()
 
         return worker_evidences, plugin_cost, plugin_token
@@ -225,6 +242,13 @@ class RewooAgent(BaseAgent):
         for p in self.plugins:
             if p.name == name:
                 return p
+
+    def _trim_evidence(self, evidence: str):
+        if evidence:
+            texts = self.trim_func([Document(text=evidence)])
+            evidence = texts[0].text
+            logging.info(f"len (trimmed): {len(evidence)}")
+            return evidence
 
     @BaseAgent.safeguard_run
     def run(self, instruction: str, use_citation: bool = False) -> AgentOutput:
@@ -269,5 +293,72 @@ class RewooAgent(BaseAgent):
             total_tokens=total_token,
             total_cost=total_cost,
             citation=citation,
-            metadata={"citation": citation},
+            metadata={"citation": citation, "worker_log": worker_log},
+        )
+
+    def stream(self, instruction: str, use_citation: bool = False):
+        """
+        Stream the agent with a given instruction.
+        """
+        logging.info(f"Streaming {self.name} with instruction: {instruction}")
+        total_cost = 0.0
+        total_token = 0
+
+        # Plan
+        planner_output = self.planner(instruction)
+        planner_text_output = planner_output.text
+        plan_to_es, plans = self._parse_plan_map(planner_text_output)
+        planner_evidences, evidence_level = self._parse_planner_evidences(
+            planner_text_output
+        )
+
+        # Work
+        worker_evidences, plugin_cost, plugin_token = self._get_worker_evidence(
+            planner_evidences, evidence_level
+        )
+        worker_log = ""
+        for plan in plan_to_es:
+            worker_log += f"{plan}: {plans[plan]}\n"
+            yield AgentOutput(
+                text="",
+                agent_type=self.agent_type,
+                status="thinking",
+                metadata={"worker_log": f"{plan}: {plans[plan]}\n"},
+            )
+            for e in plan_to_es[plan]:
+                worker_log += f"{e}: {worker_evidences[e]}\n"
+                yield AgentOutput(
+                    text="",
+                    agent_type=self.agent_type,
+                    status="thinking",
+                    metadata={"worker_log": f"{e}: {worker_evidences[e]}\n"},
+                )
+
+        # Solve
+        solver_response = ""
+        for solver_output_text in self.solver.stream(instruction, worker_log):
+            # solver_output_text = solver_output.text
+            solver_response += solver_output_text
+            yield AgentOutput(
+                text=solver_output_text,
+                agent_type=self.agent_type,
+                status="thinking",
+                metadata={"worker_log": worker_log},
+            )
+        if use_citation:
+            citation_pipeline = CitationPipeline(llm=llms.get_default())
+            citation = citation_pipeline.invoke(
+                context=worker_log, question=instruction
+            )
+        else:
+            citation = None
+
+        yield AgentOutput(
+            text="",
+            agent_type=self.agent_type,
+            status="finished",
+            total_tokens=total_token,
+            total_cost=total_cost,
+            citation=citation,
+            metadata={"citation": citation, "worker_log": worker_log},
         )

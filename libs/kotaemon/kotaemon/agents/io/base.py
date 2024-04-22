@@ -253,5 +253,5 @@ class AgentOutput(LLMInterface):
     text: str
     type: str = "agent"
     agent_type: AgentType
-    status: Literal["finished", "stopped", "failed"]
+    status: Literal["thinking", "finished", "stopped", "failed"]
     error: Optional[str] = None

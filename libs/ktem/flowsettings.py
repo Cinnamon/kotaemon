@@ -146,6 +146,7 @@ if len(KH_EMBEDDINGS) < 1:
 KH_REASONINGS = [
     "ktem.reasoning.simple.FullQAPipeline",
     "ktem.reasoning.react.ReactAgentPipeline",
+    "ktem.reasoning.rewoo.RewooAgentPipeline",
 ]
 KH_VLM_ENDPOINT = "{0}/openai/deployments/{1}/chat/completions?api-version={2}".format(
     config("AZURE_OPENAI_ENDPOINT", default=""),

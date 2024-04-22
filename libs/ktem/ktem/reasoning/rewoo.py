@@ -1,6 +1,7 @@
 import html
 import logging
-from typing import AnyStr, Optional, Type
+from difflib import SequenceMatcher
+from typing import AnyStr, Generator, Optional, Type
 
 from ktem.llms.manager import llms
 from ktem.reasoning.base import BaseReasoning
@@ -12,13 +13,18 @@ from kotaemon.agents import (
     BaseTool,
     GoogleSearchTool,
     LLMTool,
-    ReactAgent,
+    RewooAgent,
     WikipediaTool,
 )
 from kotaemon.base import BaseComponent, Document, HumanMessage, Node, SystemMessage
 from kotaemon.llms import ChatLLM, PromptTemplate
 
 logger = logging.getLogger(__name__)
+
+EVIDENCE_MODE_TEXT = 0
+EVIDENCE_MODE_TABLE = 1
+EVIDENCE_MODE_CHATBOT = 2
+EVIDENCE_MODE_FIGURE = 3
 
 
 class DocSearchArgs(BaseModel):
@@ -28,11 +34,11 @@ class DocSearchArgs(BaseModel):
 class DocSearchTool(BaseTool):
     name: str = "docsearch"
     description: str = (
-        "A vector store that searches for similar and related content in a list "
-        "of documents. The result is a huge chunk of text related to your search "
-        "but can also contain irrelevant info. Input should be a search query about "
-        "specific topic, do not include general query such as "
-        "'SearchDoc[insurance policy terms & conditions]'."
+        "A vector store that searches for similar and related content "
+        "in a list of documents. The result is a huge chunk of text "
+        "related to your search but can also contain irrelevant info. "
+        "Input should be a search query about specific topic, do not include "
+        "general query such as 'SearchDoc[insurance policy terms & conditions]'."
     )
     args_schema: Optional[Type[BaseModel]] = DocSearchArgs
     retrievers: list[BaseComponent] = []
@@ -48,7 +54,7 @@ class DocSearchTool(BaseTool):
 
         return self.prepare_evidence(docs)
 
-    def prepare_evidence(self, docs, trim_len: int = 4000):
+    def prepare_evidence(self, docs, trim_len: int = 3000):
         evidence = ""
         table_found = 0
 
@@ -78,12 +84,7 @@ class DocSearchTool(BaseTool):
             elif retrieved_item.metadata.get("type", "") == "image":
                 retrieved_content = retrieved_item.metadata.get("image_origin", "")
                 retrieved_caption = html.escape(retrieved_item.get_content())
-                # evidence += (
-                #     f"<br><b>Figure from {source}</b>\n"
-                #     + f"<img width='85%' src='{retrieved_content}' "
-                #     + f"alt='{retrieved_caption}'/>"
-                #     + "\n<br>"
-                # )
+                # PWS doesn't support VLM for images, we will just store the caption
                 evidence += (
                     f"<br><b>Figure from {source}</b>\n" + retrieved_caption + "\n<br>"
                 )
@@ -100,7 +101,7 @@ class DocSearchTool(BaseTool):
                         + " \n<br>"
                     )
 
-            print("Retrieved #{}: {}".format(_id, retrieved_content[:100]))
+            print("Retrieved #{}: {}".format(_id, retrieved_content))
             print("Score", retrieved_item.metadata.get("relevance_score", None))
 
         # trim context by trim_len
@@ -111,8 +112,8 @@ class DocSearchTool(BaseTool):
                 separator=" ",
                 model_name="gpt-3.5-turbo",
             )
-        texts = text_splitter.split_text(evidence)
-        evidence = texts[0]
+            texts = text_splitter.split_text(evidence)
+            evidence = texts[0]
 
         return Document(content=evidence)
 
@@ -158,68 +159,119 @@ class RewriteQuestionPipeline(BaseComponent):
         return self.llm(messages)
 
 
-class ReactAgentPipeline(BaseReasoning):
-    """Question answering pipeline using ReAct agent."""
+def find_text(llm_output, context):
+    sentence_list = llm_output.split("\n")
+    matches = []
+    for sentence in sentence_list:
+        match = SequenceMatcher(
+            None, sentence, context, autojunk=False
+        ).find_longest_match()
+        matches.append((match.b, match.b + match.size))
+    return matches
+
+
+class RewooAgentPipeline(BaseReasoning):
+    """Question answering pipeline using ReWOO Agent."""
 
     class Config:
         allow_extra = True
 
     retrievers: list[BaseComponent]
-    agent: ReactAgent = ReactAgent.withx()
+    rewoo_agent: RewooAgent = RewooAgent.withx()
     rewrite_pipeline: RewriteQuestionPipeline = RewriteQuestionPipeline.withx()
     use_rewrite: bool = False
 
-    def prepare_citation(self, all_steps) -> list[Document]:
+    def prepare_citation(self, answer) -> list[Document]:
+        """Prepare citation to show on the UI"""
+        segments = []
+        split_indices = [
+            0,
+        ]
+        start_indices = set()
+        text = ""
+
+        if "citation" in answer.metadata and answer.metadata["citation"] is not None:
+            context = answer.metadata["worker_log"]
+            for fact_with_evidence in answer.metadata["citation"].answer:
+                for quote in fact_with_evidence.substring_quote:
+                    matches = find_text(quote, context)
+                    for match in matches:
+                        split_indices.append(match[0])
+                        split_indices.append(match[1])
+                        start_indices.add(match[0])
+            split_indices = sorted(list(set(split_indices)))
+            spans = []
+            prev = 0
+            for index in split_indices:
+                if index > prev:
+                    spans.append(context[prev:index])
+                    prev = index
+            spans.append(context[split_indices[-1] :])
+
+            prev = 0
+            for span, start_idx in list(zip(spans, split_indices)):
+                if start_idx in start_indices:
+                    text += Render.highlight(span)
+                else:
+                    text += span
+
+            # separate text by detect header: #Plan
+            for line in text.splitlines():
+                if line.startswith("#Plan"):
+                    # line starts with #Plan should be marked as a new segment
+                    new_segment = [line]
+                    segments.append(new_segment)
+                elif line.startswith("#"):
+                    # stop markdown from rendering big headers
+                    line = "### " + line
+                    segments[-1].append(line)
+                else:
+                    segments[-1].append(line)
+
         outputs = []
-        for step_id, (step, output) in enumerate(all_steps):
-            header = "<b>Step {id}</b>: {log}".format(id=step_id + 1, log=step.log)
-            content = (
-                "<b>Action</b>: <em>{tool}[{input}]</em>\n\n<b>Output</b>: {output}"
-            ).format(
-                tool=step.tool if step_id < len(all_steps) - 1 else "",
-                input=step.tool_input.replace("\n", "")
-                if step_id < len(all_steps) - 1
-                else "",
-                output=output if step_id < len(all_steps) - 1 else "Finished",
-            )
+        for segment in segments:
             outputs.append(
                 Document(
                     channel="info",
                     content=Render.collapsible(
-                        header=header,
-                        content=Render.table(content),
+                        header=segment[0],
+                        content=Render.table("\n".join(segment[1:])),
                         open=True,
                     ),
                 )
             )
+
         return outputs
 
     async def ainvoke(  # type: ignore
         self, message, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Document:
-        if self.use_rewrite:
-            rewrite = await self.rewrite_pipeline(question=message)
-            message = rewrite.text
-
-        answer = self.agent(message)
+        answer = self.rewoo_agent(message, use_citation=True)
         self.report_output(Document(content=answer.text, channel="chat"))
 
-        intermediate_steps = answer.intermediate_steps
-        for _ in self.prepare_citation(intermediate_steps):
+        refined_citations = self.prepare_citation(answer)
+        for _ in refined_citations:
             self.report_output(_)
 
         self.report_output(None)
         return answer
 
-    def stream(self, message, conv_id: str, history: list, **kwargs):
+    def stream(  # type: ignore
+        self, message, conv_id: str, history: list, **kwargs  # type: ignore
+    ) -> Generator[Document, None, Document] | None:
         if self.use_rewrite:
             rewrite = self.rewrite_pipeline(question=message)
             message = rewrite.text
 
-        for answer in self.agent.stream(message):
+        answer = None
+        for answer in self.rewoo_agent.stream(message, use_citation=True):
+            yield Document(channel="info", content=answer.metadata["worker_log"])
             yield Document(channel="chat", content=answer.text)
 
-        for _ in self.prepare_citation(answer.intermediate_steps):
+        yield Document(channel="info", content=None)
+
+        refined_citations = self.prepare_citation(answer)
+        for _ in refined_citations:
             yield _
 
         yield None
@@ -229,19 +281,19 @@ class ReactAgentPipeline(BaseReasoning):
     def get_pipeline(
         cls, settings: dict, states: dict, retrievers: list | None = None
     ) -> BaseReasoning:
-        print(f"Settings: {settings}")
         _id = cls.get_info()["id"]
 
-        pipeline = ReactAgentPipeline(retrievers=retrievers)
-        pipeline.agent.llm = llms.get_default()
+        pipeline = RewooAgentPipeline(retrievers=retrievers)
+        pipeline.rewoo_agent.planner_llm = llms.get_default()
+        pipeline.rewoo_agent.solver_llm = llms.get_default()
         tools = []
         for tool_name in settings[f"reasoning.options.{_id}.tools"]:
             tool = TOOL_REGISTRY[tool_name]
             if tool_name == "SearchDoc":
                 tool.retrievers = retrievers
             tools.append(tool)
-        pipeline.agent.plugins = tools
-        pipeline.agent.output_lang = {"en": "English", "ja": "Japanese"}.get(
+        pipeline.rewoo_agent.plugins = tools
+        pipeline.rewoo_agent.output_lang = {"en": "English", "ja": "Japanese"}.get(
             settings["reasoning.lang"], "English"
         )
         pipeline.use_rewrite = states.get("app", {}).get("regen", False)
@@ -269,7 +321,9 @@ class ReactAgentPipeline(BaseReasoning):
     @classmethod
     def get_info(cls) -> dict:
         return {
-            "id": "ReAct",
-            "name": "ReAct Agent",
-            "description": "Implementing ReAct paradigm",
+            "id": "ReWOO",
+            "name": "ReWOO Agent",
+            "description": (
+                "Implementing ReWOO paradigm " "https://arxiv.org/pdf/2305.18323.pdf"
+            ),
         }

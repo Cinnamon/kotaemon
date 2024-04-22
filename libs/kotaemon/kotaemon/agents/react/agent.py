@@ -37,10 +37,10 @@ class ReactAgent(BaseAgent):
         default_callback=lambda _: [],
         help="List of AgentAction and observation (tool) output",
     )
-    max_iterations: int = 10
+    max_iterations: int = 5
     strict_decode: bool = False
     trim_func: TokenSplitter = TokenSplitter.withx(
-        chunk_size=1000,
+        chunk_size=800,
         chunk_overlap=0,
         separator=" ",
         tokenizer=partial(
@@ -229,6 +229,95 @@ class ReactAgent(BaseAgent):
             status = "stopped"
 
         return AgentOutput(
+            text=response_text,
+            agent_type=self.agent_type,
+            status=status,
+            total_tokens=total_token,
+            total_cost=total_cost,
+            intermediate_steps=self.intermediate_steps,
+            max_iterations=max_iterations,
+        )
+
+    def stream(self, instruction, max_iterations=None):
+        """
+        Stream the agent with the given instruction.
+
+        Args:
+            instruction: Instruction to run the agent with.
+            max_iterations: Maximum number of iterations
+                of reasoning steps, defaults to 10.
+
+        Return:
+            AgentOutput object.
+        """
+        if not max_iterations:
+            max_iterations = self.max_iterations
+        assert max_iterations > 0
+
+        self.clear()
+        logging.info(f"Running {self.name} with instruction: {instruction}")
+        total_cost = 0.0
+        total_token = 0
+        status = "failed"
+        response_text = None
+
+        for step_count in range(1, max_iterations + 1):
+            prompt = self._compose_prompt(instruction)
+            logging.info(f"Prompt: {prompt}")
+            response = self.llm(
+                prompt, stop=["Observation:"]
+            )  # TODO: could cause bugs if llm doesn't have `stop` as a parameter
+            response_text = response.text
+            logging.info(f"Response: {response_text}")
+            action_step = self._parse_output(response_text)
+            if action_step is None:
+                raise ValueError("Invalid action")
+            is_finished_chain = isinstance(action_step, AgentFinish)
+            if is_finished_chain:
+                result = ""
+            else:
+                assert isinstance(action_step, AgentAction)
+                action_name = action_step.tool
+                tool_input = action_step.tool_input
+                logging.info(f"Action: {action_name}")
+                logging.info(f"Tool Input: {tool_input}")
+                result = self._format_function_map()[action_name](tool_input)
+
+                # trim the worker output to 1000 tokens, as we are appending
+                # all workers' logs and it can exceed the token limit if we
+                # don't limit each. Fix this number regarding to the LLM capacity.
+                result = self._trim(result)
+                logging.info(f"Result: {result}")
+
+            self.intermediate_steps.append((action_step, result))
+            if is_finished_chain:
+                logging.info(f"Finished after {step_count} steps.")
+                status = "finished"
+                yield AgentOutput(
+                    text="",
+                    agent_type=self.agent_type,
+                    status=status,
+                    intermediate_steps=self.intermediate_steps[-1],
+                )
+                break
+            else:
+                yield AgentOutput(
+                    text="",
+                    agent_type=self.agent_type,
+                    status="thinking",
+                    intermediate_steps=self.intermediate_steps[-1],
+                )
+
+        else:
+            status = "stopped"
+            yield AgentOutput(
+                text="",
+                agent_type=self.agent_type,
+                status=status,
+                intermediate_steps=self.intermediate_steps[-1],
+            )
+
+        yield AgentOutput(
             text=response_text,
             agent_type=self.agent_type,
             status=status,
