@@ -318,7 +318,7 @@ class AnswerWithContextPipeline(BaseComponent):
             messages = []
             if self.system_prompt:
                 messages.append(SystemMessage(content=self.system_prompt))
-            for human, ai in history[-5:]:
+            for human, ai in history[-self.n_last_interactions :]:
                 messages.append(HumanMessage(content=human))
                 messages.append(AIMessage(content=ai))
             messages.append(HumanMessage(content=prompt))
@@ -361,7 +361,7 @@ class AnswerWithContextPipeline(BaseComponent):
             messages = []
             if self.system_prompt:
                 messages.append(SystemMessage(content=self.system_prompt))
-            for human, ai in history[-5:]:
+            for human, ai in history[-self.n_last_interactions :]:
                 messages.append(HumanMessage(content=human))
                 messages.append(AIMessage(content=ai))
             messages.append(HumanMessage(content=prompt))
@@ -422,6 +422,7 @@ class RewriteQuestionPipeline(BaseComponent):
 
 class AddQueryContextPipeline(BaseComponent):
 
+    n_last_interactions: int = 5
     llm: ChatLLM = Node(default_callback=lambda _: llms.get_default())
 
     def run(self, question: str, history: list) -> Document:
@@ -447,7 +448,7 @@ class AddQueryContextPipeline(BaseComponent):
             HumanMessage(content="What are my health plans?"),
             AIMessage(content="Show available health plans"),
         ]
-        for human, ai in history[-3:]:
+        for human, ai in history[-self.n_last_interactions :]:
             messages.append(HumanMessage(content=human))
             messages.append(AIMessage(content=ai))
 
@@ -694,6 +695,9 @@ class FullQAPipeline(BaseReasoning):
         )
 
         pipeline.add_query_context.llm = llms.get_default()
+        pipeline.add_query_context.n_last_interactions = settings[
+            f"{prefix}.n_last_interactions"
+        ]
 
         pipeline.trigger_context = settings[f"{prefix}.trigger_context"]
         pipeline.use_rewrite = states.get("app", {}).get("regen", False)
