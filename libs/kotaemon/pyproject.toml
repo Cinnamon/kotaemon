@@ -11,7 +11,7 @@ packages.find.exclude = ["tests*", "env*"]
 # metadata and dependencies
 [project]
 name = "kotaemon"
-version = "0.3.10"
+version = "0.3.11"
 requires-python = ">= 3.10"
 description = "Kotaemon core library for AI development."
 dependencies = [
@@ -63,6 +63,7 @@ adv = [
     "llama-cpp-python",
     "pdfservices-sdk @  git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements",
     "fastembed",
+    "beautifulsoup4",
 ]
 dev = [
     "ipython",

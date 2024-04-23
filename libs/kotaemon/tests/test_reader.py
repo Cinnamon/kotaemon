@@ -4,7 +4,13 @@ from langchain.schema import Document as LangchainDocument
 from llama_index.node_parser import SimpleNodeParser
 
 from kotaemon.base import Document
-from kotaemon.loaders import AutoReader, DocxReader, HtmlReader, UnstructuredReader
+from kotaemon.loaders import (
+    AutoReader,
+    DocxReader,
+    HtmlReader,
+    MhtmlReader,
+    UnstructuredReader,
+)
 
 
 def test_docx_reader():
@@ -61,3 +67,12 @@ def test_unstructured_pdf_reader():
     documents = reader.load_data(input_path, split_documents=True)
     # check document reader output
     assert len(documents) == 1
+
+
+def test_mhtml_reader():
+    reader = MhtmlReader()
+    input_path = Path(__file__).parent / "resources" / "dummy.mhtml"
+    docs = reader.load_data(input_path)
+
+    assert len(docs) == 1
+    assert docs[0].text.startswith("This is a test")
