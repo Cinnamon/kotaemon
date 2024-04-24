@@ -64,6 +64,7 @@ adv = [
     "pdfservices-sdk @  git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements",
     "fastembed",
     "beautifulsoup4",
+    "azure-ai-documentintelligence",
 ]
 dev = [
     "ipython",
