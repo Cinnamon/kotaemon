@@ -12,9 +12,10 @@ nav:
   # - Functional description: pages/app/functional-description.md
   - Development:
       - development/index.md
-      - Contributing: development/contributing.md
       # - Data & Data Structure Components: development/data-components.md
       # - Features: pages/app/features.md
+      - Customize flow logic: pages/app/customize-flows.md
+      - Creating a Component: development/create-a-component.md
       - Components:
           - Index:
               - File index: pages/app/index/file.md
@@ -23,8 +24,7 @@ nav:
               - pages/app/settings/user-settings.md
           - Extension:
               - User management: pages/app/ext/user-management.md
-      - Customize flow logic: pages/app/customize-flows.md
-      - Creating a Component: development/create-a-component.md
+      - Contributing: development/contributing.md
   # generated using gen-files + literate-nav
   - API Reference: reference/
   - Issue Tracker: "https://github.com/Cinnamon/kotaemon/issues"
@@ -77,6 +77,7 @@ plugins:
       type: timeago
       fallback_to_build_date: true
   - section-index
+  - mkdocs-video
 
 theme:
   features:
