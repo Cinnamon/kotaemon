@@ -109,11 +109,16 @@ class BaseIndex(abc.ABC):
         return {}
 
     @abc.abstractmethod
-    def get_indexing_pipeline(self, settings: dict) -> "BaseComponent":
+    def get_indexing_pipeline(
+        self, settings: dict, user_id: Optional[int]
+    ) -> "BaseComponent":
         """Return the indexing pipeline that populates the entities into the index
 
         Args:
             settings: the user settings of the index
+            user_id: the user id who is accessing the index
+                TODO: instead of having a user_id, should have an app_state
+                which might also contain the settings.
 
         Returns:
             BaseIndexing: the indexing pipeline

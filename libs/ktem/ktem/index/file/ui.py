@@ -168,6 +168,25 @@ class FileIndexPage(BasePage):
 
     def on_subscribe_public_events(self):
         """Subscribe to the declared public event of the app"""
+        if self._app.f_user_management:
+            self._app.subscribe_event(
+                name="onSignIn",
+                definition={
+                    "fn": self.list_file,
+                    "inputs": [self._app.user_id],
+                    "outputs": [self.file_list_state, self.file_list],
+                    "show_progress": "hidden",
+                },
+            )
+            self._app.subscribe_event(
+                name="onSignOut",
+                definition={
+                    "fn": self.list_file,
+                    "inputs": [self._app.user_id],
+                    "outputs": [self.file_list_state, self.file_list],
+                    "show_progress": "hidden",
+                },
+            )
 
     def file_selected(self, file_id):
         if file_id is None:
@@ -257,7 +276,7 @@ class FileIndexPage(BasePage):
             )
             .then(
                 fn=self.list_file,
-                inputs=None,
+                inputs=[self._app.user_id],
                 outputs=[self.file_list_state, self.file_list],
             )
         )
@@ -294,12 +313,13 @@ class FileIndexPage(BasePage):
                 self.files,
                 self.reindex,
                 self._app.settings_state,
+                self._app.user_id,
             ],
             outputs=[self.file_output],
             concurrency_limit=20,
         ).then(
             fn=self.list_file,
-            inputs=None,
+            inputs=[self._app.user_id],
             outputs=[self.file_list_state, self.file_list],
             concurrency_limit=20,
         )
@@ -317,11 +337,11 @@ class FileIndexPage(BasePage):
         """Called when the app is created"""
         self._app.app.load(
             self.list_file,
-            inputs=None,
+            inputs=[self._app.user_id],
             outputs=[self.file_list_state, self.file_list],
         )
 
-    def index_fn(self, files, reindex: bool, settings):
+    def index_fn(self, files, reindex: bool, settings, user_id):
         """Upload and index the files
 
         Args:
@@ -342,7 +362,7 @@ class FileIndexPage(BasePage):
         gr.Info(f"Start indexing {len(files)} files...")
 
         # get the pipeline
-        indexing_pipeline = self._index.get_indexing_pipeline(settings)
+        indexing_pipeline = self._index.get_indexing_pipeline(settings, user_id)
 
         result = indexing_pipeline(files, reindex=reindex)
         if result is None:
@@ -360,7 +380,7 @@ class FileIndexPage(BasePage):
 
         return gr.update(value=file_path, visible=True)
 
-    def index_files_from_dir(self, folder_path, reindex, settings):
+    def index_files_from_dir(self, folder_path, reindex, settings, user_id):
         """This should be constructable by users
 
         It means that the users can build their own index.
@@ -428,12 +448,28 @@ class FileIndexPage(BasePage):
             for p in exclude_patterns:
                 files = [f for f in files if not fnmatch.fnmatch(name=f, pat=p)]
 
-        return self.index_fn(files, reindex, settings)
+        return self.index_fn(files, reindex, settings, user_id)
 
-    def list_file(self):
+    def list_file(self, user_id):
+        if user_id is None:
+            # not signed in
+            return [], pd.DataFrame.from_records(
+                [
+                    {
+                        "id": "-",
+                        "name": "-",
+                        "size": "-",
+                        "text_length": "-",
+                        "date_created": "-",
+                    }
+                ]
+            )
+
         Source = self._index._resources["Source"]
         with Session(engine) as session:
             statement = select(Source)
+            if self._index.config.get("private", False):
+                statement = statement.where(Source.user == user_id)
             results = [
                 {
                     "id": each[0].id,
@@ -513,10 +549,12 @@ class FileSelector(BasePage):
         self.on_building_ui()
 
     def default(self):
-        return "disabled", []
+        if self._app.f_user_management:
+            return "disabled", [], -1
+        return "disabled", [], 1
 
     def on_building_ui(self):
-        default_mode, default_selector = self.default()
+        default_mode, default_selector, user_id = self.default()
 
         self.mode = gr.Radio(
             value=default_mode,
@@ -529,25 +567,30 @@ class FileSelector(BasePage):
         )
         self.selector = gr.Dropdown(
             label="Files",
-            choices=default_selector,
+            value=default_selector,
+            choices=[],
             multiselect=True,
             container=False,
             interactive=True,
             visible=False,
         )
+        self.selector_user_id = gr.State(value=user_id)
 
     def on_register_events(self):
         self.mode.change(
-            fn=lambda mode: gr.update(visible=mode == "select"),
-            inputs=[self.mode],
-            outputs=[self.selector],
+            fn=lambda mode, user_id: (gr.update(visible=mode == "select"), user_id),
+            inputs=[self.mode, self._app.user_id],
+            outputs=[self.selector, self.selector_user_id],
         )
 
     def as_gradio_component(self):
-        return [self.mode, self.selector]
+        return [self.mode, self.selector, self.selector_user_id]
 
     def get_selected_ids(self, components):
-        mode, selected = components[0], components[1]
+        mode, selected, user_id = components[0], components[1], components[2]
+        if user_id is None:
+            return []
+
         if mode == "disabled":
             return []
         elif mode == "select":
@@ -556,17 +599,31 @@ class FileSelector(BasePage):
         file_ids = []
         with Session(engine) as session:
             statement = select(self._index._resources["Source"].id)
+            if self._index.config.get("private", False):
+                statement = statement.where(
+                    self._index._resources["Source"].user == user_id
+                )
             results = session.execute(statement).all()
             for (id,) in results:
                 file_ids.append(id)
 
         return file_ids
 
-    def load_files(self, selected_files):
-        options = []
+    def load_files(self, selected_files, user_id):
+        options: list = []
         available_ids = []
+        if user_id is None:
+            # not signed in
+            return gr.update(value=selected_files, choices=options)
+
         with Session(engine) as session:
             statement = select(self._index._resources["Source"])
+            if self._index.config.get("private", False):
+
+                statement = statement.where(
+                    self._index._resources["Source"].user == user_id
+                )
+
             results = session.execute(statement).all()
             for result in results:
                 available_ids.append(result[0].id)
@@ -583,7 +640,7 @@ class FileSelector(BasePage):
     def _on_app_created(self):
         self._app.app.load(
             self.load_files,
-            inputs=self.selector,
+            inputs=[self.selector, self._app.user_id],
             outputs=[self.selector],
         )
 
@@ -592,8 +649,27 @@ class FileSelector(BasePage):
             name=f"onFileIndex{self._index.id}Changed",
             definition={
                 "fn": self.load_files,
-                "inputs": [self.selector],
+                "inputs": [self.selector, self._app.user_id],
                 "outputs": [self.selector],
                 "show_progress": "hidden",
             },
         )
+        if self._app.f_user_management:
+            self._app.subscribe_event(
+                name="onSignIn",
+                definition={
+                    "fn": self.load_files,
+                    "inputs": [self.selector, self._app.user_id],
+                    "outputs": [self.selector],
+                    "show_progress": "hidden",
+                },
+            )
+            self._app.subscribe_event(
+                name="onSignOut",
+                definition={
+                    "fn": self.load_files,
+                    "inputs": [self.selector, self._app.user_id],
+                    "outputs": [self.selector],
+                    "show_progress": "hidden",
+                },
+            )

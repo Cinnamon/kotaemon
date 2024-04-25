@@ -365,7 +365,7 @@ class ChatPage(BasePage):
 
         Args:
             settings: the settings of the app
-            is_regen: whether the regen button is clicked
+            state: the state of the app
             selected: the list of file ids that will be served as context. If None, then
                 consider using all files
 
