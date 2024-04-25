@@ -2,6 +2,7 @@ import gradio as gr
 import pandas as pd
 import yaml
 from ktem.app import BasePage
+from ktem.utils.file import YAMLNoDateSafeLoader
 
 from .manager import IndexManager
 
@@ -231,7 +232,9 @@ class IndexManagement(BasePage):
         """
         try:
             self.manager.build_index(
-                name=name, config=yaml.safe_load(config), index_type=index_type
+                name=name,
+                config=yaml.load(config, Loader=YAMLNoDateSafeLoader),
+                index_type=index_type,
             )
             gr.Info(f'Create index "{name}" successfully. Please restart the app!')
         except Exception as e:
@@ -294,7 +297,7 @@ class IndexManagement(BasePage):
 
     def update_index(self, selected_index_id: int, name: str, config: str):
         try:
-            spec = yaml.safe_load(config)
+            spec = yaml.load(config, Loader=YAMLNoDateSafeLoader)
             self.manager.update_index(selected_index_id, name, spec)
             gr.Info(f'Update index "{name}" successfully. Please restart the app!')
         except Exception as e:
