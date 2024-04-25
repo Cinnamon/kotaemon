@@ -3,7 +3,7 @@ from .endpoint_based import EndpointEmbeddings
 from .fastembed import FastEmbedEmbeddings
 from .langchain_based import (
     LCAzureOpenAIEmbeddings,
-    LCCohereEmbdeddings,
+    LCCohereEmbeddings,
     LCHuggingFaceEmbeddings,
     LCOpenAIEmbeddings,
 )
@@ -14,7 +14,7 @@ __all__ = [
     "EndpointEmbeddings",
     "LCOpenAIEmbeddings",
     "LCAzureOpenAIEmbeddings",
-    "LCCohereEmbdeddings",
+    "LCCohereEmbeddings",
     "LCHuggingFaceEmbeddings",
     "OpenAIEmbeddings",
     "AzureOpenAIEmbeddings",

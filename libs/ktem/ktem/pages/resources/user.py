@@ -142,7 +142,7 @@ class UserManagement(BasePage):
                     )
                 self.admin_edit = gr.Checkbox(label="Admin")
 
-            with gr.Row() as self._selected_panel_btn:
+            with gr.Row(visible=False) as self._selected_panel_btn:
                 with gr.Column():
                     self.btn_edit_save = gr.Button("Save")
                 with gr.Column():
@@ -338,7 +338,7 @@ class UserManagement(BasePage):
         if not ev.selected:
             return -1
 
-        return user_list["id"][ev.index[0]]
+        return int(user_list["id"][ev.index[0]])
 
     def on_selected_user_change(self, selected_user_id):
         if selected_user_id == -1:
