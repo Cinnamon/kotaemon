@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 from kotaemon.base import Document, Param
 
@@ -39,7 +40,15 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
             self.endpoint, AzureKeyCredential(self.credential)
         )
 
-    def run(self, file_path: str | Path, **kwargs) -> list[Document]:
+    def run(
+        self, file_path: str | Path, extra_info: Optional[dict] = None, **kwargs
+    ) -> list[Document]:
+        return self.load_data(Path(file_path), extra_info=extra_info, **kwargs)
+
+    def load_data(
+        self, file_path: Path, extra_info: Optional[dict] = None, **kwargs
+    ) -> list[Document]:
+        metadata = extra_info or {}
         with open(file_path, "rb") as fi:
             poller = self.client_.begin_analyze_document(
                 self.model,
@@ -49,4 +58,4 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
             )
             result = poller.result()
 
-        return [Document(content=result.content)]
+        return [Document(content=result.content, metadata=metadata)]
