@@ -1,6 +1,6 @@
 # Getting Started with Kotaemon
 
-![chat demo](images/chat-demo.gif)
+![type:video](https://github.com/Cinnamon/kotaemon/assets/25688648/815ecf68-3a02-4914-a0dd-3f8ec7e75cd9)
 
 This page is intended for **end users** who want to use the `kotaemon` tool for Question
 Answering on local documents. If you are a **developer** who wants contribute to the project, please visit the [development](development/index.md) page.
@@ -25,9 +25,9 @@ Download and upzip the latest version of `kotaemon` by clicking this
 
 ## Launch
 
-To launch the app after initial setup or any changes, simply run the `run_*` script again.
+To launch the app after initial setup or any change, simply run the `run_*` script again.
 
-A browser window will be opened and greet you with this screen:
+A browser window will be opened and greets you with this screen:
 
 ![Chat tab](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/chat-tab.png)
 
