@@ -1,5 +1,7 @@
 # kotaemon
 
+Build and use local RAG-based Question Answering (QA) applications.
+
 https://github.com/Cinnamon/kotaemon/assets/25688648/815ecf68-3a02-4914-a0dd-3f8ec7e75cd9
 
 [Source Code](https://github.com/Cinnamon/kotaemon) |
@@ -13,9 +15,7 @@ https://github.com/Cinnamon/kotaemon/assets/25688648/815ecf68-3a02-4914-a0dd-3f8
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![built with Codeium](https://codeium.com/badges/main)](https://codeium.com)
 
-Build and use local RAG-based Question Answering (QA) applications.
-
-This repository would like to appeal to both end users who want to do QA on their
+This project would like to appeal to both end users who want to do QA on their
 documents and developers who want to build their own QA pipeline.
 
 - For end users:
@@ -33,6 +33,13 @@ appreciated. Your input is valuable as it helps us persuade our business guys to
 open source.
 
 ## Installation
+
+### For end users
+
+This document is intended for developers. If you just want to install and use the app as
+it, please follow the [User Guide](https://cinnamon.github.io/kotaemon/).
+
+### For developers
 
 ```shell
 # Create a environment
