@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -15,8 +16,14 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
 
     _dependencies = ["azure-ai-documentintelligence"]
 
-    endpoint: str = Param("Endpoint of Azure AI Document Intelligence")
-    credential: str = Param("Credential of Azure AI Document Intelligence")
+    endpoint: str = Param(
+        os.environ.get("AZUREAI_DOCUMENT_INTELLIGENT_ENDPOINT", None),
+        help="Endpoint of Azure AI Document Intelligence",
+    )
+    credential: str = Param(
+        os.environ.get("AZUREAI_DOCUMENT_INTELLIGENT_CREDENTIAL", None),
+        help="Credential of Azure AI Document Intelligence",
+    )
     model: str = Param(
         "prebuilt-layout",
         help=(
