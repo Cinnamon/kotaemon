@@ -159,7 +159,7 @@ class BaseApp:
         with gr.Blocks(
             theme=self._theme,
             css=self._css,
-            title="Kotaemon",
+            title=self.app_name,
             analytics_enabled=False,
         ) as demo:
             self.app = demo
