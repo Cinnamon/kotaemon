@@ -335,8 +335,8 @@ class RewooAgent(BaseAgent):
 
         # Solve
         solver_response = ""
-        for solver_output_text in self.solver.stream(instruction, worker_log):
-            # solver_output_text = solver_output.text
+        for solver_output in self.solver.stream(instruction, worker_log):
+            solver_output_text = solver_output.text
             solver_response += solver_output_text
             yield AgentOutput(
                 text=solver_output_text,

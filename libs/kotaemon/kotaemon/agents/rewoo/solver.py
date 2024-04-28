@@ -63,7 +63,7 @@ class Solver(BaseComponent):
         prompt = self._compose_prompt(instruction, plan_evidence, self.output_lang)
         output.debug(f"Prompt: {prompt}")
         try:
-            response = self.model(prompt).text
+            response = self.model(prompt)
             output.info("Solver run successful.")
         except ValueError:
             output.error("Solver failed to retrieve response from LLM")
@@ -85,7 +85,7 @@ class Solver(BaseComponent):
         try:
             for text in self.model.stream(prompt):
                 response += text.text
-                yield text.text
+                yield text
             output.info("Planner run successful.")
         except NotImplementedError:
             response = self.model(prompt).text
