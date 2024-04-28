@@ -5,7 +5,6 @@ from functools import partial
 from typing import Any
 
 import tiktoken
-from ktem.llms.manager import llms
 
 from kotaemon.agents.base import BaseAgent
 from kotaemon.agents.io import AgentOutput, AgentType, BaseScratchPad
@@ -346,7 +345,7 @@ class RewooAgent(BaseAgent):
                 metadata={"worker_log": worker_log},
             )
         if use_citation:
-            citation_pipeline = CitationPipeline(llm=llms.get_default())
+            citation_pipeline = CitationPipeline(llm=self.solver_llm)
             citation = citation_pipeline.invoke(
                 context=worker_log, question=instruction
             )
