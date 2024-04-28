@@ -1,4 +1,4 @@
-from typing import Optional, Type
+from typing import Optional, Type, overload
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -71,6 +71,14 @@ class LLMManager:
         """Check if model exists"""
         return key in self._models
 
+    @overload
+    def get(self, key: str, default: None) -> Optional[ChatLLM]:
+        ...
+
+    @overload
+    def get(self, key: str, default: ChatLLM) -> ChatLLM:
+        ...
+
     def get(self, key: str, default: Optional[ChatLLM] = None) -> Optional[ChatLLM]:
         """Get model by name with default value"""
         return self._models.get(key, default)
@@ -138,6 +146,7 @@ class LLMManager:
 
     def add(self, name: str, spec: dict, default: bool):
         """Add a new model to the pool"""
+        name = name.strip()
         if not name:
             raise ValueError("Name must not be empty")
 

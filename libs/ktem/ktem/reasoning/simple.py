@@ -680,12 +680,15 @@ class FullQAPipeline(BaseReasoning):
             retrievers: the retrievers to use
         """
         prefix = f"reasoning.options.{cls.get_info()['id']}"
-        pipeline = FullQAPipeline(retrievers=retrievers)
+        pipeline = cls(retrievers=retrievers)
+
+        llm_name = settings.get(f"{prefix}.llm", None)
+        llm = llms.get(llm_name, llms.get_default())
 
         # answering pipeline configuration
         answer_pipeline = pipeline.answering_pipeline
-        answer_pipeline.llm = llms.get_default()
-        answer_pipeline.citation_pipeline.llm = llms.get_default()
+        answer_pipeline.llm = llm
+        answer_pipeline.citation_pipeline.llm = llm
         answer_pipeline.n_last_interactions = settings[f"{prefix}.n_last_interactions"]
         answer_pipeline.enable_citation = settings[f"{prefix}.highlight_citation"]
         answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
@@ -694,14 +697,14 @@ class FullQAPipeline(BaseReasoning):
             settings["reasoning.lang"], "English"
         )
 
-        pipeline.add_query_context.llm = llms.get_default()
+        pipeline.add_query_context.llm = llm
         pipeline.add_query_context.n_last_interactions = settings[
             f"{prefix}.n_last_interactions"
         ]
 
         pipeline.trigger_context = settings[f"{prefix}.trigger_context"]
         pipeline.use_rewrite = states.get("app", {}).get("regen", False)
-        pipeline.rewrite_pipeline.llm = llms.get_default()
+        pipeline.rewrite_pipeline.llm = llm
         pipeline.rewrite_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
             settings["reasoning.lang"], "English"
         )
@@ -709,7 +712,26 @@ class FullQAPipeline(BaseReasoning):
 
     @classmethod
     def get_user_settings(cls) -> dict:
+        from ktem.llms.manager import llms
+
+        llm = ""
+        choices = [("(default)", "")]
+        try:
+            choices += [(_, _) for _ in llms.options().keys()]
+        except Exception as e:
+            logger.exception(f"Failed to get LLM options: {e}")
+
         return {
+            "llm": {
+                "name": "Language model",
+                "value": llm,
+                "component": "dropdown",
+                "choices": choices,
+                "info": (
+                    "The language model to use for generating the answer. If None, "
+                    "the application default language model will be used."
+                ),
+            },
             "highlight_citation": {
                 "name": "Highlight Citation",
                 "value": False,

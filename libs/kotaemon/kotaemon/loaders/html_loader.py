@@ -1,5 +1,6 @@
+import email
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 from llama_index.readers.base import BaseReader
 
@@ -33,7 +34,7 @@ class HtmlReader(BaseReader):
 
     def load_data(
         self, file_path: Path | str, extra_info: Optional[dict] = None, **kwargs
-    ) -> List[Document]:
+    ) -> list[Document]:
         """Load data using Html reader
 
         Args:
@@ -70,3 +71,78 @@ class HtmlReader(BaseReader):
         ]
 
         return documents
+
+
+class MhtmlReader(BaseReader):
+    """Parse `MHTML` files with `BeautifulSoup`."""
+
+    def __init__(
+        self,
+        open_encoding: Optional[str] = None,
+        bs_kwargs: Optional[dict] = None,
+        get_text_separator: str = "",
+    ) -> None:
+        """initialize with path, and optionally, file encoding to use, and any kwargs
+        to pass to the BeautifulSoup object.
+
+        Args:
+            file_path: Path to file to load.
+            open_encoding: The encoding to use when opening the file.
+            bs_kwargs: Any kwargs to pass to the BeautifulSoup object.
+            get_text_separator: The separator to use when getting the text
+                from the soup.
+        """
+        try:
+            import bs4  # noqa:F401
+        except ImportError:
+            raise ImportError(
+                "beautifulsoup4 package not found, please install it with "
+                "`pip install beautifulsoup4`"
+            )
+
+        self.open_encoding = open_encoding
+        if bs_kwargs is None:
+            bs_kwargs = {"features": "lxml"}
+        self.bs_kwargs = bs_kwargs
+        self.get_text_separator = get_text_separator
+
+    def load_data(
+        self, file_path: Path | str, extra_info: Optional[dict] = None, **kwargs
+    ) -> list[Document]:
+        """Load MHTML document into document objects."""
+
+        from bs4 import BeautifulSoup
+
+        extra_info = extra_info or {}
+        metadata: dict = extra_info
+        page = []
+        with open(file_path, "r", encoding=self.open_encoding) as f:
+            message = email.message_from_string(f.read())
+            parts = message.get_payload()
+
+            if not isinstance(parts, list):
+                parts = [message]
+
+            for part in parts:
+                if part.get_content_type() == "text/html":
+                    html = part.get_payload(decode=True).decode()
+
+                    soup = BeautifulSoup(html, **self.bs_kwargs)
+                    text = soup.get_text(self.get_text_separator)
+
+                    if soup.title:
+                        title = str(soup.title.string)
+                    else:
+                        title = ""
+
+                    metadata = {
+                        "source": str(file_path),
+                        "title": title,
+                        **extra_info,
+                    }
+                    lines = [line for line in text.split("\n") if line.strip()]
+                    text = "\n\n".join(lines)
+                    if text:
+                        page.append(text)
+
+        return [Document(text="\n\n".join(page), metadata=metadata)]

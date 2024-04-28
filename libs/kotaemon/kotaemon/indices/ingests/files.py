@@ -9,7 +9,9 @@ from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 from kotaemon.loaders import (
     AdobeReader,
     DirectoryReader,
+    HtmlReader,
     MathpixPDFReader,
+    MhtmlReader,
     OCRReader,
     PandasExcelReader,
     UnstructuredReader,
@@ -20,6 +22,13 @@ KH_DEFAULT_FILE_EXTRACTORS: dict[str, Type[BaseReader]] = {
     ".docx": UnstructuredReader,
     ".xls": UnstructuredReader,
     ".doc": UnstructuredReader,
+    ".html": HtmlReader,
+    ".mhtml": MhtmlReader,
+    ".png": UnstructuredReader,
+    ".jpeg": UnstructuredReader,
+    ".jpg": UnstructuredReader,
+    ".tiff": UnstructuredReader,
+    ".tif": UnstructuredReader,
 }
 
 

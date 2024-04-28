@@ -1,5 +1,47 @@
 # Contributing
 
+## Setting up
+
+- Clone the repo
+
+  ```shell
+  git clone git@github.com:Cinnamon/kotaemon.git
+  cd kotaemon
+  ```
+
+- Install the environment
+
+  - Create a conda environment (python >= 3.10 is recommended)
+
+    ```shell
+    conda create -n kotaemon python=3.10
+    conda activate kotaemon
+
+    # install dependencies
+    cd libs/kotaemon
+    pip install -e ".[all]"
+    ```
+
+  - Or run the installer (one of the `scripts/run_*` scripts depends on your OS), then
+    you will have all the dependencies installed as a conda environment at
+    `install_dir/env`.
+
+    ```shell
+    conda activate install_dir/env
+    ```
+
+- Pre-commit
+
+  ```shell
+  pre-commit install
+  ```
+
+- Test
+
+  ```shell
+  pytest tests
+  ```
+
 ## Package overview
 
 `kotaemon` library focuses on the AI building blocks to implement a RAG-based QA application. It consists of base interfaces, core components and a list of utilities:
