@@ -29,11 +29,14 @@ class Solver(BaseComponent):
         if self.prompt_template is not None:
             if "fewshot" in self.prompt_template.placeholders:
                 return self.prompt_template.populate(
-                    plan_evidence=plan_evidence, fewshot=fewshot, task=instruction
+                    plan_evidence=plan_evidence,
+                    fewshot=fewshot,
+                    task=instruction,
+                    lang=output_lang,
                 )
             else:
                 return self.prompt_template.populate(
-                    plan_evidence=plan_evidence, task=instruction
+                    plan_evidence=plan_evidence, task=instruction, lang=output_lang
                 )
         else:
             if self.examples is not None:

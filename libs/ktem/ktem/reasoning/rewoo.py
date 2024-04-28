@@ -21,10 +21,41 @@ from kotaemon.llms import ChatLLM, PromptTemplate
 
 logger = logging.getLogger(__name__)
 
-EVIDENCE_MODE_TEXT = 0
-EVIDENCE_MODE_TABLE = 1
-EVIDENCE_MODE_CHATBOT = 2
-EVIDENCE_MODE_FIGURE = 3
+
+DEFAUL_PLANNER_PROMPT = (
+    "You are an AI agent who makes step-by-step plans to solve a problem under the "
+    "help of external tools. For each step, make one plan followed by one tool-call, "
+    "which will be executed later to retrieve evidence for that step.\n"
+    "You should store each evidence into a distinct variable #E1, #E2, #E3 ... that "
+    "can be referred to in later tool-call inputs.\n\n"
+    "##Available Tools##\n"
+    "{tool_description}\n\n"
+    "##Output Format (Replace '<...>')##\n"
+    "#Plan1: <describe your plan here>\n"
+    "#E1: <toolname>[<input here>] (eg. Search[What is Python])\n"
+    "#Plan2: <describe next plan>\n"
+    "#E2: <toolname>[<input here, you can use #E1 to represent its expected output>]\n"
+    "And so on...\n\n"
+    "##Your Task##\n"
+    "{task}\n\n"
+    "##Now Begin##\n"
+)
+
+DEFAULT_SOLVER_PROMPT = (
+    "You are an AI agent who solves a problem with my assistance. I will provide "
+    "step-by-step plans(#Plan) and evidences(#E) that could be helpful.\n"
+    "Your task is to briefly summarize each step, then make a short final conclusion "
+    "for your task. Give answer in {lang}.\n\n"
+    "##My Plans and Evidences##\n"
+    "{plan_evidence}\n\n"
+    "##Example Output##\n"
+    "First, I <did something> , and I think <...>; Second, I <...>, "
+    "and I think <...>; ....\n"
+    "So, <your conclusion>.\n\n"
+    "##Your Task##\n"
+    "{task}\n\n"
+    "##Now Begin##\n"
+)
 
 
 class DocSearchArgs(BaseModel):
@@ -177,7 +208,7 @@ class RewooAgentPipeline(BaseReasoning):
         allow_extra = True
 
     retrievers: list[BaseComponent]
-    rewoo_agent: RewooAgent = RewooAgent.withx()
+    agent: RewooAgent = RewooAgent.withx()
     rewrite_pipeline: RewriteQuestionPipeline = RewriteQuestionPipeline.withx()
     use_rewrite: bool = False
     enable_citation: bool = False
@@ -250,7 +281,7 @@ class RewooAgentPipeline(BaseReasoning):
     async def ainvoke(  # type: ignore
         self, message, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Document:
-        answer = self.rewoo_agent(message, use_citation=True)
+        answer = self.agent(message, use_citation=True)
         self.report_output(Document(content=answer.text, channel="chat"))
 
         refined_citations = self.prepare_citation(answer)
@@ -268,9 +299,7 @@ class RewooAgentPipeline(BaseReasoning):
             message = rewrite.text
 
         answer = None
-        for answer in self.rewoo_agent.stream(
-            message, use_citation=self.enable_citation
-        ):
+        for answer in self.agent.stream(message, use_citation=self.enable_citation):
             yield Document(channel="info", content=answer.metadata["worker_log"])
             yield Document(channel="chat", content=answer.text)
 
@@ -288,32 +317,77 @@ class RewooAgentPipeline(BaseReasoning):
         cls, settings: dict, states: dict, retrievers: list | None = None
     ) -> BaseReasoning:
         _id = cls.get_info()["id"]
-
+        prefix = f"reasoning.options.{_id}"
         pipeline = RewooAgentPipeline(retrievers=retrievers)
-        pipeline.rewoo_agent.planner_llm = llms.get_default()
-        pipeline.rewoo_agent.solver_llm = llms.get_default()
+
+        planner_llm_name = settings[f"{prefix}.planner_llm"]
+        planner_llm = llms.get(planner_llm_name, llms.get_default())
+        solver_llm_name = settings[f"{prefix}.solver_llm"]
+        solver_llm = llms.get(solver_llm_name, llms.get_default())
+
+        pipeline.agent.planner_llm = planner_llm
+        pipeline.agent.solver_llm = solver_llm
+
         tools = []
-        for tool_name in settings[f"reasoning.options.{_id}.tools"]:
+        for tool_name in settings[f"{prefix}.tools"]:
             tool = TOOL_REGISTRY[tool_name]
             if tool_name == "SearchDoc":
                 tool.retrievers = retrievers
             tools.append(tool)
-        pipeline.rewoo_agent.plugins = tools
-        pipeline.rewoo_agent.output_lang = {"en": "English", "ja": "Japanese"}.get(
+        pipeline.agent.plugins = tools
+        pipeline.agent.output_lang = {"en": "English", "ja": "Japanese"}.get(
             settings["reasoning.lang"], "English"
         )
-        pipeline.enable_citation = settings[
-            f"reasoning.options.{_id}.highlight_citation"
-        ]
+        pipeline.agent.prompt_template["Planner"] = PromptTemplate(
+            settings[f"{prefix}.planner_prompt"]
+        )
+        pipeline.agent.prompt_template["Solver"] = PromptTemplate(
+            settings[f"{prefix}.solver_prompt"]
+        )
+
+        pipeline.enable_citation = settings[f"{prefix}.highlight_citation"]
         pipeline.use_rewrite = states.get("app", {}).get("regen", False)
+        pipeline.rewrite_pipeline.llm = (
+            planner_llm  # TODO: separate llm for rewrite if needed
+        )
 
         return pipeline
 
     @classmethod
     def get_user_settings(cls) -> dict:
+
+        llm = ""
+        llm_choices = [("(default)", "")]
+        try:
+            llm_choices += [(_, _) for _ in llms.options().keys()]
+        except Exception as e:
+            logger.exception(f"Failed to get LLM options: {e}")
+
         tool_choices = ["Wikipedia", "Google", "LLM", "SearchDoc"]
 
         return {
+            "planner_llm": {
+                "name": "Language Model for Planner",
+                "value": llm,
+                "component": "dropdown",
+                "choices": llm_choices,
+                "info": (
+                    "The language model to use for planning. "
+                    "This model will generate a plan based on the "
+                    "instruction to find the answer."
+                ),
+            },
+            "solver_llm": {
+                "name": "Language Model for Solver",
+                "value": llm,
+                "component": "dropdown",
+                "choices": llm_choices,
+                "info": (
+                    "The language model to use for solving. "
+                    "This model will generate the answer based on the "
+                    "plan generated by the planner and evidences found by the tools."
+                ),
+            },
             "highlight_citation": {
                 "name": "Highlight Citation",
                 "value": False,
@@ -324,6 +398,14 @@ class RewooAgentPipeline(BaseReasoning):
                 "value": ["SearchDoc", "LLM"],
                 "component": "checkboxgroup",
                 "choices": tool_choices,
+            },
+            "planner_prompt": {
+                "name": "Planner Prompt",
+                "value": DEFAUL_PLANNER_PROMPT,
+            },
+            "solver_prompt": {
+                "name": "Solver Prompt",
+                "value": DEFAULT_SOLVER_PROMPT,
             },
         }
 
