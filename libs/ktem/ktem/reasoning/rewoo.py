@@ -333,6 +333,8 @@ class RewooAgentPipeline(BaseReasoning):
             tool = TOOL_REGISTRY[tool_name]
             if tool_name == "SearchDoc":
                 tool.retrievers = retrievers
+            elif tool_name == "LLM":
+                tool.llm = solver_llm
             tools.append(tool)
         pipeline.agent.plugins = tools
         pipeline.agent.output_lang = {"en": "English", "ja": "Japanese"}.get(

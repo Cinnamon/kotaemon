@@ -2,6 +2,7 @@ from typing import AnyStr, Optional, Type
 
 from pydantic import BaseModel, Field
 
+from kotaemon.agents.tools.base import ToolException
 from kotaemon.llms import BaseLLM
 
 from .base import BaseTool
@@ -23,11 +24,11 @@ class LLMTool(BaseTool):
     args_schema: Optional[Type[BaseModel]] = LLMArgs
 
     def _run_tool(self, query: AnyStr) -> str:
-        # output = None
-        # try:
-        #     response = self.llm(query)
-        # except ValueError:
-        #     raise ToolException("LLM Tool call failed")
-        # output = response.text
-        output = "No evidence found."
+        output = None
+        try:
+            response = self.llm(query)
+        except ValueError:
+            raise ToolException("LLM Tool call failed")
+        output = response.text
+        # output = "No evidence found."
         return output
