@@ -1,4 +1,5 @@
 from .adobe_loader import AdobeReader
+from .azureai_document_intelligence_loader import AzureAIDocumentIntelligenceLoader
 from .base import AutoReader, BaseReader
 from .composite_loader import DirectoryReader
 from .docx_loader import DocxReader
@@ -10,6 +11,7 @@ from .unstructured_loader import UnstructuredReader
 
 __all__ = [
     "AutoReader",
+    "AzureAIDocumentIntelligenceLoader",
     "BaseReader",
     "PandasExcelReader",
     "MathpixPDFReader",
