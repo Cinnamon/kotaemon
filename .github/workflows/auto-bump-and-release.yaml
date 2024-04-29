@@ -27,7 +27,7 @@ jobs:
         run: |
           echo Create release folder
           mkdir kotaemon-app
-          echo ${{steps.update-version.outputs.new_tag }} > kotaemon-app/VERSION
+          echo ${{ steps.update-version.outputs.new_tag }} > kotaemon-app/VERSION
           cp LICENSE.txt kotaemon-app/
           cp flowsettings.py kotaemon-app/
           cp app.py kotaemon-app/
@@ -43,7 +43,5 @@ jobs:
           generate_release_notes: true
           tag_name: ${{ steps.update-version.outputs.new_tag }}
           make_latest: true
-      - name: Update latest tag
-        uses: EndBug/latest-tag@latest
-        with:
-          ref: latest
+      - name: Update latest branch
+        run: git branch -f latest tags/${{ steps.update-version.outputs.new_tag }}
