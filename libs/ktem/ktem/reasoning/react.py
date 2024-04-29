@@ -124,6 +124,25 @@ TOOL_REGISTRY = {
     "SearchDoc": DocSearchTool(),
 }
 
+DEFAULT_QA_PROMPT = (
+    "Answer the following questions as best you can. Give answer in {lang}. "
+    "You have access to the following tools:\n"
+    "{tool_description}\n"
+    "Use the following format:\n\n"
+    "Question: the input question you must answer\n"
+    "Thought: you should always think about what to do\n\n"
+    "Action: the action to take, should be one of [{tool_names}]\n\n"
+    "Action Input: the input to the action, should be different from the action input "
+    "of the same action in previous steps.\n\n"
+    "Observation: the result of the action\n\n"
+    "... (this Thought/Action/Action Input/Observation can repeat N times)\n"
+    "#Thought: I now know the final answer\n"
+    "Final Answer: the final answer to the original input question\n\n"
+    "Begin! After each Action Input.\n\n"
+    "Question: {instruction}\n"
+    "Thought: {agent_scratchpad}\n"
+)
+
 DEFAULT_REWRITE_PROMPT = (
     "Given the following question, rephrase and expand it "
     "to help you do better answering. Maintain all information "
@@ -229,35 +248,68 @@ class ReactAgentPipeline(BaseReasoning):
     def get_pipeline(
         cls, settings: dict, states: dict, retrievers: list | None = None
     ) -> BaseReasoning:
-        print(f"Settings: {settings}")
         _id = cls.get_info()["id"]
+        prefix = f"reasoning.options.{_id}"
+
+        llm_name = settings[f"{prefix}.llm"]
+        llm = llms.get(llm_name, llms.get_default())
 
         pipeline = ReactAgentPipeline(retrievers=retrievers)
-        pipeline.agent.llm = llms.get_default()
+        pipeline.agent.llm = llm
+        pipeline.agent.max_iterations = settings[f"{prefix}.max_iterations"]
         tools = []
         for tool_name in settings[f"reasoning.options.{_id}.tools"]:
             tool = TOOL_REGISTRY[tool_name]
             if tool_name == "SearchDoc":
                 tool.retrievers = retrievers
+            elif tool_name == "LLM":
+                tool.llm = llm
             tools.append(tool)
         pipeline.agent.plugins = tools
         pipeline.agent.output_lang = {"en": "English", "ja": "Japanese"}.get(
             settings["reasoning.lang"], "English"
         )
         pipeline.use_rewrite = states.get("app", {}).get("regen", False)
+        pipeline.agent.prompt_template = PromptTemplate(settings[f"{prefix}.qa_prompt"])
 
         return pipeline
 
     @classmethod
     def get_user_settings(cls) -> dict:
+        llm = ""
+        llm_choices = [("(default)", "")]
+        try:
+            llm_choices += [(_, _) for _ in llms.options().keys()]
+        except Exception as e:
+            logger.exception(f"Failed to get LLM options: {e}")
+
         tool_choices = ["Wikipedia", "Google", "LLM", "SearchDoc"]
 
         return {
+            "llm": {
+                "name": "Language model",
+                "value": llm,
+                "component": "dropdown",
+                "choices": llm_choices,
+                "info": (
+                    "The language model to use for generating the answer. If None, "
+                    "the application default language model will be used."
+                ),
+            },
             "tools": {
                 "name": "Tools for knowledge retrieval",
                 "value": ["SearchDoc", "LLM"],
                 "component": "checkboxgroup",
                 "choices": tool_choices,
+            },
+            "max_iterations": {
+                "name": "Maximum number of iterations the LLM can go through",
+                "value": 5,
+                "component": "number",
+            },
+            "qa_prompt": {
+                "name": "QA Prompt",
+                "value": DEFAULT_QA_PROMPT,
             },
         }
 
