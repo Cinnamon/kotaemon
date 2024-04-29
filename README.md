@@ -29,6 +29,21 @@ documents and developers who want to build their own QA pipeline.
   - See your RAG pipeline in action with the provided UI (built with Gradio).
   - Share your pipeline so that others can use it.
 
+```yml
++----------------------------------------------------------------------------+
+| End users: Those who use apps built with `kotaemon`.                       |
+| (You use an app like the one in the demo above)                            |
+|     +----------------------------------------------------------------+     |
+|     | Developers: Those who built with `kotaemon`.                   |     |
+|     | (You have `import kotaemon` somewhere in your project)         |     |
+|     |     +----------------------------------------------------+     |     |
+|     |     | Contributors: Those who make `kotaemon` better.    |     |     |
+|     |     | (You make PR to this repo)                         |     |     |
+|     |     +----------------------------------------------------+     |     |
+|     +----------------------------------------------------------------+     |
++----------------------------------------------------------------------------+
+```
+
 This repository is under active development. Feedback, issues, and PRs are highly
 appreciated. Your input is valuable as it helps us persuade our business guys to support
 open source.
