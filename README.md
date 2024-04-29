@@ -1,6 +1,7 @@
 # kotaemon
 
-Build and use local RAG-based Question Answering (QA) applications.
+An open-source tool for chatting with your documents. Built with both end users and
+developers in mind.
 
 https://github.com/Cinnamon/kotaemon/assets/25688648/815ecf68-3a02-4914-a0dd-3f8ec7e75cd9
 
