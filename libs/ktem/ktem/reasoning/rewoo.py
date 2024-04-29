@@ -22,7 +22,7 @@ from kotaemon.llms import ChatLLM, PromptTemplate
 logger = logging.getLogger(__name__)
 
 
-DEFAUL_PLANNER_PROMPT = (
+DEFAULT_PLANNER_PROMPT = (
     "You are an AI agent who makes step-by-step plans to solve a problem under the "
     "help of external tools. For each step, make one plan followed by one tool-call, "
     "which will be executed later to retrieve evidence for that step.\n"
@@ -369,7 +369,7 @@ class RewooAgentPipeline(BaseReasoning):
 
         return {
             "planner_llm": {
-                "name": "Language Model for Planner",
+                "name": "Language model for Planner",
                 "value": llm,
                 "component": "dropdown",
                 "choices": llm_choices,
@@ -380,7 +380,7 @@ class RewooAgentPipeline(BaseReasoning):
                 ),
             },
             "solver_llm": {
-                "name": "Language Model for Solver",
+                "name": "Language model for Solver",
                 "value": llm,
                 "component": "dropdown",
                 "choices": llm_choices,
@@ -403,7 +403,7 @@ class RewooAgentPipeline(BaseReasoning):
             },
             "planner_prompt": {
                 "name": "Planner Prompt",
-                "value": DEFAUL_PLANNER_PROMPT,
+                "value": DEFAULT_PLANNER_PROMPT,
             },
             "solver_prompt": {
                 "name": "Solver Prompt",
