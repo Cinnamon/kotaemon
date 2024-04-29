@@ -1,20 +1,41 @@
 [build-system]
-requires = ["setuptools >= 61.0"]
+requires = ["setuptools >= 61.0", "wheel", "setuptools-git-versioning>=2.0,<3"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 include-package-data = false
 packages.find.include = []
 
+[tool.setuptools-git-versioning]
+enabled = true
+dev_template = "{tag}"
+dirty_template = "{tag}"
+tag_filter = "v?\\d+(\\.\\d+)*.*"
+
 [project]
 name = "kotaemon-app"
-version = "0.0.1"
+dynamic = ["version"]
 requires-python = ">= 3.10"
 description = "Kotaemon App"
 dependencies = [
-    "kotaemon @ git+https://github.com/Cinnamon/kotaemon.git/@main#subdirectory=libs/kotaemon",
+    "kotaemon @ git+https://github.com/Cinnamon/kotaemon.git@main#subdirectory=libs/kotaemon",
     "ktem @ git+https://github.com/Cinnamon/kotaemon.git@main#subdirectory=libs/ktem"
 ]
+authors = [
+    { name = "john", email = "john@cinnamon.is" },
+    { name = "ian", email = "ian@cinnamon.is" },
+    { name = "tadashi", email = "tadashi@cinnamon.is" },
+    { name = "albert", email = "albert@cinnamon.is" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://cinnamon.github.io/kotaemon/"
+Repository = "https://github.com/Cinnamon/kotaemon/"
+Documentation = "https://cinnamon.github.io/kotaemon/"
 
 [tool.codespell]
 skip = "*.js,*.css,*.map"
