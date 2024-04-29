@@ -1,15 +1,21 @@
 [build-system]
-requires = ["setuptools >= 61.0"]
+requires = ["setuptools >= 61.0", "wheel", "setuptools-git-versioning>=2.0,<3"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 include-package-data = true
+packages.find.exclude = ["ktem_tests*", "env*"]
 packages.find.include = ["ktem*"]
-packages.find.exclude = ["tests*", "env*"]
+
+[tool.setuptools-git-versioning]
+enabled = true
+dev_template = "{tag}"
+dirty_template = "{tag}"
+tag_filter = "v?\\d+(\\.\\d+)*.*"
 
 [project]
 name = "ktem"
-version = "0.2.0"
+dynamic = ["version"]
 requires-python = ">= 3.10"
 description = "RAG-based Question and Answering Application"
 dependencies = [
@@ -24,14 +30,13 @@ dependencies = [
     "markdown",
 ]
 readme = "README.md"
-license = { text = "MIT License" }
 authors = [
     { name = "john", email = "john@cinnamon.is" },
     { name = "ian", email = "ian@cinnamon.is" },
     { name = "tadashi", email = "tadashi@cinnamon.is" },
+    { name = "albert", email = "albert@cinnamon.is" },
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]

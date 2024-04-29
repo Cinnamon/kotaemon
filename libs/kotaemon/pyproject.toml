@@ -1,6 +1,6 @@
 # build backand and build dependencies
 [build-system]
-requires = ["setuptools >= 61.0"]
+requires = ["setuptools >= 61.0", "wheel", "setuptools-git-versioning>=2.0,<3"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
@@ -8,10 +8,16 @@ include-package-data = false
 packages.find.include = ["kotaemon*"]
 packages.find.exclude = ["tests*", "env*"]
 
+[tool.setuptools-git-versioning]
+enabled = true
+dev_template = "{tag}"
+dirty_template = "{tag}"
+tag_filter = "v?\\d+(\\.\\d+)*.*"
+
 # metadata and dependencies
 [project]
 name = "kotaemon"
-version = "0.3.12"
+dynamic = ["version"]
 requires-python = ">= 3.10"
 description = "Kotaemon core library for AI development."
 dependencies = [
@@ -37,15 +43,14 @@ dependencies = [
     "fastembed",
 ]
 readme = "README.md"
-license = { text = "MIT License" }
 authors = [
     { name = "john", email = "john@cinnamon.is" },
     { name = "ian", email = "ian@cinnamon.is" },
     { name = "tadashi", email = "tadashi@cinnamon.is" },
+    { name = "albert", email = "albert@cinnamon.is" },
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 
@@ -80,8 +85,3 @@ all = ["kotaemon[adv,dev]"]
 
 [project.scripts]
 kotaemon = "kotaemon.cli:main"
-
-[project.urls]
-Homepage = "https://github.com/Cinnamon/kotaemon/"
-Repository = "https://github.com/Cinnamon/kotaemon/"
-Documentation = "https://github.com/Cinnamon/kotaemon/wiki"
