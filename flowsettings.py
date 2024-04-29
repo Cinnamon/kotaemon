@@ -20,6 +20,9 @@ KH_APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
 KH_USER_DATA_DIR = KH_APP_DATA_DIR / "user_data"
 KH_USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
+# doc directory
+KH_DOC_DIR = this_dir / "docs"
+
 # HF models can be big, let's store them in the app data directory so that it's easier
 # for users to manage their storage.
 # ref: https://huggingface.co/docs/huggingface_hub/en/guides/manage-cache

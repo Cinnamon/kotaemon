@@ -30,10 +30,10 @@ dependencies = [
     "markdown",
 ]
 authors = [
-    { name = "john", email = "john@cinnamon.is" },
-    { name = "ian", email = "ian@cinnamon.is" },
-    { name = "tadashi", email = "tadashi@cinnamon.is" },
-    { name = "albert", email = "albert@cinnamon.is" },
+    { name = "@trducng", email = "john@cinnamon.is" },
+    { name = "@lone17", email = "ian@cinnamon.is" },
+    { name = "@taprosoft", email = "tadashi@cinnamon.is" },
+    { name = "@cin-albert", email = "albert@cinnamon.is" },
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
