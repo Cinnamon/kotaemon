@@ -29,7 +29,6 @@ dependencies = [
     "gradio>=4.26.0",
     "markdown",
 ]
-readme = "README.md"
 authors = [
     { name = "john", email = "john@cinnamon.is" },
     { name = "ian", email = "ian@cinnamon.is" },
