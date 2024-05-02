@@ -99,6 +99,7 @@ class ChatPage(BasePage):
                 self.chat_panel.chatbot,
                 self._app.settings_state,
                 self.chat_state,
+                self._app.user_id,
             ]
             + self._indices_input,
             outputs=[
@@ -127,6 +128,7 @@ class ChatPage(BasePage):
                 self.chat_panel.chatbot,
                 self._app.settings_state,
                 self.chat_state,
+                self._app.user_id,
             ]
             + self._indices_input,
             outputs=[
@@ -360,7 +362,7 @@ class ChatPage(BasePage):
             session.add(result)
             session.commit()
 
-    def create_pipeline(self, settings: dict, state: dict, *selecteds):
+    def create_pipeline(self, settings: dict, state: dict, user_id: int, *selecteds):
         """Create the pipeline from settings
 
         Args:
@@ -385,7 +387,9 @@ class ChatPage(BasePage):
             if isinstance(index.selector, tuple):
                 for i in index.selector:
                     index_selected.append(selecteds[i])
-            iretrievers = index.get_retriever_pipelines(settings, index_selected)
+            iretrievers = index.get_retriever_pipelines(
+                settings, user_id, index_selected
+            )
             retrievers += iretrievers
 
         # prepare states
@@ -398,7 +402,9 @@ class ChatPage(BasePage):
 
         return pipeline, reasoning_state
 
-    def chat_fn(self, conversation_id, chat_history, settings, state, *selecteds):
+    def chat_fn(
+        self, conversation_id, chat_history, settings, state, user_id, *selecteds
+    ):
         """Chat function"""
         chat_input = chat_history[-1][0]
         chat_history = chat_history[:-1]
@@ -406,7 +412,9 @@ class ChatPage(BasePage):
         queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
 
         # construct the pipeline
-        pipeline, reasoning_state = self.create_pipeline(settings, state, *selecteds)
+        pipeline, reasoning_state = self.create_pipeline(
+            settings, state, user_id, *selecteds
+        )
         pipeline.set_output_queue(queue)
 
         text, refs = "", ""
@@ -452,7 +460,9 @@ class ChatPage(BasePage):
             print(f"Generate nothing: {empty_msg}")
             yield chat_history + [(chat_input, text or empty_msg)], refs, state
 
-    def regen_fn(self, conversation_id, chat_history, settings, state, *selecteds):
+    def regen_fn(
+        self, conversation_id, chat_history, settings, state, user_id, *selecteds
+    ):
         """Regen function"""
         if not chat_history:
             gr.Warning("Empty chat")
@@ -461,7 +471,7 @@ class ChatPage(BasePage):
 
         state["app"]["regen"] = True
         for chat, refs, state in self.chat_fn(
-            conversation_id, chat_history, settings, state, *selecteds
+            conversation_id, chat_history, settings, state, user_id, *selecteds
         ):
             new_state = deepcopy(state)
             new_state["app"]["regen"] = False

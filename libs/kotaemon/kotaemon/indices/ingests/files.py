@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Type
 
+from llama_index.readers import PDFReader
 from llama_index.readers.base import BaseReader
 
 from kotaemon.base import BaseComponent, Document, Param
@@ -17,18 +18,20 @@ from kotaemon.loaders import (
     UnstructuredReader,
 )
 
-KH_DEFAULT_FILE_EXTRACTORS: dict[str, Type[BaseReader]] = {
-    ".xlsx": PandasExcelReader,
-    ".docx": UnstructuredReader,
-    ".xls": UnstructuredReader,
-    ".doc": UnstructuredReader,
-    ".html": HtmlReader,
-    ".mhtml": MhtmlReader,
-    ".png": UnstructuredReader,
-    ".jpeg": UnstructuredReader,
-    ".jpg": UnstructuredReader,
-    ".tiff": UnstructuredReader,
-    ".tif": UnstructuredReader,
+unstructured = UnstructuredReader()
+KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
+    ".xlsx": PandasExcelReader(),
+    ".docx": unstructured,
+    ".xls": unstructured,
+    ".doc": unstructured,
+    ".html": HtmlReader(),
+    ".mhtml": MhtmlReader(),
+    ".png": unstructured,
+    ".jpeg": unstructured,
+    ".jpg": unstructured,
+    ".tiff": unstructured,
+    ".tif": unstructured,
+    ".pdf": PDFReader(),
 }
 
 
@@ -64,7 +67,7 @@ class DocumentIngestor(BaseComponent):
     def _get_reader(self, input_files: list[str | Path]):
         """Get appropriate readers for the input files based on file extension"""
         file_extractors: dict[str, BaseReader] = {
-            ext: cls() for ext, cls in KH_DEFAULT_FILE_EXTRACTORS.items()
+            ext: reader for ext, reader in KH_DEFAULT_FILE_EXTRACTORS.items()
         }
         for ext, cls in self.override_file_extractors.items():
             file_extractors[ext] = cls()

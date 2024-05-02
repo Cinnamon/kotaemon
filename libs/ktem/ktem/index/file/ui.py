@@ -1,6 +1,7 @@
 import os
 import tempfile
 from pathlib import Path
+from typing import Generator
 
 import gradio as gr
 import pandas as pd
@@ -63,9 +64,6 @@ class DirectoryUpload(BasePage):
                     )
 
             self.upload_button = gr.Button("Upload and Index")
-            self.file_output = gr.File(
-                visible=False, label="Output files (debug purpose)"
-            )
 
 
 class FileIndexPage(BasePage):
@@ -127,11 +125,23 @@ class FileIndexPage(BasePage):
                     self.upload_button = gr.Button(
                         "Upload and Index", variant="primary"
                     )
-                    self.file_output = gr.File(
-                        visible=False, label="Output files (debug purpose)"
-                    )
 
             with gr.Column(scale=4):
+                with gr.Column(visible=False) as self.upload_progress_panel:
+                    gr.Markdown("## Upload Progress")
+                    with gr.Row():
+                        self.upload_result = gr.Textbox(
+                            lines=1, max_lines=20, label="Upload result"
+                        )
+                        self.upload_info = gr.Textbox(
+                            lines=1, max_lines=20, label="Upload info"
+                        )
+                    self.btn_close_upload_progress_panel = gr.Button(
+                        "Clear Upload Info and Close",
+                        variant="secondary",
+                        elem_classes=["right-button"],
+                    )
+
                 gr.Markdown("## File List")
                 self.file_list_state = gr.State(value=None)
                 self.file_list = gr.DataFrame(
@@ -261,6 +271,9 @@ class FileIndexPage(BasePage):
         )
 
         onUploaded = self.upload_button.click(
+            fn=lambda: gr.update(visible=True),
+            outputs=[self.upload_progress_panel],
+        ).then(
             fn=self.index_fn,
             inputs=[
                 self.files,
@@ -268,16 +281,28 @@ class FileIndexPage(BasePage):
                 self._app.settings_state,
                 self._app.user_id,
             ],
-            outputs=[self.file_output],
+            outputs=[self.upload_result, self.upload_info],
             concurrency_limit=20,
-        ).then(
+        )
+
+        uploadedEvent = onUploaded.then(
             fn=self.list_file,
             inputs=[self._app.user_id],
             outputs=[self.file_list_state, self.file_list],
             concurrency_limit=20,
         )
         for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
-            onUploaded = onUploaded.then(**event)
+            uploadedEvent = uploadedEvent.then(**event)
+
+        _ = onUploaded.success(
+            fn=lambda: None,
+            outputs=[self.files],
+        )
+
+        self.btn_close_upload_progress_panel.click(
+            fn=lambda: (gr.update(visible=False), "", ""),
+            outputs=[self.upload_progress_panel, self.upload_result, self.upload_info],
+        )
 
         self.file_list.select(
             fn=self.interact_file_list,
@@ -294,7 +319,9 @@ class FileIndexPage(BasePage):
             outputs=[self.file_list_state, self.file_list],
         )
 
-    def index_fn(self, files, reindex: bool, settings, user_id):
+    def index_fn(
+        self, files, reindex: bool, settings, user_id
+    ) -> Generator[tuple[str, str], None, None]:
         """Upload and index the files
 
         Args:
@@ -305,35 +332,56 @@ class FileIndexPage(BasePage):
         """
         if not files:
             gr.Info("No uploaded file")
-            return gr.update()
+            yield "", ""
+            return
 
         errors = self.validate(files)
         if errors:
             gr.Warning(", ".join(errors))
-            return gr.update()
+            yield "", ""
+            return
 
         gr.Info(f"Start indexing {len(files)} files...")
 
         # get the pipeline
         indexing_pipeline = self._index.get_indexing_pipeline(settings, user_id)
 
-        result = indexing_pipeline(files, reindex=reindex)
-        if result is None:
-            gr.Info("Finish indexing")
+        outputs, debugs = [], []
+        # stream the output
+        output_stream = indexing_pipeline.stream(files, reindex=reindex)
+        try:
+            while True:
+                response = next(output_stream)
+                if response is None:
+                    continue
+                if response.channel == "index":
+                    if response.content["status"] == "success":
+                        outputs.append(f"\u2705 | {response.content['file_path'].name}")
+                    elif response.content["status"] == "failed":
+                        outputs.append(
+                            f"\u274c | {response.content['file_path'].name}: "
+                            f"{response.content['message']}"
+                        )
+                elif response.channel == "debug":
+                    debugs.append(response.text)
+                yield "\n".join(outputs), "\n".join(debugs)
+        except StopIteration as e:
+            result, errors = e.value
+        except Exception as e:
+            debugs.append(f"Error: {e}")
+            yield "\n".join(outputs), "\n".join(debugs)
             return
-        output_nodes, _ = result
-        gr.Info(f"Finish indexing into {len(output_nodes)} chunks")
 
-        # download the file
-        text = "\n\n".join([each.text for each in output_nodes])
-        handler, file_path = tempfile.mkstemp(suffix=".txt")
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(text)
-        os.close(handler)
+        n_successes = len([_ for _ in result if _])
+        if n_successes:
+            gr.Info(f"Successfully index {n_successes} files")
+        n_errors = len([_ for _ in errors if _])
+        if n_errors:
+            gr.Warning(f"Have errors for {n_errors} files")
 
-        return gr.update(value=file_path, visible=True)
-
-    def index_files_from_dir(self, folder_path, reindex, settings, user_id):
+    def index_files_from_dir(
+        self, folder_path, reindex, settings, user_id
+    ) -> Generator[tuple[str, str], None, None]:
         """This should be constructable by users
 
         It means that the users can build their own index.
@@ -363,6 +411,7 @@ class FileIndexPage(BasePage):
             2. Implement the transformation from artifacts to UI
         """
         if not folder_path:
+            yield "", ""
             return
 
         import fnmatch
@@ -401,7 +450,7 @@ class FileIndexPage(BasePage):
             for p in exclude_patterns:
                 files = [f for f in files if not fnmatch.fnmatch(name=f, pat=p)]
 
-        return self.index_fn(files, reindex, settings, user_id)
+        yield from self.index_fn(files, reindex, settings, user_id)
 
     def list_file(self, user_id):
         if user_id is None:

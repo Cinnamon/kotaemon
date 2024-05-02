@@ -32,12 +32,13 @@ class Document(BaseDocument):
         channel: the channel to show the document. Optional.:
             - chat: show in chat message
             - info: show in information panel
+            - index: show in index panel
             - debug: show in debug panel
     """
 
     content: Any = None
     source: Optional[str] = None
-    channel: Optional[Literal["chat", "info", "debug"]] = None
+    channel: Optional[Literal["chat", "info", "index", "debug"]] = None
 
     def __init__(self, content: Optional[Any] = None, *args, **kwargs):
         if content is None:
