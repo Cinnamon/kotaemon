@@ -19,15 +19,15 @@ dynamic = ["version"]
 requires-python = ">= 3.10"
 description = "RAG-based Question and Answering Application"
 dependencies = [
-    "click",
-    "platformdirs",
-    "pluggy",
-    "python-decouple",
-    "sqlalchemy",
-    "sqlmodel",
-    "tiktoken",
-    "gradio>=4.26.0",
-    "markdown",
+    "click>=8.1.7,<9",
+    "platformdirs>=4.2.1,<5",
+    "pluggy>=1.5.0,<2",
+    "python-decouple>=3.8,<4",
+    "SQLAlchemy>=2.0.29,<3",
+    "sqlmodel>=0.0.16,<0.1",
+    "tiktoken>=0.6.0<1",
+    "gradio>=4.26.0,<5",
+    "markdown>=3.6,<4",
 ]
 authors = [
     { name = "@trducng", email = "john@cinnamon.is" },
