@@ -95,7 +95,7 @@ function install_dependencies() {
         local kotaemon_root="$(pwd)/libs/kotaemon"
         local ktem_root="$(pwd)/libs/ktem/"
 
-        if [ -f "$(pwd)/VERSION"]; then
+        if [ -f "$(pwd)/VERSION" ]; then
             local app_version=$(<"$(pwd)/VERSION")
         else
             local app_version="latest"
@@ -182,7 +182,7 @@ install_dependencies
 print_highlight "Setting up a local model"
 setup_local_model
 
-print_highlight "Launching Kotatemon in your browser, please wait..."
+print_highlight "Launching Kotaemon in your browser, please wait..."
 launch_ui
 
 deactivate_conda_env

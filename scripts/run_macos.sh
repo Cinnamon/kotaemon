@@ -95,7 +95,7 @@ function install_dependencies() {
         local kotaemon_root="$(pwd)/libs/kotaemon"
         local ktem_root="$(pwd)/libs/ktem/"
 
-        if [ -f "$(pwd)/VERSION"]; then
+        if [ -f "$(pwd)/VERSION" ]; then
             local app_version=$(<"$(pwd)/VERSION")
         else
             local app_version="latest"
