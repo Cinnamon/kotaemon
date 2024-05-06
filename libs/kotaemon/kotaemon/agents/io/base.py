@@ -255,3 +255,4 @@ class AgentOutput(LLMInterface):
     agent_type: AgentType
     status: Literal["thinking", "finished", "stopped", "failed"]
     error: Optional[str] = None
+    intermediate_steps: Optional[list] = None

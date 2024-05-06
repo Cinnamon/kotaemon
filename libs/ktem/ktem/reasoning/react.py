@@ -4,6 +4,7 @@ from typing import AnyStr, Optional, Type
 
 from ktem.llms.manager import llms
 from ktem.reasoning.base import BaseReasoning
+from ktem.utils.generator import Generator
 from ktem.utils.render import Render
 from langchain.text_splitter import CharacterTextSplitter
 from pydantic import BaseModel, Field
@@ -14,6 +15,7 @@ from kotaemon.agents import (
     LLMTool,
     ReactAgent,
     WikipediaTool,
+    AgentOutput,
 )
 from kotaemon.base import BaseComponent, Document, HumanMessage, Node, SystemMessage
 from kotaemon.llms import ChatLLM, PromptTemplate
@@ -28,11 +30,12 @@ class DocSearchArgs(BaseModel):
 class DocSearchTool(BaseTool):
     name: str = "docsearch"
     description: str = (
-        "A vector store that searches for similar and related content in a list "
-        "of documents. The result is a huge chunk of text related to your search "
-        "but can also contain irrelevant info. Input should be a search query about "
-        "specific topic, do not include general query such as "
-        "'SearchDoc[insurance policy terms & conditions]'."
+        "A storage that contains internal documents. If you lack any specific "
+        "private information to answer the question, you can search in this "
+        "document storage. Furthermore, if you are unsure about which document that "
+        "the user refers to, likely the user already selects the target document in "
+        "this document storage, you just need to do normal search. If possible, "
+        "formulate the search query as specific as possible."
     )
     args_schema: Optional[Type[BaseModel]] = DocSearchArgs
     retrievers: list[BaseComponent] = []
@@ -188,30 +191,23 @@ class ReactAgentPipeline(BaseReasoning):
     rewrite_pipeline: RewriteQuestionPipeline = RewriteQuestionPipeline.withx()
     use_rewrite: bool = False
 
-    def prepare_citation(self, all_steps) -> list[Document]:
-        outputs = []
-        for step_id, (step, output) in enumerate(all_steps):
-            header = "<b>Step {id}</b>: {log}".format(id=step_id + 1, log=step.log)
-            content = (
-                "<b>Action</b>: <em>{tool}[{input}]</em>\n\n<b>Output</b>: {output}"
-            ).format(
-                tool=step.tool if step_id < len(all_steps) - 1 else "",
-                input=step.tool_input.replace("\n", "")
-                if step_id < len(all_steps) - 1
-                else "",
-                output=output if step_id < len(all_steps) - 1 else "Finished",
-            )
-            outputs.append(
-                Document(
-                    channel="info",
-                    content=Render.collapsible(
-                        header=header,
-                        content=Render.table(content),
-                        open=True,
-                    ),
-                )
-            )
-        return outputs
+    def prepare_citation(self, step_id, step, output, status) -> Document:
+        header = "<b>Step {id}</b>: {log}".format(id=step_id, log=step.log)
+        content = (
+            "<b>Action</b>: <em>{tool}[{input}]</em>\n\n<b>Output</b>: {output}"
+        ).format(
+            tool=step.tool if status == "thinking" else "",
+            input=step.tool_input.replace("\n", "") if status == "thinking" else "",
+            output=output if status == "thinking" else "Finished",
+        )
+        return Document(
+            channel="info",
+            content=Render.collapsible(
+                header=header,
+                content=Render.table(content),
+                open=True,
+            ),
+        )
 
     async def ainvoke(  # type: ignore
         self, message, conv_id: str, history: list, **kwargs  # type: ignore
@@ -234,15 +230,33 @@ class ReactAgentPipeline(BaseReasoning):
         if self.use_rewrite:
             rewrite = self.rewrite_pipeline(question=message)
             message = rewrite.text
+            yield Document(
+                channel="info",
+                content=f"Rewrote the message to: {rewrite.text}",
+            )
 
-        for answer in self.agent.stream(message):
-            yield Document(channel="chat", content=answer.text)
+        output_stream = Generator(self.agent.stream(message))
+        idx = 0
+        for item in output_stream:
+            idx += 1
+            if item.status == "thinking":
+                step, step_output = item.intermediate_steps
+                yield Document(
+                    channel="info",
+                    content=self.prepare_citation(idx, step, step_output, item.status),
+                )
+            else:
+                yield Document(
+                    channel="chat",
+                    content=item.text,
+                )
+                step, step_output = item.intermediate_steps
+                yield Document(
+                    channel="info",
+                    content=self.prepare_citation(idx, step, step_output, item.status),
+                )
 
-        for _ in self.prepare_citation(answer.intermediate_steps):
-            yield _
-
-        yield None
-        return answer
+        return output_stream.value
 
     @classmethod
     def get_pipeline(
