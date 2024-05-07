@@ -143,25 +143,15 @@ class FileIndexPage(BasePage):
                     self.selected_file_id = gr.State(value=None)
                     with gr.Column(scale=2):
                         self.selected_panel = gr.Markdown(self.selected_panel_false)
-                    with gr.Column(scale=1):
-                        self.deselect_button = gr.Button(
-                            "Deselect",
-                            scale=1,
-                            visible=False,
-                            elem_classes=["right-button"],
-                        )
 
-                self.delete_button = gr.Button(
-                    "Delete", variant="stop", elem_classes=["right-button"]
-                )
-                self.delete_yes = gr.Button(
-                    "Confirm Delete",
-                    variant="stop",
+                self.deselect_button = gr.Button(
+                    "Deselect",
                     visible=False,
                     elem_classes=["right-button"],
                 )
-                self.delete_no = gr.Button(
-                    "Cancel",
+                self.delete_button = gr.Button(
+                    "Delete",
+                    variant="stop",
                     visible=False,
                     elem_classes=["right-button"],
                 )
@@ -189,33 +179,12 @@ class FileIndexPage(BasePage):
             )
 
     def file_selected(self, file_id):
-        if file_id is None:
-            deselect = gr.update(visible=False)
-        else:
-            deselect = gr.update(visible=True)
         return (
-            deselect,
-            gr.update(visible=True),
-            gr.update(visible=False),
-            gr.update(visible=False),
+            gr.update(visible=file_id is not None),
+            gr.update(visible=file_id is not None),
         )
 
-    def to_confirm_delete(self, file_id):
-        if file_id is None:
-            gr.Warning("No file is selected")
-            return (
-                gr.update(visible=True),
-                gr.update(visible=False),
-                gr.update(visible=False),
-            )
-
-        return (
-            gr.update(visible=False),
-            gr.update(visible=True),
-            gr.update(visible=True),
-        )
-
-    def delete_yes_event(self, file_id):
+    def delete_event(self, file_id):
         with Session(engine) as session:
             source = session.execute(
                 select(self._index._resources["Source"]).where(
@@ -250,21 +219,13 @@ class FileIndexPage(BasePage):
         return (
             gr.update(visible=True),
             gr.update(visible=False),
-            gr.update(visible=False),
         )
 
     def on_register_events(self):
         """Register all events to the app"""
-        self.delete_button.click(
-            fn=self.to_confirm_delete,
-            inputs=[self.selected_file_id],
-            outputs=[self.delete_button, self.delete_yes, self.delete_no],
-            show_progress="hidden",
-        )
-
         onDeleted = (
-            self.delete_yes.click(
-                fn=self.delete_yes_event,
+            self.delete_button.click(
+                fn=self.delete_event,
                 inputs=[self.selected_file_id],
                 outputs=None,
             )
@@ -283,12 +244,6 @@ class FileIndexPage(BasePage):
         for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
             onDeleted = onDeleted.then(**event)
 
-        self.delete_no.click(
-            fn=self.delete_no_event,
-            inputs=None,
-            outputs=[self.delete_button, self.delete_yes, self.delete_no],
-            show_progress="hidden",
-        )
         self.deselect_button.click(
             fn=lambda: (None, self.selected_panel_false),
             inputs=None,
@@ -301,8 +256,6 @@ class FileIndexPage(BasePage):
             outputs=[
                 self.deselect_button,
                 self.delete_button,
-                self.delete_yes,
-                self.delete_no,
             ],
             show_progress="hidden",
         )
