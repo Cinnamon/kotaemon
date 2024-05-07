@@ -175,8 +175,13 @@ class RewooAgent(BaseAgent):
             tool_input = tool_input[:-1]
             # find variables in input and replace with previous evidences
             for var in re.findall(r"#E\d+", tool_input):
+                print("Tool input: ", tool_input)
+                print("Var: ", var)
+                print("Worker evidences: ", worker_evidences)
                 if var in worker_evidences:
-                    tool_input = tool_input.replace(var, worker_evidences.get(var, ""))
+                    tool_input = tool_input.replace(
+                        var, worker_evidences.get(var, "") or ""
+                    )
             try:
                 selected_plugin = self._find_plugin(tool)
                 if selected_plugin is None:
@@ -311,6 +316,7 @@ class RewooAgent(BaseAgent):
             planner_text_output
         )
 
+        print("Planner output:", planner_text_output)
         # Work
         worker_evidences, plugin_cost, plugin_token = self._get_worker_evidence(
             planner_evidences, evidence_level
@@ -318,20 +324,17 @@ class RewooAgent(BaseAgent):
         worker_log = ""
         for plan in plan_to_es:
             worker_log += f"{plan}: {plans[plan]}\n"
+            current_progress = f"{plan}: {plans[plan]}\n"
+            for e in plan_to_es[plan]:
+                worker_log += f"{e}: {worker_evidences[e]}\n"
+                current_progress += f"{e}: {worker_evidences[e]}\n"
+
             yield AgentOutput(
                 text="",
                 agent_type=self.agent_type,
                 status="thinking",
-                metadata={"worker_log": f"{plan}: {plans[plan]}\n"},
+                intermediate_steps=[{"worker_log": current_progress}],
             )
-            for e in plan_to_es[plan]:
-                worker_log += f"{e}: {worker_evidences[e]}\n"
-                yield AgentOutput(
-                    text="",
-                    agent_type=self.agent_type,
-                    status="thinking",
-                    metadata={"worker_log": f"{e}: {worker_evidences[e]}\n"},
-                )
 
         # Solve
         solver_response = ""
@@ -342,7 +345,6 @@ class RewooAgent(BaseAgent):
                 text=solver_output_text,
                 agent_type=self.agent_type,
                 status="thinking",
-                metadata={"worker_log": worker_log},
             )
         if use_citation:
             citation_pipeline = CitationPipeline(llm=self.solver_llm)
@@ -352,7 +354,7 @@ class RewooAgent(BaseAgent):
         else:
             citation = None
 
-        yield AgentOutput(
+        return AgentOutput(
             text="",
             agent_type=self.agent_type,
             status="finished",

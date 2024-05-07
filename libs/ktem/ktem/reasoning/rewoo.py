@@ -5,6 +5,7 @@ from typing import AnyStr, Generator, Optional, Type
 
 from ktem.llms.manager import llms
 from ktem.reasoning.base import BaseReasoning
+from ktem.utils.generator import Generator as GeneratorWrapper
 from ktem.utils.render import Render
 from langchain.text_splitter import CharacterTextSplitter
 from pydantic import BaseModel, Field
@@ -65,11 +66,12 @@ class DocSearchArgs(BaseModel):
 class DocSearchTool(BaseTool):
     name: str = "docsearch"
     description: str = (
-        "A vector store that searches for similar and related content "
-        "in a list of documents. The result is a huge chunk of text "
-        "related to your search but can also contain irrelevant info. "
-        "Input should be a search query about specific topic, do not include "
-        "general query such as 'SearchDoc[insurance policy terms & conditions]'."
+        "A storage that contains internal documents. If you lack any specific "
+        "private information to answer the question, you can search in this "
+        "document storage. Furthermore, if you are unsure about which document that "
+        "the user refers to, likely the user already selects the target document in "
+        "this document storage, you just need to do normal search. If possible, "
+        "formulate the search query as specific as possible."
     )
     args_schema: Optional[Type[BaseModel]] = DocSearchArgs
     retrievers: list[BaseComponent] = []
@@ -213,6 +215,33 @@ class RewooAgentPipeline(BaseReasoning):
     use_rewrite: bool = False
     enable_citation: bool = False
 
+    def format_info_panel(self, worker_log):
+        header = ""
+        content = []
+
+        for line in worker_log.splitlines():
+            if line.startswith("#Plan"):
+                # line starts with #Plan should be marked as a new segment
+                header = line
+            elif line.startswith("#"):
+                # stop markdown from rendering big headers
+                line = "\\" + line
+                content.append(line)
+            else:
+                content.append(line)
+
+        if not header:
+            return
+
+        return Document(
+            channel="info",
+            content=Render.collapsible(
+                header=header,
+                content=Render.table("\n".join(content)),
+                open=True,
+            ),
+        )
+
     def prepare_citation(self, answer) -> list[Document]:
         """Prepare citation to show on the UI"""
         segments = []
@@ -258,7 +287,7 @@ class RewooAgentPipeline(BaseReasoning):
                 segments.append(new_segment)
             elif line.startswith("#"):
                 # stop markdown from rendering big headers
-                line = "### " + line
+                line = "\\" + line
                 segments[-1].append(line)
             else:
                 segments[-1].append(line)
@@ -297,19 +326,30 @@ class RewooAgentPipeline(BaseReasoning):
         if self.use_rewrite:
             rewrite = self.rewrite_pipeline(question=message)
             message = rewrite.text
+            yield Document(
+                channel="info",
+                content=f"Rewrote the message to: {rewrite.text}",
+            )
 
-        answer = None
-        for answer in self.agent.stream(message, use_citation=self.enable_citation):
-            yield Document(channel="info", content=answer.metadata["worker_log"])
-            yield Document(channel="chat", content=answer.text)
+        output_stream = GeneratorWrapper(
+            self.agent.stream(message, use_citation=self.enable_citation)
+        )
+        for item in output_stream:
+            if item.intermediate_steps:
+                for step in item.intermediate_steps:
+                    yield Document(
+                        channel="info",
+                        content=self.format_info_panel(step["worker_log"]),
+                    )
+            if item.text:
+                yield Document(channel="chat", content=item.text)
 
+        answer = output_stream.value
         yield Document(channel="info", content=None)
-
         refined_citations = self.prepare_citation(answer)
         for _ in refined_citations:
             yield _
 
-        yield None
         return answer
 
     @classmethod

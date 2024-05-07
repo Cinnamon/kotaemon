@@ -15,7 +15,6 @@ from kotaemon.agents import (
     LLMTool,
     ReactAgent,
     WikipediaTool,
-    AgentOutput,
 )
 from kotaemon.base import BaseComponent, Document, HumanMessage, Node, SystemMessage
 from kotaemon.llms import ChatLLM, PromptTemplate
@@ -220,8 +219,8 @@ class ReactAgentPipeline(BaseReasoning):
         self.report_output(Document(content=answer.text, channel="chat"))
 
         intermediate_steps = answer.intermediate_steps
-        for _ in self.prepare_citation(intermediate_steps):
-            self.report_output(_)
+        for _, step_output in intermediate_steps:
+            self.report_output(Document(content=step_output, channel="info"))
 
         self.report_output(None)
         return answer
