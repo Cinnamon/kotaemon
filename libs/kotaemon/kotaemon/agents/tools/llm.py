@@ -2,9 +2,10 @@ from typing import AnyStr, Optional, Type
 
 from pydantic import BaseModel, Field
 
+from kotaemon.agents.tools.base import ToolException
 from kotaemon.llms import BaseLLM
 
-from .base import BaseTool, ToolException
+from .base import BaseTool
 
 
 class LLMArgs(BaseModel):

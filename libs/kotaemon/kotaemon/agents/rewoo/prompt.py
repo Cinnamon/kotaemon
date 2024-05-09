@@ -81,7 +81,7 @@ And so on...
 
 zero_shot_solver_prompt = PromptTemplate(
     template="""You are an AI agent who solves a problem with my assistance. I will provide step-by-step plans(#Plan) and evidences(#E) that could be helpful.
-Your task is to briefly summarize each step, then make a short final conclusion for your task.
+Your task is to briefly summarize each step, then make a short final conclusion for your task. Give answer in {lang}.
 
 ##My Plans and Evidences##
 {plan_evidence}
@@ -99,7 +99,7 @@ So, <your conclusion>.
 
 few_shot_solver_prompt = PromptTemplate(
     template="""You are an AI agent who solves a problem with my assistance. I will provide step-by-step plans and evidences that could be helpful.
-Your task is to briefly summarize each step, then make a short final conclusion for your task.
+Your task is to briefly summarize each step, then make a short final conclusion for your task. Give answer in {lang}.
 
 ##My Plans and Evidences##
 {plan_evidence}

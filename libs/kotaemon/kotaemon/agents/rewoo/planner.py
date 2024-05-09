@@ -81,3 +81,26 @@ class Planner(BaseComponent):
             raise ValueError("Planner failed to retrieve response from LLM") from e
 
         return response
+
+    def stream(self, instruction: str, output: BaseScratchPad = BaseScratchPad()):
+        response = None
+        output.info("Running Planner")
+        prompt = self._compose_prompt(instruction)
+        output.debug(f"Prompt: {prompt}")
+
+        response = ""
+        try:
+            for text in self.model.stream(prompt):
+                response += text
+                yield text
+            self.log_progress(".planner", response=response)
+            output.info("Planner run successful.")
+        except NotImplementedError:
+            print("Streaming is not supported, falling back to normal run")
+            response = self.model(prompt)
+            yield response
+        except ValueError as e:
+            output.error("Planner failed to retrieve response from LLM")
+            raise ValueError("Planner failed to retrieve response from LLM") from e
+
+        return response

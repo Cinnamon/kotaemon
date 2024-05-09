@@ -1,4 +1,5 @@
 from typing import AnyStr, Optional, Type
+from urllib.error import HTTPError
 
 from langchain.utilities import SerpAPIWrapper
 from pydantic import BaseModel, Field
@@ -26,12 +27,17 @@ class GoogleSearchTool(BaseTool):
                 "install googlesearch using `pip3 install googlesearch-python` to "
                 "use this tool"
             )
-        output = ""
-        search_results = search(query, advanced=True)
-        if search_results:
-            output = "\n".join(
-                "{} {}".format(item.title, item.description) for item in search_results
-            )
+
+        try:
+            output = ""
+            search_results = search(query, advanced=True)
+            if search_results:
+                output = "\n".join(
+                    "{} {}".format(item.title, item.description)
+                    for item in search_results
+                )
+        except HTTPError:
+            output = "No evidence found."
 
         return output
 
