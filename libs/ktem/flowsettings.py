@@ -143,11 +143,7 @@ if len(KH_EMBEDDINGS) < 1:
         "default": True,
     }
 
-KH_REASONINGS = [
-    "ktem.reasoning.simple.FullQAPipeline",
-    "ktem.reasoning.react.ReactAgentPipeline",
-    "ktem.reasoning.rewoo.RewooAgentPipeline",
-]
+KH_REASONINGS = ["ktem.reasoning.simple.FullQAPipeline"]
 KH_VLM_ENDPOINT = "{0}/openai/deployments/{1}/chat/completions?api-version={2}".format(
     config("AZURE_OPENAI_ENDPOINT", default=""),
     config("OPENAI_VISION_DEPLOYMENT_NAME", default="gpt-4-vision"),
