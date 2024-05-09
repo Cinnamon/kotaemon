@@ -30,5 +30,4 @@ class LLMTool(BaseTool):
         except ValueError:
             raise ToolException("LLM Tool call failed")
         output = response.text
-        # output = "No evidence found."
         return output

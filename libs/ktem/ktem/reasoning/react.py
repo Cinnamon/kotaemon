@@ -80,12 +80,6 @@ class DocSearchTool(BaseTool):
             elif retrieved_item.metadata.get("type", "") == "image":
                 retrieved_content = retrieved_item.metadata.get("image_origin", "")
                 retrieved_caption = html.escape(retrieved_item.get_content())
-                # evidence += (
-                #     f"<br><b>Figure from {source}</b>\n"
-                #     + f"<img width='85%' src='{retrieved_content}' "
-                #     + f"alt='{retrieved_caption}'/>"
-                #     + "\n<br>"
-                # )
                 evidence += (
                     f"<br><b>Figure from {source}</b>\n" + retrieved_caption + "\n<br>"
                 )
