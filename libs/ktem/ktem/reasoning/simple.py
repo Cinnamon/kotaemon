@@ -9,6 +9,7 @@ from typing import Generator
 import tiktoken
 from ktem.llms.manager import llms
 from ktem.utils.render import Render
+from theflow.settings import settings as flowsettings
 
 from kotaemon.base import (
     AIMessage,
@@ -193,7 +194,7 @@ class AnswerWithContextPipeline(BaseComponent):
     """
 
     llm: ChatLLM = Node(default_callback=lambda _: llms.get_default())
-    vlm_endpoint: str = ""
+    vlm_endpoint: str = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
     citation_pipeline: CitationPipeline = Node(
         default_callback=lambda _: CitationPipeline(llm=llms.get_default())
     )
@@ -506,16 +507,30 @@ class FullQAPipeline(BaseReasoning):
 
         info = []
         for doc in docs:
-            info.append(
-                Document(
-                    channel="info",
-                    content=Render.collapsible(
-                        header=doc.metadata["file_name"],
-                        content=Render.table(doc.text),
-                        open=True,
-                    ),
+            if doc.metadata.get("type", "") == "image":
+                info.append(
+                    Document(
+                        channel="info",
+                        content=Render.collapsible(
+                            header=doc.metadata["file_name"],
+                            content=Render.image(
+                                url=doc.metadata["image_origin"], text=doc.text
+                            ),
+                            open=True,
+                        ),
+                    )
                 )
-            )
+            else:
+                info.append(
+                    Document(
+                        channel="info",
+                        content=Render.collapsible(
+                            header=doc.metadata["file_name"],
+                            content=Render.table(doc.text),
+                            open=True,
+                        ),
+                    )
+                )
 
         return docs, info
 
@@ -577,18 +592,32 @@ class FullQAPipeline(BaseReasoning):
                 )
             )
 
-        without_citation = [
-            Document(
-                channel="info",
-                content=Render.collapsible(
-                    header=id2docs[id].metadata["file_name"],
-                    content=Render.table(id2docs[id].text),
-                    open=False,
-                ),
-            )
-            for id in list(not_detected)
-        ]
-
+        for id_ in list(not_detected):
+            doc = id2docs[id_]
+            if doc.metadata.get("type", "") == "image":
+                without_citation.append(
+                    Document(
+                        channel="info",
+                        content=Render.collapsible(
+                            header=doc.metadata["file_name"],
+                            content=Render.image(
+                                url=doc.metadata["image_origin"], text=doc.text
+                            ),
+                            open=True,
+                        ),
+                    )
+                )
+            else:
+                without_citation.append(
+                    Document(
+                        channel="info",
+                        content=Render.collapsible(
+                            header=doc.metadata["file_name"],
+                            content=Render.table(doc.text),
+                            open=True,
+                        ),
+                    )
+                )
         return with_citation, without_citation
 
     async def ainvoke(  # type: ignore

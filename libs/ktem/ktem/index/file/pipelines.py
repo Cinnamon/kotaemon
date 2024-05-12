@@ -282,7 +282,16 @@ class IndexPipeline(BaseComponent):
     def handle_docs(self, docs, file_id, file_name) -> Generator[Document, None, int]:
         chunks = []
         n_chunks = 0
-        for cidx, chunk in enumerate(self.splitter(docs)):
+
+        text_docs = []
+        non_text_docs = []
+        for doc in docs:
+            if doc.metadata.get("type", "text") == "text":
+                text_docs.append(doc)
+            else:
+                non_text_docs.append(doc)
+
+        for cidx, chunk in enumerate(self.splitter(text_docs)):
             chunks.append(chunk)
             if cidx % self.chunk_batch_size == 0:
                 self.handle_chunks(chunks, file_id)
@@ -292,6 +301,7 @@ class IndexPipeline(BaseComponent):
                     f" => [{file_name}] Processed {n_chunks} chunks", channel="debug"
                 )
 
+        chunks += non_text_docs
         if chunks:
             self.handle_chunks(chunks, file_id)
             n_chunks += len(chunks)

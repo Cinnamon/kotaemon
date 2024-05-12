@@ -182,10 +182,12 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
         tables = []
         for table_desc in result.get("tables", []):
             # convert the tables into markdown format
-            table_metadata = {
-                "type": "table",
-                "page_label": table_desc["boundingRegions"][0],
-            }
+            boundingRegions = table_desc["boundingRegions"]
+            if boundingRegions:
+                page_number = boundingRegions[0]["pageNumber"]
+            else:
+                page_number = 1
+            table_metadata = {"type": "table", "page_label": page_number}
             table_metadata.update(metadata)
 
             # store the tables into document

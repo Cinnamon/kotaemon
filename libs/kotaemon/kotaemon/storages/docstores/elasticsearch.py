@@ -134,9 +134,10 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
         Returns:
             List[Document]: List of result documents
         """
-        query_dict: dict = {"query": {"match": {"content": query}}, "size": top_k}
+        query_dict: dict = {"match": {"content": query}}
         if doc_ids:
-            query_dict["query"]["match"]["_id"] = {"values": doc_ids}
+            query_dict = {"bool": {"must": [query_dict, {"terms": {"_id": doc_ids}}]}}
+        query_dict = {"query": query_dict, "size": top_k}
         return self.query_raw(query_dict)
 
     def get(self, ids: Union[List[str], str]) -> List[Document]:

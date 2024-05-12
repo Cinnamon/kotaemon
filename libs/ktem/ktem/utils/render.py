@@ -19,3 +19,12 @@ class Render:
     def highlight(text: str) -> str:
         """Highlight text"""
         return f"<mark>{text}</mark>"
+
+    @staticmethod
+    def image(url: str, text: str = "") -> str:
+        """Render an image"""
+        img = f'<img src="{url}"><br>'
+        if text:
+            caption = f"<p>{text}</p>"
+            return f"<figure>{img}{caption}</figure><br>"
+        return img
