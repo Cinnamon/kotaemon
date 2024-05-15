@@ -56,9 +56,9 @@ embedding model depending on how you set up Azure development.
 ```shell
 AZURE_OPENAI_ENDPOINT=
 AZURE_OPENAI_API_KEY=
-OPENAI_API_VERSION=2024-02-15-preview
-AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-35-turbo
-AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT=text-embedding-ada-002
+OPENAI_API_VERSION=2024-02-15-preview # could be different for you
+AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-35-turbo # change to your deployment name
+AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT=text-embedding-ada-002 # change to your deployment name
 ```
 
 ### Local models
