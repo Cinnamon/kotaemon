@@ -41,7 +41,7 @@ dependencies = [
     "pypdf>=4.2.0,<4.3",
     "html2text==2024.2.26",
     "fastembed==0.2.6",
-    "llama-cpp-python==0.2.65",
+    "llama-cpp-python>=0.2.72,<0.3",
     "azure-ai-documentintelligence",
     "cohere>=5.3.2,<5.4",
 ]
