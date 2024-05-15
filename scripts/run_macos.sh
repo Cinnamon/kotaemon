@@ -95,11 +95,27 @@ function install_dependencies() {
         local kotaemon_root="$(pwd)/libs/kotaemon"
         local ktem_root="$(pwd)/libs/ktem/"
 
-        echo "" && echo "Install kotaemon's requirements"
-        python -m pip install -e "$kotaemon_root"
+        if [ -f "$(pwd)/VERSION" ]; then
+            local app_version=$(<"$(pwd)/VERSION")
+        else
+            local app_version="latest"
+        fi
 
-        echo "" && echo "Install ktem's requirements"
-        python -m pip install -e "$ktem_root"
+        if [ -f "pyproject.toml" ]; then
+            echo "Found pyproject.toml. Installing from source"
+            echo "" && echo "Installing libs/kotaemon"
+            python -m pip install -e "$kotaemon_root"
+            echo "" && echo "Installing libs/ktem"
+            python -m pip install -e "$ktem_root"
+
+            python -m pip install --no-deps -e .
+        else
+            echo "Installing Kotaemon $app_version"
+            # Work around for versioning control
+            python -m pip install "git+https://github.com/Cinnamon/kotaemon.git@$app_version#subdirectory=libs/kotaemon"
+            python -m pip install "git+https://github.com/Cinnamon/kotaemon.git@$app_version#subdirectory=libs/ktem"
+            python -m pip install --no-deps "git+https://github.com/Cinnamon/kotaemon.git@$app_version"
+        fi
 
         if ! pip list 2>/dev/null | grep -q "kotaemon"; then
             echo "Installation failed. You may need to run the installer again."
@@ -129,7 +145,7 @@ function setup_local_model() {
 }
 
 function launch_ui() {
-    python $(pwd)/libs/ktem/launch.py || {
+    python $(pwd)/app.py || {
         echo "" && echo "Will exit now..."
         exit 1
     }
@@ -157,20 +173,20 @@ python_version="3.10"
 
 check_path_for_spaces
 
-print_highlight "Setup Anaconda/Miniconda"
+print_highlight "Setting up Miniconda"
 install_miniconda
 
-print_highlight "Create and Activate conda environment"
+print_highlight "Creating conda environment"
 create_conda_env "$python_version"
 activate_conda_env
 
-print_highlight "Install requirements"
+print_highlight "Installing requirements"
 install_dependencies
 
 print_highlight "Setting up a local model"
 setup_local_model
 
-print_highlight "Launching web UI. Please wait..."
+print_highlight "Launching Kotaemon in your browser, please wait..."
 launch_ui
 
 deactivate_conda_env

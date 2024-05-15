@@ -1,37 +1,41 @@
 [build-system]
-requires = ["setuptools >= 61.0"]
+requires = ["setuptools >= 61.0", "wheel", "setuptools-git-versioning>=2.0,<3"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 include-package-data = true
+packages.find.exclude = ["ktem_tests*", "env*"]
 packages.find.include = ["ktem*"]
-packages.find.exclude = ["tests*", "env*"]
+
+[tool.setuptools-git-versioning]
+enabled = true
+dev_template = "{tag}"
+dirty_template = "{tag}"
+tag_filter = "v?\\d+(\\.\\d+)*.*"
 
 [project]
 name = "ktem"
-version = "0.2.0"
+dynamic = ["version"]
 requires-python = ">= 3.10"
 description = "RAG-based Question and Answering Application"
 dependencies = [
-    "click",
-    "platformdirs",
-    "pluggy",
-    "python-decouple",
-    "sqlalchemy",
-    "sqlmodel",
-    "tiktoken",
-    "gradio>=4.26.0",
-    "markdown",
+    "click>=8.1.7,<9",
+    "platformdirs>=4.2.1,<5",
+    "pluggy>=1.5.0,<2",
+    "python-decouple>=3.8,<4",
+    "SQLAlchemy>=2.0.29,<3",
+    "sqlmodel>=0.0.16,<0.1",
+    "tiktoken>=0.6.0<1",
+    "gradio>=4.26.0,<5",
+    "markdown>=3.6,<4",
 ]
-readme = "README.md"
-license = { text = "MIT License" }
 authors = [
-    { name = "john", email = "john@cinnamon.is" },
-    { name = "ian", email = "ian@cinnamon.is" },
-    { name = "tadashi", email = "tadashi@cinnamon.is" },
+    { name = "@trducng", email = "john@cinnamon.is" },
+    { name = "@lone17", email = "ian@cinnamon.is" },
+    { name = "@taprosoft", email = "tadashi@cinnamon.is" },
+    { name = "@cin-albert", email = "albert@cinnamon.is" },
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]

@@ -1,0 +1,47 @@
+name: Auto Bump and Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  auto-bump-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Update Application Version
+        id: update-version
+        uses: anothrNick/github-tag-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: true
+          DEFAULT_BUMP: none
+          MAJOR_STRING_TOKEN: "bump:major"
+          MINOR_STRING_TOKEN: "bump:minor"
+          PATCH_STRING_TOKEN: "bump:patch"
+      - name: Create release for ${{ steps.update-version.outputs.new_tag }}
+        run: |
+          echo Create release folder
+          mkdir kotaemon-app
+          echo ${{ steps.update-version.outputs.new_tag }} > kotaemon-app/VERSION
+          cp LICENSE.txt kotaemon-app/
+          cp flowsettings.py kotaemon-app/
+          cp app.py kotaemon-app/
+          cp -r scripts kotaemon-app/
+          tree kotaemon-app
+          zip -r kotaemon-app.zip kotaemon-app
+      - name: Release ${{ steps.update-version.outputs.new_tag }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: kotaemon-app.zip
+          fail_on_unmatched_files: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          generate_release_notes: true
+          tag_name: ${{ steps.update-version.outputs.new_tag }}
+          make_latest: true
+      - name: Update latest branch
+        run: git branch -f latest tags/${{ steps.update-version.outputs.new_tag }}

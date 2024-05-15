@@ -33,7 +33,7 @@ jobs:
     name: unit testing with python ${{ matrix.python-version }}
     steps:
       - name: Clone the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
@@ -56,11 +56,9 @@ jobs:
 
       - name: Get cache key
         id: get-cache-key
-        # using tomli so that it works on windows. From python 3.11, this can be switched to the
-        # built-in tomllib
         run: |
-          pip install tomli
-          package_version=$(python -c "import tomli; print(tomli.load(open('libs/kotaemon/pyproject.toml', 'rb'))['project']['version'])")
+          pip install "setuptools-git-versioning>=2.0,<3"
+          package_version=$(setuptools-git-versioning)
           cache_key="${{ runner.os }}-py${{ matrix.python-version }}-v${package_version}"
           echo "key=$cache_key" | tee -a ${{ matrix.GITHUB_OUTPUT }}
 
@@ -82,10 +80,7 @@ jobs:
           cache_hit=${{ steps.restore-dependencies.outputs.cache-primary-key == steps.restore-dependencies.outputs.cache-matched-key }}
           echo "check=$cache_hit" | tee -a ${{ matrix.GITHUB_OUTPUT }}
 
-      - name: Install dependencies if ignore caching or no cache hit
-        if: |
-          steps.check-ignore-cache.outputs.check == 'true' ||
-          steps.check-cache-hit.outputs.check != 'true'
+      - name: Install additional dependencies (if any)
         run: |
           python -m pip install --upgrade pip
           cd libs/kotaemon

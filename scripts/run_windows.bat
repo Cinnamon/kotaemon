@@ -3,6 +3,7 @@
 :: Main script execution
 CD /D "%~dp0\.."
 
+SET /p app_version=<"%CD%\VERSION" || SET app_version=latest
 SET install_dir=%CD%\install_dir
 SET conda_root=%install_dir%\conda
 SET env_dir=%install_dir%\env
@@ -15,19 +16,19 @@ IF %ERRORLEVEL% EQU 0 (
     GOTO :end
 )
 
-CALL :print_highlight "Setup Anaconda/Miniconda"
+CALL :print_highlight "Setting up Miniconda"
 CALL :download_and_install_miniconda
 :: check if function run fail, then exit the script
 IF ERRORLEVEL 1 GOTO :end
 
-CALL :print_highlight "Create and Activate conda environment"
+CALL :print_highlight "Creating conda environment"
 CALL :create_conda_environment
 IF ERRORLEVEL 1 GOTO :end
 
 CALL :activate_environment
 IF ERRORLEVEL 1 GOTO :end
 
-CALL :print_highlight "Install requirements"
+CALL :print_highlight "Installing Kotaemon"
 CALL :install_dependencies
 IF ERRORLEVEL 1 GOTO :end
 
@@ -35,7 +36,7 @@ CALL :print_highlight "Setting up a local model"
 CALL :setup_local_model
 IF ERRORLEVEL 1 GOTO :end
 
-CALL :print_highlight "Launching web UI. Please wait..."
+CALL :print_highlight "Launching Kotaemon in your browser, please wait..."
 CALL :launch_ui
 
 CALL :deactivate_environment
@@ -113,11 +114,23 @@ pip list | findstr /C:"kotaemon" >NUL 2>&1
 IF %ERRORLEVEL% == 0  (
     ECHO Dependencies are already installed
 ) ELSE (
-    ECHO Install kotaemon's requirements
-    CALL python -m pip install -e "%CD%\libs\kotaemon"
+    IF EXIST "pyproject.toml" (
+        ECHO Found pyproject.toml. Installing from source...
 
-    ECHO Install ktem's requirements
-    CALL python -m pip install -e "%CD%\libs\ktem"
+        ECHO Installing libs\kotaemon
+        python -m pip install -e "%CD%\libs\kotaemon"
+
+        ECHO Installing libs\ktem
+        python -m pip install -e "%CD%\libs\ktem"
+
+        python -m pip install --no-deps -e .
+    ) ELSE (
+        ECHO Installing Kotaemon %app_version%
+        @REM Work around for versioning control
+        python -m pip install git+https://github.com/Cinnamon/kotaemon.git@"%app_version%"#subdirectory=libs/kotaemon
+        python -m pip install git+https://github.com/Cinnamon/kotaemon.git@"%app_version%"#subdirectory=libs/ktem
+        python -m pip install --no-deps git+https://github.com/Cinnamon/kotaemon.git@"%app_version%"
+    )
 
     ( CALL pip list | findstr /C:"kotaemon" >NUL 2>&1 ) || (
         ECHO. && ECHO Installation failed. You may need to run the installer again.
@@ -126,8 +139,8 @@ IF %ERRORLEVEL% == 0  (
     )
 
     CALL :print_highlight "Install successfully. Clear cache..."
-    CALL "%conda_root%\condabin\conda.bat" clean --all -y
-    CALL python -m pip cache purge
+    "%conda_root%\condabin\conda.bat" clean --all -y
+    python -m pip cache purge
 )
 GOTO :eof
 
@@ -136,7 +149,7 @@ python "%CD%\scripts\serve_local.py"
 GOTO :eof
 
 :launch_ui
-CALL python "%CD%\libs\ktem\launch.py" || ( ECHO. && ECHO Will exit now... && GOTO :exit_func_with_error )
+CALL python "%CD%\app.py" || ( ECHO. && ECHO Will exit now... && GOTO :exit_func_with_error )
 GOTO :eof
 
 :print_highlight

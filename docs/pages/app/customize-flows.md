@@ -8,7 +8,7 @@ At high level, to add new indexing and reasoning pipeline:
    `BaseComponent`.
 2. You declare that class in the setting files `flowsettings.py`.
 
-Then when `python launch.py`, the application will dynamically load those
+Then when `python app.py`, the application will dynamically load those
 pipelines.
 
 The below sections talk in more detail about how the pipelines should be
