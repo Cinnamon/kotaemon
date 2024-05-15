@@ -19,7 +19,7 @@ Download and upzip the latest version of `kotaemon` by clicking this
      2. Enable All Applications and choose Terminal.
      3. NOTE: If you always want to open that file with Terminal, then check Always Open With.
      4. From now on, double click on your file and it should work.
-   - Linux: `run_linux.sh`. Please run the script using `bash run_linux.sh` in your terminal. Since you are using Linux, you probably know how to open a terminal, right ?
+   - Linux: `run_linux.sh`. Please run the script using `bash run_linux.sh` in your terminal.
 2. After the installation, the installer will ask to launch the ktem's UI, answer to continue.
 3. If launched, the application will be open automatically in your browser.
 

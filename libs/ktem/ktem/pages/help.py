@@ -5,6 +5,8 @@ import gradio as gr
 import requests
 from theflow.settings import settings
 
+CHANGELOG_CACHE_DIR = Path(settings.KH_APP_DATA_DIR) / "changelogs"
+
 
 def get_remote_doc(url):
     try:
@@ -16,10 +18,19 @@ def get_remote_doc(url):
 
 
 def get_changelogs(version):
+    # try retrieve from cache
+    if (CHANGELOG_CACHE_DIR / f"{version}.md").exists():
+        with open(CHANGELOG_CACHE_DIR / f"{version}.md", "r") as fi:
+            return fi.read()
+
     release_url = f"https://api.github.com/repos/Cinnamon/kotaemon/releases/{version}"
     try:
         res = requests.get(release_url).json()
         changelogs = res.get("body", "")
+
+        # cache the changelogs
+        with open(CHANGELOG_CACHE_DIR / f"{version}.md", "w") as fi:
+            fi.write(changelogs)
 
         return changelogs
     except Exception as e:
@@ -37,7 +48,7 @@ class HelpPage:
         try:
             # Caution: This might produce the wrong version
             # https://stackoverflow.com/a/59533071
-            self.app_version = version("kotaemon_app")
+            self.app_version = version(settings.KH_PACKAGE_NAME)
         except Exception as e:
             print(f"Failed to get app version: {e}")
 
