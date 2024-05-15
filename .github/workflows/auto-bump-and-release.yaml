@@ -47,4 +47,4 @@ jobs:
         run: |
           git branch -f latest tags/${{ steps.update-version.outputs.new_tag }}
           git checkout latest
-          git push
+          git push -f
