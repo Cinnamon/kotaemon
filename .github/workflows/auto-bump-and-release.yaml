@@ -43,6 +43,8 @@ jobs:
           generate_release_notes: true
           tag_name: ${{ steps.update-version.outputs.new_tag }}
           make_latest: true
+      - name: Setup latest branch locally without switching current branch
+        run: git fetch origin latest:latest
       - name: Update latest branch
         run: |
           git branch -f latest tags/${{ steps.update-version.outputs.new_tag }}
