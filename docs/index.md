@@ -7,11 +7,11 @@ Answering on local documents. If you are a **developer** who wants contribute to
 
 ## Download
 
-Download and upzip the latest version of `kotaemon` by clicking this
-[link](https://github.com/Cinnamon/kotaemon/archive/refs/heads/main.zip).
+Download the `kotaemon-app.zip` file from the [latest release](https://github.com/Cinnamon/kotaemon/releases/latest/).
 
 ## Installation
 
+0. Unzip the downloaded file.
 1. Navigate to the `scripts` folder and start an installer that matches your OS:
    - Windows: `run_windows.bat`. Just double click the file.
    - macOS: `run_macos.sh`
