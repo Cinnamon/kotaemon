@@ -44,4 +44,7 @@ jobs:
           tag_name: ${{ steps.update-version.outputs.new_tag }}
           make_latest: true
       - name: Update latest branch
-        run: git branch -f latest tags/${{ steps.update-version.outputs.new_tag }}
+        run: |
+          git branch -f latest tags/${{ steps.update-version.outputs.new_tag }}
+          git checkout latest
+          git push -f
