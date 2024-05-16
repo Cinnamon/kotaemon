@@ -5,10 +5,8 @@ import gradio as gr
 import requests
 from theflow.settings import settings
 
-CHANGELOG_CACHE_DIR = Path(settings.KH_APP_DATA_DIR) / "changelogs"
 
-
-def get_remote_doc(url):
+def get_remote_doc(url: str) -> str:
     try:
         res = requests.get(url)
         return res.text
@@ -17,20 +15,10 @@ def get_remote_doc(url):
         return ""
 
 
-def get_changelogs(version):
-    # try retrieve from cache
-    if (CHANGELOG_CACHE_DIR / f"{version}.md").exists():
-        with open(CHANGELOG_CACHE_DIR / f"{version}.md", "r") as fi:
-            return fi.read()
-
-    release_url = f"https://api.github.com/repos/Cinnamon/kotaemon/releases/{version}"
+def download_changelogs(release_url: str) -> str:
     try:
         res = requests.get(release_url).json()
         changelogs = res.get("body", "")
-
-        # cache the changelogs
-        with open(CHANGELOG_CACHE_DIR / f"{version}.md", "w") as fi:
-            fi.write(changelogs)
 
         return changelogs
     except Exception as e:
@@ -39,18 +27,22 @@ def get_changelogs(version):
 
 
 class HelpPage:
-    def __init__(self, app):
+    def __init__(
+        self,
+        app,
+        doc_dir: str = settings.KH_DOC_DIR,
+        remote_content_url: str = "https://raw.githubusercontent.com/Cinnamon/kotaemon",
+        app_version: str | None = settings.KH_APP_VERSION,
+        changelogs_cache_dir: str
+        | Path = (Path(settings.KH_APP_DATA_DIR) / "changelogs"),
+    ):
         self._app = app
-        self.doc_dir = Path(settings.KH_DOC_DIR)
-        self.remote_content_url = "https://raw.githubusercontent.com/Cinnamon/kotaemon"
+        self.doc_dir = Path(doc_dir)
+        self.remote_content_url = remote_content_url
+        self.app_version = app_version
+        self.changelogs_cache_dir = Path(changelogs_cache_dir)
 
-        self.app_version = None
-        try:
-            # Caution: This might produce the wrong version
-            # https://stackoverflow.com/a/59533071
-            self.app_version = version(settings.KH_PACKAGE_NAME)
-        except Exception as e:
-            print(f"Failed to get app version: {e}")
+        self.changelogs_cache_dir.mkdir(parents=True, exist_ok=True)
 
         about_md_dir = self.doc_dir / "about.md"
         if about_md_dir.exists():
@@ -62,6 +54,8 @@ class HelpPage:
             )
         if about_md:
             with gr.Accordion("About"):
+                if self.app_version:
+                    about_md = f"Version: {self.app_version}\n\n{about_md}"
                 gr.Markdown(about_md)
 
         user_guide_md_dir = self.doc_dir / "usage.md"
@@ -77,7 +71,28 @@ class HelpPage:
                 gr.Markdown(user_guide_md)
 
         if self.app_version:
-            changelogs = get_changelogs("tags/v" + self.app_version)
+            # try retrieve from cache
+            changelogs = ""
+
+            if (self.changelogs_cache_dir / f"{version}.md").exists():
+                with open(self.changelogs_cache_dir / f"{version}.md", "r") as fi:
+                    changelogs = fi.read()
+            else:
+                release_url_base = (
+                    "https://api.github.com/repos/Cinnamon/kotaemon/releases"
+                )
+                changelogs = download_changelogs(
+                    release_url=f"{release_url_base}/tags/v{self.app_version}"
+                )
+
+                # cache the changelogs
+                if not self.changelogs_cache_dir.exists():
+                    self.changelogs_cache_dir.mkdir(parents=True, exist_ok=True)
+                with open(
+                    self.changelogs_cache_dir / f"{self.app_version}.md", "w"
+                ) as fi:
+                    fi.write(changelogs)
+
             if changelogs:
                 with gr.Accordion(f"Changelogs (v{self.app_version})"):
                     gr.Markdown(changelogs)
