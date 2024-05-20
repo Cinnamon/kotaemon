@@ -9,6 +9,7 @@ from theflow.settings import settings
 def get_remote_doc(url: str) -> str:
     try:
         res = requests.get(url)
+        res.raise_for_status()
         return res.text
     except Exception as e:
         print(f"Failed to fetch document from {url}: {e}")
