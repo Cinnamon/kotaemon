@@ -54,6 +54,7 @@ class BaseFileIndexIndexing(BaseComponent):
     DS = Param(help="The DocStore")
     FSPath = Param(help="The file storage path")
     user_id = Param(help="The user id")
+    private = Param(False, help="Whether this is private index")
 
     def run(
         self, file_paths: str | Path | list[str | Path], *args, **kwargs

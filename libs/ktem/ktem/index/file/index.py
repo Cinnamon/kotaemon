@@ -4,7 +4,7 @@ from typing import Any, Optional, Type
 from ktem.components import filestorage_path, get_docstore, get_vectorstore
 from ktem.db.engine import engine
 from ktem.index.base import BaseIndex
-from sqlalchemy import Column, DateTime, Integer, String
+from sqlalchemy import Column, DateTime, Integer, String, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from theflow.settings import settings as flowsettings
@@ -52,27 +52,54 @@ class FileIndex(BaseIndex):
             - File storage path
         """
         Base = declarative_base()
-        Source = type(
-            "Source",
-            (Base,),
-            {
-                "__tablename__": f"index__{self.id}__source",
-                "id": Column(
-                    String,
-                    primary_key=True,
-                    default=lambda: str(uuid.uuid4()),
-                    unique=True,
-                ),
-                "name": Column(String, unique=True),
-                "path": Column(String),
-                "size": Column(Integer, default=0),
-                "text_length": Column(Integer, default=0),
-                "date_created": Column(
-                    DateTime(timezone=True), server_default=func.now()
-                ),
-                "user": Column(Integer, default=1),
-            },
-        )
+
+        if self.config.get("private", False):
+            Source = type(
+                "Source",
+                (Base,),
+                {
+                    "__tablename__": f"index__{self.id}__source",
+                    "__table_args__": (
+                        UniqueConstraint("name", "user", name="_name_user_uc"),
+                    ),
+                    "id": Column(
+                        String,
+                        primary_key=True,
+                        default=lambda: str(uuid.uuid4()),
+                        unique=True,
+                    ),
+                    "name": Column(String),
+                    "path": Column(String),
+                    "size": Column(Integer, default=0),
+                    "text_length": Column(Integer, default=0),
+                    "date_created": Column(
+                        DateTime(timezone=True), server_default=func.now()
+                    ),
+                    "user": Column(Integer, default=1),
+                },
+            )
+        else:
+            Source = type(
+                "Source",
+                (Base,),
+                {
+                    "__tablename__": f"index__{self.id}__source",
+                    "id": Column(
+                        String,
+                        primary_key=True,
+                        default=lambda: str(uuid.uuid4()),
+                        unique=True,
+                    ),
+                    "name": Column(String, unique=True),
+                    "path": Column(String),
+                    "size": Column(Integer, default=0),
+                    "text_length": Column(Integer, default=0),
+                    "date_created": Column(
+                        DateTime(timezone=True), server_default=func.now()
+                    ),
+                    "user": Column(Integer, default=1),
+                },
+            )
         Index = type(
             "IndexTable",
             (Base,),
@@ -85,6 +112,7 @@ class FileIndex(BaseIndex):
                 "user": Column(Integer, default=1),
             },
         )
+
         self._vs: BaseVectorStore = get_vectorstore(f"index_{self.id}")
         self._docstore: BaseDocumentStore = get_docstore(f"index_{self.id}")
         self._fs_path = filestorage_path / f"index_{self.id}"
@@ -368,6 +396,7 @@ class FileIndex(BaseIndex):
         obj.DS = self._docstore
         obj.FSPath = self._fs_path
         obj.user_id = user_id
+        obj.private = self.config.get("private", False)
 
         return obj
 

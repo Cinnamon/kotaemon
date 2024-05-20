@@ -271,6 +271,7 @@ class IndexPipeline(BaseComponent):
     DS = Param(help="The DocStore")
     FSPath = Param(help="The file storage path")
     user_id = Param(help="The user id")
+    private: bool = False
     embedding: BaseEmbeddings
 
     @Node.auto(depends_on=["Source", "Index", "embedding"])
@@ -346,8 +347,16 @@ class IndexPipeline(BaseComponent):
         Returns:
             the file id if the file is indexed, otherwise None
         """
+        if self.private:
+            cond: tuple = (
+                self.Source.name == file_path.name,
+                self.Source.user == self.user_id,
+            )
+        else:
+            cond = (self.Source.name == file_path.name,)
+
         with Session(engine) as session:
-            stmt = select(self.Source).where(self.Source.name == file_path.name)
+            stmt = select(self.Source).where(*cond)
             item = session.execute(stmt).first()
             if item:
                 return item[0].id
@@ -535,6 +544,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
             DS=self.DS,
             FSPath=self.FSPath,
             user_id=self.user_id,
+            private=self.private,
             embedding=self.embedding,
         )
 
