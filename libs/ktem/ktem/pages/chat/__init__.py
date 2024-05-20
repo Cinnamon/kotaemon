@@ -445,6 +445,13 @@ class ChatPage(BasePage):
             state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
             yield chat_history + [(chat_input, text or msg_placeholder)], refs, state
 
+        if not text:
+            empty_msg = getattr(
+                flowsettings, "KH_CHAT_EMPTY_MSG_PLACEHOLDER", "(Sorry, I don't know)"
+            )
+            print(f"Generate nothing: {empty_msg}")
+            yield chat_history + [(chat_input, text or empty_msg)], refs, state
+
     def regen_fn(self, conversation_id, chat_history, settings, state, *selecteds):
         """Regen function"""
         if not chat_history:
