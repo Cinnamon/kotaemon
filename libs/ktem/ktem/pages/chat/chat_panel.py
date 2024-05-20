@@ -9,7 +9,7 @@ class ChatPanel(BasePage):
 
     def on_building_ui(self):
         self.chatbot = gr.Chatbot(
-            label="Kotaemon",
+            label=self._app.app_name,
             placeholder=(
                 "This is the beginning of a new conversation.\nMake sure to have added"
                 " a LLM by following the instructions in the Help tab."

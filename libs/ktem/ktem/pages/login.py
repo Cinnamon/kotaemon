@@ -31,7 +31,7 @@ class LoginPage(BasePage):
         self.on_building_ui()
 
     def on_building_ui(self):
-        gr.Markdown("# Welcome to Kotaemon")
+        gr.Markdown(f"# Welcome to {self._app.app_name}!")
         self.usn = gr.Textbox(label="Username", visible=False)
         self.pwd = gr.Textbox(label="Password", type="password", visible=False)
         self.btn_login = gr.Button("Login", visible=False)
