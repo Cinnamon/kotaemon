@@ -4,6 +4,7 @@ import gradio as gr
 import pandas as pd
 import yaml
 from ktem.app import BasePage
+from ktem.utils.file import YAMLNoDateSafeLoader
 
 from .manager import llms
 
@@ -219,7 +220,7 @@ class LLMManagement(BasePage):
 
     def create_llm(self, name, choices, spec, default):
         try:
-            spec = yaml.safe_load(spec)
+            spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
             spec["__type__"] = (
                 llms.vendors()[choices].__module__
                 + "."
@@ -305,12 +306,12 @@ class LLMManagement(BasePage):
 
     def save_llm(self, selected_llm_name, default, spec):
         try:
-            spec = yaml.safe_load(spec)
+            spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
             spec["__type__"] = llms.info()[selected_llm_name]["spec"]["__type__"]
             llms.update(selected_llm_name, spec=spec, default=default)
             gr.Info(f"LLM {selected_llm_name} saved successfully")
         except Exception as e:
-            gr.Error(f"Failed to save LLM {selected_llm_name}: {e}")
+            raise gr.Error(f"Failed to save LLM {selected_llm_name}: {e}")
 
     def delete_llm(self, selected_llm_name):
         try:

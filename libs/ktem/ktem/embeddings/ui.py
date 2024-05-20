@@ -4,6 +4,7 @@ import gradio as gr
 import pandas as pd
 import yaml
 from ktem.app import BasePage
+from ktem.utils.file import YAMLNoDateSafeLoader
 
 from .manager import embedding_models_manager
 
@@ -222,7 +223,7 @@ class EmbeddingManagement(BasePage):
 
     def create_emb(self, name, choices, spec, default):
         try:
-            spec = yaml.safe_load(spec)
+            spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
             spec["__type__"] = (
                 embedding_models_manager.vendors()[choices].__module__
                 + "."
@@ -308,7 +309,7 @@ class EmbeddingManagement(BasePage):
 
     def save_emb(self, selected_emb_name, default, spec):
         try:
-            spec = yaml.safe_load(spec)
+            spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
             spec["__type__"] = embedding_models_manager.info()[selected_emb_name][
                 "spec"
             ]["__type__"]
