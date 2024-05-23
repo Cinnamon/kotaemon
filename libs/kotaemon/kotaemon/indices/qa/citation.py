@@ -105,7 +105,7 @@ class CitationPipeline(BaseComponent):
             print("CitationPipeline: finish invoking LLM")
             if not llm_output.messages:
                 return None
-            function_output = llm_output.additional_kwargs["tool_calls"][0]["function"][
+            function_output = llm_output.messages[0].additional_kwargs["tool_calls"][0]["function"][
                 "arguments"
             ]
             output = QuestionAnswer.parse_raw(function_output)
@@ -122,7 +122,7 @@ class CitationPipeline(BaseComponent):
             print("CitationPipeline: async invoking LLM")
             llm_output = await self.get_from_path("llm").ainvoke(messages, **llm_kwargs)
             print("CitationPipeline: finish async invoking LLM")
-            function_output = llm_output.additional_kwargs["tool_calls"][0]["function"][
+            function_output = llm_output.messages[0].additional_kwargs["tool_calls"][0]["function"][
                 "arguments"
             ]
             output = QuestionAnswer.parse_raw(function_output)
