@@ -383,6 +383,28 @@ class IndexPipeline(BaseComponent):
 
         return file_id
 
+    def delete_file(self, file_id: str):
+        """Delete a file from the db, including its chunks in docstore and vectorstore
+
+        Args:
+            file_id: the file id
+        """
+        with Session(engine) as session:
+            session.execute(delete(self.Source).where(self.Source.id == file_id))
+            vs_ids, ds_ids = [], []
+            index = session.execute(
+                select(self.Index).where(self.Index.source_id == file_id)
+            ).all()
+            for each in index:
+                if each[0].relation_type == "vector":
+                    vs_ids.append(each[0].target_id)
+                else:
+                    ds_ids.append(each[0].target_id)
+                session.delete(each[0])
+            session.commit()
+        self.VS.delete(vs_ids)
+        self.DS.delete(ds_ids)
+
     def run(self, file_path: str | Path, reindex: bool, **kwargs) -> str:
         """Index the file and return the file id"""
         # check for duplication
@@ -396,23 +418,7 @@ class IndexPipeline(BaseComponent):
                 )
             else:
                 # remove the existing records
-                with Session(engine) as session:
-                    session.execute(
-                        delete(self.Source).where(self.Source.id == file_id)
-                    )
-                    vs_ids, ds_ids = [], []
-                    index = session.execute(
-                        select(self.Index).where(self.Index.source_id == file_id)
-                    ).all()
-                    for each in index:
-                        if each[0].relation_type == "vector":
-                            vs_ids.append(each[0].target_id)
-                        else:
-                            ds_ids.append(each[0].target_id)
-                        session.delete(each[0])
-                    session.commit()
-                self.VS.delete(vs_ids)
-                self.DS.delete(ds_ids)
+                self.delete_file(file_id)
                 file_id = self.store_file(file_path)
         else:
             # add record to db
@@ -442,23 +448,7 @@ class IndexPipeline(BaseComponent):
             else:
                 # remove the existing records
                 yield Document(f" => Removing old {file_path.name}", channel="debug")
-                with Session(engine) as session:
-                    session.execute(
-                        delete(self.Source).where(self.Source.id == file_id)
-                    )
-                    vs_ids, ds_ids = [], []
-                    index = session.execute(
-                        select(self.Index).where(self.Index.source_id == file_id)
-                    ).all()
-                    for each in index:
-                        if each[0].relation_type == "vector":
-                            vs_ids.append(each[0].target_id)
-                        else:
-                            ds_ids.append(each[0].target_id)
-                        session.delete(each[0])
-                    session.commit()
-                self.VS.delete(vs_ids)
-                self.DS.delete(ds_ids)
+                self.delete_file(file_id)
                 file_id = self.store_file(file_path)
         else:
             # add record to db
