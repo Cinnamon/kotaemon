@@ -224,7 +224,7 @@ class UserManagement(BasePage):
                 gr.update(visible=False),
                 gr.update(visible=False),
             ),
-            inputs=None,
+            inputs=[],
             outputs=[self.btn_delete, self.btn_delete_yes, self.btn_delete_no],
             show_progress="hidden",
         )

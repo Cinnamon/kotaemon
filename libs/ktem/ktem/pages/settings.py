@@ -6,9 +6,10 @@ from ktem.db.models import Settings, User, engine
 from sqlmodel import Session, select
 
 signout_js = """
-function() {
+function(u, c, pw, pwc) {
     removeFromStorage('username');
     removeFromStorage('password');
+    return [u, c, pw, pwc];
 }
 """
 
@@ -192,7 +193,7 @@ class SettingsPage(BasePage):
             )
             onSignOutClick = self.signout.click(
                 lambda: (None, "Current user: ___", "", ""),
-                inputs=None,
+                inputs=[],
                 outputs=[
                     self._user_id,
                     self.current_name,

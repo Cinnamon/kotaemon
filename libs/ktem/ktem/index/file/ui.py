@@ -9,6 +9,7 @@ from gradio.data_classes import FileData
 from gradio.utils import NamedString
 from ktem.app import BasePage
 from ktem.db.engine import engine
+from ktem.utils.render import Render
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -154,17 +155,18 @@ class FileIndexPage(BasePage):
                     with gr.Column(scale=2):
                         self.selected_panel = gr.Markdown(self.selected_panel_false)
 
-                self.deselect_button = gr.Button(
-                    "Deselect",
-                    visible=False,
-                    elem_classes=["right-button"],
-                )
-                self.delete_button = gr.Button(
-                    "Delete",
-                    variant="stop",
-                    visible=False,
-                    elem_classes=["right-button"],
-                )
+                self.chunks = gr.HTML(visible=False)
+
+                with gr.Row():
+                    self.deselect_button = gr.Button(
+                        "Close",
+                        visible=False,
+                    )
+                    self.delete_button = gr.Button(
+                        "Delete",
+                        variant="stop",
+                        visible=False,
+                    )
 
     def on_subscribe_public_events(self):
         """Subscribe to the declared public event of the app"""
@@ -189,7 +191,42 @@ class FileIndexPage(BasePage):
             )
 
     def file_selected(self, file_id):
+        chunks = []
+        if file_id is not None:
+            # get the chunks
+
+            Index = self._index._resources["Index"]
+            with Session(engine) as session:
+                matches = session.execute(
+                    select(Index).where(
+                        Index.source_id == file_id,
+                        Index.relation_type == "document",
+                    )
+                )
+                doc_ids = [doc.target_id for (doc,) in matches]
+                docs = self._index._docstore.get(doc_ids)
+
+                for idx, doc in enumerate(docs):
+                    title = f"{doc.text[:50]}..." if len(doc.text) > 50 else doc.text
+                    doc_type = doc.metadata.get("type", "text")
+                    content = ""
+                    if doc_type == "text":
+                        content = doc.text
+                    elif doc_type == "table":
+                        content = Render.table(doc.text)
+                    elif doc_type == "image":
+                        content = Render.image(
+                            url=doc.metadata.get("image_origin", ""), text=doc.text
+                        )
+
+                    chunks.append(
+                        Render.collapsible(
+                            header=f"[{idx+1}/{len(docs)}] {title}",
+                            content=content,
+                        )
+                    )
         return (
+            gr.update(value="".join(chunks), visible=file_id is not None),
             gr.update(visible=file_id is not None),
             gr.update(visible=file_id is not None),
         )
@@ -241,7 +278,7 @@ class FileIndexPage(BasePage):
             )
             .then(
                 fn=lambda: (None, self.selected_panel_false),
-                inputs=None,
+                inputs=[],
                 outputs=[self.selected_file_id, self.selected_panel],
                 show_progress="hidden",
             )
@@ -250,20 +287,30 @@ class FileIndexPage(BasePage):
                 inputs=[self._app.user_id],
                 outputs=[self.file_list_state, self.file_list],
             )
+            .then(
+                fn=self.file_selected,
+                inputs=[self.selected_file_id],
+                outputs=[
+                    self.chunks,
+                    self.deselect_button,
+                    self.delete_button,
+                ],
+                show_progress="hidden",
+            )
         )
         for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
             onDeleted = onDeleted.then(**event)
 
         self.deselect_button.click(
             fn=lambda: (None, self.selected_panel_false),
-            inputs=None,
+            inputs=[],
             outputs=[self.selected_file_id, self.selected_panel],
             show_progress="hidden",
-        )
-        self.selected_panel.change(
+        ).then(
             fn=self.file_selected,
             inputs=[self.selected_file_id],
             outputs=[
+                self.chunks,
                 self.deselect_button,
                 self.delete_button,
             ],
@@ -308,6 +355,15 @@ class FileIndexPage(BasePage):
             fn=self.interact_file_list,
             inputs=[self.file_list],
             outputs=[self.selected_file_id, self.selected_panel],
+            show_progress="hidden",
+        ).then(
+            fn=self.file_selected,
+            inputs=[self.selected_file_id],
+            outputs=[
+                self.chunks,
+                self.deselect_button,
+                self.delete_button,
+            ],
             show_progress="hidden",
         )
 

@@ -112,7 +112,7 @@ class LLMManagement(BasePage):
         """Called when the app is created"""
         self._app.app.load(
             self.list_llms,
-            inputs=None,
+            inputs=[],
             outputs=[self.llm_list],
         )
         self._app.app.load(
@@ -140,8 +140,8 @@ class LLMManagement(BasePage):
         self.btn_new.click(
             self.create_llm,
             inputs=[self.name, self.llm_choices, self.spec, self.default],
-            outputs=None,
-        ).success(self.list_llms, inputs=None, outputs=[self.llm_list]).success(
+            outputs=[],
+        ).success(self.list_llms, inputs=[], outputs=[self.llm_list]).success(
             lambda: ("", None, "", False, self.spec_desc_default),
             outputs=[
                 self.name,
@@ -176,7 +176,7 @@ class LLMManagement(BasePage):
         )
         self.btn_delete.click(
             self.on_btn_delete_click,
-            inputs=None,
+            inputs=[],
             outputs=[self.btn_delete, self.btn_delete_yes, self.btn_delete_no],
             show_progress="hidden",
         )
@@ -187,7 +187,7 @@ class LLMManagement(BasePage):
             show_progress="hidden",
         ).then(
             self.list_llms,
-            inputs=None,
+            inputs=[],
             outputs=[self.llm_list],
         )
         self.btn_delete_no.click(
@@ -196,7 +196,7 @@ class LLMManagement(BasePage):
                 gr.update(visible=False),
                 gr.update(visible=False),
             ),
-            inputs=None,
+            inputs=[],
             outputs=[self.btn_delete, self.btn_delete_yes, self.btn_delete_no],
             show_progress="hidden",
         )
@@ -210,7 +210,7 @@ class LLMManagement(BasePage):
             show_progress="hidden",
         ).then(
             self.list_llms,
-            inputs=None,
+            inputs=[],
             outputs=[self.llm_list],
         )
         self.btn_close.click(

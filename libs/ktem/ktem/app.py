@@ -161,6 +161,7 @@ class BaseApp:
             css=self._css,
             title=self.app_name,
             analytics_enabled=False,
+            js=self._js,
         ) as demo:
             self.app = demo
             self.settings_state.render()
@@ -200,7 +201,6 @@ class BaseApp:
 
     def on_app_created(self):
         """Execute on app created callbacks"""
-        self.app.load(lambda: None, None, None, js=f"() => {{{self._js}}}")
         self._on_app_created()
         for value in self.__dict__.values():
             if isinstance(value, BasePage):

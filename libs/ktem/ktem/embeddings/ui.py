@@ -115,7 +115,7 @@ class EmbeddingManagement(BasePage):
         """Called when the app is created"""
         self._app.app.load(
             self.list_embeddings,
-            inputs=None,
+            inputs=[],
             outputs=[self.emb_list],
         )
         self._app.app.load(
@@ -144,7 +144,7 @@ class EmbeddingManagement(BasePage):
             self.create_emb,
             inputs=[self.name, self.emb_choices, self.spec, self.default],
             outputs=None,
-        ).success(self.list_embeddings, inputs=None, outputs=[self.emb_list]).success(
+        ).success(self.list_embeddings, inputs=[], outputs=[self.emb_list]).success(
             lambda: ("", None, "", False, self.spec_desc_default),
             outputs=[
                 self.name,
@@ -179,7 +179,7 @@ class EmbeddingManagement(BasePage):
         )
         self.btn_delete.click(
             self.on_btn_delete_click,
-            inputs=None,
+            inputs=[],
             outputs=[self.btn_delete, self.btn_delete_yes, self.btn_delete_no],
             show_progress="hidden",
         )
@@ -190,7 +190,7 @@ class EmbeddingManagement(BasePage):
             show_progress="hidden",
         ).then(
             self.list_embeddings,
-            inputs=None,
+            inputs=[],
             outputs=[self.emb_list],
         )
         self.btn_delete_no.click(
@@ -199,7 +199,7 @@ class EmbeddingManagement(BasePage):
                 gr.update(visible=False),
                 gr.update(visible=False),
             ),
-            inputs=None,
+            inputs=[],
             outputs=[self.btn_delete, self.btn_delete_yes, self.btn_delete_no],
             show_progress="hidden",
         )
@@ -213,7 +213,7 @@ class EmbeddingManagement(BasePage):
             show_progress="hidden",
         ).then(
             self.list_embeddings,
-            inputs=None,
+            inputs=[],
             outputs=[self.emb_list],
         )
         self.btn_close.click(

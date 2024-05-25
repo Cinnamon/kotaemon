@@ -95,7 +95,7 @@ class IndexManagement(BasePage):
         """Called when the app is created"""
         self._app.app.load(
             self.list_indices,
-            inputs=None,
+            inputs=[],
             outputs=[self.index_list],
         )
         self._app.app.load(
@@ -117,7 +117,7 @@ class IndexManagement(BasePage):
             self.create_index,
             inputs=[self.name, self.index_type, self.spec],
             outputs=None,
-        ).success(self.list_indices, inputs=None, outputs=[self.index_list]).success(
+        ).success(self.list_indices, inputs=[], outputs=[self.index_list]).success(
             lambda: ("", None, "", self.spec_desc_default),
             outputs=[
                 self.name,
@@ -152,7 +152,7 @@ class IndexManagement(BasePage):
                 gr.update(visible=False),
                 gr.update(visible=True),
             ),
-            inputs=None,
+            inputs=[],
             outputs=[
                 self.btn_edit_save,
                 self.btn_delete,
@@ -168,7 +168,7 @@ class IndexManagement(BasePage):
             show_progress="hidden",
         ).then(
             self.list_indices,
-            inputs=None,
+            inputs=[],
             outputs=[self.index_list],
         )
         self.btn_delete_no.click(
@@ -178,7 +178,7 @@ class IndexManagement(BasePage):
                 gr.update(visible=True),
                 gr.update(visible=False),
             ),
-            inputs=None,
+            inputs=[],
             outputs=[
                 self.btn_edit_save,
                 self.btn_delete,
@@ -197,7 +197,7 @@ class IndexManagement(BasePage):
             show_progress="hidden",
         ).then(
             self.list_indices,
-            inputs=None,
+            inputs=[],
             outputs=[self.index_list],
         )
         self.btn_close.click(
