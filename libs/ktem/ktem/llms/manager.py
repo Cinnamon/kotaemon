@@ -3,7 +3,7 @@ from typing import Optional, Type, overload
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
-from theflow.utils.modules import deserialize
+from theflow.utils.modules import deserialize, import_dotted_string
 
 from kotaemon.llms import ChatLLM
 
@@ -62,6 +62,9 @@ class LLMManager:
         )
 
         self._vendors = [ChatOpenAI, AzureChatOpenAI, LlamaCppChat, EndpointChatLLM]
+
+        for extra_vendor in getattr(flowsettings, "KH_LLM_EXTRA_VENDORS", []):
+            self._vendors.append(import_dotted_string(extra_vendor, safe=False))
 
     def __getitem__(self, key: str) -> ChatLLM:
         """Get model by name"""
