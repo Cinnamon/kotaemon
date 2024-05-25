@@ -1,10 +1,18 @@
 from pathlib import Path
-from typing import Optional
+from typing import Generator, Optional
 
-from kotaemon.base import BaseComponent
+from kotaemon.base import BaseComponent, Document, Param
 
 
 class BaseFileIndexRetriever(BaseComponent):
+
+    Source = Param(help="The SQLAlchemy Source table")
+    Index = Param(help="The SQLAlchemy Index table")
+    VS = Param(help="The VectorStore")
+    DS = Param(help="The DocStore")
+    FSPath = Param(help="The file storage path")
+    user_id = Param(help="The user id")
+
     @classmethod
     def get_user_settings(cls) -> dict:
         """Get the user settings for indexing
@@ -24,20 +32,6 @@ class BaseFileIndexRetriever(BaseComponent):
     ) -> "BaseFileIndexRetriever":
         raise NotImplementedError
 
-    def set_resources(self, resources: dict):
-        """Set the resources for the indexing pipeline
-
-        This will setup the tables, the vector store and docstore.
-
-        Args:
-            resources (dict): the resources for the indexing pipeline
-        """
-        self._Source = resources["Source"]
-        self._Index = resources["Index"]
-        self._VS = resources["VectorStore"]
-        self._DS = resources["DocStore"]
-        self._fs_path = resources["FileStoragePath"]
-
 
 class BaseFileIndexIndexing(BaseComponent):
     """The pipeline to index information into the data store
@@ -54,11 +48,45 @@ class BaseFileIndexIndexing(BaseComponent):
         - self._DS: the docstore
     """
 
-    def run(self, file_paths: str | Path | list[str | Path], *args, **kwargs):
+    Source = Param(help="The SQLAlchemy Source table")
+    Index = Param(help="The SQLAlchemy Index table")
+    VS = Param(help="The VectorStore")
+    DS = Param(help="The DocStore")
+    FSPath = Param(help="The file storage path")
+    user_id = Param(help="The user id")
+
+    def run(
+        self, file_paths: str | Path | list[str | Path], *args, **kwargs
+    ) -> tuple[list[str | None], list[str | None]]:
         """Run the indexing pipeline
 
         Args:
             file_paths (str | Path | list[str | Path]): the file paths to index
+
+        Returns:
+            - the indexed file ids (each file id corresponds to an input file path, or
+                None if the indexing failed for that file path)
+            - the error messages (each error message corresponds to an input file path,
+                or None if the indexing was successful for that file path)
+        """
+        raise NotImplementedError
+
+    def stream(
+        self, file_paths: str | Path | list[str | Path], *args, **kwargs
+    ) -> Generator[Document, None, tuple[list[str | None], list[str | None]]]:
+        """Stream the indexing pipeline
+
+        Args:
+            file_paths (str | Path | list[str | Path]): the file paths to index
+
+        Yields:
+            Document: the output message to the UI, must have channel == index or debug
+
+        Returns:
+            - the indexed file ids (each file id corresponds to an input file path, or
+                None if the indexing failed for that file path)
+            - the error messages (each error message corresponds to an input file path,
+                or None if the indexing was successful for that file path)
         """
         raise NotImplementedError
 
@@ -77,20 +105,6 @@ class BaseFileIndexIndexing(BaseComponent):
                 `ktem.settings.SettingItem`
         """
         return {}
-
-    def set_resources(self, resources: dict):
-        """Set the resources for the indexing pipeline
-
-        This will setup the tables, the vector store and docstore.
-
-        Args:
-            resources (dict): the resources for the indexing pipeline
-        """
-        self._Source = resources["Source"]
-        self._Index = resources["Index"]
-        self._VS = resources["VectorStore"]
-        self._DS = resources["DocStore"]
-        self._fs_path = resources["FileStoragePath"]
 
     def copy_to_filestorage(
         self, file_paths: str | Path | list[str | Path]
@@ -113,7 +127,7 @@ class BaseFileIndexIndexing(BaseComponent):
         for file_path in file_paths:
             with open(file_path, "rb") as f:
                 paths.append(sha256(f.read()).hexdigest())
-            shutil.copy(file_path, self._fs_path / paths[-1])
+            shutil.copy(file_path, self.FSPath / paths[-1])
 
         return paths
 

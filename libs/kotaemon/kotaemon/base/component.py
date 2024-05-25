@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import AsyncGenerator, Iterator, Optional
+from typing import Any, AsyncGenerator, Iterator, Optional
 
 from theflow import Function, Node, Param, lazy
 
@@ -58,7 +58,7 @@ class BaseComponent(Function):
     @abstractmethod
     def run(
         self, *args, **kwargs
-    ) -> Document | list[Document] | Iterator[Document] | None:
+    ) -> Document | list[Document] | Iterator[Document] | None | Any:
         """Run the component."""
         ...
 

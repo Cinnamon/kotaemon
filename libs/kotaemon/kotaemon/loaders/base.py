@@ -8,6 +8,8 @@ if TYPE_CHECKING:
 
 
 class BaseReader(BaseComponent):
+    """The base class for all readers"""
+
     ...
 
 

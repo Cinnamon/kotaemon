@@ -362,13 +362,17 @@ class FileIndex(BaseIndex):
                 stripped_settings[key] = value
 
         obj = self._indexing_pipeline_cls.get_pipeline(stripped_settings, self.config)
-        obj.set_resources(resources=self._resources)
-        obj._user_id = user_id
+        obj.Source = self._resources["Source"]
+        obj.Index = self._resources["Index"]
+        obj.VS = self._vs
+        obj.DS = self._docstore
+        obj.FSPath = self._fs_path
+        obj.user_id = user_id
 
         return obj
 
     def get_retriever_pipelines(
-        self, settings: dict, selected: Any = None
+        self, settings: dict, user_id: int, selected: Any = None
     ) -> list["BaseFileIndexRetriever"]:
         # retrieval settings
         prefix = f"index.options.{self.id}."
@@ -387,7 +391,12 @@ class FileIndex(BaseIndex):
             obj = cls.get_pipeline(stripped_settings, self.config, selected_ids)
             if obj is None:
                 continue
-            obj.set_resources(self._resources)
+            obj.Source = self._resources["Source"]
+            obj.Index = self._resources["Index"]
+            obj.VS = self._vs
+            obj.DS = self._docstore
+            obj.FSPath = self._fs_path
+            obj.user_id = user_id
             retrievers.append(obj)
 
         return retrievers

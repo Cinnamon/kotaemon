@@ -107,8 +107,8 @@ class DocSearchTool(BaseTool):
                 separator=" ",
                 model_name="gpt-3.5-turbo",
             )
-        texts = text_splitter.split_text(evidence)
-        evidence = texts[0]
+            texts = text_splitter.split_text(evidence)
+            evidence = texts[0]
 
         return Document(content=evidence)
 

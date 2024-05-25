@@ -126,7 +126,7 @@ class BaseIndex(abc.ABC):
         ...
 
     def get_retriever_pipelines(
-        self, settings: dict, selected: Any = None
+        self, settings: dict, user_id: int, selected: Any = None
     ) -> list["BaseComponent"]:
         """Return the retriever pipelines to retrieve the entity from the index"""
         return []
