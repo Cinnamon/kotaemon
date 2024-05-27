@@ -1,6 +1,10 @@
 import asyncio
 from copy import deepcopy
 from typing import Optional
+from pathlib import Path
+from filelock import FileLock
+from datetime import datetime
+import csv
 
 import gradio as gr
 from ktem.app import BasePage
@@ -27,6 +31,7 @@ class ChatPage(BasePage):
     def on_building_ui(self):
         with gr.Row():
             self.chat_state = gr.State(STATE)
+            self.original_chat_history = gr.State([])
             with gr.Column(scale=1, elem_id="conv-settings-panel"):
                 self.chat_control = ConversationControl(self._app)
 
@@ -119,6 +124,14 @@ class ChatPage(BasePage):
             + self._indices_input,
             outputs=None,
             concurrency_limit=20,
+        ).then(
+            fn=self.backup_original_history,
+            inputs=[
+                self.chat_panel.chatbot
+            ],
+            outputs=[
+                self.original_chat_history
+            ]
         )
 
         self.chat_panel.regen_btn.click(
@@ -154,6 +167,16 @@ class ChatPage(BasePage):
             fn=self.is_liked,
             inputs=[self.chat_control.conversation_id],
             outputs=None,
+        ).success(
+            fn=lambda *inputs: self.save_log(*inputs, log_dir=getattr(flowsettings, "KH_APP_DATA_DIR", "logs")),
+            inputs=[
+                self.chat_control.conversation_id,
+                self.chat_panel.chatbot,
+                self.original_chat_history,
+                self._app.settings_state,
+                self.info_panel,
+            ],
+            outputs=None
         )
 
         self.chat_control.btn_new.click(
@@ -478,3 +501,71 @@ class ChatPage(BasePage):
             yield chat, refs, new_state
 
         state["app"]["regen"] = False
+    
+    def backup_original_history(self, chat_history):
+        original_history = []
+        for message in chat_history:
+            original_history.append(message)
+        return original_history
+    
+    
+    def save_log(self, conversation_id, chat_history, original_chat_history, settings, info_panel, log_dir):
+        with Session(engine) as session:
+            statement = select(Conversation).where(Conversation.id == conversation_id)
+            result = session.exec(statement).one()
+
+            data_source = deepcopy(result.data_source)
+            likes = data_source.get("likes", [])
+        
+        if not likes:
+            return
+
+        if not Path(log_dir).exists():
+            Path(log_dir).mkdir(parents=True)
+
+        lock = FileLock(Path(log_dir) / ".lock")
+        # get current date
+        today = datetime.now()
+        formatted_date = today.strftime('%d%m%Y_%H')
+
+        feedback = likes[-1][-1]
+        message_index = likes[-1][0]
+        current_message = chat_history[message_index[0]]
+        original_message = original_chat_history[message_index[0]]
+        is_original = all([current_item == original_item for current_item, original_item in zip(current_message, original_message)])
+
+        dataframe = [[
+            conversation_id,
+            message_index,
+            chat_history,
+            current_message[0],
+            current_message[1],
+            is_original,
+            feedback,
+            settings,
+            info_panel
+        ]]
+        
+
+        with lock:
+            log_file = Path(log_dir) / f"{formatted_date}_log.csv"
+            is_log_file_exist = log_file.is_file()
+            with open(log_file, "a") as f:
+                writer = csv.writer(f)
+                # write headers
+                if not is_log_file_exist:
+                    writer.writerow([
+                    "Conversation ID",
+                    "Message ID",
+                    "Chat History",
+                    "Question",
+                    "Answer",
+                    "Original/ Rewritten",
+                    "Feedback",
+                    "Settings",
+                    "Evidences",
+                ])
+                for item in dataframe:
+                    item[4] = item[4].replace('\u0000', '')
+
+                writer.writerows(dataframe)
