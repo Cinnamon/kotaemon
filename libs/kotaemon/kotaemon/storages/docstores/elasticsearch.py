@@ -144,7 +144,7 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
         """Get document by id"""
         if not isinstance(ids, list):
             ids = [ids]
-        query_dict = {"query": {"terms": {"_id": ids}}}
+        query_dict = {"query": {"terms": {"_id": ids}}, "size": 10000}
         return self.query_raw(query_dict)
 
     def count(self) -> int:
