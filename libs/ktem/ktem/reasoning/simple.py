@@ -2,15 +2,26 @@ import asyncio
 import html
 import logging
 import re
+import random
 from collections import defaultdict
 from functools import partial
 from typing import Generator
+from pathlib import Path
+import json
 
 import numpy as np
 import tiktoken
 from ktem.llms.manager import llms
 from ktem.utils.render import Render
 from theflow.settings import settings as flowsettings
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
+import langchain_core.messages
+from langchain.prompts import SemanticSimilarityExampleSelector
+from langchain.prompts import (
+    ChatPromptTemplate,
+    FewShotChatMessagePromptTemplate,
+)
 
 from kotaemon.base import (
     AIMessage,
@@ -441,6 +452,93 @@ class RewriteQuestionPipeline(BaseComponent):
         ]
         return self.llm(messages)
 
+class FewshotRewriteQuestionPipeline(RewriteQuestionPipeline):
+    """Rewrite user question
+
+    Args:
+        llm: the language model to rewrite question
+        rewrite_template: the prompt template for llm to paraphrase a text input
+        lang: the language of the answer. Currently support English and Japanese
+    """
+
+    llm: ChatLLM = Node(default_callback=lambda _: llms.get_default())
+    rewrite_template: str = DEFAULT_REWRITE_PROMPT
+    lang: str = "English"
+    final_prompt: str
+    
+    def create_example_selector(self, examples, k: int=getattr(flowsettings, "N_PROMPT_OPT_EXAMPLES", 0)):
+        if not examples:
+            return None
+
+        embeddings = OpenAIEmbeddings(
+            openai_api_key=getattr(flowsettings, "KH_EMBEDDINGS")["openai"]["spec"]["api_key"],
+            openai_api_type="openai",
+            openai_api_base=getattr(flowsettings, "KH_EMBEDDINGS")["openai"]["spec"]["base_url"],
+            openai_api_version=getattr(flowsettings, "KH_EMBEDDINGS")["openai"]["spec"]["api_version"],
+        )
+        # to_vectorize = [" ".join(example.values()) for example in examples]
+        # vectorstore = Chroma.from_texts(to_vectorize, embeddings, collection_name='rephrase_question', persist_directory=str(getattr(flowsettings, "KH_APP_DATA_DIR")), metadatas=examples)
+        vectorstore = Chroma("rephrase_question", embeddings, persist_directory=str(getattr(flowsettings, "KH_APP_DATA_DIR")))
+        example_selector = SemanticSimilarityExampleSelector(
+            vectorstore=vectorstore,
+            k=k,
+        )
+
+        return example_selector
+    
+    def create_prompt(self, examples, example_selector):
+        example_prompt = ChatPromptTemplate.from_messages(
+            [
+                ('human', self.rewrite_template.replace("{lang}", self.lang)),
+                ('ai', "{rewritten_question}")
+            ]
+        )
+
+        if example_selector is not None:
+            few_shot_prompt = FewShotChatMessagePromptTemplate(
+                example_prompt=example_prompt, 
+                input_variables=["question"],
+                example_selector=example_selector,
+                )
+        elif examples:
+            few_shot_prompt = FewShotChatMessagePromptTemplate(
+                example_prompt=example_prompt, 
+                examples=examples,
+                )
+
+        final_prompt = ChatPromptTemplate.from_messages(
+            [
+            ("system", "You are a helpful assistant"),
+            few_shot_prompt,
+            ("human", self.rewrite_template.replace("{lang}", self.lang))
+            ]
+        )
+
+        return final_prompt
+
+    @classmethod
+    def get_pipeline(cls, examples):
+        pipeline = cls()
+        example_selector = pipeline.create_example_selector(examples)
+        prompt = pipeline.create_prompt(examples, example_selector)
+        pipeline.final_prompt = prompt
+
+        return pipeline
+
+    def run(self, question: str) -> Document:  # type: ignore
+        messages = self.final_prompt.format_messages(question=question)
+        new_messages = []
+        for message in messages:
+            if isinstance(message, langchain_core.messages.human.HumanMessage):
+                new_messages.append(HumanMessage(content=message.content))
+            elif isinstance(message, langchain_core.messages.system.SystemMessage):
+                new_messages.append(SystemMessage(content=message.content))
+            elif isinstance(message, langchain_core.messages.ai.AIMessage):
+                new_messages.append(AIMessage(content=message.content))
+
+        result = self.llm(new_messages)
+        return result
+
 
 class AddQueryContextPipeline(BaseComponent):
 
@@ -496,7 +594,7 @@ class FullQAPipeline(BaseReasoning):
 
     evidence_pipeline: PrepareEvidencePipeline = PrepareEvidencePipeline.withx()
     answering_pipeline: AnswerWithContextPipeline = AnswerWithContextPipeline.withx()
-    rewrite_pipeline: RewriteQuestionPipeline = RewriteQuestionPipeline.withx()
+    rewrite_pipelines: list[RewriteQuestionPipeline]
     add_query_context: AddQueryContextPipeline = AddQueryContextPipeline.withx()
     trigger_context: int = 150
     use_rewrite: bool = False
@@ -705,7 +803,8 @@ class FullQAPipeline(BaseReasoning):
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Document:  # type: ignore
         if self.use_rewrite:
-            rewrite = await self.rewrite_pipeline(question=message)
+            rewrite_pipeline = random.choice(self.rewrite_pipelines)
+            rewrite = await rewrite_pipeline(question=message)
             message = rewrite.text
 
         docs, infos = self.retrieve(message, history)
@@ -722,6 +821,16 @@ class FullQAPipeline(BaseReasoning):
             conv_id=conv_id,
             **kwargs,
         )
+        if self.use_rewrite:
+            self.report_output(Document(
+                    channel="info",
+                    content=Render.collapsible(
+                        header=f'Rewritten question',
+                        content=f"Pipeline: {rewrite_pipeline.__class__.__name__}\nResult: {message}",
+                        open=True,
+                    ),
+                )
+            )
 
         # show the evidence
         with_citation, without_citation = self.prepare_citations(answer, docs)
@@ -742,7 +851,8 @@ class FullQAPipeline(BaseReasoning):
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Generator[Document, None, Document]:
         if self.use_rewrite:
-            message = self.rewrite_pipeline(question=message).text
+            rewrite_pipeline = random.choice(self.rewrite_pipelines)
+            message = rewrite_pipeline(question=message).text
 
         # should populate the context
         docs, infos = self.retrieve(message, history)
@@ -758,6 +868,16 @@ class FullQAPipeline(BaseReasoning):
             conv_id=conv_id,
             **kwargs,
         )
+
+        if self.use_rewrite:
+            yield Document(
+                    channel="info",
+                    content=Render.collapsible(
+                        header=f'Rewritten question',
+                        content=f"Pipeline: {rewrite_pipeline.__class__.__name__}\nResult: {message}",
+                        open=True,
+                    ),
+                )
 
         # show the evidence
         with_citation, without_citation = self.prepare_citations(answer, docs)
@@ -790,7 +910,15 @@ class FullQAPipeline(BaseReasoning):
             retrievers: the retrievers to use
         """
         prefix = f"reasoning.options.{cls.get_info()['id']}"
-        pipeline = cls(retrievers=retrievers)
+        example_path = Path(getattr(flowsettings, "KH_APP_DATA_DIR", "")) / "rephrase_question_train.json"
+        examples = json.load(open(example_path, "r"))
+        examples = [{
+            'question': item['input'],
+            'rewritten_question': item['output']
+            }
+            for item in examples
+        ]
+        pipeline = cls(retrievers=retrievers, rewrite_pipelines=[FewshotRewriteQuestionPipeline.get_pipeline(examples=examples)])
 
         llm_name = settings.get(f"{prefix}.llm", None)
         llm = llms.get(llm_name, llms.get_default())
@@ -814,10 +942,11 @@ class FullQAPipeline(BaseReasoning):
 
         pipeline.trigger_context = settings[f"{prefix}.trigger_context"]
         pipeline.use_rewrite = states.get("app", {}).get("regen", False)
-        pipeline.rewrite_pipeline.llm = llm
-        pipeline.rewrite_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
-            settings["reasoning.lang"], "English"
-        )
+        for rewrite_pipeline in pipeline.rewrite_pipelines:
+            rewrite_pipeline.llm = llm
+            rewrite_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
+                settings["reasoning.lang"], "English"
+            )
         return pipeline
 
     @classmethod
