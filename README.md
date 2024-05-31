@@ -6,7 +6,7 @@ developers in mind.
 https://github.com/Cinnamon/kotaemon/assets/25688648/815ecf68-3a02-4914-a0dd-3f8ec7e75cd9
 
 [Source Code](https://github.com/Cinnamon/kotaemon) |
-[Live Demo](https://huggingface.co/spaces/lone17/kotaemon-app)
+[Live Demo](https://huggingface.co/spaces/cin-model/kotaemon-public)
 
 [User Guide](https://cinnamon.github.io/kotaemon/) |
 [Developer Guide](https://cinnamon.github.io/kotaemon/development/) |
@@ -66,6 +66,28 @@ source kotaemon-env/bin/activate
 
 # Install the package
 pip install git+https://github.com/Cinnamon/kotaemon.git
+```
+
+### For Contributors
+
+```shell
+# Clone the repo
+git clone git@github.com:Cinnamon/kotaemon.git
+
+# Create a environment
+python -m venv kotaemon-env
+
+# Activate the environment
+source kotaemon-env/bin/activate
+cd kotaemon
+
+# Install the package in editable mode
+pip install -e "libs/kotaemon[all]"
+pip install -e "libs/ktem"
+pip install -e "."
+
+# Setup pre-commit
+pre-commit install
 ```
 
 ## Creating your application
