@@ -1,27 +1,27 @@
 import asyncio
 import html
+import json
 import logging
-import re
 import random
+import re
 from collections import defaultdict
 from functools import partial
-from typing import Generator
 from pathlib import Path
-import json
+from typing import Generator
 
 import numpy as np
+import langchain_core.messages
 import tiktoken
 from ktem.llms.manager import llms
 from ktem.utils.render import Render
-from theflow.settings import settings as flowsettings
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
-import langchain_core.messages
-from langchain.prompts import SemanticSimilarityExampleSelector
 from langchain.prompts import (
     ChatPromptTemplate,
     FewShotChatMessagePromptTemplate,
+    SemanticSimilarityExampleSelector,
 )
+from langchain_community.vectorstores import Chroma
+from langchain_openai import OpenAIEmbeddings
+from theflow.settings import settings as flowsettings
 
 from kotaemon.base import (
     AIMessage,
@@ -452,6 +452,7 @@ class RewriteQuestionPipeline(BaseComponent):
         ]
         return self.llm(messages)
 
+
 class FewshotRewriteQuestionPipeline(RewriteQuestionPipeline):
     """Rewrite user question
 
@@ -464,53 +465,63 @@ class FewshotRewriteQuestionPipeline(RewriteQuestionPipeline):
     llm: ChatLLM = Node(default_callback=lambda _: llms.get_default())
     rewrite_template: str = DEFAULT_REWRITE_PROMPT
     lang: str = "English"
-    final_prompt: str
-    
-    def create_example_selector(self, examples, k: int=getattr(flowsettings, "N_PROMPT_OPT_EXAMPLES", 0)):
+    final_prompt: ChatPromptTemplate
+
+    def create_example_selector(
+        self, examples, k: int = getattr(flowsettings, "N_PROMPT_OPT_EXAMPLES", 0)
+    ):
         if not examples:
             return None
 
         embeddings = OpenAIEmbeddings(
-            openai_api_key=getattr(flowsettings, "KH_EMBEDDINGS")["openai"]["spec"]["api_key"],
+            openai_api_key=getattr(flowsettings, "KH_EMBEDDINGS")["openai"]["spec"][
+                "api_key"
+            ],
             openai_api_type="openai",
-            openai_api_base=getattr(flowsettings, "KH_EMBEDDINGS")["openai"]["spec"]["base_url"],
-            openai_api_version=getattr(flowsettings, "KH_EMBEDDINGS")["openai"]["spec"]["api_version"],
+            openai_api_base=getattr(flowsettings, "KH_EMBEDDINGS")["openai"]["spec"][
+                "base_url"
+            ],
+            openai_api_version=getattr(flowsettings, "KH_EMBEDDINGS")["openai"]["spec"][
+                "api_version"
+            ],
         )
-        # to_vectorize = [" ".join(example.values()) for example in examples]
-        # vectorstore = Chroma.from_texts(to_vectorize, embeddings, collection_name='rephrase_question', persist_directory=str(getattr(flowsettings, "KH_APP_DATA_DIR")), metadatas=examples)
-        vectorstore = Chroma("rephrase_question", embeddings, persist_directory=str(getattr(flowsettings, "KH_APP_DATA_DIR")))
+        vectorstore = Chroma(
+            "rephrase_question",
+            embeddings,
+            persist_directory=str(getattr(flowsettings, "KH_APP_DATA_DIR")),
+        )
         example_selector = SemanticSimilarityExampleSelector(
             vectorstore=vectorstore,
             k=k,
         )
 
         return example_selector
-    
+
     def create_prompt(self, examples, example_selector):
         example_prompt = ChatPromptTemplate.from_messages(
             [
-                ('human', self.rewrite_template.replace("{lang}", self.lang)),
-                ('ai', "{rewritten_question}")
+                ("human", self.rewrite_template.replace("{lang}", self.lang)),
+                ("ai", "{rewritten_question}"),
             ]
         )
 
         if example_selector is not None:
             few_shot_prompt = FewShotChatMessagePromptTemplate(
-                example_prompt=example_prompt, 
+                example_prompt=example_prompt,
                 input_variables=["question"],
                 example_selector=example_selector,
-                )
+            )
         elif examples:
             few_shot_prompt = FewShotChatMessagePromptTemplate(
-                example_prompt=example_prompt, 
+                example_prompt=example_prompt,
                 examples=examples,
-                )
+            )
 
         final_prompt = ChatPromptTemplate.from_messages(
             [
-            ("system", "You are a helpful assistant"),
-            few_shot_prompt,
-            ("human", self.rewrite_template.replace("{lang}", self.lang))
+                ("system", "You are a helpful assistant"),
+                few_shot_prompt,
+                ("human", self.rewrite_template.replace("{lang}", self.lang)),
             ]
         )
 
@@ -822,11 +833,15 @@ class FullQAPipeline(BaseReasoning):
             **kwargs,
         )
         if self.use_rewrite:
-            self.report_output(Document(
+            self.report_output(
+                Document(
                     channel="info",
                     content=Render.collapsible(
-                        header=f'Rewritten question',
-                        content=f"Pipeline: {rewrite_pipeline.__class__.__name__}\nResult: {message}",
+                        header="Rewritten question",
+                        content=(
+                            f"Pipeline:{rewrite_pipeline.__class__.__name__}\n"
+                            f"Result: {message}"
+                        ),
                         open=True,
                     ),
                 )
@@ -871,13 +886,16 @@ class FullQAPipeline(BaseReasoning):
 
         if self.use_rewrite:
             yield Document(
-                    channel="info",
-                    content=Render.collapsible(
-                        header=f'Rewritten question',
-                        content=f"Pipeline: {rewrite_pipeline.__class__.__name__}\nResult: {message}",
-                        open=True,
+                channel="info",
+                content=Render.collapsible(
+                    header="Rewritten question",
+                    content=(
+                        f"Pipeline: {rewrite_pipeline.__class__.__name__}\n"
+                        f"Result: {message}"
                     ),
-                )
+                    open=True,
+                ),
+            )
 
         # show the evidence
         with_citation, without_citation = self.prepare_citations(answer, docs)
@@ -910,15 +928,21 @@ class FullQAPipeline(BaseReasoning):
             retrievers: the retrievers to use
         """
         prefix = f"reasoning.options.{cls.get_info()['id']}"
-        example_path = Path(getattr(flowsettings, "KH_APP_DATA_DIR", "")) / "rephrase_question_train.json"
+        example_path = (
+            Path(getattr(flowsettings, "KH_APP_DATA_DIR", ""))
+            / "rephrase_question_train.json"
+        )
         examples = json.load(open(example_path, "r"))
-        examples = [{
-            'question': item['input'],
-            'rewritten_question': item['output']
-            }
+        examples = [
+            {"question": item["input"], "rewritten_question": item["output"]}
             for item in examples
         ]
-        pipeline = cls(retrievers=retrievers, rewrite_pipelines=[FewshotRewriteQuestionPipeline.get_pipeline(examples=examples)])
+        pipeline = cls(
+            retrievers=retrievers,
+            rewrite_pipelines=[
+                FewshotRewriteQuestionPipeline.get_pipeline(examples=examples)
+            ],
+        )
 
         llm_name = settings.get(f"{prefix}.llm", None)
         llm = llms.get(llm_name, llms.get_default())
