@@ -30,7 +30,7 @@ from kotaemon.base import BaseComponent, Document, Node, Param, RetrievedDocumen
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.indices import VectorIndexing, VectorRetrieval
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
-from kotaemon.indices.rankings import BaseReranking, LLMReranking, CohereReranking
+from kotaemon.indices.rankings import BaseReranking, CohereReranking, LLMReranking
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 
 from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
@@ -245,7 +245,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                 )
             ],
             retrieval_mode=user_settings["retrieval_mode"],
-            reranker=CohereReranking()
+            reranker=CohereReranking(),
         )
         if not user_settings["use_reranking"]:
             retriever.reranker = None  # type: ignore
