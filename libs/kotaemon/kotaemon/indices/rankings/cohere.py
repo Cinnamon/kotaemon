@@ -29,10 +29,10 @@ class CohereReranking(BaseReranking):
             return compressed_docs
 
         _docs = [d.content for d in documents]
-        results = cohere_client.rerank(
+        response = cohere_client.rerank(
             model=self.model_name, query=query, documents=_docs, top_n=self.top_k
         )
-        for r in results:
+        for r in response.results:
             doc = documents[r.index]
             doc.metadata["relevance_score"] = r.relevance_score
             compressed_docs.append(doc)
