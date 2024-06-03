@@ -92,7 +92,10 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
                 "_id": doc_id,
             }
             requests.append(request)
-        self.es_bulk(self.client, requests)
+
+        success, failed = self.es_bulk(self.client, requests)
+        print("Added/Updated documents to index", success)
+        print("Failed documents to index", failed)
 
         if refresh_indices:
             self.client.indices.refresh(index=self.index_name)

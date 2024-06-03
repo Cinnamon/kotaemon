@@ -493,7 +493,9 @@ class FullQAPipeline(BaseReasoning):
             query = message
         print(f"Rewritten query: {query}")
         if not query:
-            return [], []
+            # TODO: previously return [], [] because we think this message as something
+            # like "Hello", "I need help"...
+            query = message
 
         docs, doc_ids = [], []
         for retriever in self.retrievers:

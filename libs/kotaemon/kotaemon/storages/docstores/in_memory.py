@@ -81,6 +81,12 @@ class InMemoryDocumentStore(BaseDocumentStore):
         # Also, for portability, use SQLAlchemy for document store.
         self._store = {key: Document.from_dict(value) for key, value in store.items()}
 
+    def query(
+        self, query: str, top_k: int = 10, doc_ids: Optional[list] = None
+    ) -> List[Document]:
+        """Perform full-text search on document store"""
+        return []
+
     def __persist_flow__(self):
         return {}
 

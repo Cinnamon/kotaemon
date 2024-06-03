@@ -79,6 +79,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
     get_extra_table: bool = False
     mmr: bool = False
     top_k: int = 5
+    retrieval_mode: str = "hybrid"
 
     @Node.auto(depends_on=["embedding", "VS", "DS"])
     def vector_retrieval(self) -> VectorRetrieval:
@@ -86,6 +87,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             embedding=self.embedding,
             vector_store=self.VS,
             doc_store=self.DS,
+            retrieval_mode=self.retrieval_mode,  # type: ignore
         )
 
     def run(
@@ -105,7 +107,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             logger.info(f"Skip retrieval because of no selected files: {self}")
             return []
 
-        retrieval_kwargs = {}
+        retrieval_kwargs: dict = {}
         with Session(engine) as session:
             stmt = select(self.Index).where(
                 self.Index.relation_type == "vector",
@@ -114,6 +116,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             results = session.execute(stmt)
             vs_ids = [r[0].target_id for r in results.all()]
 
+        retrieval_kwargs["scope"] = vs_ids
         retrieval_kwargs["filters"] = MetadataFilters(
             filters=[
                 MetadataFilter(
@@ -200,7 +203,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             },
             "retrieval_mode": {
                 "name": "Retrieval mode",
-                "value": "vector",
+                "value": "hybrid",
                 "choices": ["vector", "text", "hybrid"],
                 "component": "dropdown",
             },
@@ -241,6 +244,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                     "embedding", embedding_models_manager.get_default_name()
                 )
             ],
+            retrieval_mode=user_settings["retrieval_mode"],
         )
         if not user_settings["use_reranking"]:
             retriever.reranker = None  # type: ignore

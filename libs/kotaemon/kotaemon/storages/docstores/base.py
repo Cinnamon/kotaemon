@@ -42,6 +42,13 @@ class BaseDocumentStore(ABC):
         ...
 
     @abstractmethod
+    def query(
+        self, query: str, top_k: int = 10, doc_ids: Optional[list] = None
+    ) -> List[Document]:
+        """Search document store using search query"""
+        ...
+
+    @abstractmethod
     def delete(self, ids: Union[List[str], str]):
         """Delete document by id"""
         ...
