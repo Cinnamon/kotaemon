@@ -13,6 +13,7 @@ import numpy as np
 import tiktoken
 from ktem.llms.manager import llms
 from ktem.reasoning.prompt_optimization import (
+    DecomposeQuestionPipeline,
     FewshotRewriteQuestionPipeline,
     RewriteQuestionPipeline,
 )
@@ -151,6 +152,7 @@ DEFAULT_QA_TEXT_PROMPT = (
     "make up an answer. Keep the answer as concise as possible. Give answer in "
     "{lang}.\n\n"
     "{context}\n"
+    "{sub_question_answer_str}"
     "Question: {question}\n"
     "Helpful Answer:"
 )
@@ -162,6 +164,7 @@ DEFAULT_QA_TABLE_PROMPT = (
     "don't try to make up an answer. Give answer in {lang}.\n\n"
     "Context:\n"
     "{context}\n"
+    "{sub_question_answer_str}"
     "Question: {question}\n"
     "Helpful Answer:"
 )
@@ -173,6 +176,7 @@ DEFAULT_QA_CHATBOT_PROMPT = (
     "Give answer in {lang}.\n\n"
     "Context:\n"
     "{context}\n"
+    "{sub_question_answer_str}"
     "Question: {question}\n"
     "Answer:"
 )
@@ -183,6 +187,7 @@ DEFAULT_QA_FIGURE_PROMPT = (
     "Give answer in {lang}.\n\n"
     "Context: \n"
     "{context}\n"
+    "{sub_question_answer_str}"
     "Question: {question}\n"
     "Answer: "
 )
@@ -219,7 +224,9 @@ class AnswerWithContextPipeline(BaseComponent):
     lang: str = "English"  # support English and Japanese
     n_last_interactions: int = 5
 
-    def get_prompt(self, question, evidence, evidence_mode: int):
+    def get_prompt(
+        self, question, evidence, evidence_mode: int, sub_question_answer_str: str = ""
+    ):
         """Prepare the prompt and other information for LLM"""
         images = []
 
@@ -239,26 +246,49 @@ class AnswerWithContextPipeline(BaseComponent):
                 context=evidence,
                 question=question,
                 lang=self.lang,
+                sub_question_answer_str=sub_question_answer_str,
             )
         else:
             prompt = prompt_template.populate(
                 context=evidence,
                 question=question,
                 lang=self.lang,
+                sub_question_answer_str=sub_question_answer_str,
             )
 
         return prompt, images
 
     def run(
-        self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
+        self,
+        question: str,
+        evidence: str,
+        evidence_mode: int = 0,
+        sub_question_answer_str: str = "",
+        **kwargs,
     ) -> Document:
-        return self.invoke(question, evidence, evidence_mode, **kwargs)
+        return self.invoke(
+            question,
+            evidence,
+            evidence_mode,
+            sub_question_answer_str=sub_question_answer_str,
+            **kwargs,
+        )
 
     def invoke(
-        self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
+        self,
+        question: str,
+        evidence: str,
+        evidence_mode: int = 0,
+        sub_question_answer_str: str = "",
+        **kwargs,
     ) -> Document:
         history = kwargs.get("history", [])
-        prompt, images = self.get_prompt(question, evidence, evidence_mode)
+        prompt, images = self.get_prompt(
+            question,
+            evidence,
+            evidence_mode,
+            sub_question_answer_str=sub_question_answer_str,
+        )
 
         output = ""
         if evidence_mode == EVIDENCE_MODE_FIGURE:
@@ -285,7 +315,12 @@ class AnswerWithContextPipeline(BaseComponent):
         return answer
 
     async def ainvoke(  # type: ignore
-        self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
+        self,
+        question: str,
+        evidence: str,
+        evidence_mode: int = 0,
+        sub_question_answer_str: str = "",
+        **kwargs,
     ) -> Document:
         """Answer the question based on the evidence
 
@@ -310,7 +345,12 @@ class AnswerWithContextPipeline(BaseComponent):
             evidence_mode: the mode of evidence, 0 for text, 1 for table, 2 for chatbot
         """
         history = kwargs.get("history", [])
-        prompt, images = self.get_prompt(question, evidence, evidence_mode)
+        prompt, images = self.get_prompt(
+            question,
+            evidence,
+            evidence_mode,
+            sub_question_answer_str=sub_question_answer_str,
+        )
 
         citation_task = None
         if evidence and self.enable_citation:
@@ -358,10 +398,20 @@ class AnswerWithContextPipeline(BaseComponent):
         return answer
 
     def stream(  # type: ignore
-        self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
+        self,
+        question: str,
+        evidence: str,
+        evidence_mode: int = 0,
+        sub_question_answer_str: str = "",
+        **kwargs,
     ) -> Generator[Document, None, Document]:
         history = kwargs.get("history", [])
-        prompt, images = self.get_prompt(question, evidence, evidence_mode)
+        prompt, images = self.get_prompt(
+            question,
+            evidence,
+            evidence_mode,
+            sub_question_answer_str=sub_question_answer_str,
+        )
 
         output = ""
         logprobs = []
@@ -730,9 +780,25 @@ class FullQAPipeline(BaseReasoning):
     def stream(  # type: ignore
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Generator[Document, None, Document]:
+        sub_question_answer_str = ""
         if self.use_rewrite:
             rewrite_pipeline = random.choice(self.rewrite_pipelines)
-            message = rewrite_pipeline(question=message).text
+            result = rewrite_pipeline(question=message)
+            if isinstance(result, Document):
+                message = result.text
+            elif isinstance(result, list) and isinstance(result[0], Document):
+                yield Document(
+                    channel="info",
+                    content="<h4>Sub questions and their answers</h4><br>",
+                )
+
+                sub_question_answer_str = yield from self.answer_sub_questions(
+                    [r.text for r in result], conv_id, history, **kwargs
+                )
+
+                print("Sub-question answer string:", sub_question_answer_str)
+
+        yield Document(channel="info", content="<h4>Main question</h4><br>")
 
         # should populate the context
         docs, infos = self.retrieve(message, history)
@@ -745,6 +811,7 @@ class FullQAPipeline(BaseReasoning):
             history=history,
             evidence=evidence,
             evidence_mode=evidence_mode,
+            sub_question_answer_str=sub_question_answer_str,
             conv_id=conv_id,
             **kwargs,
         )
@@ -784,6 +851,56 @@ class FullQAPipeline(BaseReasoning):
 
         return answer
 
+    def answer_sub_questions(
+        self, messages: list, conv_id: str, history: list, **kwargs
+    ):
+        output_str = ""
+        for idx, message in enumerate(messages):
+            yield Document(
+                channel="info",
+                content=f"<b>Sub-question {idx + 1}</b><br>{message}<br>",
+            )
+            # should populate the context
+            docs, infos = self.retrieve(message, history)
+            for _ in infos:
+                yield _
+
+            evidence_mode, evidence = self.evidence_pipeline(docs).content
+            answer = self.answering_pipeline.invoke(
+                question=message,
+                history=history,
+                evidence=evidence,
+                evidence_mode=evidence_mode,
+                conv_id=conv_id,
+                **kwargs,
+            )
+
+            yield Document(channel="info", content="<b>Evidence</b><br>")
+            with_citation, without_citation = self.prepare_citations(answer, docs)
+            if not with_citation and not without_citation:
+                yield Document(channel="info", content="No evidence found.<br>")
+            else:
+                yield Document(channel="info", content=None)
+                for _ in with_citation:
+                    yield _
+                if without_citation:
+                    yield Document(
+                        channel="info",
+                        content="Retrieved segments without matching evidence:<br>",
+                    )
+                    for _ in without_citation:
+                        yield _
+
+            yield Document(
+                channel="info",
+                content=f"<b>Sub-question {idx + 1}'s answer</b><br>{answer}<br>",
+            )
+            output_str += (
+                f"Sub-question {idx + 1}-th: '{message}'\nAnswer: '{answer.text}'\n\n"
+            )
+
+        return output_str
+
     @classmethod
     def get_pipeline(cls, settings, states, retrievers):
         """Get the reasoning pipeline
@@ -805,7 +922,8 @@ class FullQAPipeline(BaseReasoning):
         pipeline = cls(
             retrievers=retrievers,
             rewrite_pipelines=[
-                FewshotRewriteQuestionPipeline.get_pipeline(examples=examples)
+                FewshotRewriteQuestionPipeline.get_pipeline(examples=examples),
+                DecomposeQuestionPipeline.get_pipeline(),
             ],
         )
 
@@ -832,7 +950,6 @@ class FullQAPipeline(BaseReasoning):
         pipeline.trigger_context = settings[f"{prefix}.trigger_context"]
         pipeline.use_rewrite = states.get("app", {}).get("regen", False)
         for rewrite_pipeline in pipeline.rewrite_pipelines:
-            rewrite_pipeline.llm = llm
             rewrite_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
                 settings["reasoning.lang"], "English"
             )
