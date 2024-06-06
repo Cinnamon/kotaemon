@@ -10,7 +10,6 @@ from .base import BaseReranking
 class CohereReranking(BaseReranking):
     model_name: str = "rerank-multilingual-v2.0"
     cohere_api_key: str = config("COHERE_API_KEY", "")
-    top_k: int = 1
 
     def run(self, documents: list[Document], query: str) -> list[Document]:
         """Use Cohere Reranker model to re-order documents
@@ -30,7 +29,7 @@ class CohereReranking(BaseReranking):
 
         _docs = [d.content for d in documents]
         response = cohere_client.rerank(
-            model=self.model_name, query=query, documents=_docs, top_n=self.top_k
+            model=self.model_name, query=query, documents=_docs
         )
         for r in response.results:
             doc = documents[r.index]
