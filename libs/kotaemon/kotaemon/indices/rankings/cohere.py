@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import os
+from decouple import config
 
 from kotaemon.base import Document
 
@@ -9,7 +9,7 @@ from .base import BaseReranking
 
 class CohereReranking(BaseReranking):
     model_name: str = "rerank-multilingual-v2.0"
-    cohere_api_key: str = os.environ.get("COHERE_API_KEY", "")
+    cohere_api_key: str = config("COHERE_API_KEY", "")
     top_k: int = 1
 
     def run(self, documents: list[Document], query: str) -> list[Document]:
@@ -34,7 +34,7 @@ class CohereReranking(BaseReranking):
         )
         for r in response.results:
             doc = documents[r.index]
-            doc.metadata["relevance_score"] = r.relevance_score
+            doc.metadata["relevance_score"] = round(r.relevance_score, 2)
             compressed_docs.append(doc)
 
         return compressed_docs
