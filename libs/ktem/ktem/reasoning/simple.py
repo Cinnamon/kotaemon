@@ -603,7 +603,11 @@ class FullQAPipeline(BaseReasoning):
                     Document(
                         channel="info",
                         content=Render.collapsible(
-                            header=doc.metadata["file_name"],
+                            header=(
+                                f'{doc.metadata["file_name"]}<br>'
+                                "<b>Relevance score:</b>"
+                                f' {doc.metadata.get("relevance_score")}'
+                            ),
                             content=Render.image(
                                 url=doc.metadata["image_origin"], text=doc.text
                             ),
