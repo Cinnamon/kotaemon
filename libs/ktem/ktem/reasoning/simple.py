@@ -585,7 +585,11 @@ class FullQAPipeline(BaseReasoning):
                 Document(
                     channel="info",
                     content=Render.collapsible(
-                        header=f'{id2docs[id].metadata["file_name"]}- Relevance score: {id2docs[id].metadata.get("relevance_score")}',
+                        header=(
+                            f'{id2docs[id].metadata["file_name"]}<br>'
+                            "<b>Relevance score:</b>"
+                            f' {id2docs[id].metadata.get("relevance_score")}'
+                        ),
                         content=Render.table(text),
                         open=True,
                     ),
@@ -612,7 +616,11 @@ class FullQAPipeline(BaseReasoning):
                     Document(
                         channel="info",
                         content=Render.collapsible(
-                            header=f'{doc.metadata["file_name"]}- Relevance score: {doc.metadata.get("relevance_score")}',
+                            header=(
+                                f'{doc.metadata["file_name"]}<br>'
+                                "<b>Relevance score:</b>"
+                                f' {doc.metadata.get("relevance_score")}'
+                            ),
                             content=Render.table(doc.text),
                             open=True,
                         ),
