@@ -381,7 +381,7 @@ class AnswerWithContextPipeline(BaseComponent):
         # retrieve the citation
         citation = None
         if evidence and self.enable_citation:
-            citation = self.citation_pipeline.invoke(
+            citation = self.citation_pipeline(
                 context=evidence, question=question
             )
 
@@ -499,8 +499,9 @@ class FullQAPipeline(BaseReasoning):
             query = message
 
         docs, doc_ids = [], []
-        for retriever in self.retrievers:
-            for doc in retriever(text=query):
+        for idx, retriever in enumerate(self.retrievers):
+            retriever_node = self._prepare_child(retriever, f"retriever_{idx}")
+            for doc in retriever_node(text=query):
                 if doc.doc_id not in doc_ids:
                     docs.append(doc)
                     doc_ids.append(doc.doc_id)

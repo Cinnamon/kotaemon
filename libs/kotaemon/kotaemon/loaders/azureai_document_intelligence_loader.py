@@ -143,11 +143,14 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
             page_number = figure_desc["boundingRegions"][0]["pageNumber"]
             page_width = result.pages[page_number - 1]["width"]
             page_height = result.pages[page_number - 1]["height"]
+            polygon = figure_desc["boundingRegions"][0]["polygon"]
+            xs = [polygon[i] for i in range(0, len(polygon), 2)]
+            ys = [polygon[i] for i in range(1, len(polygon), 2)]
             bbox = [
-                figure_desc["boundingRegions"][0]["polygon"][0] / page_width,
-                figure_desc["boundingRegions"][0]["polygon"][1] / page_height,
-                figure_desc["boundingRegions"][0]["polygon"][4] / page_width,
-                figure_desc["boundingRegions"][0]["polygon"][5] / page_height,
+                min(xs) / page_width,
+                min(ys) / page_height,
+                max(xs) / page_width,
+                max(ys) / page_height,
             ]
             img = crop_image(file_path, bbox, page_number - 1)
 
