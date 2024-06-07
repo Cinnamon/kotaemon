@@ -75,27 +75,18 @@ class PandasExcelReader(BaseReader):
             )
 
         dfs = pd.read_excel(file, sheet_name=sheet_name, **self._pandas_config)
-        sheet_names = dfs.keys()
-        df_sheets = []
-
-        for key in sheet_names:
-            sheet = []
-            if include_sheetname:
-                sheet.append([key])
-            sheet.extend(dfs[key].values.astype(str).tolist())
-            df_sheets.append(sheet)
-
-        text_list = list(
-            itertools.chain.from_iterable(df_sheets)
-        )  # flatten list of lists
+        for key in dfs.keys():
+            # remove redundant row and column
+            dfs[key] = dfs[key].dropna(axis=0, how='all')
+            dfs[key] = dfs[key].dropna(axis=1, how='all')
+            dfs[key].fillna('', inplace=True) 
 
         output = [
             Document(
-                text=self._row_joiner.join(
-                    self._col_joiner.join(sublist) for sublist in text_list
-                ),
-                metadata=extra_info or {},
+                text="{}\n{}".format(key, dfs[key].to_string()),
+                metadata=extra_info.update({'name': key}),
             )
+            for key in dfs.keys()
         ]
 
         return output
