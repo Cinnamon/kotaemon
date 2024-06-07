@@ -6,7 +6,7 @@ developers in mind.
 https://github.com/Cinnamon/kotaemon/assets/25688648/815ecf68-3a02-4914-a0dd-3f8ec7e75cd9
 
 [Source Code](https://github.com/Cinnamon/kotaemon) |
-[Live Demo](https://huggingface.co/spaces/cin-model/kotaemon-public)
+[Live Demo](https://huggingface.co/spaces/lone17/kotaemon-app)
 
 [User Guide](https://cinnamon.github.io/kotaemon/) |
 [Developer Guide](https://cinnamon.github.io/kotaemon/development/) |
