@@ -82,6 +82,9 @@ class PandasExcelReader(BaseReader):
             sheet = []
             if include_sheetname:
                 sheet.append([key])
+            dfs[key] = dfs[key].dropna(axis=0, how="all")
+            dfs[key] = dfs[key].dropna(axis=0, how="all")
+            dfs[key].fillna("", inplace=True)
             sheet.extend(dfs[key].values.astype(str).tolist())
             df_sheets.append(sheet)
 
