@@ -12,15 +12,15 @@ from typing import Generator, Optional
 from ktem.db.models import engine
 from ktem.embeddings.manager import embedding_models_manager
 from ktem.llms.manager import llms
-from llama_index.readers.base import BaseReader
-from llama_index.readers.file.base import default_file_metadata_func
-from llama_index.vector_stores import (
+from llama_index.core.readers.base import BaseReader
+from llama_index.core.readers.file.base import default_file_metadata_func
+from llama_index.core.vector_stores import (
     FilterCondition,
     FilterOperator,
     MetadataFilter,
     MetadataFilters,
 )
-from llama_index.vector_stores.types import VectorStoreQueryMode
+from llama_index.core.vector_stores.types import VectorStoreQueryMode
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from theflow.settings import settings

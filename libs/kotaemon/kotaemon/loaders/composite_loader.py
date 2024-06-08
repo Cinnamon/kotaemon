@@ -1,6 +1,6 @@
 from typing import Callable, List, Optional, Type
 
-from llama_index.readers.base import BaseReader as LIBaseReader
+from llama_index.core.readers.base import BaseReader as LIBaseReader
 
 from .base import BaseReader, LIReaderMixin
 

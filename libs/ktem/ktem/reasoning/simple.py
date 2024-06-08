@@ -381,9 +381,7 @@ class AnswerWithContextPipeline(BaseComponent):
         # retrieve the citation
         citation = None
         if evidence and self.enable_citation:
-            citation = self.citation_pipeline(
-                context=evidence, question=question
-            )
+            citation = self.citation_pipeline(context=evidence, question=question)
 
         answer = Document(text=output, metadata={"citation": citation})
 

@@ -5,7 +5,7 @@ from typing import List, Optional
 from uuid import uuid4
 
 import requests
-from llama_index.readers.base import BaseReader
+from llama_index.core.readers.base import BaseReader
 from tenacity import after_log, retry, stop_after_attempt, wait_fixed, wait_random
 
 from kotaemon.base import Document

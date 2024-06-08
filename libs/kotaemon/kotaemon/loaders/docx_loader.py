@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import pandas as pd
-from llama_index.readers.base import BaseReader
+from llama_index.core.readers.base import BaseReader
 
 from kotaemon.base import Document
 

@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Type
 
-from llama_index.readers import PDFReader
-from llama_index.readers.base import BaseReader
+from llama_index.core.readers.base import BaseReader
+from llama_index.readers.file import PDFReader
 
 from kotaemon.base import BaseComponent, Document, Param
 from kotaemon.indices.extractors import BaseDocParser

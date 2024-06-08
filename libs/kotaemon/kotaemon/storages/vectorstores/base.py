@@ -3,10 +3,10 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
-from llama_index.schema import NodeRelationship, RelatedNodeInfo
-from llama_index.vector_stores.types import BasePydanticVectorStore
-from llama_index.vector_stores.types import VectorStore as LIVectorStore
-from llama_index.vector_stores.types import VectorStoreQuery
+from llama_index.core.schema import NodeRelationship, RelatedNodeInfo
+from llama_index.core.vector_stores.types import BasePydanticVectorStore
+from llama_index.core.vector_stores.types import VectorStore as LIVectorStore
+from llama_index.core.vector_stores.types import VectorStoreQuery
 
 from kotaemon.base import DocumentWithEmbedding
 

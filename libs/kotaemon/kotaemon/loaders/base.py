@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, List, Type, Union
 from kotaemon.base import BaseComponent, Document
 
 if TYPE_CHECKING:
-    from llama_index.readers.base import BaseReader as LIBaseReader
+    from llama_index.core.readers.base import BaseReader as LIBaseReader
 
 
 class BaseReader(BaseComponent):
