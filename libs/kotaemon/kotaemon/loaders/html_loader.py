@@ -1,10 +1,12 @@
 import email
+import os
 from pathlib import Path
 from typing import Optional
 
 from llama_index.core.readers.base import BaseReader
 
 from kotaemon.base import Document
+import flowsettings
 
 
 class HtmlReader(BaseReader):
@@ -78,6 +80,7 @@ class MhtmlReader(BaseReader):
 
     def __init__(
         self,
+        cache_dir: Optional[str] = flowsettings.KH_MARKDOWN_OUTPUT_DIR,
         open_encoding: Optional[str] = None,
         bs_kwargs: Optional[dict] = None,
         get_text_separator: str = "",
@@ -86,6 +89,7 @@ class MhtmlReader(BaseReader):
         to pass to the BeautifulSoup object.
 
         Args:
+            cache_dir: Path for markdwon format.
             file_path: Path to file to load.
             open_encoding: The encoding to use when opening the file.
             bs_kwargs: Any kwargs to pass to the BeautifulSoup object.
@@ -100,6 +104,7 @@ class MhtmlReader(BaseReader):
                 "`pip install beautifulsoup4`"
             )
 
+        self.cache_dir = cache_dir
         self.open_encoding = open_encoding
         if bs_kwargs is None:
             bs_kwargs = {"features": "lxml"}
@@ -116,6 +121,8 @@ class MhtmlReader(BaseReader):
         extra_info = extra_info or {}
         metadata: dict = extra_info
         page = []
+        base_name = os.path.basename(file_path)
+        file_name, _ = os.path.splitext(base_name)
         with open(file_path, "r", encoding=self.open_encoding) as f:
             message = email.message_from_string(f.read())
             parts = message.get_payload()
@@ -144,5 +151,10 @@ class MhtmlReader(BaseReader):
                     text = "\n\n".join(lines)
                     if text:
                         page.append(text)
+        # save the page into markdown format
+        if self.cache_dir is not None:
+            with open(self.cache_dir / f"{file_name}.md", "w") as f:
+                f.write(page[0]) 
+        
 
         return [Document(text="\n\n".join(page), metadata=metadata)]

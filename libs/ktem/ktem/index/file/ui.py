@@ -12,6 +12,8 @@ from ktem.db.engine import engine
 from ktem.utils.render import Render
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+import flowsettings
+import zipfile
 
 
 class File(gr.File):
@@ -167,6 +169,15 @@ class FileIndexPage(BasePage):
                         variant="stop",
                         visible=False,
                     )
+                with gr.Row():
+                    self.download_all_button = gr.DownloadButton(
+                        "Download all files",
+                        visible=True,
+                    )
+                    self.download_single_button = gr.DownloadButton(
+                        "Download file",
+                        visible=False,
+                    )
 
     def on_subscribe_public_events(self):
         """Subscribe to the declared public event of the app"""
@@ -229,6 +240,7 @@ class FileIndexPage(BasePage):
             gr.update(value="".join(chunks), visible=file_id is not None),
             gr.update(visible=file_id is not None),
             gr.update(visible=file_id is not None),
+            gr.update(visible=file_id is not None),
         )
 
     def delete_event(self, file_id):
@@ -267,6 +279,40 @@ class FileIndexPage(BasePage):
             gr.update(visible=True),
             gr.update(visible=False),
         )
+    def download_single_file(self,file_id):
+        with Session(engine) as session:
+            source = session.execute(
+                select(self._index._resources["Source"]).where(
+                    self._index._resources["Source"].id == file_id
+                )
+            ).first()
+        target_file_name, _ = os.path.splitext(os.path.basename(source[0].name))
+        zip_files=[]
+        for file_name in os.listdir(flowsettings.KH_CHUNKS_OUTPUT_DIR):
+            if target_file_name in file_name:
+                zip_files.append(os.path.join(flowsettings.KH_CHUNKS_OUTPUT_DIR, file_name))
+        for file_name in os.listdir(flowsettings.KH_MARKDOWN_OUTPUT_DIR):
+            if target_file_name in file_name:
+                zip_files.append(os.path.join(flowsettings.KH_MARKDOWN_OUTPUT_DIR, file_name))
+        zip_file_path = os.path.join(flowsettings.KH_ZIP_OUTPUT_DIR, target_file_name)
+        with zipfile.ZipFile(f'{zip_file_path}.zip','w') as zipMe:
+            for file in zip_files:
+                zipMe.write(file, arcname=os.path.basename(file))
+        return  gr.DownloadButton(label="Download pressed",value=f'{zip_file_path}.zip')
+                
+        
+        
+    def download_all_files(self):
+        zip_files = []
+        for file_name in os.listdir(flowsettings.KH_CHUNKS_OUTPUT_DIR):
+            zip_files.append(os.path.join(flowsettings.KH_CHUNKS_OUTPUT_DIR, file_name))
+        for file_name in os.listdir(flowsettings.KH_MARKDOWN_OUTPUT_DIR):
+            zip_files.append(os.path.join(flowsettings.KH_MARKDOWN_OUTPUT_DIR, file_name))
+        zip_file_path = os.path.join(flowsettings.KH_ZIP_OUTPUT_DIR, "all")
+        with zipfile.ZipFile(f'{zip_file_path}.zip','w') as zipMe:
+            for file in zip_files:
+                zipMe.write(file, arcname=os.path.basename(file))
+        return  gr.DownloadButton(label="Download pressed",value=f'{zip_file_path}.zip')
 
     def on_register_events(self):
         """Register all events to the app"""
@@ -294,6 +340,7 @@ class FileIndexPage(BasePage):
                     self.chunks,
                     self.deselect_button,
                     self.delete_button,
+                    self.download_single_button,
                 ],
                 show_progress="hidden",
             )
@@ -313,8 +360,23 @@ class FileIndexPage(BasePage):
                 self.chunks,
                 self.deselect_button,
                 self.delete_button,
+                self.download_single_button,
             ],
             show_progress="hidden",
+        )
+        
+        self.download_all_button.click(
+            fn=self.download_all_files,
+            inputs=[],
+            outputs=self.download_all_button,
+            show_progress='hidden',
+        )
+        
+        self.download_single_button.click(
+            fn=self.download_single_file,
+            inputs=[self.selected_file_id],
+            outputs=self.download_single_button,
+            show_progress='hidden',
         )
 
         onUploaded = self.upload_button.click(
@@ -363,6 +425,7 @@ class FileIndexPage(BasePage):
                 self.chunks,
                 self.deselect_button,
                 self.delete_button,
+                self.download_single_button,
             ],
             show_progress="hidden",
         )

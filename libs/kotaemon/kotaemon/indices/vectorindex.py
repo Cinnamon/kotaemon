@@ -9,7 +9,8 @@ from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 from .base import BaseIndexing, BaseRetrieval
 from .rankings import BaseReranking
-
+import flowsettings
+import os
 VECTOR_STORE_FNAME = "vectorstore"
 DOC_STORE_FNAME = "docstore"
 
@@ -22,7 +23,7 @@ class VectorIndexing(BaseIndexing):
         - List of documents
         - List of texts
     """
-
+    cache_dir: Optional[str] = flowsettings.KH_CHUNKS_OUTPUT_DIR
     vector_store: BaseVectorStore
     doc_store: Optional[BaseDocumentStore] = None
     embedding: BaseEmbeddings
@@ -69,6 +70,13 @@ class VectorIndexing(BaseIndexing):
         if self.doc_store:
             print("Adding documents to doc store")
             self.doc_store.add(input_)
+        # save the text content into markdown format
+        if self.cache_dir is not None:
+            file_name, _ = os.path.splitext(input_[0].metadata['file_name'])
+            for i in range(len(input_)):
+                with open(self.cache_dir / f"{file_name}_{i}.md", "w") as f:
+                    f.write(input_[i].text)
+                
 
 
 class VectorRetrieval(BaseRetrieval):
