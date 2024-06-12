@@ -1,5 +1,6 @@
 import os
 import tempfile
+import zipfile
 from pathlib import Path
 from typing import Generator
 
@@ -13,7 +14,6 @@ from ktem.utils.render import Render
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
-import zipfile
 
 
 class File(gr.File):
@@ -279,40 +279,49 @@ class FileIndexPage(BasePage):
             gr.update(visible=True),
             gr.update(visible=False),
         )
-    def download_single_file(self,file_id):
+
+    def download_single_file(self, file_id):
         with Session(engine) as session:
             source = session.execute(
                 select(self._index._resources["Source"]).where(
                     self._index._resources["Source"].id == file_id
                 )
             ).first()
-        target_file_name, _ = os.path.splitext(os.path.basename(source[0].name))
-        zip_files=[]
+        if source:
+            target_file_name = Path(source[0].name)
+        zip_files = []
         for file_name in os.listdir(flowsettings.KH_CHUNKS_OUTPUT_DIR):
-            if target_file_name in file_name:
-                zip_files.append(os.path.join(flowsettings.KH_CHUNKS_OUTPUT_DIR, file_name))
+            if target_file_name.stem in file_name:
+                zip_files.append(
+                    os.path.join(flowsettings.KH_CHUNKS_OUTPUT_DIR, file_name)
+                )
         for file_name in os.listdir(flowsettings.KH_MARKDOWN_OUTPUT_DIR):
-            if target_file_name in file_name:
-                zip_files.append(os.path.join(flowsettings.KH_MARKDOWN_OUTPUT_DIR, file_name))
-        zip_file_path = os.path.join(flowsettings.KH_ZIP_OUTPUT_DIR, target_file_name)
-        with zipfile.ZipFile(f'{zip_file_path}.zip','w') as zipMe:
+            if target_file_name.stem in file_name:
+                zip_files.append(
+                    os.path.join(flowsettings.KH_MARKDOWN_OUTPUT_DIR, file_name)
+                )
+        zip_file_path = os.path.join(
+            flowsettings.KH_ZIP_OUTPUT_DIR, target_file_name.stem
+        )
+        with zipfile.ZipFile(f"{zip_file_path}.zip", "w") as zipMe:
             for file in zip_files:
                 zipMe.write(file, arcname=os.path.basename(file))
-        return  gr.DownloadButton(label="Download pressed",value=f'{zip_file_path}.zip')
-                
-        
-        
+        return gr.DownloadButton(label="Download pressed", value=f"{zip_file_path}.zip")
+
     def download_all_files(self):
         zip_files = []
         for file_name in os.listdir(flowsettings.KH_CHUNKS_OUTPUT_DIR):
             zip_files.append(os.path.join(flowsettings.KH_CHUNKS_OUTPUT_DIR, file_name))
         for file_name in os.listdir(flowsettings.KH_MARKDOWN_OUTPUT_DIR):
-            zip_files.append(os.path.join(flowsettings.KH_MARKDOWN_OUTPUT_DIR, file_name))
+            zip_files.append(
+                os.path.join(flowsettings.KH_MARKDOWN_OUTPUT_DIR, file_name)
+            )
         zip_file_path = os.path.join(flowsettings.KH_ZIP_OUTPUT_DIR, "all")
-        with zipfile.ZipFile(f'{zip_file_path}.zip','w') as zipMe:
+        with zipfile.ZipFile(f"{zip_file_path}.zip", "w") as zipMe:
             for file in zip_files:
-                zipMe.write(file, arcname=os.path.basename(file))
-        return  gr.DownloadButton(label="Download pressed",value=f'{zip_file_path}.zip')
+                arcname = Path(file)
+                zipMe.write(file, arcname=arcname.name)
+        return gr.DownloadButton(label="Download pressed", value=f"{zip_file_path}.zip")
 
     def on_register_events(self):
         """Register all events to the app"""
@@ -364,19 +373,19 @@ class FileIndexPage(BasePage):
             ],
             show_progress="hidden",
         )
-        
+
         self.download_all_button.click(
             fn=self.download_all_files,
             inputs=[],
             outputs=self.download_all_button,
-            show_progress='hidden',
+            show_progress="hidden",
         )
-        
+
         self.download_single_button.click(
             fn=self.download_single_file,
             inputs=[self.selected_file_id],
             outputs=self.download_single_button,
-            show_progress='hidden',
+            show_progress="hidden",
         )
 
         onUploaded = self.upload_button.click(

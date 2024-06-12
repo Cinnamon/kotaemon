@@ -6,7 +6,7 @@ from typing import Optional
 
 import fitz
 from PIL import Image
-from hashlib import sha256
+
 from kotaemon.base import Document, Param
 
 from .base import BaseReader
@@ -99,7 +99,7 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
         None,
         help="Directory to cache the downloaded files. Default is None",
     )
-    
+
     @Param.auto(depends_on=["endpoint", "credential"])
     def client_(self):
         try:
