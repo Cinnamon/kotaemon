@@ -30,6 +30,7 @@ class VectorIndexing(BaseIndexing):
     vector_store: BaseVectorStore
     doc_store: Optional[BaseDocumentStore] = None
     embedding: BaseEmbeddings
+    count_: int = 0
 
     def to_retrieval_pipeline(self, *args, **kwargs):
         """Convert the indexing pipeline to a retrieval pipeline"""
@@ -74,11 +75,15 @@ class VectorIndexing(BaseIndexing):
             print("Adding documents to doc store")
             self.doc_store.add(input_)
         # save the chunks content into markdown format
-        if self.cache_dir is not None:
+        if self.cache_dir:
             file_name = Path(input_[0].metadata["file_name"])
             for i in range(len(input_)):
-                with open(Path(self.cache_dir) / f"{file_name.stem}_{i}.md", "w") as f:
+                print(Path(self.cache_dir) / f"{file_name.stem}_{self.count_+i}.md")
+                with open(
+                    Path(self.cache_dir) / f"{file_name.stem}_{self.count_+i}.md", "w"
+                ) as f:
                     f.write(input_[i].text)
+            self.count_ += len(input_)
 
 
 class VectorRetrieval(BaseRetrieval):
