@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import uuid
+from pathlib import Path
 from typing import Optional, Sequence, cast
+
+from theflow.settings import settings as flowsettings
 
 from kotaemon.base import BaseComponent, Document, RetrievedDocument
 from kotaemon.embeddings import BaseEmbeddings
@@ -23,6 +26,7 @@ class VectorIndexing(BaseIndexing):
         - List of texts
     """
 
+    cache_dir: Optional[str] = getattr(flowsettings, "KH_CHUNKS_OUTPUT_DIR", None)
     vector_store: BaseVectorStore
     doc_store: Optional[BaseDocumentStore] = None
     embedding: BaseEmbeddings
@@ -69,6 +73,12 @@ class VectorIndexing(BaseIndexing):
         if self.doc_store:
             print("Adding documents to doc store")
             self.doc_store.add(input_)
+        # save the chunks content into markdown format
+        if self.cache_dir is not None:
+            file_name = Path(input_[0].metadata["file_name"])
+            for i in range(len(input_)):
+                with open(Path(self.cache_dir) / f"{file_name.stem}_{i}.md", "w") as f:
+                    f.write(input_[i].text)
 
 
 class VectorRetrieval(BaseRetrieval):

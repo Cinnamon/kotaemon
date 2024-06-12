@@ -95,6 +95,10 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
             "location to extract figures."
         ),
     )
+    cache_dir: str = Param(
+        None,
+        help="Directory to cache the downloaded files. Default is None",
+    )
 
     @Param.auto(depends_on=["endpoint", "credential"])
     def client_(self):
@@ -118,6 +122,7 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
     ) -> list[Document]:
         """Extract the input file, allowing multi-modal extraction"""
         metadata = extra_info or {}
+        file_name = Path(file_path)
         with open(file_path, "rb") as fi:
             poller = self.client_.begin_analyze_document(
                 self.model,
@@ -211,6 +216,10 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
                 )
             )
             removed_spans += table_desc["spans"]
+        # save the text content into markdown format
+        if self.cache_dir is not None:
+            with open(Path(self.cache_dir) / f"{file_name.stem}.md", "w") as f:
+                f.write(text_content)
 
         removed_spans = sorted(removed_spans, key=lambda x: x["offset"], reverse=True)
         for span in removed_spans:
