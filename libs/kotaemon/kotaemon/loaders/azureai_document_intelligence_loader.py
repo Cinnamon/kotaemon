@@ -216,6 +216,10 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
                 )
             )
             removed_spans += table_desc["spans"]
+        # save the text content into markdown format
+        if self.cache_dir is not None:
+            with open(Path(self.cache_dir) / f"{file_name.stem}.md", "w") as f:
+                f.write(text_content)
 
         removed_spans = sorted(removed_spans, key=lambda x: x["offset"], reverse=True)
         for span in removed_spans:
@@ -224,8 +228,4 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
                 + text_content[span["offset"] + span["length"] :]
             )
 
-        # save the text content into markdown format
-        if self.cache_dir is not None:
-            with open(Path(self.cache_dir) / f"{file_name.stem}.md", "w") as f:
-                f.write(text_content)
         return [Document(content=text_content, metadata=metadata)] + figures + tables
