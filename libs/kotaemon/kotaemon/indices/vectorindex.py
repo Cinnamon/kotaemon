@@ -50,6 +50,7 @@ class VectorIndexing(BaseIndexing):
 
     def run(self, text: str | list[str] | Document | list[Document]):
         input_: list[Document] = []
+        count_: int = 0
         if not isinstance(text, list):
             text = [text]
 
@@ -74,11 +75,14 @@ class VectorIndexing(BaseIndexing):
             print("Adding documents to doc store")
             self.doc_store.add(input_)
         # save the chunks content into markdown format
-        if self.cache_dir is not None:
+        if self.cache_dir:
             file_name = Path(input_[0].metadata["file_name"])
             for i in range(len(input_)):
-                with open(Path(self.cache_dir) / f"{file_name.stem}_{i}.md", "w") as f:
+                with open(
+                    Path(self.cache_dir) / f"{file_name.stem}_{count_}.md", "w"
+                ) as f:
                     f.write(input_[i].text)
+            count_ += len(input_)
 
 
 class VectorRetrieval(BaseRetrieval):
