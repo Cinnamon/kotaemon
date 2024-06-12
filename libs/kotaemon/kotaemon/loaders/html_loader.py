@@ -6,7 +6,7 @@ from typing import Optional
 from llama_index.core.readers.base import BaseReader
 
 from kotaemon.base import Document
-import flowsettings
+from theflow.settings import settings as flowsettings
 
 
 class HtmlReader(BaseReader):
@@ -80,7 +80,7 @@ class MhtmlReader(BaseReader):
 
     def __init__(
         self,
-        cache_dir: Optional[str] = flowsettings.KH_MARKDOWN_OUTPUT_DIR,
+        cache_dir: Optional[str] = getattr(flowsettings, "KH_MARKDOWN_OUTPUT_DIR", None),
         open_encoding: Optional[str] = None,
         bs_kwargs: Optional[dict] = None,
         get_text_separator: str = "",
@@ -121,8 +121,7 @@ class MhtmlReader(BaseReader):
         extra_info = extra_info or {}
         metadata: dict = extra_info
         page = []
-        base_name = os.path.basename(file_path)
-        file_name, _ = os.path.splitext(base_name)
+        file_name = Path(file_path)
         with open(file_path, "r", encoding=self.open_encoding) as f:
             message = email.message_from_string(f.read())
             parts = message.get_payload()
@@ -152,8 +151,10 @@ class MhtmlReader(BaseReader):
                     if text:
                         page.append(text)
         # save the page into markdown format
+        print(self.cache_dir)
         if self.cache_dir is not None:
-            with open(self.cache_dir / f"{file_name}.md", "w") as f:
+            print(Path(self.cache_dir) / f"{file_name.stem}.md")
+            with open(Path(self.cache_dir) / f"{file_name.stem}.md", "w") as f:
                 f.write(page[0]) 
         
 

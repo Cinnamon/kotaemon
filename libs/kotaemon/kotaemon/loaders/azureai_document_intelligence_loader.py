@@ -122,8 +122,7 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
     ) -> list[Document]:
         """Extract the input file, allowing multi-modal extraction"""
         metadata = extra_info or {}
-        base_name = os.path.basename(file_path)
-        file_name, _ = os.path.splitext(base_name)
+        file_name = Path(file_path)
         with open(file_path, "rb") as fi:
             poller = self.client_.begin_analyze_document(
                 self.model,
@@ -227,7 +226,6 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
 
         # save the text content into markdown format
         if self.cache_dir is not None:
-            print(file_name)
-            with open(self.cache_dir / f"{file_name}.md", "w") as f:
+            with open(Path(self.cache_dir) / f"{file_name.stem}.md", "w") as f:
                 f.write(text_content)
         return [Document(content=text_content, metadata=metadata)] + figures + tables

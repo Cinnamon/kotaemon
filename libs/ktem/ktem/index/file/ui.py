@@ -12,7 +12,7 @@ from ktem.db.engine import engine
 from ktem.utils.render import Render
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-import flowsettings
+from theflow.settings import settings as flowsettings
 import zipfile
 
 
