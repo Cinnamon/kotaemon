@@ -30,6 +30,7 @@ class VectorIndexing(BaseIndexing):
     vector_store: BaseVectorStore
     doc_store: Optional[BaseDocumentStore] = None
     embedding: BaseEmbeddings
+    count_: int = 0
 
     def to_retrieval_pipeline(self, *args, **kwargs):
         """Convert the indexing pipeline to a retrieval pipeline"""
@@ -50,7 +51,6 @@ class VectorIndexing(BaseIndexing):
 
     def run(self, text: str | list[str] | Document | list[Document]):
         input_: list[Document] = []
-        count_: int = 0
         if not isinstance(text, list):
             text = [text]
 
@@ -78,11 +78,12 @@ class VectorIndexing(BaseIndexing):
         if self.cache_dir:
             file_name = Path(input_[0].metadata["file_name"])
             for i in range(len(input_)):
+                print(Path(self.cache_dir) / f"{file_name.stem}_{self.count_+i}.md")
                 with open(
-                    Path(self.cache_dir) / f"{file_name.stem}_{count_}.md", "w"
+                    Path(self.cache_dir) / f"{file_name.stem}_{self.count_+i}.md", "w"
                 ) as f:
                     f.write(input_[i].text)
-            count_ += len(input_)
+            self.count_ += len(input_)
 
 
 class VectorRetrieval(BaseRetrieval):
