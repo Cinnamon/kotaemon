@@ -1,8 +1,11 @@
 import json
+import logging
 from typing import Any, List
 
 import requests
 from decouple import config
+
+logger = logging.getLogger(__name__)
 
 
 def generate_gpt4v(
@@ -39,7 +42,7 @@ def generate_gpt4v(
         output = response.json()
         output = output["choices"][0]["message"]["content"]
     except Exception as e:
-        print(e)
+        logger.error(f"Error generating gpt4v {e}")
         output = ""
     return output
 
@@ -92,6 +95,7 @@ def stream_gpt4v(
                 if len(line["choices"]):
                     output += line["choices"][0]["delta"].get("content", "")
                     yield line["choices"][0]["delta"].get("content", "")
-    except Exception:
+    except Exception as e:
+        logger.error(f"Error streaming gpt4v {e}")
         output = ""
     return output

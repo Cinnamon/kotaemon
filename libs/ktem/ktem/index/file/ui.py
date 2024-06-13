@@ -216,6 +216,9 @@ class FileIndexPage(BasePage):
                 )
                 doc_ids = [doc.target_id for (doc,) in matches]
                 docs = self._index._docstore.get(doc_ids)
+                docs = sorted(
+                    docs, key=lambda x: x.metadata.get("page_label", float("inf"))
+                )
 
                 for idx, doc in enumerate(docs):
                     title = f"{doc.text[:50]}..." if len(doc.text) > 50 else doc.text
@@ -230,9 +233,13 @@ class FileIndexPage(BasePage):
                             url=doc.metadata.get("image_origin", ""), text=doc.text
                         )
 
+                    header_prefix = f"[{idx+1}/{len(docs)}]"
+                    if doc.metadata.get("page_label"):
+                        header_prefix += f" [Page {doc.metadata['page_label']}]"
+
                     chunks.append(
                         Render.collapsible(
-                            header=f"[{idx+1}/{len(docs)}] {title}",
+                            header=f"{header_prefix} {title}",
                             content=content,
                         )
                     )

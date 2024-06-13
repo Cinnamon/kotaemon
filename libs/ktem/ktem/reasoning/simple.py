@@ -35,6 +35,16 @@ EVIDENCE_MODE_CHATBOT = 2
 EVIDENCE_MODE_FIGURE = 3
 
 
+def get_header(doc: Document):
+    """Get the header for the document"""
+    header = ""
+    if "page_label" in doc.metadata:
+        header += f" [Page {doc.metadata['page_label']}]"
+
+    header += f" {doc.metadata.get('file_name', '<Unknown>')}"
+    return header.strip()
+
+
 class PrepareEvidencePipeline(BaseComponent):
     """Prepare the evidence text from the list of retrieved documents
 
@@ -511,7 +521,7 @@ class FullQAPipeline(BaseReasoning):
                     Document(
                         channel="info",
                         content=Render.collapsible(
-                            header=doc.metadata["file_name"],
+                            header=get_header(doc),
                             content=Render.image(
                                 url=doc.metadata["image_origin"], text=doc.text
                             ),
@@ -524,7 +534,7 @@ class FullQAPipeline(BaseReasoning):
                     Document(
                         channel="info",
                         content=Render.collapsible(
-                            header=doc.metadata["file_name"],
+                            header=get_header(doc),
                             content=Render.table(doc.text),
                             open=True,
                         ),
@@ -585,7 +595,7 @@ class FullQAPipeline(BaseReasoning):
                     channel="info",
                     content=Render.collapsible(
                         header=(
-                            f'{id2docs[id].metadata["file_name"]}<br>'
+                            f"{get_header(id2docs[id])}<br>"
                             "<b>Relevance score:</b>"
                             f' {id2docs[id].metadata.get("relevance_score")}'
                         ),
@@ -603,7 +613,7 @@ class FullQAPipeline(BaseReasoning):
                         channel="info",
                         content=Render.collapsible(
                             header=(
-                                f'{doc.metadata["file_name"]}<br>'
+                                f"{get_header(doc)}<br>"
                                 "<b>Relevance score:</b>"
                                 f' {doc.metadata.get("relevance_score")}'
                             ),
@@ -620,7 +630,7 @@ class FullQAPipeline(BaseReasoning):
                         channel="info",
                         content=Render.collapsible(
                             header=(
-                                f'{doc.metadata["file_name"]}<br>'
+                                f"{get_header(doc)}<br>"
                                 "<b>Relevance score:</b>"
                                 f' {doc.metadata.get("relevance_score")}'
                             ),
