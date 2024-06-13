@@ -426,8 +426,11 @@ class IndexPipeline(BaseComponent):
                     ds_ids.append(each[0].target_id)
                 session.delete(each[0])
             session.commit()
-        self.VS.delete(vs_ids)
-        self.DS.delete(ds_ids)
+
+        if vs_ids:
+            self.VS.delete(vs_ids)
+        if ds_ids:
+            self.DS.delete(ds_ids)
 
     def run(self, file_path: str | Path, reindex: bool, **kwargs) -> str:
         """Index the file and return the file id"""
