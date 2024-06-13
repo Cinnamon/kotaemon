@@ -78,11 +78,28 @@ class VectorIndexing(BaseIndexing):
         if self.cache_dir:
             file_name = Path(input_[0].metadata["file_name"])
             for i in range(len(input_)):
-                print(Path(self.cache_dir) / f"{file_name.stem}_{self.count_+i}.md")
+                markdown_content = ""
+                if "page_label" in input_[i].metadata:
+                    page_label = str(input_[i].metadata["page_label"])
+                    markdown_content += f"Page label: {page_label}"
+                if "file_name" in input_[i].metadata:
+                    filename = input_[i].metadata["file_name"]
+                    markdown_content += f"\nFile name: {filename}"
+                if "section" in input_[i].metadata:
+                    section = input_[i].metadata["section"]
+                    markdown_content += f"\nSection: {section}"
+                if "type" in input_[i].metadata:
+                    if input_[i].metadata["type"] == "image":
+                        image_origin = input_[i].metadata["image_origin"]
+                        image_origin = f'<p><img src="{image_origin}"></p>'
+                        markdown_content += f"\nImage origin: {image_origin}"
+                if input_[i].text:
+                    markdown_content += f"\ntext:\n{input_[i].text}"
+
                 with open(
                     Path(self.cache_dir) / f"{file_name.stem}_{self.count_+i}.md", "w"
                 ) as f:
-                    f.write(input_[i].text)
+                    f.write(markdown_content)
             self.count_ += len(input_)
 
 
