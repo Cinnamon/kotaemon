@@ -38,7 +38,8 @@ def generate_gpt4v(
         response = requests.post(endpoint, headers=headers, json=payload)
         output = response.json()
         output = output["choices"][0]["message"]["content"]
-    except Exception:
+    except Exception as e:
+        print(e)
         output = ""
     return output
 
