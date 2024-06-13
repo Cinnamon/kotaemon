@@ -91,6 +91,7 @@ class VectorIndexing(BaseIndexing):
                 if "type" in input_[i].metadata:
                     if input_[i].metadata["type"] == "image":
                         image_origin = input_[i].metadata["image_origin"]
+                        image_origin = f'<p><img src="{image_origin}"></p>'
                         markdown_content += f"\nImage origin: {image_origin}"
                 if input_[i].text:
                     markdown_content += f"\ntext:\n{input_[i].text}"
