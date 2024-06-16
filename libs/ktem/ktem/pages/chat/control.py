@@ -185,6 +185,7 @@ class ConversationControl(BasePage):
             session.commit()
 
         history = self.load_chat_history(user_id)
+        gr.Info("Conversation renamed.")
         return gr.update(choices=history), conversation_id
 
     def _on_app_created(self):

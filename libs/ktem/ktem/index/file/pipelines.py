@@ -607,7 +607,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                     channel="index",
                 )
             except Exception as e:
-                logger.error(e)
+                logger.exception(e)
                 file_ids.append(None)
                 errors.append(str(e))
                 yield Document(

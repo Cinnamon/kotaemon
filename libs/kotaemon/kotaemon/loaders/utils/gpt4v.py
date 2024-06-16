@@ -37,13 +37,16 @@ def generate_gpt4v(
         "max_tokens": max_tokens,
     }
 
+    response = requests.post(endpoint, headers=headers, json=payload)
+
     try:
-        response = requests.post(endpoint, headers=headers, json=payload)
-        output = response.json()
-        output = output["choices"][0]["message"]["content"]
+        response.raise_for_status()
     except Exception as e:
-        logger.error(f"Error generating gpt4v {e}")
-        output = ""
+        logger.exception(f"Error generating gpt4v: {response.text}; error {e}")
+        return ""
+
+    output = response.json()
+    output = output["choices"][0]["message"]["content"]
     return output
 
 
