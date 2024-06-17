@@ -2,6 +2,7 @@ import json
 import logging
 from typing import Any, List
 
+import numpy as np
 import requests
 from decouple import config
 
@@ -78,11 +79,14 @@ def stream_gpt4v(
         ],
         "max_tokens": max_tokens,
         "stream": True,
+        "logprobs": True,
+        "top_logprobs": 1,
     }
     try:
         response = requests.post(endpoint, headers=headers, json=payload, stream=True)
         assert response.status_code == 200, str(response.content)
         output = ""
+        probs = []
         for line in response.iter_lines():
             if line:
                 if line.startswith(b"\xef\xbb\xbf"):
@@ -96,9 +100,22 @@ def stream_gpt4v(
                 except Exception:
                     break
                 if len(line["choices"]):
+                    _probs = []
+                    for top_logprob in line["choices"][0]["logprobs"].get(
+                        "content", []
+                    ):
+                        _probs.append(
+                            np.round(
+                                np.exp(top_logprob["top_logprobs"][0]["logprob"]), 2
+                            )
+                        )
+
                     output += line["choices"][0]["delta"].get("content", "")
-                    yield line["choices"][0]["delta"].get("content", "")
+                    probs += _probs
+                    yield line["choices"][0]["delta"].get("content", ""), _probs
+
     except Exception as e:
         logger.error(f"Error streaming gpt4v {e}")
         output = ""
-    return output
+
+    return output, probs

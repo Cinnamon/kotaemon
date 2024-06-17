@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, AsyncGenerator, Iterator, Optional
 
+import numpy as np
 from theflow.utils.modules import import_dotted_string
 
 from kotaemon.base import AIMessage, BaseMessage, HumanMessage, LLMInterface, Param
@@ -159,6 +160,9 @@ class BaseChatOpenAI(ChatLLM):
             additional_kwargs["tool_calls"] = resp["choices"][0]["message"][
                 "tool_calls"
             ]
+        probs = []
+        for top_logprob in resp["choices"][0]["logprobs"].get("content", []):
+            probs.append(np.round(np.exp(top_logprob["top_logprobs"][0]["logprob"]), 2))
         output = LLMInterface(
             candidates=[(_["message"]["content"] or "") for _ in resp["choices"]],
             content=resp["choices"][0]["message"]["content"] or "",
@@ -170,6 +174,7 @@ class BaseChatOpenAI(ChatLLM):
                 AIMessage(content=(_["message"]["content"]) or "")
                 for _ in resp["choices"]
             ],
+            probs=probs,
         )
 
         return output
@@ -220,7 +225,12 @@ class BaseChatOpenAI(ChatLLM):
             if not chunk.choices:
                 continue
             if chunk.choices[0].delta.content is not None:
-                yield LLMInterface(content=chunk.choices[0].delta.content)
+                probs = []
+                for top_logprob in getattr(chunk.choices[0].logprobs, "content", []):
+                    probs.append(
+                        np.round(np.exp(top_logprob.top_logprobs[0].logprob), 2)
+                    )
+                yield LLMInterface(content=chunk.choices[0].delta.content, probs=probs)
 
     async def astream(
         self, messages: str | BaseMessage | list[BaseMessage], *args, **kwargs
