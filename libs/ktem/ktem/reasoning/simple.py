@@ -3,9 +3,11 @@ import html
 import logging
 import re
 from collections import defaultdict
+from copy import deepcopy
 from functools import partial
 from typing import Generator
 
+import numpy as np
 import tiktoken
 from ktem.llms.manager import llms
 from ktem.utils.render import Render
@@ -364,9 +366,13 @@ class AnswerWithContextPipeline(BaseComponent):
         prompt, images = self.get_prompt(question, evidence, evidence_mode)
 
         output = ""
+        probs = []
         if evidence_mode == EVIDENCE_MODE_FIGURE:
-            for text in stream_gpt4v(self.vlm_endpoint, images, prompt, max_tokens=768):
+            for text, _probs in stream_gpt4v(
+                self.vlm_endpoint, images, prompt, max_tokens=768
+            ):
                 output += text
+                probs += _probs
                 yield Document(channel="chat", content=text)
         else:
             messages = []
@@ -380,9 +386,10 @@ class AnswerWithContextPipeline(BaseComponent):
             try:
                 # try streaming first
                 print("Trying LLM streaming")
-                for text in self.llm.stream(messages):
-                    output += text.text
-                    yield Document(channel="chat", content=text.text)
+                for out_msg in self.llm.stream(messages):
+                    output += out_msg.text
+                    probs += out_msg.probs
+                    yield Document(channel="chat", content=out_msg.text)
             except NotImplementedError:
                 print("Streaming is not supported, falling back to normal processing")
                 output = self.llm(messages).text
@@ -393,7 +400,10 @@ class AnswerWithContextPipeline(BaseComponent):
         if evidence and self.enable_citation:
             citation = self.citation_pipeline(context=evidence, question=question)
 
-        answer = Document(text=output, metadata={"citation": citation})
+        answer = Document(
+            text=output,
+            metadata={"citation": citation, "qa_score": round(np.average(probs), 2)},
+        )
 
         return answer
 
@@ -704,6 +714,30 @@ class FullQAPipeline(BaseReasoning):
             conv_id=conv_id,
             **kwargs,
         )
+
+        if len(docs) > 1:
+            _answering_pipeline = deepcopy(self.answering_pipeline)
+            _answering_pipeline.enable_citation = False
+            for doc in docs:
+                _evidence_mode, _evidence = self.evidence_pipeline([doc]).content
+                _generator = _answering_pipeline.stream(
+                    question=message,
+                    history=history,
+                    evidence=_evidence,
+                    evidence_mode=_evidence_mode,
+                    conv_id=conv_id,
+                    **kwargs,
+                )
+                try:
+                    while True:
+                        next(_generator)
+                except StopIteration as e:
+                    _answer = e.value
+
+                doc.metadata["qa_score"] = _answer.metadata.get("qa_score")
+        else:
+            for doc in docs:
+                doc.metadata["qa_score"] = answer.metadata.get("qa_score")
 
         # show the evidence
         with_citation, without_citation = self.prepare_citations(answer, docs)
