@@ -244,7 +244,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                 )
             ],
             retrieval_mode=user_settings["retrieval_mode"],
-            rerankers=[CohereReranking()],
+            rerankers=[LLMReranking(), CohereReranking()],
         )
         if not user_settings["use_reranking"]:
             retriever.rerankers = []  # type: ignore
