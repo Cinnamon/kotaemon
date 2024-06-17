@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 
-from langchain.output_parsers.boolean import BooleanOutputParser
+import numpy as np
 
 from kotaemon.base import Document
 from kotaemon.llms import BaseLLM, PromptTemplate
@@ -32,8 +32,7 @@ class LLMReranking(BaseReranking):
         query: str,
     ) -> list[Document]:
         """Filter down documents based on their relevance to the query."""
-        filtered_docs = []
-        output_parser = BooleanOutputParser()
+        filtered_docs: list[Document] = []
 
         if self.concurrent:
             with ThreadPoolExecutor() as executor:
@@ -42,7 +41,7 @@ class LLMReranking(BaseReranking):
                     _prompt = self.prompt_template.populate(
                         question=query, context=doc.get_content()
                     )
-                    futures.append(executor.submit(lambda: self.llm(_prompt).text))
+                    futures.append(executor.submit(lambda: self.llm(_prompt)))
 
                 results = [future.result() for future in futures]
         else:
@@ -51,13 +50,10 @@ class LLMReranking(BaseReranking):
                 _prompt = self.prompt_template.populate(
                     question=query, context=doc.get_content()
                 )
-                results.append(self.llm(_prompt).text)
+                results.append(self.llm(_prompt))
 
-        # use Boolean parser to extract relevancy output from LLM
-        results = [output_parser.parse(result) for result in results]
-        for include_doc, doc in zip(results, documents):
-            if include_doc:
-                filtered_docs.append(doc)
+        for result, doc in zip(results, documents):
+            doc.metadata["llm_reranking_score"] = round(np.average(result.probs), 2)
 
         # prevent returning empty result
         if len(filtered_docs) == 0:
