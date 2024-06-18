@@ -35,6 +35,7 @@ def generate_gpt4v(
             }
         ],
         "max_tokens": max_tokens,
+        "temperature": 0,
     }
 
     response = requests.post(endpoint, headers=headers, json=payload)
@@ -79,6 +80,7 @@ def stream_gpt4v(
         "max_tokens": max_tokens,
         "stream": True,
         "logprobs": True,
+        "temperature": 0,
     }
     try:
         response = requests.post(endpoint, headers=headers, json=payload, stream=True)
