@@ -3,7 +3,6 @@ import html
 import logging
 import re
 from collections import defaultdict
-from copy import deepcopy
 from functools import partial
 from typing import Generator
 
@@ -45,6 +44,8 @@ def get_header(doc: Document):
 
     header += f" {doc.metadata.get('file_name', '<Unknown>')}"
     return header.strip()
+
+
 def is_close(val1, val2, tolerance=1e-9):
     return abs(val1 - val2) <= tolerance
 
@@ -362,13 +363,13 @@ class AnswerWithContextPipeline(BaseComponent):
         prompt, images = self.get_prompt(question, evidence, evidence_mode)
 
         output = ""
-        probs = []
+        logprobs = []
         if evidence_mode == EVIDENCE_MODE_FIGURE:
-            for text, _probs in stream_gpt4v(
+            for text, _logprobs in stream_gpt4v(
                 self.vlm_endpoint, images, prompt, max_tokens=768
             ):
                 output += text
-                probs += _probs
+                logprobs += _logprobs
                 yield Document(channel="chat", content=text)
         else:
             messages = []
@@ -384,7 +385,7 @@ class AnswerWithContextPipeline(BaseComponent):
                 print("Trying LLM streaming")
                 for out_msg in self.llm.stream(messages):
                     output += out_msg.text
-                    probs += out_msg.probs
+                    logprobs += out_msg.logprobs
                     yield Document(channel="chat", content=out_msg.text)
             except NotImplementedError:
                 print("Streaming is not supported, falling back to normal processing")
@@ -398,7 +399,10 @@ class AnswerWithContextPipeline(BaseComponent):
 
         answer = Document(
             text=output,
-            metadata={"citation": citation, "qa_score": round(np.average(probs), 2)},
+            metadata={
+                "citation": citation,
+                "qa_score": round(np.exp(np.average(logprobs)), 2),
+            },
         )
 
         return answer
@@ -625,8 +629,6 @@ class FullQAPipeline(BaseReasoning):
                             f' {id2docs[id].metadata.get("llm_reranking_score")}<br>'
                             "<b>Cohere reranking score:</b>"
                             f' {id2docs[id].metadata.get("cohere_reranking_score")}<br>'
-                            "<b>Question answering score:</b>"
-                            f' {id2docs[id].metadata.get("qa_score")}'
                         ),
                         content=Render.table(text),
                         open=True,
@@ -665,8 +667,6 @@ class FullQAPipeline(BaseReasoning):
                                 f' {doc.metadata.get("llm_reranking_score")}<br>'
                                 "<b>Cohere reranking score:</b>"
                                 f' {doc.metadata.get("cohere_reranking_score")}<br>'
-                                "<b>Question answering score:</b>"
-                                f' {doc.metadata.get("qa_score")}'
                             ),
                             content=Render.image(
                                 url=doc.metadata["image_origin"], text=doc.text
@@ -690,8 +690,6 @@ class FullQAPipeline(BaseReasoning):
                                 f' {doc.metadata.get("llm_reranking_score")}<br>'
                                 "<b>Cohere reranking score:</b>"
                                 f' {doc.metadata.get("cohere_reranking_score")}<br>'
-                                "<b>Question answering score:</b>"
-                                f' {doc.metadata.get("qa_score")}'
                             ),
                             content=Render.table(doc.text),
                             open=True,
@@ -763,30 +761,6 @@ class FullQAPipeline(BaseReasoning):
             conv_id=conv_id,
             **kwargs,
         )
-
-        if len(docs) > 1:
-            _answering_pipeline = deepcopy(self.answering_pipeline)
-            _answering_pipeline.enable_citation = False
-            for doc in docs:
-                _evidence_mode, _evidence = self.evidence_pipeline([doc]).content
-                _generator = _answering_pipeline.stream(
-                    question=message,
-                    history=history,
-                    evidence=_evidence,
-                    evidence_mode=_evidence_mode,
-                    conv_id=conv_id,
-                    **kwargs,
-                )
-                try:
-                    while True:
-                        next(_generator)
-                except StopIteration as e:
-                    _answer = e.value
-
-                doc.metadata["qa_score"] = _answer.metadata.get("qa_score")
-        else:
-            for doc in docs:
-                doc.metadata["qa_score"] = answer.metadata.get("qa_score")
 
         # show the evidence
         with_citation, without_citation = self.prepare_citations(answer, docs)
