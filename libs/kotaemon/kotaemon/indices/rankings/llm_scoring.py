@@ -2,37 +2,22 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 
+import numpy as np
 from langchain.output_parsers.boolean import BooleanOutputParser
 
 from kotaemon.base import Document
-from kotaemon.llms import BaseLLM, PromptTemplate
 
-from .base import BaseReranking
-
-RERANK_PROMPT_TEMPLATE = """Given the following question and context,
-return YES if the context is relevant to the question and NO if it isn't.
-
-> Question: {question}
-> Context:
->>>
-{context}
->>>
-> Relevant (YES / NO):"""
+from .llm import LLMReranking
 
 
-class LLMReranking(BaseReranking):
-    llm: BaseLLM
-    prompt_template: PromptTemplate = PromptTemplate(template=RERANK_PROMPT_TEMPLATE)
-    top_k: int = 3
-    concurrent: bool = True
-
+class LLMScoring(LLMReranking):
     def run(
         self,
         documents: list[Document],
         query: str,
     ) -> list[Document]:
         """Filter down documents based on their relevance to the query."""
-        filtered_docs = []
+        filtered_docs: list[Document] = []
         output_parser = BooleanOutputParser()
 
         if self.concurrent:
@@ -42,7 +27,7 @@ class LLMReranking(BaseReranking):
                     _prompt = self.prompt_template.populate(
                         question=query, context=doc.get_content()
                     )
-                    futures.append(executor.submit(lambda: self.llm(_prompt).text))
+                    futures.append(executor.submit(lambda: self.llm(_prompt)))
 
                 results = [future.result() for future in futures]
         else:
@@ -51,13 +36,15 @@ class LLMReranking(BaseReranking):
                 _prompt = self.prompt_template.populate(
                     question=query, context=doc.get_content()
                 )
-                results.append(self.llm(_prompt).text)
+                results.append(self.llm(_prompt))
 
-        # use Boolean parser to extract relevancy output from LLM
-        results = [output_parser.parse(result) for result in results]
-        for include_doc, doc in zip(results, documents):
+        for result, doc in zip(results, documents):
+            score = np.exp(np.average(result.logprobs))
+            include_doc = output_parser.parse(result.text)
             if include_doc:
-                filtered_docs.append(doc)
+                doc.metadata["llm_reranking_score"] = round(score, 2)
+            else:
+                doc.metadata["llm_reranking_score"] = round(1 - score, 2)
 
         # prevent returning empty result
         if len(filtered_docs) == 0:
