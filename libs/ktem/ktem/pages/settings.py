@@ -260,9 +260,11 @@ class SettingsPage(BasePage):
         #         obj = render_setting_item(si, si.value)
         #         self._components[f"index.{n}"] = obj
 
+        id2name = {k: v.name for k, v in self._app.index_manager.info().items()}
         with gr.Tab("Document Indices", visible=self._render_index_tab):
             for pn, sig in self._default_settings.index.options.items():
-                with gr.Tab(f"Index {pn}"):
+                name = id2name.get(pn, f"<id {pn}>")
+                with gr.Tab(name):
                     for n, si in sig.settings.items():
                         obj = render_setting_item(si, si.value)
                         self._components[f"index.options.{pn}.{n}"] = obj
