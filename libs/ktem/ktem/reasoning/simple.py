@@ -837,6 +837,7 @@ class FullQAPipeline(BaseReasoning):
                 "value": llm,
                 "component": "dropdown",
                 "choices": choices,
+                "special_type": "llm",
                 "info": (
                     "The language model to use for generating the answer. If None, "
                     "the application default language model will be used."

@@ -74,6 +74,10 @@ class SettingsPage(BasePage):
         self._components = {}
         self._reasoning_mode = {}
 
+        # store llms and embeddings components
+        self._llms = []
+        self._embeddings = []
+
         # render application page if there are application settings
         self._render_app_tab = False
         if self._default_settings.application.settings:
@@ -253,6 +257,10 @@ class SettingsPage(BasePage):
             for n, si in self._default_settings.application.settings.items():
                 obj = render_setting_item(si, si.value)
                 self._components[f"application.{n}"] = obj
+                if si.special_type == "llm":
+                    self._llms.append(obj)
+                if si.special_type == "embedding":
+                    self._embeddings.append(obj)
 
     def index_tab(self):
         # TODO: double check if we need general
@@ -269,6 +277,10 @@ class SettingsPage(BasePage):
                     for n, si in sig.settings.items():
                         obj = render_setting_item(si, si.value)
                         self._components[f"index.options.{pn}.{n}"] = obj
+                        if si.special_type == "llm":
+                            self._llms.append(obj)
+                        if si.special_type == "embedding":
+                            self._embeddings.append(obj)
 
     def reasoning_tab(self):
         with gr.Tab("Reasoning settings", visible=self._render_reasoning_tab):
@@ -278,6 +290,10 @@ class SettingsPage(BasePage):
                         continue
                     obj = render_setting_item(si, si.value)
                     self._components[f"reasoning.{n}"] = obj
+                    if si.special_type == "llm":
+                        self._llms.append(obj)
+                    if si.special_type == "embedding":
+                        self._embeddings.append(obj)
 
             gr.Markdown("### Reasoning-specific settings")
             self._components["reasoning.use"] = render_setting_item(
@@ -301,6 +317,10 @@ class SettingsPage(BasePage):
                     for n, si in sig.settings.items():
                         obj = render_setting_item(si, si.value)
                         self._components[f"reasoning.options.{pn}.{n}"] = obj
+                        if si.special_type == "llm":
+                            self._llms.append(obj)
+                        if si.special_type == "embedding":
+                            self._embeddings.append(obj)
 
     def change_reasoning_mode(self, value):
         output = []
@@ -366,5 +386,40 @@ class SettingsPage(BasePage):
                 self.load_setting,
                 inputs=self._user_id,
                 outputs=[self._settings_state] + self.components(),
+                show_progress="hidden",
+            )
+
+        def update_llms():
+            from ktem.llms.manager import llms
+
+            if llms._default:
+                llm_choices = [(f"{llms._default} (default)", "")]
+            else:
+                llm_choices = [("(random)", "")]
+            llm_choices += [(_, _) for _ in llms.options().keys()]
+            return gr.update(choices=llm_choices)
+
+        def update_embeddings():
+            from ktem.embeddings.manager import embedding_models_manager
+
+            if embedding_models_manager._default:
+                emb_choices = [(f"{embedding_models_manager._default} (default)", "")]
+            else:
+                emb_choices = [("(random)", "")]
+            emb_choices += [(_, _) for _ in embedding_models_manager.options().keys()]
+            return gr.update(choices=emb_choices)
+
+        for llm in self._llms:
+            self._app.app.load(
+                update_llms,
+                inputs=[],
+                outputs=[llm],
+                show_progress="hidden",
+            )
+        for emb in self._embeddings:
+            self._app.app.load(
+                update_embeddings,
+                inputs=[],
+                outputs=[emb],
                 show_progress="hidden",
             )

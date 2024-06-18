@@ -197,6 +197,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                 "value": reranking_llm,
                 "component": "dropdown",
                 "choices": reranking_llm_choices,
+                "special_type": "llm",
             },
             "separate_embedding": {
                 "name": "Use separate embedding",

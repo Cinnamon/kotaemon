@@ -19,6 +19,7 @@ class SettingItem(BaseModel):
     choices: list = Field(default_factory=list)
     metadata: dict = Field(default_factory=dict)
     component: str = "text"
+    special_type: str = ""
 
 
 class BaseSettingGroup(BaseModel):

@@ -413,6 +413,7 @@ class RewooAgentPipeline(BaseReasoning):
                 "value": llm,
                 "component": "dropdown",
                 "choices": llm_choices,
+                "special_type": "llm",
                 "info": (
                     "The language model to use for planning. "
                     "This model will generate a plan based on the "
@@ -424,6 +425,7 @@ class RewooAgentPipeline(BaseReasoning):
                 "value": llm,
                 "component": "dropdown",
                 "choices": llm_choices,
+                "special_type": "llm",
                 "info": (
                     "The language model to use for solving. "
                     "This model will generate the answer based on the "
