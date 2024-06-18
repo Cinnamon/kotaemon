@@ -732,12 +732,6 @@ class FullQAPipeline(BaseReasoning):
             for _ in with_citation:
                 self.report_output(_)
             if without_citation:
-                self.report_output(
-                    Document(
-                        channel="info",
-                        content="Retrieved segments without matching evidence:\n",
-                    )
-                )
                 for _ in without_citation:
                     self.report_output(_)
 
@@ -774,13 +768,6 @@ class FullQAPipeline(BaseReasoning):
             for _ in with_citation:
                 yield _
             if without_citation:
-                yield Document(
-                    channel="info",
-                    content=(
-                        "<h5><b>Retrieved segments without matching evidence:"
-                        "</b></h5><br>"
-                    ),
-                )
                 for _ in without_citation:
                     yield _
         yield Document(
