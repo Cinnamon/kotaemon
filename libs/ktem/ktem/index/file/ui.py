@@ -152,7 +152,7 @@ class FileIndexPage(BasePage):
                         "id",
                         "name",
                         "size",
-                        "text_length",
+                        "tokens",
                         "loader",
                         "date_created",
                     ],
@@ -604,7 +604,7 @@ class FileIndexPage(BasePage):
                         "id": "-",
                         "name": "-",
                         "size": "-",
-                        "text_length": "-",
+                        "tokens": "-",
                         "loader": "-",
                         "date_created": "-",
                     }
@@ -621,7 +621,7 @@ class FileIndexPage(BasePage):
                     "id": each[0].id,
                     "name": each[0].name,
                     "size": each[0].size,
-                    "text_length": each[0].text_length,
+                    "tokens": each[0].note.get("tokens", "-"),
                     "loader": each[0].note.get("loader", "-"),
                     "date_created": each[0].date_created.strftime("%Y-%m-%d %H:%M:%S"),
                 }
@@ -637,7 +637,7 @@ class FileIndexPage(BasePage):
                         "id": "-",
                         "name": "-",
                         "size": "-",
-                        "text_length": "-",
+                        "tokens": "-",
                         "loader": "-",
                         "date_created": "-",
                     }

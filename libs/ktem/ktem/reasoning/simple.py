@@ -50,6 +50,9 @@ def is_close(val1, val2, tolerance=1e-9):
     return abs(val1 - val2) <= tolerance
 
 
+_default_token_func = tiktoken.encoding_for_model("gpt-3.5-turbo").encode
+
+
 class PrepareEvidencePipeline(BaseComponent):
     """Prepare the evidence text from the list of retrieved documents
 

@@ -9,6 +9,7 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Generator, Optional, Sequence
 
+import tiktoken
 from ktem.db.models import engine
 from ktem.embeddings.manager import embedding_models_manager
 from ktem.llms.manager import llms
@@ -63,6 +64,9 @@ def dev_settings():
         chunk_overlap = settings.FILE_INDEX_PIPELINE_SPLITTER_CHUNK_OVERLAP
 
     return file_extractors, chunk_size, chunk_overlap
+
+
+_default_token_func = tiktoken.encoding_for_model("gpt-3.5-turbo").encode
 
 
 class DocumentRetrievalPipeline(BaseFileIndexRetriever):
@@ -406,15 +410,16 @@ class IndexPipeline(BaseComponent):
 
             item = result[0]
 
-            # populate the text length
+            # populate the number of tokens
             doc_ids_stmt = select(self.Index.target_id).where(
                 self.Index.source_id == file_id,
                 self.Index.relation_type == "document",
             )
             doc_ids = [_[0] for _ in session.execute(doc_ids_stmt)]
-            if doc_ids:
+            token_func = self.get_token_func()
+            if doc_ids and token_func:
                 docs = self.DS.get(doc_ids)
-                item.text_length = sum([len(doc.text) for doc in docs])
+                item.note["tokens"] = sum([len(token_func(doc.text)) for doc in docs])
 
             # populate the note
             item.note["loader"] = self.get_from_path("loader").__class__.__name__
@@ -423,6 +428,10 @@ class IndexPipeline(BaseComponent):
             session.commit()
 
         return file_id
+
+    def get_token_func(self):
+        """Get the token function for calculating the number of tokens"""
+        return _default_token_func
 
     def delete_file(self, file_id: str):
         """Delete a file from the db, including its chunks in docstore and vectorstore

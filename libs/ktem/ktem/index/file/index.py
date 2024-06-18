@@ -72,7 +72,6 @@ class FileIndex(BaseIndex):
                     "name": Column(String),
                     "path": Column(String),
                     "size": Column(Integer, default=0),
-                    "text_length": Column(Integer, default=0),
                     "date_created": Column(
                         DateTime(timezone=True), server_default=func.now()
                     ),
@@ -98,7 +97,6 @@ class FileIndex(BaseIndex):
                     "name": Column(String, unique=True),
                     "path": Column(String),
                     "size": Column(Integer, default=0),
-                    "text_length": Column(Integer, default=0),
                     "date_created": Column(
                         DateTime(timezone=True), server_default=func.now()
                     ),
