@@ -103,6 +103,10 @@ class FileIndex(BaseIndex):
                         DateTime(timezone=True), server_default=func.now()
                     ),
                     "user": Column(Integer, default=1),
+                    "note": Column(
+                        MutableDict.as_mutable(JSON),  # type: ignore
+                        default={},
+                    ),
                 },
             )
         Index = type(
