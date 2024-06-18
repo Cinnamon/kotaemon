@@ -393,17 +393,28 @@ class IndexPipeline(BaseComponent):
     def finish(self, file_id: str, file_path: Path) -> str:
         """Finish the indexing"""
         with Session(engine) as session:
-            stmt = select(self.Index.target_id).where(self.Index.source_id == file_id)
-            doc_ids = [_[0] for _ in session.execute(stmt)]
+            stmt = select(self.Source).where(self.Source.id == file_id)
+            result = session.execute(stmt).first()
+            if not result:
+                return file_id
+
+            item = result[0]
+
+            # populate the text length
+            doc_ids_stmt = select(self.Index.target_id).where(
+                self.Index.source_id == file_id,
+                self.Index.relation_type == "document",
+            )
+            doc_ids = [_[0] for _ in session.execute(doc_ids_stmt)]
             if doc_ids:
                 docs = self.DS.get(doc_ids)
-                stmt = select(self.Source).where(self.Source.id == file_id)
-                result = session.execute(stmt).first()
-                if result:
-                    item = result[0]
-                    item.text_length = sum([len(doc.text) for doc in docs])
-                    session.add(item)
-                session.commit()
+                item.text_length = sum([len(doc.text) for doc in docs])
+
+            # populate the note
+            item.note["loader"] = self.get_from_path("loader").__class__.__name__
+
+            session.add(item)
+            session.commit()
 
         return file_id
 

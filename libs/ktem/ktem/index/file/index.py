@@ -4,8 +4,9 @@ from typing import Any, Optional, Type
 from ktem.components import filestorage_path, get_docstore, get_vectorstore
 from ktem.db.engine import engine
 from ktem.index.base import BaseIndex
-from sqlalchemy import Column, DateTime, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, Column, DateTime, Integer, String, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.sql import func
 from theflow.settings import settings as flowsettings
 from theflow.utils.modules import import_dotted_string
@@ -76,6 +77,10 @@ class FileIndex(BaseIndex):
                         DateTime(timezone=True), server_default=func.now()
                     ),
                     "user": Column(Integer, default=1),
+                    "note": Column(
+                        MutableDict.as_mutable(JSON),  # type: ignore
+                        default={},
+                    ),
                 },
             )
         else:

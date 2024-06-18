@@ -38,7 +38,7 @@ class LLMManager:
 
     def load(self):
         """Load the model pool from database"""
-        self._models, self._info, self._defaut = {}, {}, ""
+        self._models, self._info, self._default = {}, {}, ""
         with Session(engine) as session:
             stmt = select(LLMTable)
             items = session.execute(stmt)

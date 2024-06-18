@@ -36,7 +36,7 @@ class EmbeddingManager:
 
     def load(self):
         """Load the model pool from database"""
-        self._models, self._info, self._defaut = {}, {}, ""
+        self._models, self._info, self._default = {}, {}, ""
         with Session(engine) as sess:
             stmt = select(EmbeddingTable)
             items = sess.execute(stmt)

@@ -148,8 +148,16 @@ class FileIndexPage(BasePage):
                 gr.Markdown("## File List")
                 self.file_list_state = gr.State(value=None)
                 self.file_list = gr.DataFrame(
-                    headers=["id", "name", "size", "text_length", "date_created"],
+                    headers=[
+                        "id",
+                        "name",
+                        "size",
+                        "text_length",
+                        "loader",
+                        "date_created",
+                    ],
                     interactive=False,
+                    wrap=True,
                 )
 
                 with gr.Row() as self.selection_info:
@@ -597,6 +605,7 @@ class FileIndexPage(BasePage):
                         "name": "-",
                         "size": "-",
                         "text_length": "-",
+                        "loader": "-",
                         "date_created": "-",
                     }
                 ]
@@ -613,6 +622,7 @@ class FileIndexPage(BasePage):
                     "name": each[0].name,
                     "size": each[0].size,
                     "text_length": each[0].text_length,
+                    "loader": each[0].note.get("loader", "-"),
                     "date_created": each[0].date_created.strftime("%Y-%m-%d %H:%M:%S"),
                 }
                 for each in session.execute(statement).all()
@@ -628,6 +638,7 @@ class FileIndexPage(BasePage):
                         "name": "-",
                         "size": "-",
                         "text_length": "-",
+                        "loader": "-",
                         "date_created": "-",
                     }
                 ]
