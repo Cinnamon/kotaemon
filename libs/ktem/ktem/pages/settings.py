@@ -2,6 +2,7 @@ import hashlib
 
 import gradio as gr
 from ktem.app import BasePage
+from ktem.components import reasonings
 from ktem.db.models import Settings, User, engine
 from sqlmodel import Session, select
 
@@ -291,7 +292,12 @@ class SettingsPage(BasePage):
                     visible=idx == 0,
                     elem_id=pn,
                 ) as self._reasoning_mode[pn]:
-                    gr.Markdown("**Name**: Description")
+                    reasoning = reasonings.get(pn, None)
+                    if reasoning is None:
+                        gr.Markdown("**Name**: Description")
+                    else:
+                        info = reasoning.get_info()
+                        gr.Markdown(f"**{info['name']}**: {info['description']}")
                     for n, si in sig.settings.items():
                         obj = render_setting_item(si, si.value)
                         self._components[f"reasoning.options.{pn}.{n}"] = obj

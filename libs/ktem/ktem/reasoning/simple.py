@@ -877,5 +877,9 @@ class FullQAPipeline(BaseReasoning):
         return {
             "id": "simple",
             "name": "Simple QA",
-            "description": "Simple QA pipeline",
+            "description": (
+                "Simple RAG-based question answering pipeline. This pipeline can "
+                "perform both keyword search and similarity search to retrieve the "
+                "context. After that it includes that context to generate the answer."
+            ),
         }

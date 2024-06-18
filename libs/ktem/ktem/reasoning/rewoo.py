@@ -457,6 +457,10 @@ class RewooAgentPipeline(BaseReasoning):
             "id": "ReWOO",
             "name": "ReWOO Agent",
             "description": (
-                "Implementing ReWOO paradigm " "https://arxiv.org/pdf/2305.18323.pdf"
+                "Implementing ReWOO paradigm: https://arxiv.org/abs/2305.18323. "
+                "The ReWOO agent makes a step by step plan in the first stage, "
+                "then solves each step in the second stage. The agent can use "
+                "external tools to help in the reasoning process. Once all stages "
+                "are completed, the agent will summarize the answer."
             ),
         }

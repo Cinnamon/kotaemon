@@ -325,5 +325,10 @@ class ReactAgentPipeline(BaseReasoning):
         return {
             "id": "ReAct",
             "name": "ReAct Agent",
-            "description": "Implementing ReAct paradigm",
+            "description": (
+                "Implementing ReAct paradigm: https://arxiv.org/abs/2210.03629. "
+                "ReAct agent answers the user's request by iteratively formulating "
+                "plan and executing it. The agent can use multiple tools to gather "
+                "information and generate the final answer."
+            ),
         }
