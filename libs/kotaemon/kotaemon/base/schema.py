@@ -140,7 +140,7 @@ class LLMInterface(AIMessage):
     total_cost: float = 0
     logits: list[list[float]] = Field(default_factory=list)
     messages: list[AIMessage] = Field(default_factory=list)
-    probs: list[float] = []
+    logprobs: list[float] = []
 
 
 class ExtractorOutput(Document):
