@@ -55,6 +55,9 @@ class BaseSettingGroup(BaseModel):
         option = self.options[option_id]
         return option.get_setting_item(sub_path)
 
+    def __bool__(self):
+        return bool(self.settings) or bool(self.options)
+
 
 class SettingReasoningGroup(BaseSettingGroup):
     def _get_options(self) -> dict:

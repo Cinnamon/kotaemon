@@ -104,12 +104,11 @@ class SettingsPage(BasePage):
         if self._app.f_user_management:
             with gr.Tab("Users"):
                 self.user_tab()
-        with gr.Tab("General"):
-            self.app_tab()
-        with gr.Tab("Document Indices"):
-            self.index_tab()
-        with gr.Tab("Reasoning Pipelines"):
-            self.reasoning_tab()
+
+        self.app_tab()
+        self.index_tab()
+        self.reasoning_tab()
+
         self.setting_save_btn = gr.Button(
             "Save changes", variant="primary", scale=1, elem_classes=["right-button"]
         )
@@ -249,7 +248,7 @@ class SettingsPage(BasePage):
         return "", ""
 
     def app_tab(self):
-        with gr.Tab("General application settings", visible=self._render_app_tab):
+        with gr.Tab("General", visible=self._render_app_tab):
             for n, si in self._default_settings.application.settings.items():
                 obj = render_setting_item(si, si.value)
                 self._components[f"application.{n}"] = obj
@@ -261,7 +260,7 @@ class SettingsPage(BasePage):
         #         obj = render_setting_item(si, si.value)
         #         self._components[f"index.{n}"] = obj
 
-        with gr.Tab("Index settings", visible=self._render_index_tab):
+        with gr.Tab("Document Indices", visible=self._render_index_tab):
             for pn, sig in self._default_settings.index.options.items():
                 with gr.Tab(f"Index {pn}"):
                     for n, si in sig.settings.items():
