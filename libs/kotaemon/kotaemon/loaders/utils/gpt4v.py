@@ -78,11 +78,13 @@ def stream_gpt4v(
         ],
         "max_tokens": max_tokens,
         "stream": True,
+        "logprobs": True,
     }
     try:
         response = requests.post(endpoint, headers=headers, json=payload, stream=True)
         assert response.status_code == 200, str(response.content)
         output = ""
+        logprobs = []
         for line in response.iter_lines():
             if line:
                 if line.startswith(b"\xef\xbb\xbf"):
@@ -96,9 +98,22 @@ def stream_gpt4v(
                 except Exception:
                     break
                 if len(line["choices"]):
+                    if line["choices"][0].get("logprobs") is None:
+                        _logprobs = []
+                    else:
+                        _logprobs = [
+                            logprob["logprob"]
+                            for logprob in line["choices"][0]["logprobs"].get(
+                                "content", []
+                            )
+                        ]
+
                     output += line["choices"][0]["delta"].get("content", "")
-                    yield line["choices"][0]["delta"].get("content", "")
+                    logprobs += _logprobs
+                    yield line["choices"][0]["delta"].get("content", ""), _logprobs
+
     except Exception as e:
         logger.error(f"Error streaming gpt4v {e}")
         output = ""
-    return output
+
+    return output, logprobs

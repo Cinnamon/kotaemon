@@ -159,6 +159,15 @@ class BaseChatOpenAI(ChatLLM):
             additional_kwargs["tool_calls"] = resp["choices"][0]["message"][
                 "tool_calls"
             ]
+
+        if resp["choices"][0].get("logprobs") is None:
+            logprobs = []
+        else:
+            logprobs = [
+                logprob["logprob"]
+                for logprob in resp["choices"][0]["logprobs"].get("content", [])
+            ]
+
         output = LLMInterface(
             candidates=[(_["message"]["content"] or "") for _ in resp["choices"]],
             content=resp["choices"][0]["message"]["content"] or "",
@@ -170,6 +179,7 @@ class BaseChatOpenAI(ChatLLM):
                 AIMessage(content=(_["message"]["content"]) or "")
                 for _ in resp["choices"]
             ],
+            logprobs=logprobs,
         )
 
         return output
@@ -216,11 +226,24 @@ class BaseChatOpenAI(ChatLLM):
             client, messages=input_messages, stream=True, **kwargs
         )
 
-        for chunk in resp:
-            if not chunk.choices:
+        for c in resp:
+            chunk = c.dict()
+            if not chunk["choices"]:
                 continue
-            if chunk.choices[0].delta.content is not None:
-                yield LLMInterface(content=chunk.choices[0].delta.content)
+            if chunk["choices"][0]["delta"]["content"] is not None:
+                if chunk["choices"][0].get("logprobs") is None:
+                    logprobs = []
+                else:
+                    logprobs = [
+                        logprob["logprob"]
+                        for logprob in chunk["choices"][0]["logprobs"].get(
+                            "content", []
+                        )
+                    ]
+
+                yield LLMInterface(
+                    content=chunk["choices"][0]["delta"]["content"], logprobs=logprobs
+                )
 
     async def astream(
         self, messages: str | BaseMessage | list[BaseMessage], *args, **kwargs

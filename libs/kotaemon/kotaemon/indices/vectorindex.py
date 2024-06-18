@@ -175,7 +175,7 @@ class VectorRetrieval(BaseRetrieval):
             ]
 
         # use additional reranker to re-order the document list
-        if self.rerankers:
+        if self.rerankers and text:
             for reranker in self.rerankers:
                 result = reranker(documents=result, query=text)
 

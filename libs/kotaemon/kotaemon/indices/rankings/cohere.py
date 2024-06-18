@@ -33,7 +33,7 @@ class CohereReranking(BaseReranking):
         )
         for r in response.results:
             doc = documents[r.index]
-            doc.metadata["relevance_score"] = round(r.relevance_score, 2)
+            doc.metadata["cohere_reranking_score"] = round(r.relevance_score, 2)
             compressed_docs.append(doc)
 
         return compressed_docs

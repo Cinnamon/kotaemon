@@ -7,7 +7,7 @@ from collections import defaultdict
 from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Generator, Optional, Sequence
 
 from ktem.db.models import engine
 from ktem.embeddings.manager import embedding_models_manager
@@ -30,7 +30,12 @@ from kotaemon.base import BaseComponent, Document, Node, Param, RetrievedDocumen
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.indices import VectorIndexing, VectorRetrieval
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
-from kotaemon.indices.rankings import BaseReranking, CohereReranking, LLMReranking
+from kotaemon.indices.rankings import (
+    BaseReranking,
+    CohereReranking,
+    LLMReranking,
+    LLMScoring,
+)
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 
 from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
@@ -75,7 +80,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
     """
 
     embedding: BaseEmbeddings
-    reranker: BaseReranking = LLMReranking.withx()
+    rerankers: Sequence[BaseReranking] = [LLMReranking.withx()]
     get_extra_table: bool = False
     mmr: bool = False
     top_k: int = 5
@@ -88,6 +93,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             vector_store=self.VS,
             doc_store=self.DS,
             retrieval_mode=self.retrieval_mode,  # type: ignore
+            rerankers=self.rerankers,
         )
 
     def run(
@@ -136,8 +142,6 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
 
         # rerank
         docs = self.vector_retrieval(text=text, top_k=self.top_k, **retrieval_kwargs)
-        if docs and self.get_from_path("reranker"):
-            docs = self.reranker(docs, query=text)
 
         if not self.get_extra_table:
             return docs
@@ -245,14 +249,16 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                 )
             ],
             retrieval_mode=user_settings["retrieval_mode"],
-            reranker=CohereReranking(),
+            rerankers=[LLMScoring(), CohereReranking()],
         )
         if not user_settings["use_reranking"]:
-            retriever.reranker = None  # type: ignore
-        elif isinstance(retriever.reranker, LLMReranking):
-            retriever.reranker.llm = llms.get(
-                user_settings["reranking_llm"], llms.get_default()
-            )
+            retriever.rerankers = []  # type: ignore
+        else:
+            for reranker in retriever.rerankers:
+                if isinstance(reranker, LLMReranking):
+                    reranker.llm = llms.get(
+                        user_settings["reranking_llm"], llms.get_default()
+                    )
 
         kwargs = {".doc_ids": selected}
         retriever.set_run(kwargs, temp=True)

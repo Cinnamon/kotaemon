@@ -6,6 +6,7 @@ from collections import defaultdict
 from functools import partial
 from typing import Generator
 
+import numpy as np
 import tiktoken
 from ktem.llms.manager import llms
 from ktem.utils.render import Render
@@ -43,6 +44,10 @@ def get_header(doc: Document):
 
     header += f" {doc.metadata.get('file_name', '<Unknown>')}"
     return header.strip()
+
+
+def is_close(val1, val2, tolerance=1e-9):
+    return abs(val1 - val2) <= tolerance
 
 
 class PrepareEvidencePipeline(BaseComponent):
@@ -119,10 +124,6 @@ class PrepareEvidencePipeline(BaseComponent):
                         + " \n<br>"
                     )
 
-            print("Retrieved #{}: {}".format(_id, retrieved_content))
-            print(retrieved_item.metadata)
-            print("Score", retrieved_item.metadata.get("relevance_score", None))
-
         if evidence_mode != EVIDENCE_MODE_FIGURE:
             # trim context by trim_len
             print("len (original)", len(evidence))
@@ -130,8 +131,6 @@ class PrepareEvidencePipeline(BaseComponent):
                 texts = self.trim_func([Document(text=evidence)])
                 evidence = texts[0].text
                 print("len (trimmed)", len(evidence))
-
-        print(f"PrepareEvidence with input {docs}\nOutput: {evidence}\n")
 
         return Document(content=(evidence_mode, evidence))
 
@@ -364,9 +363,13 @@ class AnswerWithContextPipeline(BaseComponent):
         prompt, images = self.get_prompt(question, evidence, evidence_mode)
 
         output = ""
+        logprobs = []
         if evidence_mode == EVIDENCE_MODE_FIGURE:
-            for text in stream_gpt4v(self.vlm_endpoint, images, prompt, max_tokens=768):
+            for text, _logprobs in stream_gpt4v(
+                self.vlm_endpoint, images, prompt, max_tokens=768
+            ):
                 output += text
+                logprobs += _logprobs
                 yield Document(channel="chat", content=text)
         else:
             messages = []
@@ -380,9 +383,10 @@ class AnswerWithContextPipeline(BaseComponent):
             try:
                 # try streaming first
                 print("Trying LLM streaming")
-                for text in self.llm.stream(messages):
-                    output += text.text
-                    yield Document(channel="chat", content=text.text)
+                for out_msg in self.llm.stream(messages):
+                    output += out_msg.text
+                    logprobs += out_msg.logprobs
+                    yield Document(channel="chat", content=out_msg.text)
             except NotImplementedError:
                 print("Streaming is not supported, falling back to normal processing")
                 output = self.llm(messages).text
@@ -393,7 +397,13 @@ class AnswerWithContextPipeline(BaseComponent):
         if evidence and self.enable_citation:
             citation = self.citation_pipeline(context=evidence, question=question)
 
-        answer = Document(text=output, metadata={"citation": citation})
+        answer = Document(
+            text=output,
+            metadata={
+                "citation": citation,
+                "qa_score": round(np.exp(np.average(logprobs)), 2),
+            },
+        )
 
         return answer
 
@@ -590,14 +600,35 @@ class FullQAPipeline(BaseReasoning):
                 if idx < len(ss) - 1:
                     text += id2docs[id].text[span["end"] : ss[idx + 1]["start"]]
             text += id2docs[id].text[ss[-1]["end"] :]
+            if is_close(id2docs[id].score, -1.0):
+                text_search_str = " default from full-text search<br>"
+            else:
+                text_search_str = "<br>"
+
+            if (
+                id2docs[id].metadata.get("llm_reranking_score") is None
+                or id2docs[id].metadata.get("cohere_reranking_score") is None
+            ):
+                cloned_chunk_str = (
+                    "<b>Cloned chunk for a table. No reranking score</b><br>"
+                )
+            else:
+                cloned_chunk_str = ""
+
             with_citation.append(
                 Document(
                     channel="info",
                     content=Render.collapsible(
                         header=(
                             f"{get_header(id2docs[id])}<br>"
-                            "<b>Relevance score:</b>"
-                            f' {id2docs[id].metadata.get("relevance_score")}'
+                            "<b>Vectorstore score:</b>"
+                            f" {round(id2docs[id].score, 2)}"
+                            f"{text_search_str}"
+                            f"{cloned_chunk_str}"
+                            "<b>LLM reranking score:</b>"
+                            f' {id2docs[id].metadata.get("llm_reranking_score")}<br>'
+                            "<b>Cohere reranking score:</b>"
+                            f' {id2docs[id].metadata.get("cohere_reranking_score")}<br>'
                         ),
                         content=Render.table(text),
                         open=True,
@@ -607,6 +638,20 @@ class FullQAPipeline(BaseReasoning):
 
         for id_ in list(not_detected):
             doc = id2docs[id_]
+            if is_close(doc.score, -1.0):
+                text_search_str = " default from full-text search<br>"
+            else:
+                text_search_str = "<br>"
+
+            if (
+                doc.metadata.get("llm_reranking_score") is None
+                or doc.metadata.get("cohere_reranking_score") is None
+            ):
+                cloned_chunk_str = (
+                    "<b>Cloned chunk for a table. No reranking score</b><br>"
+                )
+            else:
+                cloned_chunk_str = ""
             if doc.metadata.get("type", "") == "image":
                 without_citation.append(
                     Document(
@@ -614,8 +659,14 @@ class FullQAPipeline(BaseReasoning):
                         content=Render.collapsible(
                             header=(
                                 f"{get_header(doc)}<br>"
-                                "<b>Relevance score:</b>"
-                                f' {doc.metadata.get("relevance_score")}'
+                                "<b>Vectorstore score:</b>"
+                                f" {round(doc.score, 2)}"
+                                f"{text_search_str}"
+                                f"{cloned_chunk_str}"
+                                "<b>LLM reranking score:</b>"
+                                f' {doc.metadata.get("llm_reranking_score")}<br>'
+                                "<b>Cohere reranking score:</b>"
+                                f' {doc.metadata.get("cohere_reranking_score")}<br>'
                             ),
                             content=Render.image(
                                 url=doc.metadata["image_origin"], text=doc.text
@@ -631,8 +682,14 @@ class FullQAPipeline(BaseReasoning):
                         content=Render.collapsible(
                             header=(
                                 f"{get_header(doc)}<br>"
-                                "<b>Relevance score:</b>"
-                                f' {doc.metadata.get("relevance_score")}'
+                                "<b>Vectorstore score:</b>"
+                                f" {round(doc.score, 2)}"
+                                f"{text_search_str}"
+                                f"{cloned_chunk_str}"
+                                "<b>LLM reranking score:</b>"
+                                f' {doc.metadata.get("llm_reranking_score")}<br>'
+                                "<b>Cohere reranking score:</b>"
+                                f' {doc.metadata.get("cohere_reranking_score")}<br>'
                             ),
                             content=Render.table(doc.text),
                             open=True,
@@ -708,7 +765,7 @@ class FullQAPipeline(BaseReasoning):
         # show the evidence
         with_citation, without_citation = self.prepare_citations(answer, docs)
         if not with_citation and not without_citation:
-            yield Document(channel="info", content="No evidence found.\n")
+            yield Document(channel="info", content="<h5><b>No evidence found.</b></h5>")
         else:
             yield Document(channel="info", content=None)
             for _ in with_citation:
@@ -716,10 +773,21 @@ class FullQAPipeline(BaseReasoning):
             if without_citation:
                 yield Document(
                     channel="info",
-                    content="Retrieved segments without matching evidence:\n",
+                    content=(
+                        "<h5><b>Retrieved segments without matching evidence:"
+                        "</b></h5><br>"
+                    ),
                 )
                 for _ in without_citation:
                     yield _
+        yield Document(
+            channel="info",
+            content=(
+                "<h5><b>Question answering</b></h5><br>"
+                "<b>Question answering confidence:</b> "
+                f"{answer.metadata.get('qa_score')}"
+            ),
+        )
 
         return answer
 
