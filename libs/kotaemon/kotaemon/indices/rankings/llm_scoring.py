@@ -45,6 +45,7 @@ class LLMScoring(LLMReranking):
                 doc.metadata["llm_reranking_score"] = round(score, 2)
             else:
                 doc.metadata["llm_reranking_score"] = round(1 - score, 2)
+            filtered_docs.append(doc)
 
         # prevent returning empty result
         if len(filtered_docs) == 0:
