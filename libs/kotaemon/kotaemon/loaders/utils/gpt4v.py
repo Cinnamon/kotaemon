@@ -9,7 +9,11 @@ logger = logging.getLogger(__name__)
 
 
 def generate_gpt4v(
-    endpoint: str, images: str | List[str], prompt: str, max_tokens: int = 512
+    endpoint: str,
+    images: str | List[str],
+    prompt: str,
+    max_tokens: int = 512,
+    max_images: int = 10,
 ) -> str:
     # OpenAI API Key
     api_key = config("AZURE_OPENAI_API_KEY", default="")
@@ -30,13 +34,16 @@ def generate_gpt4v(
                         "type": "image_url",
                         "image_url": {"url": image},
                     }
-                    for image in images
+                    for image in images[:max_images]
                 ],
             }
         ],
         "max_tokens": max_tokens,
         "temperature": 0,
     }
+
+    if len(images) > max_images:
+        print(f"Truncated to {max_images} images (original {len(images)} images")
 
     response = requests.post(endpoint, headers=headers, json=payload)
 
@@ -52,7 +59,11 @@ def generate_gpt4v(
 
 
 def stream_gpt4v(
-    endpoint: str, images: str | List[str], prompt: str, max_tokens: int = 512
+    endpoint: str,
+    images: str | List[str],
+    prompt: str,
+    max_tokens: int = 512,
+    max_images: int = 10,
 ) -> Any:
     # OpenAI API Key
     api_key = config("AZURE_OPENAI_API_KEY", default="")
@@ -73,7 +84,7 @@ def stream_gpt4v(
                         "type": "image_url",
                         "image_url": {"url": image},
                     }
-                    for image in images
+                    for image in images[:max_images]
                 ],
             }
         ],
@@ -82,6 +93,8 @@ def stream_gpt4v(
         "logprobs": True,
         "temperature": 0,
     }
+    if len(images) > max_images:
+        print(f"Truncated to {max_images} images (original {len(images)} images")
     try:
         response = requests.post(endpoint, headers=headers, json=payload, stream=True)
         assert response.status_code == 200, str(response.content)
@@ -116,6 +129,7 @@ def stream_gpt4v(
 
     except Exception as e:
         logger.error(f"Error streaming gpt4v {e}")
+        logprobs = []
         output = ""
 
     return output, logprobs
