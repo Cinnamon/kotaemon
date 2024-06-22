@@ -146,6 +146,14 @@ class FileIndexPage(BasePage):
                     )
 
                 gr.Markdown("## File List")
+                self.filter = gr.Textbox(
+                    value="",
+                    label="Filter by name:",
+                    info=(
+                        "(1) Case-insensitive. "
+                        "(2) Search with empty string to show all files."
+                    ),
+                )
                 self.file_list_state = gr.State(value=None)
                 self.file_list = gr.DataFrame(
                     headers=[
@@ -354,7 +362,7 @@ class FileIndexPage(BasePage):
             )
             .then(
                 fn=self.list_file,
-                inputs=[self._app.user_id],
+                inputs=[self._app.user_id, self.filter],
                 outputs=[self.file_list_state, self.file_list],
             )
             .then(
@@ -420,7 +428,7 @@ class FileIndexPage(BasePage):
 
         uploadedEvent = onUploaded.then(
             fn=self.list_file,
-            inputs=[self._app.user_id],
+            inputs=[self._app.user_id, self.filter],
             outputs=[self.file_list_state, self.file_list],
             concurrency_limit=20,
         )
@@ -454,11 +462,18 @@ class FileIndexPage(BasePage):
             show_progress="hidden",
         )
 
+        self.filter.submit(
+            fn=self.list_file,
+            inputs=[self._app.user_id, self.filter],
+            outputs=[self.file_list_state, self.file_list],
+            show_progress="hidden",
+        )
+
     def _on_app_created(self):
         """Called when the app is created"""
         self._app.app.load(
             self.list_file,
-            inputs=[self._app.user_id],
+            inputs=[self._app.user_id, self.filter],
             outputs=[self.file_list_state, self.file_list],
         )
 
@@ -595,7 +610,7 @@ class FileIndexPage(BasePage):
 
         yield from self.index_fn(files, reindex, settings, user_id)
 
-    def list_file(self, user_id):
+    def list_file(self, user_id, name_pattern=""):
         if user_id is None:
             # not signed in
             return [], pd.DataFrame.from_records(
@@ -616,6 +631,8 @@ class FileIndexPage(BasePage):
             statement = select(Source)
             if self._index.config.get("private", False):
                 statement = statement.where(Source.user == user_id)
+            if name_pattern:
+                statement = statement.where(Source.name.ilike(f"%{name_pattern}%"))
             results = [
                 {
                     "id": each[0].id,
@@ -644,6 +661,7 @@ class FileIndexPage(BasePage):
                 ]
             )
 
+        print(f"{len(results)=}, {len(file_list)=}")
         return results, file_list
 
     def interact_file_list(self, list_files, ev: gr.SelectData):
