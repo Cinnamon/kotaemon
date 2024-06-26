@@ -1,20 +1,19 @@
-import langchain_core.messages
+import json
+import uuid
+from pathlib import Path
+
+from ktem.components import get_docstore, get_vectorstore
 from ktem.llms.manager import llms
 from ktem.reasoning.prompt_optimization.rewrite_question import (
     DEFAULT_REWRITE_PROMPT,
     RewriteQuestionPipeline,
 )
-from langchain.prompts import (
-    ChatPromptTemplate,
-    FewShotChatMessagePromptTemplate,
-    SemanticSimilarityExampleSelector,
-)
-from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
 from theflow.settings import settings as flowsettings
 
 from kotaemon.base import AIMessage, Document, HumanMessage, Node, SystemMessage
+from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.llms import ChatLLM
+from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 
 class FewshotRewriteQuestionPipeline(RewriteQuestionPipeline):
@@ -24,92 +23,78 @@ class FewshotRewriteQuestionPipeline(RewriteQuestionPipeline):
         llm: the language model to rewrite question
         rewrite_template: the prompt template for llm to paraphrase a text input
         lang: the language of the answer. Currently support English and Japanese
+        embedding: the embedding model to encode the question
+        vector_store: the vector store to store the encoded question
+        doc_store: the document store to store the original question
+        k: the number of examples to retrieve for rewriting
     """
 
     llm: ChatLLM = Node(default_callback=lambda _: llms.get_default())
     rewrite_template: str = DEFAULT_REWRITE_PROMPT
     lang: str = "English"
-    final_prompt: ChatPromptTemplate
+    embedding: BaseEmbeddings
+    vector_store: BaseVectorStore
+    doc_store: BaseDocumentStore
+    k: int = getattr(flowsettings, "N_PROMPT_OPT_EXAMPLES", 3)
 
-    def create_example_selector(
-        self, examples, k: int = getattr(flowsettings, "N_PROMPT_OPT_EXAMPLES", 0)
-    ):
-        if not examples:
-            return None
-
-        embeddings = OpenAIEmbeddings(
-            openai_api_key=getattr(flowsettings, "KH_EMBEDDINGS")["openai"]["spec"][
-                "api_key"
-            ],
-            openai_api_type="openai",
-            openai_api_base=getattr(flowsettings, "KH_EMBEDDINGS")["openai"]["spec"][
-                "base_url"
-            ],
-            openai_api_version=getattr(flowsettings, "KH_EMBEDDINGS")["openai"]["spec"][
-                "api_version"
-            ],
-        )
-        vectorstore = Chroma(
-            "rephrase_question",
-            embeddings,
-            persist_directory=str(getattr(flowsettings, "KH_APP_DATA_DIR")),
-        )
-        example_selector = SemanticSimilarityExampleSelector(
-            vectorstore=vectorstore,
-            k=k,
-        )
-
-        return example_selector
-
-    def create_prompt(self, examples, example_selector):
-        example_prompt = ChatPromptTemplate.from_messages(
-            [
-                ("human", self.rewrite_template.replace("{lang}", self.lang)),
-                ("ai", "{rewritten_question}"),
-            ]
-        )
-
-        if example_selector is not None:
-            few_shot_prompt = FewShotChatMessagePromptTemplate(
-                example_prompt=example_prompt,
-                input_variables=["question"],
-                example_selector=example_selector,
+    def add_documents(self, examples, batch_size: int = 50):
+        print("Adding fewshot examples for rewriting")
+        documents = []
+        for example in examples:
+            doc = Document(
+                text=example["input"], id_=str(uuid.uuid4()), metadata=example
             )
-        elif examples:
-            few_shot_prompt = FewShotChatMessagePromptTemplate(
-                example_prompt=example_prompt,
-                examples=examples,
+            documents.append(doc)
+
+        for i in range(0, len(documents), batch_size):
+            embeddings = self.embedding(documents[i : i + batch_size])
+            ids = [t.doc_id for t in documents[i : i + batch_size]]
+            self.vector_store.add(
+                embeddings=embeddings,
+                ids=ids,
             )
-
-        final_prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", "You are a helpful assistant"),
-                few_shot_prompt,
-                ("human", self.rewrite_template.replace("{lang}", self.lang)),
-            ]
-        )
-
-        return final_prompt
+            self.doc_store.add(documents[i : i + batch_size])
 
     @classmethod
-    def get_pipeline(cls, examples):
-        pipeline = cls()
-        example_selector = pipeline.create_example_selector(examples)
-        prompt = pipeline.create_prompt(examples, example_selector)
-        pipeline.final_prompt = prompt
+    def get_pipeline(
+        cls,
+        embedding,
+        example_path=Path(__file__).parent / "rephrase_question_train.json",
+        collection_name: str = "fewshot_rewrite_examples",
+    ):
+        vector_store = get_vectorstore(collection_name)
+        doc_store = get_docstore(collection_name)
+
+        pipeline = cls(
+            embedding=embedding, vector_store=vector_store, doc_store=doc_store
+        )
+        if vector_store.count() or doc_store.count():
+            return pipeline
+
+        examples = json.load(open(example_path, "r"))
+        pipeline.add_documents(examples)
 
         return pipeline
 
     def run(self, question: str) -> Document:  # type: ignore
-        messages = self.final_prompt.format_messages(question=question)
-        new_messages = []
-        for message in messages:
-            if isinstance(message, langchain_core.messages.human.HumanMessage):
-                new_messages.append(HumanMessage(content=message.content))
-            elif isinstance(message, langchain_core.messages.system.SystemMessage):
-                new_messages.append(SystemMessage(content=message.content))
-            elif isinstance(message, langchain_core.messages.ai.AIMessage):
-                new_messages.append(AIMessage(content=message.content))
+        emb = self.embedding(question)[0].embedding
+        _, _, ids = self.vector_store.query(embedding=emb, top_k=self.k)
+        examples = self.doc_store.get(ids)
+        messages = [SystemMessage(content="You are a helpful assistant")]
+        for example in examples:
+            messages.append(
+                HumanMessage(
+                    content=self.rewrite_template.format(
+                        question=example.metadata["input"], lang=self.lang
+                    )
+                )
+            )
+            messages.append(AIMessage(content=example.metadata["output"]))
+        messages.append(
+            HumanMessage(
+                content=self.rewrite_template.format(question=question, lang=self.lang)
+            )
+        )
 
-        result = self.llm(new_messages)
+        result = self.llm(messages)
         return result
