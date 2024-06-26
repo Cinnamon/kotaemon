@@ -1,12 +1,10 @@
 import asyncio
 import html
-import json
 import logging
 import random
 import re
 from collections import defaultdict
 from functools import partial
-from pathlib import Path
 from typing import Generator
 
 import numpy as np
@@ -786,7 +784,11 @@ class FullQAPipeline(BaseReasoning):
             result = rewrite_pipeline(question=message)
             if isinstance(result, Document):
                 message = result.text
-            elif isinstance(result, list) and isinstance(result[0], Document):
+            elif (
+                isinstance(result, list)
+                and len(result) > 0
+                and isinstance(result[0], Document)
+            ):
                 yield Document(
                     channel="info",
                     content="<h4>Sub questions and their answers</h4><br>",
@@ -910,20 +912,13 @@ class FullQAPipeline(BaseReasoning):
             retrievers: the retrievers to use
         """
         prefix = f"reasoning.options.{cls.get_info()['id']}"
-        example_path = (
-            Path(getattr(flowsettings, "KH_APP_DATA_DIR", ""))
-            / "rephrase_question_train.json"
-        )
-        examples = json.load(open(example_path, "r"))
-        examples = [
-            {"question": item["input"], "rewritten_question": item["output"]}
-            for item in examples
-        ]
         pipeline = cls(
             retrievers=retrievers,
             rewrite_pipelines=[
-                FewshotRewriteQuestionPipeline.get_pipeline(examples=examples),
-                DecomposeQuestionPipeline.get_pipeline(),
+                FewshotRewriteQuestionPipeline.get_pipeline(
+                    embedding=retrievers[0].embedding
+                ),
+                DecomposeQuestionPipeline(),
             ],
         )
 
