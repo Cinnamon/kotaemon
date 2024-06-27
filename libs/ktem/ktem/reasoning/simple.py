@@ -402,10 +402,7 @@ class AnswerWithContextPipeline(BaseComponent):
 
         answer = Document(
             text=output,
-            metadata={
-                "citation": citation,
-                "qa_score": round(np.exp(np.average(logprobs)), 2),
-            },
+            metadata={"citation": citation, "qa_score": np.exp(np.average(logprobs))},
         )
 
         return answer
@@ -618,6 +615,17 @@ class FullQAPipeline(BaseReasoning):
             else:
                 cloned_chunk_str = ""
 
+            vectorstore_score = round(id2docs[id].score, 2)
+            llm_reranking_score = (
+                round(id2docs[id].metadata["llm_reranking_score"], 2)
+                if id2docs[id].metadata.get("llm_reranking_score")
+                else None
+            )
+            cohere_reranking_score = (
+                round(id2docs[id].metadata["cohere_reranking_score"], 2)
+                if id2docs[id].metadata.get("cohere_reranking_score")
+                else None
+            )
             with_citation.append(
                 Document(
                     channel="info",
@@ -625,13 +633,13 @@ class FullQAPipeline(BaseReasoning):
                         header=(
                             f"{get_header(id2docs[id])}<br>"
                             "<b>Vectorstore score:</b>"
-                            f" {round(id2docs[id].score, 2)}"
+                            f" {vectorstore_score}"
                             f"{text_search_str}"
                             f"{cloned_chunk_str}"
                             "<b>LLM reranking score:</b>"
-                            f' {id2docs[id].metadata.get("llm_reranking_score")}<br>'
+                            f" {llm_reranking_score}<br>"
                             "<b>Cohere reranking score:</b>"
-                            f' {id2docs[id].metadata.get("cohere_reranking_score")}<br>'
+                            f" {cohere_reranking_score}<br>"
                         ),
                         content=Render.table(text),
                         open=True,
@@ -655,6 +663,18 @@ class FullQAPipeline(BaseReasoning):
                 )
             else:
                 cloned_chunk_str = ""
+
+            vectorstore_score = round(doc.score, 2)
+            llm_reranking_score = (
+                round(doc.metadata["llm_reranking_score"], 2)
+                if doc.metadata.get("llm_reranking_score")
+                else None
+            )
+            cohere_reranking_score = (
+                round(doc.metadata["cohere_reranking_score"], 2)
+                if doc.metadata.get("cohere_reranking_score")
+                else None
+            )
             if doc.metadata.get("type", "") == "image":
                 without_citation.append(
                     Document(
@@ -663,13 +683,13 @@ class FullQAPipeline(BaseReasoning):
                             header=(
                                 f"{get_header(doc)}<br>"
                                 "<b>Vectorstore score:</b>"
-                                f" {round(doc.score, 2)}"
+                                f" {vectorstore_score}"
                                 f"{text_search_str}"
                                 f"{cloned_chunk_str}"
                                 "<b>LLM reranking score:</b>"
-                                f' {doc.metadata.get("llm_reranking_score")}<br>'
+                                f" {llm_reranking_score}<br>"
                                 "<b>Cohere reranking score:</b>"
-                                f' {doc.metadata.get("cohere_reranking_score")}<br>'
+                                f" {cohere_reranking_score}<br>"
                             ),
                             content=Render.image(
                                 url=doc.metadata["image_origin"], text=doc.text
@@ -686,13 +706,13 @@ class FullQAPipeline(BaseReasoning):
                             header=(
                                 f"{get_header(doc)}<br>"
                                 "<b>Vectorstore score:</b>"
-                                f" {round(doc.score, 2)}"
+                                f" {vectorstore_score}"
                                 f"{text_search_str}"
                                 f"{cloned_chunk_str}"
                                 "<b>LLM reranking score:</b>"
-                                f' {doc.metadata.get("llm_reranking_score")}<br>'
+                                f" {llm_reranking_score}<br>"
                                 "<b>Cohere reranking score:</b>"
-                                f' {doc.metadata.get("cohere_reranking_score")}<br>'
+                                f" {cohere_reranking_score}<br>"
                             ),
                             content=Render.table(doc.text),
                             open=True,
@@ -770,12 +790,18 @@ class FullQAPipeline(BaseReasoning):
             if without_citation:
                 for _ in without_citation:
                     yield _
+
+        qa_score = (
+            round(answer.metadata["qa_score"], 2)
+            if answer.metadata.get("qa_score")
+            else None
+        )
         yield Document(
             channel="info",
             content=(
                 "<h5><b>Question answering</b></h5><br>"
                 "<b>Question answering confidence:</b> "
-                f"{answer.metadata.get('qa_score')}"
+                f"{qa_score}"
             ),
         )
 

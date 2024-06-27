@@ -42,9 +42,9 @@ class LLMScoring(LLMReranking):
             score = np.exp(np.average(result.logprobs))
             include_doc = output_parser.parse(result.text)
             if include_doc:
-                doc.metadata["llm_reranking_score"] = round(score, 2)
+                doc.metadata["llm_reranking_score"] = score
             else:
-                doc.metadata["llm_reranking_score"] = round(1 - score, 2)
+                doc.metadata["llm_reranking_score"] = 1 - score
             filtered_docs.append(doc)
 
         # prevent returning empty result
