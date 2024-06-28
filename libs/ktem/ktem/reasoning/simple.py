@@ -21,6 +21,14 @@ from kotaemon.base import (
     RetrievedDocument,
     SystemMessage,
 )
+from kotaemon.evaluate.answer_relevance import (
+    AnswerRelevanceEvaluator,
+    LLMAnswerRelevanceEvaluator,
+)
+from kotaemon.evaluate.groundedness import (
+    GroundednessEvaluator,
+    LLMGroundednessEvaluator,
+)
 from kotaemon.indices.qa.citation import CitationPipeline
 from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import ChatLLM, PromptTemplate
@@ -221,6 +229,13 @@ class AnswerWithContextPipeline(BaseComponent):
     lang: str = "English"  # support English and Japanese
     n_last_interactions: int = 5
 
+    groundedness_evaluator: GroundednessEvaluator = LLMGroundednessEvaluator(
+        llm=llms.get_default()
+    )
+    answer_relevance_evaluator: AnswerRelevanceEvaluator = LLMAnswerRelevanceEvaluator(
+        llm=llms.get_default()
+    )
+
     def get_prompt(self, question, evidence, evidence_mode: int):
         """Prepare the prompt and other information for LLM"""
         images = []
@@ -402,7 +417,12 @@ class AnswerWithContextPipeline(BaseComponent):
 
         answer = Document(
             text=output,
-            metadata={"citation": citation, "qa_score": np.exp(np.average(logprobs))},
+            metadata={
+                "citation": citation,
+                "qa_score": np.exp(np.average(logprobs)),
+                "groundedness": self.groundedness_evaluator(evidence, output),
+                "answer_relevance": self.answer_relevance_evaluator(question, output),
+            },
         )
 
         return answer
