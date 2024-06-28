@@ -29,6 +29,7 @@ from theflow.utils.modules import import_dotted_string
 
 from kotaemon.base import BaseComponent, Document, Node, Param, RetrievedDocument
 from kotaemon.embeddings import BaseEmbeddings
+from kotaemon.evaluate.context_relevance import LLMContextRelevanceEvaluator
 from kotaemon.indices import VectorIndexing, VectorRetrieval
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 from kotaemon.indices.rankings import BaseReranking, LLMReranking, LLMTrulensScoring
@@ -249,7 +250,13 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                 )
             ],
             retrieval_mode=user_settings["retrieval_mode"],
-            rerankers=[LLMTrulensScoring()],
+            rerankers=[
+                LLMTrulensScoring(
+                    context_relevance_evaluator=LLMContextRelevanceEvaluator(
+                        llm=llms.get_default()
+                    )
+                )
+            ],
         )
         if not user_settings["use_reranking"]:
             retriever.rerankers = []  # type: ignore
