@@ -11,7 +11,15 @@ from .base import BaseEmbeddings, Document, DocumentWithEmbedding
 
 
 def split_text_by_chunk_size(text: str, chunk_size: int) -> list[list[int]]:
-    """Split the text into chunks of a given size"""
+    """Split the text into chunks of a given size
+
+    Args:
+        text: text to split
+        chunk_size: size of each chunk
+
+    Returns:
+        list of chunks (as tokens)
+    """
     encoding = tiktoken.get_encoding("cl100k_base")
     tokens = iter(encoding.encode(text))
     result = []
