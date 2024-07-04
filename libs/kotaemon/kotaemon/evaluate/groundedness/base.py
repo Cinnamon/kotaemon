@@ -15,12 +15,13 @@ class GroundednessEvaluator(BaseComponent):
     """
 
     @abstractmethod
-    def run(self, evidence: str, answer: str) -> float:
+    def run(self, evidence: str, query: str, answer: str) -> float:
         """
         Calculate the groundedness score for the given evidence and answer.
 
         Parameters:
             evidence (str): The evidence string.
+            query (str): The query string
             answer (str): The answer string.
 
         Returns:
