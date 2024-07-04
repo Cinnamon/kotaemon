@@ -28,8 +28,8 @@ SYSTEM_PROMPT_TEMPLATE = PromptTemplate(
 
         - CONTEXT must be relevant and helpful for answering the entire QUESTION to get a score of 10.
 
-        - Never elaborate."""
-)  # noqa
+        - Never elaborate."""  # noqa: E501
+)
 
 USER_PROMPT_TEMPLATE = PromptTemplate(
     """QUESTION: {question}
@@ -137,8 +137,14 @@ class LLMTrulensScoring(LLMReranking):
                 results.append(self.llm(messages).text)
 
         # use Boolean parser to extract relevancy output from LLM
-        results = [float(re_0_10_rating(result)) / self.normalize for result in results]
-        for score, doc in zip(results, documents):
+        results = [
+            (r_idx, float(re_0_10_rating(result)) / self.normalize)
+            for r_idx, result in enumerate(results)
+        ]
+        results.sort(key=lambda x: x[1], reverse=True)
+
+        for r_idx, score in results:
+            doc = documents[r_idx]
             doc.metadata["llm_trulens_score"] = score
             filtered_docs.append(doc)
 
