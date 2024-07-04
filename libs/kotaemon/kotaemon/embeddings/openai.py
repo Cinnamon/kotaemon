@@ -87,7 +87,7 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
         splitted_indices = {}
         for idx, text in enumerate(input_doc):
             if self.context_length:
-                chunks = split_text_by_chunk_size(text.text, self.context_length)
+                chunks = split_text_by_chunk_size(text.text or " ", self.context_length)
                 splitted_indices[idx] = (len(input_), len(input_) + len(chunks))
                 input_.extend(chunks)
             else:
