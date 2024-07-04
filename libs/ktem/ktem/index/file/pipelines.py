@@ -253,7 +253,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             rerankers=[
                 LLMTrulensScoring(
                     context_relevance_evaluator=LLMContextRelevanceEvaluator(
-                        llm=llms.get_default()
+                        llm=llms.get(user_settings["reranking_llm"], llms.get_default())
                     )
                 )
             ],
