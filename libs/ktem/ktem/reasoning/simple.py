@@ -264,7 +264,7 @@ class AnswerWithContextPipeline(BaseComponent):
                 lang=self.lang,
             )
 
-        return prompt, images
+        return prompt, evidence, images
 
     def run(
         self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
@@ -275,7 +275,7 @@ class AnswerWithContextPipeline(BaseComponent):
         self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
     ) -> Document:
         history = kwargs.get("history", [])
-        prompt, images = self.get_prompt(question, evidence, evidence_mode)
+        prompt, evidence, images = self.get_prompt(question, evidence, evidence_mode)
 
         output = ""
         if evidence_mode == EVIDENCE_MODE_FIGURE:
@@ -327,7 +327,7 @@ class AnswerWithContextPipeline(BaseComponent):
             evidence_mode: the mode of evidence, 0 for text, 1 for table, 2 for chatbot
         """
         history = kwargs.get("history", [])
-        prompt, images = self.get_prompt(question, evidence, evidence_mode)
+        prompt, evidence, images = self.get_prompt(question, evidence, evidence_mode)
 
         citation_task = None
         if evidence and self.enable_citation:
@@ -378,7 +378,7 @@ class AnswerWithContextPipeline(BaseComponent):
         self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
     ) -> Generator[Document, None, Document]:
         history = kwargs.get("history", [])
-        prompt, images = self.get_prompt(question, evidence, evidence_mode)
+        prompt, evidence, images = self.get_prompt(question, evidence, evidence_mode)
 
         output = ""
         logprobs = []
@@ -420,7 +420,7 @@ class AnswerWithContextPipeline(BaseComponent):
             metadata={
                 "citation": citation,
                 "qa_score": np.exp(np.average(logprobs)),
-                "groundedness": self.groundedness_evaluator(evidence, output),
+                "groundedness": self.groundedness_evaluator(evidence, question, output),
                 "answer_relevance": self.answer_relevance_evaluator(question, output),
             },
         )
