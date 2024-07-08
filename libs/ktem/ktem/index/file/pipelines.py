@@ -35,7 +35,7 @@ from kotaemon.indices.rankings import (
     BaseReranking,
     CohereReranking,
     LLMReranking,
-    LLMScoring,
+    LLMTrulensScoring,
 )
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 
@@ -255,7 +255,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                 )
             ],
             retrieval_mode=user_settings["retrieval_mode"],
-            rerankers=[LLMScoring(), CohereReranking()],
+            rerankers=[CohereReranking(), LLMTrulensScoring()],
         )
         if not user_settings["use_reranking"]:
             retriever.rerankers = []  # type: ignore

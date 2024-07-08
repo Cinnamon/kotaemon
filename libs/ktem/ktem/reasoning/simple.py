@@ -3,6 +3,7 @@ import html
 import logging
 import re
 from collections import defaultdict
+from difflib import SequenceMatcher
 from functools import partial
 from typing import Generator
 
@@ -52,6 +53,26 @@ def get_header(doc: Document):
 
 def is_close(val1, val2, tolerance=1e-9):
     return abs(val1 - val2) <= tolerance
+
+
+def find_text(search_span, context):
+    sentence_list = search_span.split("\n")
+    matches = []
+    # don't search for small text
+    if len(search_span) > 5:
+        for sentence in sentence_list:
+            match = SequenceMatcher(
+                None, sentence, context, autojunk=False
+            ).find_longest_match()
+            if match.size > len(search_span) * 0.6:
+                matches.append((match.b, match.b + match.size))
+                print(
+                    "search",
+                    search_span,
+                    "matched",
+                    context[match.b : match.b + match.size],
+                )
+    return matches
 
 
 _default_token_func = tiktoken.encoding_for_model("gpt-3.5-turbo").encode
@@ -150,9 +171,9 @@ class PrepareEvidencePipeline(BaseComponent):
 
 
 DEFAULT_QA_TEXT_PROMPT = (
-    "Use the following pieces of context to answer the question at the end. "
+    "Use the following pieces of context to answer the question at the end in detail with clear explanation. "  # noqa: E501
     "If you don't know the answer, just say that you don't know, don't try to "
-    "make up an answer. Keep the answer as concise as possible. Give answer in "
+    "make up an answer. Give answer in "
     "{lang}.\n\n"
     "{context}\n"
     "Question: {question}\n"
@@ -160,7 +181,7 @@ DEFAULT_QA_TEXT_PROMPT = (
 )
 
 DEFAULT_QA_TABLE_PROMPT = (
-    "Use the given context: texts, tables, and figures below to answer the question."
+    "Use the given context: texts, tables, and figures below to answer the question, "
     "then provide answer with clear explanation."
     "If you don't know the answer, just say that you don't know, "
     "don't try to make up an answer. Give answer in {lang}.\n\n"
@@ -168,7 +189,7 @@ DEFAULT_QA_TABLE_PROMPT = (
     "{context}\n"
     "Question: {question}\n"
     "Helpful Answer:"
-)
+)  # noqa
 
 DEFAULT_QA_CHATBOT_PROMPT = (
     "Pick the most suitable chatbot scenarios to answer the question at the end, "
@@ -179,7 +200,7 @@ DEFAULT_QA_CHATBOT_PROMPT = (
     "{context}\n"
     "Question: {question}\n"
     "Answer:"
-)
+)  # noqa
 
 DEFAULT_QA_FIGURE_PROMPT = (
     "Use the given context: texts, tables, and figures below to answer the question. "
@@ -189,7 +210,16 @@ DEFAULT_QA_FIGURE_PROMPT = (
     "{context}\n"
     "Question: {question}\n"
     "Answer: "
-)
+)  # noqa
+
+DEFAULT_REWRITE_PROMPT = (
+    "Given the following question, rephrase and expand it "
+    "to help you do better answering. Maintain all information "
+    "in the original question. Keep the question as concise as possible. "
+    "Give answer in {lang}\n"
+    "Original question: {question}\n"
+    "Rephrased question: "
+)  # noqa
 
 
 class AnswerWithContextPipeline(BaseComponent):
@@ -402,12 +432,14 @@ class AnswerWithContextPipeline(BaseComponent):
         if evidence and self.enable_citation:
             citation = self.citation_pipeline(context=evidence, question=question)
 
+        if logprobs:
+            qa_score = np.exp(np.average(logprobs))
+        else:
+            qa_score = None
+
         answer = Document(
             text=output,
-            metadata={
-                "citation": citation,
-                "qa_score": round(np.exp(np.average(logprobs)), 2),
-            },
+            metadata={"citation": citation, "qa_score": qa_score},
         )
 
         return answer
@@ -536,6 +568,47 @@ class FullQAPipeline(BaseReasoning):
 
         return docs, info
 
+    def _format_retrieval_score_and_doc(
+        self,
+        doc: Document,
+        rendered_doc_content: str,
+        open_collapsible: bool = False,
+    ) -> str:
+        """Format the retrieval score and the document"""
+        # score from doc_store (Elasticsearch)
+        if is_close(doc.score, -1.0):
+            text_search_str = " default from full-text search<br>"
+        else:
+            text_search_str = "<br>"
+
+        vectorstore_score = round(doc.score, 2)
+        llm_reranking_score = (
+            round(doc.metadata["llm_trulens_score"], 2)
+            if doc.metadata.get("llm_trulens_score") is not None
+            else None
+        )
+        cohere_reranking_score = (
+            round(doc.metadata["cohere_reranking_score"], 2)
+            if doc.metadata.get("cohere_reranking_score")
+            else None
+        )
+        item_type_prefix = doc.metadata.get("type", "")
+        item_type_prefix = item_type_prefix.capitalize()
+        if item_type_prefix:
+            item_type_prefix += " from "
+
+        return Render.collapsible(
+            header=(f"{item_type_prefix}{get_header(doc)} [{llm_reranking_score}]"),
+            content="<b>Vectorstore score:</b>"
+            f" {vectorstore_score}"
+            f"{text_search_str}"
+            "<b>LLM reranking score:</b>"
+            f" {llm_reranking_score}<br>"
+            "<b>Cohere reranking score:</b>"
+            f" {cohere_reranking_score}<br>" + rendered_doc_content,
+            open=open_collapsible,
+        )
+
     def prepare_citations(self, answer, docs) -> tuple[list[Document], list[Document]]:
         """Prepare the citations to show on the UI"""
         with_citation, without_citation = [], []
@@ -545,116 +618,63 @@ class FullQAPipeline(BaseReasoning):
             for fact_with_evidence in answer.metadata["citation"].answer:
                 for quote in fact_with_evidence.substring_quote:
                     for doc in docs:
-                        start_idx = doc.text.find(quote)
-                        if start_idx == -1:
-                            continue
+                        matches = find_text(quote, doc.text)
 
-                        end_idx = start_idx + len(quote)
-
-                        current_idx = start_idx
-                        if "|" not in doc.text[start_idx:end_idx]:
-                            spans[doc.doc_id].append(
-                                {"start": start_idx, "end": end_idx}
-                            )
-                        else:
-                            while doc.text[current_idx:end_idx].find("|") != -1:
-                                match_idx = doc.text[current_idx:end_idx].find("|")
+                        for start, end in matches:
+                            if "|" not in doc.text[start:end]:
                                 spans[doc.doc_id].append(
                                     {
-                                        "start": current_idx,
-                                        "end": current_idx + match_idx,
+                                        "start": start,
+                                        "end": end,
                                     }
                                 )
-                                current_idx += match_idx + 2
-                                if current_idx > end_idx:
-                                    break
-                        break
 
         id2docs = {doc.doc_id: doc for doc in docs}
         not_detected = set(id2docs.keys()) - set(spans.keys())
-        for id, ss in spans.items():
+
+        # render highlight spans
+        for _id, ss in spans.items():
             if not ss:
-                not_detected.add(id)
+                not_detected.add(_id)
                 continue
+            cur_doc = id2docs[_id]
             ss = sorted(ss, key=lambda x: x["start"])
-            text = id2docs[id].text[: ss[0]["start"]]
+            text = cur_doc.text[: ss[0]["start"]]
             for idx, span in enumerate(ss):
-                text += Render.highlight(id2docs[id].text[span["start"] : span["end"]])
+                text += Render.highlight(cur_doc.text[span["start"] : span["end"]])
                 if idx < len(ss) - 1:
-                    text += id2docs[id].text[span["end"] : ss[idx + 1]["start"]]
-            text += id2docs[id].text[ss[-1]["end"] :]
-            if is_close(id2docs[id].score, -1.0):
-                text_search_str = " default from full-text search<br>"
-            else:
-                text_search_str = "<br>"
-
-            if (
-                id2docs[id].metadata.get("llm_reranking_score") is None
-                or id2docs[id].metadata.get("cohere_reranking_score") is None
-            ):
-                cloned_chunk_str = (
-                    "<b>Cloned chunk for a table. No reranking score</b><br>"
-                )
-            else:
-                cloned_chunk_str = ""
-
+                    text += cur_doc.text[span["end"] : ss[idx + 1]["start"]]
+            text += cur_doc.text[ss[-1]["end"] :]
+            # add to display list
             with_citation.append(
                 Document(
                     channel="info",
-                    content=Render.collapsible(
-                        header=(
-                            f"{get_header(id2docs[id])}<br>"
-                            "<b>Vectorstore score:</b>"
-                            f" {round(id2docs[id].score, 2)}"
-                            f"{text_search_str}"
-                            f"{cloned_chunk_str}"
-                            "<b>LLM reranking score:</b>"
-                            f' {id2docs[id].metadata.get("llm_reranking_score")}<br>'
-                            "<b>Cohere reranking score:</b>"
-                            f' {id2docs[id].metadata.get("cohere_reranking_score")}<br>'
-                        ),
-                        content=Render.table(text),
-                        open=True,
+                    content=self._format_retrieval_score_and_doc(
+                        cur_doc,
+                        Render.table(text),
+                        open_collapsible=True,
                     ),
                 )
             )
+        print("Got {} cited docs".format(len(with_citation)))
 
-        for id_ in list(not_detected):
+        sorted_not_detected_items_with_scores = [
+            (id_, id2docs[id_].metadata.get("llm_trulens_score", 0.0))
+            for id_ in not_detected
+        ]
+        sorted_not_detected_items_with_scores.sort(key=lambda x: x[1], reverse=True)
+
+        for id_, _ in sorted_not_detected_items_with_scores:
             doc = id2docs[id_]
-            if is_close(doc.score, -1.0):
-                text_search_str = " default from full-text search<br>"
-            else:
-                text_search_str = "<br>"
-
-            if (
-                doc.metadata.get("llm_reranking_score") is None
-                or doc.metadata.get("cohere_reranking_score") is None
-            ):
-                cloned_chunk_str = (
-                    "<b>Cloned chunk for a table. No reranking score</b><br>"
-                )
-            else:
-                cloned_chunk_str = ""
             if doc.metadata.get("type", "") == "image":
                 without_citation.append(
                     Document(
                         channel="info",
-                        content=Render.collapsible(
-                            header=(
-                                f"{get_header(doc)}<br>"
-                                "<b>Vectorstore score:</b>"
-                                f" {round(doc.score, 2)}"
-                                f"{text_search_str}"
-                                f"{cloned_chunk_str}"
-                                "<b>LLM reranking score:</b>"
-                                f' {doc.metadata.get("llm_reranking_score")}<br>'
-                                "<b>Cohere reranking score:</b>"
-                                f' {doc.metadata.get("cohere_reranking_score")}<br>'
-                            ),
-                            content=Render.image(
+                        content=self._format_retrieval_score_and_doc(
+                            doc,
+                            Render.image(
                                 url=doc.metadata["image_origin"], text=doc.text
                             ),
-                            open=True,
                         ),
                     )
                 )
@@ -662,20 +682,8 @@ class FullQAPipeline(BaseReasoning):
                 without_citation.append(
                     Document(
                         channel="info",
-                        content=Render.collapsible(
-                            header=(
-                                f"{get_header(doc)}<br>"
-                                "<b>Vectorstore score:</b>"
-                                f" {round(doc.score, 2)}"
-                                f"{text_search_str}"
-                                f"{cloned_chunk_str}"
-                                "<b>LLM reranking score:</b>"
-                                f' {doc.metadata.get("llm_reranking_score")}<br>'
-                                "<b>Cohere reranking score:</b>"
-                                f' {doc.metadata.get("cohere_reranking_score")}<br>'
-                            ),
-                            content=Render.table(doc.text),
-                            open=True,
+                        content=self._format_retrieval_score_and_doc(
+                            doc, Render.table(doc.text)
                         ),
                     )
                 )
@@ -727,6 +735,8 @@ class FullQAPipeline(BaseReasoning):
             message = self.rewrite_pipeline(question=message).text
             print("Rewrite result", message)
 
+        print(f"Rewritten message (use_rewrite={self.use_rewrite}): {message}")
+        print(f"Retrievers {self.retrievers}")
         # should populate the context
         docs, infos = self.retrieve(message, history)
         print(f"Got {len(docs)} retrieved documents")
@@ -753,6 +763,20 @@ class FullQAPipeline(BaseReasoning):
             if without_citation:
                 for _ in without_citation:
                     yield _
+
+        qa_score = (
+            round(answer.metadata["qa_score"], 2)
+            if answer.metadata.get("qa_score")
+            else None
+        )
+        yield Document(
+            channel="info",
+            content=(
+                "<h5><b>Question answering</b></h5><br>"
+                "<b>Question answering confidence:</b> "
+                f"{qa_score}"
+            ),
+        )
 
         return answer
 
