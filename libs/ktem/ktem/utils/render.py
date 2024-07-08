@@ -1,6 +1,19 @@
 import markdown
 
 
+def replace_mardown_header(text: str) -> str:
+    textlines = text.splitlines()
+    newlines = []
+    for line in textlines:
+        if line.startswith("#"):
+            line = "**" + line.replace("#", "") + "**"
+        if line.startswith("=="):
+            line = ""
+        newlines.append(line)
+
+    return "\n".join(newlines)
+
+
 class Render:
     """Default text rendering into HTML for the UI"""
 
@@ -13,6 +26,7 @@ class Render:
     @staticmethod
     def table(text: str) -> str:
         """Render table from markdown format into HTML"""
+        text = replace_mardown_header(text)
         return markdown.markdown(text, extensions=["markdown.extensions.tables"])
 
     @staticmethod

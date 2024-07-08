@@ -215,7 +215,7 @@ class RewooAgentPipeline(BaseReasoning):
     use_rewrite: bool = False
     enable_citation: bool = False
 
-    def format_info_panel(self, worker_log):
+    def format_info_panel_evidence(self, worker_log):
         header = ""
         content = []
 
@@ -223,6 +223,10 @@ class RewooAgentPipeline(BaseReasoning):
             if line.startswith("#Plan"):
                 # line starts with #Plan should be marked as a new segment
                 header = line
+            elif line.startswith("#Action"):
+                # small fix for markdown output
+                line = "\\" + line + "<br>"
+                content.append(line)
             elif line.startswith("#"):
                 # stop markdown from rendering big headers
                 line = "\\" + line
@@ -238,6 +242,17 @@ class RewooAgentPipeline(BaseReasoning):
             content=Render.collapsible(
                 header=header,
                 content=Render.table("\n".join(content)),
+                open=False,
+            ),
+        )
+
+    def format_info_panel_planner(self, planner_output):
+        planner_output = planner_output.replace("\n", "<br>")
+        return Document(
+            channel="info",
+            content=Render.collapsible(
+                header="Planner Output",
+                content=planner_output,
                 open=True,
             ),
         )
@@ -285,6 +300,10 @@ class RewooAgentPipeline(BaseReasoning):
                 # line starts with #Plan should be marked as a new segment
                 new_segment = [line]
                 segments.append(new_segment)
+            elif line.startswith("#Action"):
+                # small fix for markdown output
+                line = "\\" + line + "<br>"
+                segments[-1].append(line)
             elif line.startswith("#"):
                 # stop markdown from rendering big headers
                 line = "\\" + line
@@ -337,18 +356,23 @@ class RewooAgentPipeline(BaseReasoning):
         for item in output_stream:
             if item.intermediate_steps:
                 for step in item.intermediate_steps:
-                    yield Document(
-                        channel="info",
-                        content=self.format_info_panel(step["worker_log"]),
-                    )
+                    if "planner_log" in step:
+                        yield Document(
+                            channel="info",
+                            content=self.format_info_panel_planner(step["planner_log"]),
+                        )
+                    else:
+                        yield Document(
+                            channel="info",
+                            content=self.format_info_panel_evidence(step["worker_log"]),
+                        )
             if item.text:
+                # final answer
                 yield Document(channel="chat", content=item.text)
 
         answer = output_stream.value
         yield Document(channel="info", content=None)
-        refined_citations = self.prepare_citation(answer)
-        for _ in refined_citations:
-            yield _
+        yield from self.prepare_citation(answer)
 
         return answer
 

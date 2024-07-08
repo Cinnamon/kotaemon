@@ -202,7 +202,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             },
             "num_retrieval": {
                 "name": "Number of document chunks to retrieve",
-                "value": 3,
+                "value": 10,
                 "component": "number",
             },
             "retrieval_mode": {
@@ -225,7 +225,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             },
             "use_reranking": {
                 "name": "Use reranking (Cohere)",
-                "value": False,
+                "value": True,
                 "choices": [True, False],
                 "component": "checkbox",
             },

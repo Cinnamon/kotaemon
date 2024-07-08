@@ -22,12 +22,16 @@ class LLMTool(BaseTool):
     )
     llm: BaseLLM
     args_schema: Optional[Type[BaseModel]] = LLMArgs
+    dummy_mode: bool = True
 
     def _run_tool(self, query: AnyStr) -> str:
         output = None
         try:
-            response = self.llm(query)
+            if not self.dummy_mode:
+                response = self.llm(query)
+            else:
+                response = None
         except ValueError:
             raise ToolException("LLM Tool call failed")
-        output = response.text
+        output = response.text if response else "<->"
         return output
