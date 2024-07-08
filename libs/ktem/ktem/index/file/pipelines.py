@@ -200,12 +200,6 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                 "choices": reranking_llm_choices,
                 "special_type": "llm",
             },
-            "separate_embedding": {
-                "name": "Use separate embedding",
-                "value": False,
-                "choices": [("Yes", True), ("No", False)],
-                "component": "dropdown",
-            },
             "num_retrieval": {
                 "name": "Number of document chunks to retrieve",
                 "value": 3,
@@ -225,12 +219,12 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             },
             "mmr": {
                 "name": "Use MMR",
-                "value": True,
+                "value": False,
                 "choices": [True, False],
                 "component": "checkbox",
             },
             "use_reranking": {
-                "name": "Use reranking",
+                "name": "Use reranking (Cohere)",
                 "value": False,
                 "choices": [True, False],
                 "component": "checkbox",

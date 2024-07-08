@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import re
 from concurrent.futures import ThreadPoolExecutor
+from itertools import islice
+
+import tiktoken
 
 from kotaemon.base import Document, HumanMessage, SystemMessage
 from kotaemon.llms import BaseLLM, PromptTemplate
@@ -42,6 +45,8 @@ USER_PROMPT_TEMPLATE = PromptTemplate(
 PATTERN_INTEGER: re.Pattern = re.compile(r"([+-]?[1-9][0-9]*|0)")
 """Regex that matches integers."""
 
+MAX_CONTEXT_LEN = 8000
+
 
 def validate_rating(rating) -> int:
     """Validate a rating is between 0 and 10."""
@@ -50,6 +55,24 @@ def validate_rating(rating) -> int:
         raise ValueError("Rating must be between 0 and 10")
 
     return rating
+
+
+def split_text_by_chunk_size(text: str, chunk_size: int) -> list[list[int]]:
+    """Split the text into chunks of a given size
+
+    Args:
+        text: text to split
+        chunk_size: size of each chunk
+
+    Returns:
+        list of chunks (as tokens)
+    """
+    encoding = tiktoken.get_encoding("cl100k_base")
+    tokens = iter(encoding.encode(text))
+    result = []
+    while chunk := list(islice(tokens, chunk_size)):
+        result.append(chunk)
+    return result
 
 
 def re_0_10_rating(s: str) -> int:
@@ -91,7 +114,6 @@ class LLMTrulensScoring(LLMReranking):
     llm: BaseLLM
     system_prompt_template: PromptTemplate = SYSTEM_PROMPT_TEMPLATE
     user_prompt_template: PromptTemplate = USER_PROMPT_TEMPLATE
-    top_k: int = 3
     concurrent: bool = True
     normalize: float = 10
 
@@ -108,6 +130,13 @@ class LLMTrulensScoring(LLMReranking):
             with ThreadPoolExecutor() as executor:
                 futures = []
                 for doc in documents:
+                    try:
+                        chunked_doc_content = split_text_by_chunk_size(
+                            doc.get_content(), MAX_CONTEXT_LEN
+                        )[0]
+                    except IndexError:
+                        chunked_doc_content = doc.get_content()
+
                     messages = []
                     messages.append(
                         SystemMessage(self.system_prompt_template.populate())
@@ -115,7 +144,7 @@ class LLMTrulensScoring(LLMReranking):
                     messages.append(
                         HumanMessage(
                             self.user_prompt_template.populate(
-                                question=query, context=doc.get_content()
+                                question=query, context=chunked_doc_content
                             )
                         )
                     )
@@ -147,9 +176,5 @@ class LLMTrulensScoring(LLMReranking):
             doc = documents[r_idx]
             doc.metadata["llm_trulens_score"] = score
             filtered_docs.append(doc)
-
-        # prevent returning empty result
-        if len(filtered_docs) == 0:
-            filtered_docs = documents[: self.top_k]
 
         return filtered_docs
