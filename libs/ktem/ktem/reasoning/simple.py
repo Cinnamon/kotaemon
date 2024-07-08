@@ -66,12 +66,7 @@ def find_text(search_span, context):
             ).find_longest_match()
             if match.size > len(search_span) * 0.6:
                 matches.append((match.b, match.b + match.size))
-                print(
-                    "search",
-                    search_span,
-                    "matched",
-                    context[match.b : match.b + match.size],
-                )
+
     return matches
 
 
@@ -996,7 +991,6 @@ class FullDecomposeQAPipeline(FullQAPipeline):
             settings: the settings for the pipeline
             retrievers: the retrievers to use
         """
-        print(settings)
         prefix = f"reasoning.options.{cls.get_info()['id']}"
         pipeline = cls(
             retrievers=retrievers,
