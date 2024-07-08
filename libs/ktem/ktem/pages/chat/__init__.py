@@ -21,12 +21,15 @@ from .common import STATE
 from .control import ConversationControl
 from .report import ReportIssue
 
+DEFAULT_SETTING = "(default)"
+
 
 class ChatPage(BasePage):
     def __init__(self, app):
         self._app = app
         self._indices_input = []
         self.on_building_ui()
+        self._reasoning_type = gr.State(value=None)
 
     def on_building_ui(self):
         with gr.Row():
@@ -68,6 +71,22 @@ class ChatPage(BasePage):
                                 self._indices_input.append(gr_index)
                         setattr(self, f"_index_{index.id}", index_ui)
 
+                with gr.Accordion(label="Hint") as _:
+                    self.upload_help = gr.HTML(
+                        "<i>To upload new file(s), go to "
+                        "<b>File Index</b> section in top navigation bar.</i>"
+                    )
+
+                # a hacky quick switch for reasoning type option
+                with gr.Accordion(label="Reasoning options", open=False) as _:
+                    reasoning_type_values = [
+                        (DEFAULT_SETTING, DEFAULT_SETTING)
+                    ] + self._app.default_settings.reasoning.settings["use"].choices
+                    self.reasoning_types = gr.Dropdown(
+                        choices=reasoning_type_values,
+                        value=DEFAULT_SETTING,
+                        show_label=False,
+                    )
                 self.report_issue = ReportIssue(self._app)
 
             with gr.Column(scale=6, elem_id="chat-area"):
@@ -106,6 +125,7 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_id,
                 self.chat_panel.chatbot,
                 self._app.settings_state,
+                self._reasoning_type,
                 self.chat_state,
                 self._app.user_id,
             ]
@@ -148,6 +168,7 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_id,
                 self.chat_panel.chatbot,
                 self._app.settings_state,
+                self._reasoning_type,
                 self.chat_state,
                 self._app.user_id,
             ]
@@ -286,6 +307,11 @@ class ChatPage(BasePage):
             + self._indices_input,
             outputs=None,
         )
+        self.reasoning_types.change(
+            self.reasoning_changed,
+            inputs=[self.reasoning_types],
+            outputs=[self._reasoning_type],
+        )
         if getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False):
             self.chat_suggestion.example.select(
                 self.chat_suggestion.select_example,
@@ -382,6 +408,12 @@ class ChatPage(BasePage):
             session.add(result)
             session.commit()
 
+    def reasoning_changed(self, reasoning_type):
+        if reasoning_type != DEFAULT_SETTING:
+            # override app settings state (temporary)
+            gr.Info("Reasoning type changed to `{}`".format(reasoning_type))
+        return reasoning_type
+
     def is_liked(self, convo_id, liked: gr.LikeData):
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == convo_id)
@@ -396,7 +428,14 @@ class ChatPage(BasePage):
             session.add(result)
             session.commit()
 
-    def create_pipeline(self, settings: dict, state: dict, user_id: int, *selecteds):
+    def create_pipeline(
+        self,
+        settings: dict,
+        session_reasoning_type: str,
+        state: dict,
+        user_id: int,
+        *selecteds,
+    ):
         """Create the pipeline from settings
 
         Args:
@@ -408,8 +447,15 @@ class ChatPage(BasePage):
         Returns:
             - the pipeline objects
         """
-        reasoning_mode = settings["reasoning.use"]
+        # override reasoning_mode by temporary chat page state
+        print("Session reasoning type", session_reasoning_type)
+        reasoning_mode = (
+            settings["reasoning.use"]
+            if session_reasoning_type == DEFAULT_SETTING
+            else session_reasoning_type
+        )
         reasoning_cls = reasonings[reasoning_mode]
+        print("Reasoning class", reasoning_cls)
         reasoning_id = reasoning_cls.get_info()["id"]
 
         # get retrievers
@@ -437,7 +483,14 @@ class ChatPage(BasePage):
         return pipeline, reasoning_state
 
     def chat_fn(
-        self, conversation_id, chat_history, settings, state, user_id, *selecteds
+        self,
+        conversation_id,
+        chat_history,
+        settings,
+        reasoning_type,
+        state,
+        user_id,
+        *selecteds,
     ):
         """Chat function"""
         chat_input = chat_history[-1][0]
@@ -447,8 +500,9 @@ class ChatPage(BasePage):
 
         # construct the pipeline
         pipeline, reasoning_state = self.create_pipeline(
-            settings, state, user_id, *selecteds
+            settings, reasoning_type, state, user_id, *selecteds
         )
+        print("Reasoning state", reasoning_state)
         pipeline.set_output_queue(queue)
 
         text, refs = "", ""
@@ -481,7 +535,6 @@ class ChatPage(BasePage):
                     refs += response.content
 
             if len(refs) > len_ref:
-                print(f"Len refs: {len(refs)}")
                 len_ref = len(refs)
 
             state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
@@ -495,7 +548,14 @@ class ChatPage(BasePage):
             yield chat_history + [(chat_input, text or empty_msg)], refs, state
 
     def regen_fn(
-        self, conversation_id, chat_history, settings, state, user_id, *selecteds
+        self,
+        conversation_id,
+        chat_history,
+        settings,
+        reasoning_type,
+        state,
+        user_id,
+        *selecteds,
     ):
         """Regen function"""
         if not chat_history:
@@ -505,7 +565,13 @@ class ChatPage(BasePage):
 
         state["app"]["regen"] = True
         for chat, refs, state in self.chat_fn(
-            conversation_id, chat_history, settings, state, user_id, *selecteds
+            conversation_id,
+            chat_history,
+            settings,
+            reasoning_type,
+            state,
+            user_id,
+            *selecteds,
         ):
             new_state = deepcopy(state)
             new_state["app"]["regen"] = False
