@@ -127,6 +127,8 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             results = session.execute(stmt)
             vs_ids = [r[0].target_id for r in results.all()]
 
+        # do first round top_k extension
+        retrieval_kwargs["do_extend"] = True
         retrieval_kwargs["scope"] = vs_ids
         retrieval_kwargs["filters"] = MetadataFilters(
             filters=[

@@ -97,7 +97,9 @@ class VectorIndexing(BaseIndexing):
                     markdown_content += f"\ntext:\n{input_[i].text}"
 
                 with open(
-                    Path(self.cache_dir) / f"{file_name.stem}_{self.count_+i}.md", "w", encoding="utf-8"
+                    Path(self.cache_dir) / f"{file_name.stem}_{self.count_+i}.md",
+                    "w",
+                    encoding="utf-8",
                 ) as f:
                     f.write(markdown_content)
             self.count_ += len(input_)
@@ -135,8 +137,12 @@ class VectorRetrieval(BaseRetrieval):
         """
         if top_k is None:
             top_k = self.top_k
+        do_extend = kwargs.pop("do_extend", False)
 
-        top_k_first_round = top_k * self.first_round_top_k_mult
+        if do_extend:
+            top_k_first_round = top_k * self.first_round_top_k_mult
+        else:
+            top_k_first_round = top_k
 
         if self.doc_store is None:
             raise ValueError(
