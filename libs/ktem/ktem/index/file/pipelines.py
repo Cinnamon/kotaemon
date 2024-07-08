@@ -113,6 +113,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             text: the text to retrieve similar documents
             doc_ids: list of document ids to constraint the retrieval
         """
+        print("searching in doc_ids", doc_ids)
         if not doc_ids:
             logger.info(f"Skip retrieval because of no selected files: {self}")
             return []
@@ -266,7 +267,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                     )
 
         kwargs = {".doc_ids": selected}
-        retriever.set_run(kwargs, temp=True)
+        retriever.set_run(kwargs, temp=False)
         return retriever
 
 

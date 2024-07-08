@@ -1,3 +1,5 @@
+import logging
+
 from ktem.llms.manager import llms
 from ktem.reasoning.prompt_optimization.rewrite_question import RewriteQuestionPipeline
 from pydantic import BaseModel, Field
@@ -5,15 +7,7 @@ from pydantic import BaseModel, Field
 from kotaemon.base import Document, HumanMessage, Node, SystemMessage
 from kotaemon.llms import ChatLLM
 
-SYSTEM_PROMPT_TEMPLATE = (
-    "You are an expert at converting user complex questions into sub questions."
-    "Perform query decomposition. "
-    "Given a user question, break it down into the most specific sub questions you can"
-    "which will help you answer the original question. "
-    "Each sub question should be about a single concept/fact/idea."
-    "If there are acronyms or words you are not familiar with, "
-    "do not try to rephrase them."
-)
+logger = logging.getLogger(__name__)
 
 
 class SubQuery(BaseModel):
@@ -36,6 +30,17 @@ class DecomposeQuestionPipeline(RewriteQuestionPipeline):
     llm: ChatLLM = Node(
         default_callback=lambda _: llms.get("openai-gpt4-turbo", llms.get_default())
     )
+    DECOMPOSE_SYSTEM_PROMPT_TEMPLATE = (
+        "You are an expert at converting user complex questions into sub questions. "
+        "Perform query decomposition using provided function_call. "
+        "Given a user question, break it down into the most specific sub"
+        " questions you can (at most 3) "
+        "which will help you answer the original question. "
+        "Each sub question should be about a single concept/fact/idea. "
+        "If there are acronyms or words you are not familiar with, "
+        "do not try to rephrase them."
+    )
+    prompt_template: str = DECOMPOSE_SYSTEM_PROMPT_TEMPLATE
 
     def create_prompt(self, question):
         schema = SubQuery.model_json_schema()
@@ -50,7 +55,7 @@ class DecomposeQuestionPipeline(RewriteQuestionPipeline):
         }
 
         messages = [
-            SystemMessage(content=SYSTEM_PROMPT_TEMPLATE),
+            SystemMessage(content=self.prompt_template),
             HumanMessage(content=question),
         ]
 
@@ -59,15 +64,16 @@ class DecomposeQuestionPipeline(RewriteQuestionPipeline):
     def run(self, question: str) -> list:  # type: ignore
         messages, llm_kwargs = self.create_prompt(question)
         result = self.llm(messages, **llm_kwargs)
-        tool_calls = result.additional_kwargs.get(["tool_calls"], [])
+        tool_calls = result.additional_kwargs.get("tool_calls", None)
         sub_queries = []
-        for tool_call in tool_calls:
-            sub_queries.append(
-                Document(
-                    content=SubQuery.parse_raw(
-                        tool_call["function"]["arguments"]
-                    ).sub_query
+        if tool_calls:
+            for tool_call in tool_calls:
+                sub_queries.append(
+                    Document(
+                        content=SubQuery.parse_raw(
+                            tool_call["function"]["arguments"]
+                        ).sub_query
+                    )
                 )
-            )
 
         return sub_queries
