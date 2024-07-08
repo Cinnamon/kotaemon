@@ -190,7 +190,9 @@ class ReactAgentPipeline(BaseReasoning):
             "<b>Action</b>: <em>{tool}[{input}]</em>\n\n<b>Output</b>: {output}"
         ).format(
             tool=step.tool if status == "thinking" else "",
-            input=step.tool_input.replace("\n", "") if status == "thinking" else "",
+            input=step.tool_input.replace("\n", "").replace('"', "")
+            if status == "thinking"
+            else "",
             output=output if status == "thinking" else "Finished",
         )
         return Document(

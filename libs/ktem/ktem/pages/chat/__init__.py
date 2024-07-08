@@ -451,7 +451,7 @@ class ChatPage(BasePage):
         print("Session reasoning type", session_reasoning_type)
         reasoning_mode = (
             settings["reasoning.use"]
-            if session_reasoning_type == DEFAULT_SETTING
+            if session_reasoning_type in (DEFAULT_SETTING, None)
             else session_reasoning_type
         )
         reasoning_cls = reasonings[reasoning_mode]

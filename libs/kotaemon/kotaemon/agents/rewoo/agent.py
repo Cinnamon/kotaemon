@@ -317,6 +317,14 @@ class RewooAgent(BaseAgent):
         )
 
         print("Planner output:", planner_text_output)
+        # output planner to info panel
+        yield AgentOutput(
+            text="",
+            agent_type=self.agent_type,
+            status="thinking",
+            intermediate_steps=[{"planner_log": planner_text_output}],
+        )
+
         # Work
         worker_evidences, plugin_cost, plugin_token = self._get_worker_evidence(
             planner_evidences, evidence_level
@@ -326,7 +334,9 @@ class RewooAgent(BaseAgent):
             worker_log += f"{plan}: {plans[plan]}\n"
             current_progress = f"{plan}: {plans[plan]}\n"
             for e in plan_to_es[plan]:
+                worker_log += f"#Action: {planner_evidences.get(e, None)}\n"
                 worker_log += f"{e}: {worker_evidences[e]}\n"
+                current_progress += f"#Action: {planner_evidences.get(e, None)}\n"
                 current_progress += f"{e}: {worker_evidences[e]}\n"
 
             yield AgentOutput(

@@ -127,6 +127,8 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             results = session.execute(stmt)
             vs_ids = [r[0].target_id for r in results.all()]
 
+        # do first round top_k extension
+        retrieval_kwargs["do_extend"] = True
         retrieval_kwargs["scope"] = vs_ids
         retrieval_kwargs["filters"] = MetadataFilters(
             filters=[
@@ -202,7 +204,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             },
             "num_retrieval": {
                 "name": "Number of document chunks to retrieve",
-                "value": 3,
+                "value": 10,
                 "component": "number",
             },
             "retrieval_mode": {
@@ -225,7 +227,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             },
             "use_reranking": {
                 "name": "Use reranking (Cohere)",
-                "value": False,
+                "value": True,
                 "choices": [True, False],
                 "component": "checkbox",
             },
