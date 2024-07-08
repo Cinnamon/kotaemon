@@ -775,7 +775,7 @@ class FullQAPipeline(BaseReasoning):
             )
             yield Document(
                 channel="info",
-                content=("<b>Question answering confidence:</b> " f"{qa_score}"),
+                content=(f"<h5>Answer confidence: {qa_score}</h5>"),
             )
 
             yield from with_citation

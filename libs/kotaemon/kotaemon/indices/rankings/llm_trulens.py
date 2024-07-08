@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import re
 from concurrent.futures import ThreadPoolExecutor
-from itertools import islice
+from functools import partial
 
 import tiktoken
 
 from kotaemon.base import Document, HumanMessage, SystemMessage
+from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import BaseLLM, PromptTemplate
 
 from .llm import LLMReranking
@@ -57,24 +58,6 @@ def validate_rating(rating) -> int:
     return rating
 
 
-def split_text_by_chunk_size(text: str, chunk_size: int) -> list[list[int]]:
-    """Split the text into chunks of a given size
-
-    Args:
-        text: text to split
-        chunk_size: size of each chunk
-
-    Returns:
-        list of chunks (as tokens)
-    """
-    encoding = tiktoken.get_encoding("cl100k_base")
-    tokens = iter(encoding.encode(text))
-    result = []
-    while chunk := list(islice(tokens, chunk_size)):
-        result.append(chunk)
-    return result
-
-
 def re_0_10_rating(s: str) -> int:
     """Extract a 0-10 rating from a string.
 
@@ -116,6 +99,16 @@ class LLMTrulensScoring(LLMReranking):
     user_prompt_template: PromptTemplate = USER_PROMPT_TEMPLATE
     concurrent: bool = True
     normalize: float = 10
+    trim_func: TokenSplitter = TokenSplitter.withx(
+        chunk_size=MAX_CONTEXT_LEN,
+        chunk_overlap=0,
+        separator=" ",
+        tokenizer=partial(
+            tiktoken.encoding_for_model("gpt-3.5-turbo").encode,
+            allowed_special=set(),
+            disallowed_special="all",
+        ),
+    )
 
     def run(
         self,
@@ -130,12 +123,12 @@ class LLMTrulensScoring(LLMReranking):
             with ThreadPoolExecutor() as executor:
                 futures = []
                 for doc in documents:
-                    try:
-                        chunked_doc_content = split_text_by_chunk_size(
-                            doc.get_content(), MAX_CONTEXT_LEN
-                        )[0]
-                    except IndexError:
-                        chunked_doc_content = doc.get_content()
+                    chunked_doc_content = self.trim_func(
+                        [
+                            Document(content=doc.get_content())
+                            # skip metadata which cause troubles
+                        ]
+                    )[0].text
 
                     messages = []
                     messages.append(
@@ -176,5 +169,10 @@ class LLMTrulensScoring(LLMReranking):
             doc = documents[r_idx]
             doc.metadata["llm_trulens_score"] = score
             filtered_docs.append(doc)
+
+        print(
+            "LLM rerank scores",
+            [doc.metadata["llm_trulens_score"] for doc in filtered_docs],
+        )
 
         return filtered_docs

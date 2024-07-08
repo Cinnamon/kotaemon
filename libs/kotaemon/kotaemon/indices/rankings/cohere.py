@@ -31,6 +31,7 @@ class CohereReranking(BaseReranking):
         response = cohere_client.rerank(
             model=self.model_name, query=query, documents=_docs
         )
+        print("Cohere score", [r.relevance_score for r in response.results])
         for r in response.results:
             doc = documents[r.index]
             doc.metadata["cohere_reranking_score"] = r.relevance_score

@@ -191,6 +191,8 @@ class VectorRetrieval(BaseRetrieval):
                 result = self._filter_docs(result, top_k=top_k)
                 result = reranker(documents=result, query=text)
 
+        result = self._filter_docs(result, top_k=top_k)
+
         return result
 
 
