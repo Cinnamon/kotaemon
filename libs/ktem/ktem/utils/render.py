@@ -6,7 +6,7 @@ def replace_mardown_header(text: str) -> str:
     newlines = []
     for line in textlines:
         if line.startswith("#"):
-            line = "**" + line.replace("#", "") + "**"
+            line = "<strong>" + line.replace("#", "") + "</strong>"
         if line.startswith("=="):
             line = ""
         newlines.append(line)
