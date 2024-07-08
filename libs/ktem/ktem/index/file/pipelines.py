@@ -254,13 +254,13 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             rerankers=[CohereReranking(), LLMTrulensScoring()],
         )
         if not user_settings["use_reranking"]:
-            retriever.rerankers = []  # type: ignore
-        else:
-            for reranker in retriever.rerankers:
-                if isinstance(reranker, LLMReranking):
-                    reranker.llm = llms.get(
-                        user_settings["reranking_llm"], llms.get_default()
-                    )
+            retriever.rerankers = [LLMTrulensScoring()]  # type: ignore
+
+        for reranker in retriever.rerankers:
+            if isinstance(reranker, LLMReranking):
+                reranker.llm = llms.get(
+                    user_settings["reranking_llm"], llms.get_default()
+                )
 
         kwargs = {".doc_ids": selected}
         retriever.set_run(kwargs, temp=False)

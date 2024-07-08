@@ -11,7 +11,7 @@ from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 from .base import BaseIndexing, BaseRetrieval
-from .rankings import BaseReranking
+from .rankings import BaseReranking, LLMReranking
 
 VECTOR_STORE_FNAME = "vectorstore"
 DOC_STORE_FNAME = "docstore"
@@ -194,7 +194,8 @@ class VectorRetrieval(BaseRetrieval):
         if self.rerankers and text:
             for reranker in self.rerankers:
                 # if reranker is LLMReranking, limit the document with top_k items only
-                result = self._filter_docs(result, top_k=top_k)
+                if isinstance(reranker, LLMReranking):
+                    result = self._filter_docs(result, top_k=top_k)
                 result = reranker(documents=result, query=text)
 
         result = self._filter_docs(result, top_k=top_k)
