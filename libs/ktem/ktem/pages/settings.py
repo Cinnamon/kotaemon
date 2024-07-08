@@ -107,7 +107,7 @@ class SettingsPage(BasePage):
 
     def on_building_ui(self):
         if self._app.f_user_management:
-            with gr.Tab("Users"):
+            with gr.Tab("User settings"):
                 self.user_tab()
 
         self.app_tab()
@@ -270,7 +270,7 @@ class SettingsPage(BasePage):
         #         self._components[f"index.{n}"] = obj
 
         id2name = {k: v.name for k, v in self._app.index_manager.info().items()}
-        with gr.Tab("Document Indices", visible=self._render_index_tab):
+        with gr.Tab("Retrieval settings", visible=self._render_index_tab):
             for pn, sig in self._default_settings.index.options.items():
                 name = id2name.get(pn, f"<id {pn}>")
                 with gr.Tab(name):

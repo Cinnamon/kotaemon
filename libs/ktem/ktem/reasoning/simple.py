@@ -546,7 +546,7 @@ class FullQAPipeline(BaseReasoning):
                     Document(
                         channel="info",
                         content=Render.collapsible(
-                            header=get_header(doc),
+                            header=f"<i>{get_header(doc)}</i>",
                             content=Render.image(
                                 url=doc.metadata["image_origin"], text=doc.text
                             ),
@@ -559,7 +559,7 @@ class FullQAPipeline(BaseReasoning):
                     Document(
                         channel="info",
                         content=Render.collapsible(
-                            header=get_header(doc),
+                            header=f"<i>{get_header(doc)}</i>",
                             content=Render.table(doc.text),
                             open=True,
                         ),
@@ -585,27 +585,35 @@ class FullQAPipeline(BaseReasoning):
         llm_reranking_score = (
             round(doc.metadata["llm_trulens_score"], 2)
             if doc.metadata.get("llm_trulens_score") is not None
-            else None
+            else 0.0
         )
         cohere_reranking_score = (
             round(doc.metadata["cohere_reranking_score"], 2)
-            if doc.metadata.get("cohere_reranking_score")
-            else None
+            if doc.metadata.get("cohere_reranking_score") is not None
+            else 0.0
         )
         item_type_prefix = doc.metadata.get("type", "")
         item_type_prefix = item_type_prefix.capitalize()
         if item_type_prefix:
             item_type_prefix += " from "
 
-        return Render.collapsible(
-            header=(f"{item_type_prefix}{get_header(doc)} [{llm_reranking_score}]"),
-            content="<b>Vectorstore score:</b>"
+        rendered_score = Render.collapsible(
+            header=f"<b>&emsp;Relevance score</b>: {llm_reranking_score}",
+            content="<b>&emsp;&emsp;Vectorstore score:</b>"
             f" {vectorstore_score}"
             f"{text_search_str}"
-            "<b>LLM reranking score:</b>"
+            "<b>&emsp;&emsp;LLM reranking score:</b>"
             f" {llm_reranking_score}<br>"
-            "<b>Cohere reranking score:</b>"
-            f" {cohere_reranking_score}<br>" + rendered_doc_content,
+            "<b>&emsp;&emsp;Cohere reranking score:</b>"
+            f" {cohere_reranking_score}<br>",
+        )
+
+        return Render.collapsible(
+            header=(
+                f"<i>{item_type_prefix}{get_header(doc)}</i>"
+                f" [score: {llm_reranking_score}]"
+            ),
+            content=rendered_score + rendered_doc_content,
             open=open_collapsible,
         )
 
@@ -757,26 +765,22 @@ class FullQAPipeline(BaseReasoning):
         if not with_citation and not without_citation:
             yield Document(channel="info", content="<h5><b>No evidence found.</b></h5>")
         else:
+            # clear the Info panel
             yield Document(channel="info", content=None)
-            for _ in with_citation:
-                yield _
-            if without_citation:
-                for _ in without_citation:
-                    yield _
+            # show QA score
+            qa_score = (
+                round(answer.metadata["qa_score"], 2)
+                if answer.metadata.get("qa_score")
+                else None
+            )
+            yield Document(
+                channel="info",
+                content=(f"<h5>Answer confidence: {qa_score}</h5>"),
+            )
 
-        qa_score = (
-            round(answer.metadata["qa_score"], 2)
-            if answer.metadata.get("qa_score")
-            else None
-        )
-        yield Document(
-            channel="info",
-            content=(
-                "<h5><b>Question answering</b></h5><br>"
-                "<b>Question answering confidence:</b> "
-                f"{qa_score}"
-            ),
-        )
+            yield from with_citation
+            if without_citation:
+                yield from without_citation
 
         return answer
 

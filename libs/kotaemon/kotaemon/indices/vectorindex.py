@@ -111,7 +111,15 @@ class VectorRetrieval(BaseRetrieval):
     embedding: BaseEmbeddings
     rerankers: Sequence[BaseReranking] = []
     top_k: int = 5
+    first_round_top_k_mult: int = 10
     retrieval_mode: str = "hybrid"  # vector, text, hybrid
+
+    def _filter_docs(
+        self, documents: list[RetrievedDocument], top_k: int | None = None
+    ):
+        if top_k:
+            documents = documents[:top_k]
+        return documents
 
     def run(
         self, text: str | Document, top_k: Optional[int] = None, **kwargs
@@ -128,6 +136,8 @@ class VectorRetrieval(BaseRetrieval):
         if top_k is None:
             top_k = self.top_k
 
+        top_k_first_round = top_k * self.first_round_top_k_mult
+
         if self.doc_store is None:
             raise ValueError(
                 "doc_store is not provided. Please provide a doc_store to "
@@ -142,7 +152,7 @@ class VectorRetrieval(BaseRetrieval):
         if self.retrieval_mode == "vector":
             emb = self.embedding(text)[0].embedding
             _, scores, ids = self.vector_store.query(
-                embedding=emb, top_k=top_k, **kwargs
+                embedding=emb, top_k=top_k_first_round, **kwargs
             )
             docs = self.doc_store.get(ids)
             result = [
@@ -151,19 +161,19 @@ class VectorRetrieval(BaseRetrieval):
             ]
         elif self.retrieval_mode == "text":
             query = text.text if isinstance(text, Document) else text
-            docs = self.doc_store.query(query, top_k=top_k, doc_ids=scope)
+            docs = self.doc_store.query(query, top_k=top_k_first_round, doc_ids=scope)
             result = [RetrievedDocument(**doc.to_dict(), score=-1.0) for doc in docs]
         elif self.retrieval_mode == "hybrid":
             # similartiy search section
             emb = self.embedding(text)[0].embedding
             _, vs_scores, vs_ids = self.vector_store.query(
-                embedding=emb, top_k=top_k, **kwargs
+                embedding=emb, top_k=top_k_first_round, **kwargs
             )
             vs_docs = self.doc_store.get(vs_ids)
 
             # full-text search section
             query = text.text if isinstance(text, Document) else text
-            docs = self.doc_store.query(query, top_k=top_k, doc_ids=scope)
+            docs = self.doc_store.query(query, top_k=top_k_first_round, doc_ids=scope)
             result = [
                 RetrievedDocument(**doc.to_dict(), score=-1.0)
                 for doc in docs
@@ -177,7 +187,11 @@ class VectorRetrieval(BaseRetrieval):
         # use additional reranker to re-order the document list
         if self.rerankers and text:
             for reranker in self.rerankers:
+                # if reranker is LLMReranking, limit the document with top_k items only
+                result = self._filter_docs(result, top_k=top_k)
                 result = reranker(documents=result, query=text)
+
+        result = self._filter_docs(result, top_k=top_k)
 
         return result
 

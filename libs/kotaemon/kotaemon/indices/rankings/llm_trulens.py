@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import re
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
+
+import tiktoken
 
 from kotaemon.base import Document, HumanMessage, SystemMessage
+from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import BaseLLM, PromptTemplate
 
 from .llm import LLMReranking
@@ -41,6 +45,8 @@ USER_PROMPT_TEMPLATE = PromptTemplate(
 
 PATTERN_INTEGER: re.Pattern = re.compile(r"([+-]?[1-9][0-9]*|0)")
 """Regex that matches integers."""
+
+MAX_CONTEXT_LEN = 8000
 
 
 def validate_rating(rating) -> int:
@@ -91,9 +97,18 @@ class LLMTrulensScoring(LLMReranking):
     llm: BaseLLM
     system_prompt_template: PromptTemplate = SYSTEM_PROMPT_TEMPLATE
     user_prompt_template: PromptTemplate = USER_PROMPT_TEMPLATE
-    top_k: int = 3
     concurrent: bool = True
     normalize: float = 10
+    trim_func: TokenSplitter = TokenSplitter.withx(
+        chunk_size=MAX_CONTEXT_LEN,
+        chunk_overlap=0,
+        separator=" ",
+        tokenizer=partial(
+            tiktoken.encoding_for_model("gpt-3.5-turbo").encode,
+            allowed_special=set(),
+            disallowed_special="all",
+        ),
+    )
 
     def run(
         self,
@@ -108,6 +123,13 @@ class LLMTrulensScoring(LLMReranking):
             with ThreadPoolExecutor() as executor:
                 futures = []
                 for doc in documents:
+                    chunked_doc_content = self.trim_func(
+                        [
+                            Document(content=doc.get_content())
+                            # skip metadata which cause troubles
+                        ]
+                    )[0].text
+
                     messages = []
                     messages.append(
                         SystemMessage(self.system_prompt_template.populate())
@@ -115,7 +137,7 @@ class LLMTrulensScoring(LLMReranking):
                     messages.append(
                         HumanMessage(
                             self.user_prompt_template.populate(
-                                question=query, context=doc.get_content()
+                                question=query, context=chunked_doc_content
                             )
                         )
                     )
@@ -148,8 +170,9 @@ class LLMTrulensScoring(LLMReranking):
             doc.metadata["llm_trulens_score"] = score
             filtered_docs.append(doc)
 
-        # prevent returning empty result
-        if len(filtered_docs) == 0:
-            filtered_docs = documents[: self.top_k]
+        print(
+            "LLM rerank scores",
+            [doc.metadata["llm_trulens_score"] for doc in filtered_docs],
+        )
 
         return filtered_docs

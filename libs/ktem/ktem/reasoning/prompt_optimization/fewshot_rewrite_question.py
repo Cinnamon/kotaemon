@@ -68,7 +68,7 @@ class FewshotRewriteQuestionPipeline(RewriteQuestionPipeline):
         pipeline = cls(
             embedding=embedding, vector_store=vector_store, doc_store=doc_store
         )
-        if vector_store.count() or doc_store.count():
+        if doc_store.count():
             return pipeline
 
         examples = json.load(open(example_path, "r"))
