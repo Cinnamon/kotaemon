@@ -10,6 +10,10 @@ from typing import Generator
 import numpy as np
 import tiktoken
 from ktem.llms.manager import llms
+from ktem.reasoning.prompt_optimization import (
+    DecomposeQuestionPipeline,
+    RewriteQuestionPipeline,
+)
 from ktem.utils.render import Render
 from theflow.settings import settings as flowsettings
 
@@ -98,7 +102,7 @@ class PrepareEvidencePipeline(BaseComponent):
     def run(self, docs: list[RetrievedDocument]) -> Document:
         evidence = ""
         table_found = 0
-        evidence_mode = EVIDENCE_MODE_TEXT
+        evidence_modes = []
 
         for _id, retrieved_item in enumerate(docs):
             retrieved_content = ""
@@ -107,7 +111,7 @@ class PrepareEvidencePipeline(BaseComponent):
             if page:
                 source += f" (Page {page})"
             if retrieved_item.metadata.get("type", "") == "table":
-                evidence_mode = EVIDENCE_MODE_TABLE
+                evidence_modes.append(EVIDENCE_MODE_TABLE)
                 if table_found < 5:
                     retrieved_content = retrieved_item.metadata.get("table_origin", "")
                     if retrieved_content not in evidence:
@@ -118,7 +122,7 @@ class PrepareEvidencePipeline(BaseComponent):
                             + "\n<br>"
                         )
             elif retrieved_item.metadata.get("type", "") == "chatbot":
-                evidence_mode = EVIDENCE_MODE_CHATBOT
+                evidence_modes.append(EVIDENCE_MODE_CHATBOT)
                 retrieved_content = retrieved_item.metadata["window"]
                 evidence += (
                     f"<br><b>Chatbot scenario from {filename} (Row {page})</b>\n"
@@ -126,7 +130,7 @@ class PrepareEvidencePipeline(BaseComponent):
                     + "\n<br>"
                 )
             elif retrieved_item.metadata.get("type", "") == "image":
-                evidence_mode = EVIDENCE_MODE_FIGURE
+                evidence_modes.append(EVIDENCE_MODE_FIGURE)
                 retrieved_content = retrieved_item.metadata.get("image_origin", "")
                 retrieved_caption = html.escape(retrieved_item.get_content())
                 evidence += (
@@ -147,6 +151,13 @@ class PrepareEvidencePipeline(BaseComponent):
                         + retrieved_content
                         + " \n<br>"
                     )
+
+        # resolve evidence mode
+        evidence_mode = EVIDENCE_MODE_TEXT
+        if EVIDENCE_MODE_FIGURE in evidence_modes:
+            evidence_mode = EVIDENCE_MODE_FIGURE
+        elif EVIDENCE_MODE_TABLE in evidence_modes:
+            evidence_mode = EVIDENCE_MODE_TABLE
 
         if evidence_mode != EVIDENCE_MODE_FIGURE:
             # trim context by trim_len
@@ -170,8 +181,8 @@ DEFAULT_QA_TEXT_PROMPT = (
 )
 
 DEFAULT_QA_TABLE_PROMPT = (
-    "List all rows (row number) from the table context that related to the question, "
-    "then provide detail answer with clear explanation. "
+    "Use the given context: texts, tables, and figures below to answer the question, "
+    "then provide answer with clear explanation."
     "If you don't know the answer, just say that you don't know, "
     "don't try to make up an answer. Give answer in {lang}.\n\n"
     "Context:\n"
@@ -438,31 +449,8 @@ class AnswerWithContextPipeline(BaseComponent):
         image_pattern = r"src='(data:image\/[^;]+;base64[^']+)'"
         matches = re.findall(image_pattern, evidence)
         context = re.sub(image_pattern, "", evidence)
+        print(f"Got {len(matches)} images")
         return context, matches
-
-
-class RewriteQuestionPipeline(BaseComponent):
-    """Rewrite user question
-
-    Args:
-        llm: the language model to rewrite question
-        rewrite_template: the prompt template for llm to paraphrase a text input
-        lang: the language of the answer. Currently support English and Japanese
-    """
-
-    llm: ChatLLM = Node(default_callback=lambda _: llms.get_default())
-    rewrite_template: str = DEFAULT_REWRITE_PROMPT
-
-    lang: str = "English"
-
-    def run(self, question: str) -> Document:  # type: ignore
-        prompt_template = PromptTemplate(self.rewrite_template)
-        prompt = prompt_template.populate(question=question, lang=self.lang)
-        messages = [
-            SystemMessage(content="You are a helpful assistant"),
-            HumanMessage(content=prompt),
-        ]
-        return self.llm(messages)
 
 
 class AddQueryContextPipeline(BaseComponent):
@@ -519,7 +507,7 @@ class FullQAPipeline(BaseReasoning):
 
     evidence_pipeline: PrepareEvidencePipeline = PrepareEvidencePipeline.withx()
     answering_pipeline: AnswerWithContextPipeline = AnswerWithContextPipeline.withx()
-    rewrite_pipeline: RewriteQuestionPipeline = RewriteQuestionPipeline.withx()
+    rewrite_pipeline: RewriteQuestionPipeline | None = None
     add_query_context: AddQueryContextPipeline = AddQueryContextPipeline.withx()
     trigger_context: int = 150
     use_rewrite: bool = False
@@ -528,15 +516,16 @@ class FullQAPipeline(BaseReasoning):
         self, message: str, history: list
     ) -> tuple[list[RetrievedDocument], list[Document]]:
         """Retrieve the documents based on the message"""
-        if len(message) < self.trigger_context:
-            # prefer adding context for short user questions, avoid adding context for
-            # long questions, as they are likely to contain enough information
-            # plus, avoid the situation where the original message is already too long
-            # for the model to handle
-            query = self.add_query_context(message, history).content
-        else:
-            query = message
-        print(f"Rewritten query: {query}")
+        # if len(message) < self.trigger_context:
+        #     # prefer adding context for short user questions, avoid adding context for
+        #     # long questions, as they are likely to contain enough information
+        #     # plus, avoid the situation where the original message is already too long
+        #     # for the model to handle
+        #     query = self.add_query_context(message, history).content
+        # else:
+        #     query = message
+        # print(f"Rewritten query: {query}")
+        query = None
         if not query:
             # TODO: previously return [], [] because we think this message as something
             # like "Hello", "I need help"...
@@ -703,7 +692,8 @@ class FullQAPipeline(BaseReasoning):
     async def ainvoke(  # type: ignore
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Document:  # type: ignore
-        if self.use_rewrite:
+        if self.use_rewrite and self.rewrite_pipeline:
+            print("Chosen rewrite pipeline", self.rewrite_pipeline)
             rewrite = await self.rewrite_pipeline(question=message)
             message = rewrite.text
 
@@ -740,15 +730,17 @@ class FullQAPipeline(BaseReasoning):
     def stream(  # type: ignore
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Generator[Document, None, Document]:
-        if self.use_rewrite:
+        if self.use_rewrite and self.rewrite_pipeline:
+            print("Chosen rewrite pipeline", self.rewrite_pipeline)
             message = self.rewrite_pipeline(question=message).text
+            print("Rewrite result", message)
 
         print(f"Rewritten message (use_rewrite={self.use_rewrite}): {message}")
         print(f"Retrievers {self.retrievers}")
         # should populate the context
         docs, infos = self.retrieve(message, history)
-        for _ in infos:
-            yield _
+        print(f"Got {len(docs)} retrieved documents")
+        yield from infos
 
         evidence_mode, evidence = self.evidence_pipeline(docs).content
         answer = yield from self.answering_pipeline.stream(
@@ -797,7 +789,10 @@ class FullQAPipeline(BaseReasoning):
             retrievers: the retrievers to use
         """
         prefix = f"reasoning.options.{cls.get_info()['id']}"
-        pipeline = cls(retrievers=retrievers)
+        pipeline = cls(
+            retrievers=retrievers,
+            rewrite_pipeline=RewriteQuestionPipeline(),
+        )
 
         llm_name = settings.get(f"{prefix}.llm", None)
         llm = llms.get(llm_name, llms.get_default())
@@ -821,10 +816,11 @@ class FullQAPipeline(BaseReasoning):
 
         pipeline.trigger_context = settings[f"{prefix}.trigger_context"]
         pipeline.use_rewrite = states.get("app", {}).get("regen", False)
-        pipeline.rewrite_pipeline.llm = llm
-        pipeline.rewrite_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
-            settings["reasoning.lang"], "English"
-        )
+        if pipeline.rewrite_pipeline:
+            pipeline.rewrite_pipeline.llm = llm
+            pipeline.rewrite_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
+                settings["reasoning.lang"], "English"
+            )
         return pipeline
 
     @classmethod
@@ -887,6 +883,158 @@ class FullQAPipeline(BaseReasoning):
             "name": "Simple QA",
             "description": (
                 "Simple RAG-based question answering pipeline. This pipeline can "
+                "perform both keyword search and similarity search to retrieve the "
+                "context. After that it includes that context to generate the answer."
+            ),
+        }
+
+
+class FullDecomposeQAPipeline(FullQAPipeline):
+    def answer_sub_questions(
+        self, messages: list, conv_id: str, history: list, **kwargs
+    ):
+        output_str = ""
+        for idx, message in enumerate(messages):
+            yield Document(
+                channel="chat",
+                content=f"<br><b>Sub-question {idx + 1}</b><br>{message}<br>",
+            )
+            # should populate the context
+            docs, infos = self.retrieve(message, history)
+            print(f"Got {len(docs)} retrieved documents")
+
+            yield from infos
+
+            evidence_mode, evidence = self.evidence_pipeline(docs).content
+            answer = yield from self.answering_pipeline.stream(
+                question=message,
+                history=history,
+                evidence=evidence,
+                evidence_mode=evidence_mode,
+                conv_id=conv_id,
+                **kwargs,
+            )
+
+            output_str += (
+                f"Sub-question {idx + 1}-th: '{message}'\nAnswer: '{answer.text}'\n\n"
+            )
+
+        return output_str
+
+    def stream(  # type: ignore
+        self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
+    ) -> Generator[Document, None, Document]:
+        sub_question_answer_output = ""
+        if self.rewrite_pipeline:
+            print("Chosen rewrite pipeline", self.rewrite_pipeline)
+            result = self.rewrite_pipeline(question=message)
+            print("Rewrite result", result)
+            if isinstance(result, Document):
+                message = result.text
+            elif (
+                isinstance(result, list)
+                and len(result) > 0
+                and isinstance(result[0], Document)
+            ):
+                yield Document(
+                    channel="chat",
+                    content="<h4>Sub questions and their answers</h4>",
+                )
+                sub_question_answer_output = yield from self.answer_sub_questions(
+                    [r.text for r in result], conv_id, history, **kwargs
+                )
+
+        yield Document(channel="chat", content=f"<h4>Main question</h4>{message}<br>")
+
+        # should populate the context
+        docs, infos = self.retrieve(message, history)
+        print(f"Got {len(docs)} retrieved documents")
+        yield from infos
+
+        evidence_mode, evidence = self.evidence_pipeline(docs).content
+        answer = yield from self.answering_pipeline.stream(
+            question=message,
+            history=history,
+            evidence=evidence + "\n" + sub_question_answer_output,
+            evidence_mode=evidence_mode,
+            conv_id=conv_id,
+            **kwargs,
+        )
+
+        # show the evidence
+        with_citation, without_citation = self.prepare_citations(answer, docs)
+        if not with_citation and not without_citation:
+            yield Document(channel="info", content="<h5><b>No evidence found.</b></h5>")
+        else:
+            yield Document(channel="info", content=None)
+            for _ in with_citation:
+                yield _
+            if without_citation:
+                for _ in without_citation:
+                    yield _
+
+        return answer
+
+    @classmethod
+    def get_user_settings(cls) -> dict:
+        user_settings = super().get_user_settings()
+        user_settings["decompose_prompt"] = {
+            "name": "Decompose Prompt",
+            "value": DecomposeQuestionPipeline.DECOMPOSE_SYSTEM_PROMPT_TEMPLATE,
+        }
+        return user_settings
+
+    @classmethod
+    def get_pipeline(cls, settings, states, retrievers):
+        """Get the reasoning pipeline
+
+        Args:
+            settings: the settings for the pipeline
+            retrievers: the retrievers to use
+        """
+        print(settings)
+        prefix = f"reasoning.options.{cls.get_info()['id']}"
+        pipeline = cls(
+            retrievers=retrievers,
+            rewrite_pipeline=DecomposeQuestionPipeline(
+                prompt_template=settings.get(f"{prefix}.decompose_prompt")
+            ),
+        )
+
+        llm_name = settings.get(f"{prefix}.llm", None)
+        llm = llms.get(llm_name, llms.get_default())
+
+        # answering pipeline configuration
+        answer_pipeline = pipeline.answering_pipeline
+        answer_pipeline.llm = llm
+        answer_pipeline.citation_pipeline.llm = llm
+        answer_pipeline.n_last_interactions = settings[f"{prefix}.n_last_interactions"]
+        answer_pipeline.enable_citation = settings[f"{prefix}.highlight_citation"]
+        answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
+        answer_pipeline.qa_template = settings[f"{prefix}.qa_prompt"]
+        answer_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
+            settings["reasoning.lang"], "English"
+        )
+
+        pipeline.add_query_context.llm = llm
+        pipeline.add_query_context.n_last_interactions = settings[
+            f"{prefix}.n_last_interactions"
+        ]
+
+        pipeline.trigger_context = settings[f"{prefix}.trigger_context"]
+        pipeline.use_rewrite = states.get("app", {}).get("regen", False)
+        if pipeline.rewrite_pipeline:
+            pipeline.rewrite_pipeline.llm = llm
+        return pipeline
+
+    @classmethod
+    def get_info(cls) -> dict:
+        return {
+            "id": "complex",
+            "name": "Complex QA",
+            "description": (
+                "Use multi-step reasoning to decompose a complex question into "
+                "multiple sub-questions. This pipeline can "
                 "perform both keyword search and similarity search to retrieve the "
                 "context. After that it includes that context to generate the answer."
             ),
