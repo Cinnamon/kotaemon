@@ -97,7 +97,7 @@ class VectorIndexing(BaseIndexing):
                     markdown_content += f"\ntext:\n{input_[i].text}"
 
                 with open(
-                    Path(self.cache_dir) / f"{file_name.stem}_{self.count_+i}.md", "w"
+                    Path(self.cache_dir) / f"{file_name.stem}_{self.count_+i}.md", "w", encoding="utf-8"
                 ) as f:
                     f.write(markdown_content)
             self.count_ += len(input_)
