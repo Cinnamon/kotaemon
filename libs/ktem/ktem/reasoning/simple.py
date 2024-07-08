@@ -216,6 +216,8 @@ DEFAULT_REWRITE_PROMPT = (
     "Rephrased question: "
 )  # noqa
 
+CONTEXT_RELEVANT_WARNING_SCORE = 0.7
+
 
 class AnswerWithContextPipeline(BaseComponent):
     """Answer the question based on the evidence
@@ -276,7 +278,7 @@ class AnswerWithContextPipeline(BaseComponent):
                 lang=self.lang,
             )
 
-        return prompt, images
+        return prompt, evidence, images
 
     def run(
         self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
@@ -287,7 +289,7 @@ class AnswerWithContextPipeline(BaseComponent):
         self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
     ) -> Document:
         history = kwargs.get("history", [])
-        prompt, images = self.get_prompt(question, evidence, evidence_mode)
+        prompt, evidence, images = self.get_prompt(question, evidence, evidence_mode)
 
         output = ""
         if evidence_mode == EVIDENCE_MODE_FIGURE:
@@ -339,7 +341,7 @@ class AnswerWithContextPipeline(BaseComponent):
             evidence_mode: the mode of evidence, 0 for text, 1 for table, 2 for chatbot
         """
         history = kwargs.get("history", [])
-        prompt, images = self.get_prompt(question, evidence, evidence_mode)
+        prompt, evidence, images = self.get_prompt(question, evidence, evidence_mode)
 
         citation_task = None
         if evidence and self.enable_citation:
@@ -390,7 +392,7 @@ class AnswerWithContextPipeline(BaseComponent):
         self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
     ) -> Generator[Document, None, Document]:
         history = kwargs.get("history", [])
-        prompt, images = self.get_prompt(question, evidence, evidence_mode)
+        prompt, evidence, images = self.get_prompt(question, evidence, evidence_mode)
 
         output = ""
         logprobs = []
@@ -761,7 +763,22 @@ class FullQAPipeline(BaseReasoning):
             yield Document(channel="info", content="<h5><b>No evidence found.</b></h5>")
         else:
             # clear the Info panel
+            max_llm_rerank_score = max(
+                doc.metadata.get("llm_trulens_score", 0.0) for doc in docs
+            )
+            # clear previous info
             yield Document(channel="info", content=None)
+
+            # yield warning message
+            if max_llm_rerank_score < CONTEXT_RELEVANT_WARNING_SCORE:
+                yield Document(
+                    channel="info",
+                    content=(
+                        "<h5>WARNING! Context relevance score is low. "
+                        "Double check the model answer for correctness.</h5>"
+                    ),
+                )
+
             # show QA score
             qa_score = (
                 round(answer.metadata["qa_score"], 2)
