@@ -163,10 +163,10 @@ class BaseChatOpenAI(ChatLLM):
         if resp["choices"][0].get("logprobs") is None:
             logprobs = []
         else:
-            logprobs = [
-                logprob["logprob"]
-                for logprob in resp["choices"][0]["logprobs"].get("content", [])
-            ]
+            all_logprobs = resp["choices"][0]["logprobs"].get("content")
+            logprobs = (
+                [logprob["logprob"] for logprob in all_logprobs] if all_logprobs else []
+            )
 
         output = LLMInterface(
             candidates=[(_["message"]["content"] or "") for _ in resp["choices"]],

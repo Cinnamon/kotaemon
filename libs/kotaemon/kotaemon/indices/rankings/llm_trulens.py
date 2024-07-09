@@ -46,7 +46,7 @@ USER_PROMPT_TEMPLATE = PromptTemplate(
 PATTERN_INTEGER: re.Pattern = re.compile(r"([+-]?[1-9][0-9]*|0)")
 """Regex that matches integers."""
 
-MAX_CONTEXT_LEN = 8000
+MAX_CONTEXT_LEN = 7500
 
 
 def validate_rating(rating) -> int:

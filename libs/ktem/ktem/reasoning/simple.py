@@ -574,11 +574,12 @@ class FullQAPipeline(BaseReasoning):
         """Format the retrieval score and the document"""
         # score from doc_store (Elasticsearch)
         if is_close(doc.score, -1.0):
-            text_search_str = " default from full-text search<br>"
+            vectorstore_score = ""
+            text_search_str = " (full-text search)<br>"
         else:
+            vectorstore_score = round(doc.score, 2)
             text_search_str = "<br>"
 
-        vectorstore_score = round(doc.score, 2)
         llm_reranking_score = (
             round(doc.metadata["llm_trulens_score"], 2)
             if doc.metadata.get("llm_trulens_score") is not None
@@ -619,7 +620,7 @@ class FullQAPipeline(BaseReasoning):
         with_citation, without_citation = [], []
         spans = defaultdict(list)
 
-        if answer.metadata["citation"] is not None:
+        if answer.metadata["citation"] and answer.metadata["citation"].answer:
             for fact_with_evidence in answer.metadata["citation"].answer:
                 for quote in fact_with_evidence.substring_quote:
                     for doc in docs:

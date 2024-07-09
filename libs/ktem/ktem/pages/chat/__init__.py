@@ -74,7 +74,7 @@ class ChatPage(BasePage):
                 with gr.Accordion(label="Hint") as _:
                     self.upload_help = gr.HTML(
                         "<i>To upload new file(s), go to "
-                        "<b>File Index</b> section in top navigation bar.</i>"
+                        "<b>Indices</b> section in top navigation bar.</i>"
                     )
 
                 # a hacky quick switch for reasoning type option

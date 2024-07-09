@@ -103,7 +103,9 @@ class CitationPipeline(BaseComponent):
             print("CitationPipeline: invoking LLM")
             llm_output = self.get_from_path("llm").invoke(messages, **llm_kwargs)
             print("CitationPipeline: finish invoking LLM")
-            if not llm_output.messages:
+            if not llm_output.messages or not llm_output.additional_kwargs.get(
+                "tool_calls"
+            ):
                 return None
             function_output = llm_output.additional_kwargs["tool_calls"][0]["function"][
                 "arguments"
