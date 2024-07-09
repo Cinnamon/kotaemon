@@ -652,16 +652,30 @@ class FullQAPipeline(BaseReasoning):
                     text += cur_doc.text[span["end"] : ss[idx + 1]["start"]]
             text += cur_doc.text[ss[-1]["end"] :]
             # add to display list
-            with_citation.append(
-                Document(
-                    channel="info",
-                    content=self._format_retrieval_score_and_doc(
-                        cur_doc,
-                        Render.table(text),
-                        open_collapsible=True,
-                    ),
+            if cur_doc.metadata.get("type", "") == "image":
+                with_citation.append(
+                    Document(
+                        channel="info",
+                        content=self._format_retrieval_score_and_doc(
+                            cur_doc,
+                            Render.image(
+                                url=cur_doc.metadata["image_origin"], text=text
+                            ),
+                            open_collapsible=True,
+                        ),
+                    )
                 )
-            )
+            else:
+                with_citation.append(
+                    Document(
+                        channel="info",
+                        content=self._format_retrieval_score_and_doc(
+                            cur_doc,
+                            Render.table(text),
+                            open_collapsible=True,
+                        ),
+                    )
+                )
         print("Got {} cited docs".format(len(with_citation)))
 
         sorted_not_detected_items_with_scores = [
