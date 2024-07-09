@@ -1,5 +1,6 @@
 import base64
 import os
+import tempfile
 from io import BytesIO
 from pathlib import Path
 from typing import Optional
@@ -218,7 +219,7 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
             removed_spans += table_desc["spans"]
         # save the text content into markdown format
         if self.cache_dir is not None:
-            with open(Path(self.cache_dir) / f"{file_name.stem}.md", "w") as f:
+            with open(Path(self.cache_dir) / f"{file_name.stem}.md", "w", encoding="utf-8") as f:
                 f.write(text_content)
 
         removed_spans = sorted(removed_spans, key=lambda x: x["offset"], reverse=True)
