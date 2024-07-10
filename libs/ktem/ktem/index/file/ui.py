@@ -488,12 +488,10 @@ class FileIndexPage(BasePage):
 
         for zip_file in zip_files:
             # Prepare new zip output dir, separated for each files
-            basename = os.path.splitext(
-                os.path.basename(zip_file)
-            )[0]
+            basename = os.path.splitext(os.path.basename(zip_file))[0]
             zip_out_dir = os.path.join(zip_dir, basename)
             os.makedirs(zip_out_dir, exist_ok=True)
-            with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+            with zipfile.ZipFile(zip_file, "r") as zip_ref:
                 zip_ref.extractall(zip_out_dir)
 
         n_zip_file = 0
