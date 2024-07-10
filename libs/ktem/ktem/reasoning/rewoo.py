@@ -309,7 +309,10 @@ class RewooAgentPipeline(BaseReasoning):
                 line = "\\" + line
                 segments[-1].append(line)
             else:
-                segments[-1].append(line)
+                if segments:
+                    segments[-1].append(line)
+                else:
+                    segments.append([line])
 
         outputs = []
         for segment in segments:

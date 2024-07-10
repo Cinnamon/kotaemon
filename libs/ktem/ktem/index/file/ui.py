@@ -1,3 +1,4 @@
+import html
 import os
 import shutil
 import tempfile
@@ -15,6 +16,8 @@ from ktem.utils.render import Render
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
+
+DOWNLOAD_MESSAGE = "Press again to download"
 
 
 class File(gr.File):
@@ -238,11 +241,13 @@ class FileIndexPage(BasePage):
                 )
 
                 for idx, doc in enumerate(docs):
-                    title = f"{doc.text[:50]}..." if len(doc.text) > 50 else doc.text
+                    title = html.escape(
+                        f"{doc.text[:50]}..." if len(doc.text) > 50 else doc.text
+                    )
                     doc_type = doc.metadata.get("type", "text")
                     content = ""
                     if doc_type == "text":
-                        content = doc.text
+                        content = html.escape(doc.text)
                     elif doc_type == "table":
                         content = Render.table(doc.text)
                     elif doc_type == "image":
@@ -330,7 +335,7 @@ class FileIndexPage(BasePage):
         with zipfile.ZipFile(f"{zip_file_path}.zip", "w") as zipMe:
             for file in zip_files:
                 zipMe.write(file, arcname=os.path.basename(file))
-        return gr.DownloadButton(label="Download pressed", value=f"{zip_file_path}.zip")
+        return gr.DownloadButton(label=DOWNLOAD_MESSAGE, value=f"{zip_file_path}.zip")
 
     def download_all_files(self):
         zip_files = []
@@ -345,7 +350,7 @@ class FileIndexPage(BasePage):
             for file in zip_files:
                 arcname = Path(file)
                 zipMe.write(file, arcname=arcname.name)
-        return gr.DownloadButton(label="Download pressed", value=f"{zip_file_path}.zip")
+        return gr.DownloadButton(label=DOWNLOAD_MESSAGE, value=f"{zip_file_path}.zip")
 
     def on_register_events(self):
         """Register all events to the app"""
