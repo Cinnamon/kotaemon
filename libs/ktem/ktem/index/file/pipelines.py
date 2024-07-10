@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import shutil
+import time
 import warnings
 from collections import defaultdict
 from functools import lru_cache
@@ -127,17 +128,23 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             results = session.execute(stmt)
             vs_ids = [r[0].target_id for r in results.all()]
 
+        with Session(engine) as session:
+            stmt = select(self.Source).where(
+                self.Source.id.in_(doc_ids),
+            )
+            results = session.execute(stmt)
+            file_names = [r[0].name for r in results.all()]
+
         # do first round top_k extension
         retrieval_kwargs["do_extend"] = True
         retrieval_kwargs["scope"] = vs_ids
         retrieval_kwargs["filters"] = MetadataFilters(
             filters=[
                 MetadataFilter(
-                    key="doc_id",
-                    value=vs_id,
-                    operator=FilterOperator.EQ,
+                    key="file_name",
+                    value=file_names,
+                    operator=FilterOperator.IN,
                 )
-                for vs_id in vs_ids
             ],
             condition=FilterCondition.OR,
         )
@@ -148,7 +155,10 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             retrieval_kwargs["mmr_threshold"] = 0.5
 
         # rerank
+        s_time = time.time()
+        print(f"retrieval_kwargs: {retrieval_kwargs.keys()}")
         docs = self.vector_retrieval(text=text, top_k=self.top_k, **retrieval_kwargs)
+        print("retrieval step took", time.time() - s_time)
 
         if not self.get_extra_table:
             return docs
