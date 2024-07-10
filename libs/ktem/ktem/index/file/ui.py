@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 import zipfile
 from pathlib import Path
@@ -477,6 +478,37 @@ class FileIndexPage(BasePage):
             outputs=[self.file_list_state, self.file_list],
         )
 
+    def _may_extract_zip(self, files, zip_dir: str):
+        """Handle zip files"""
+        zip_files = [file for file in files if file.endswith(".zip")]
+        remaining_files = [file for file in files if not file.endswith("zip")]
+
+        # Clean-up <zip_dir> before unzip to remove old files
+        shutil.rmtree(zip_dir, ignore_errors=True)
+
+        for zip_file in zip_files:
+            # Prepare new zip output dir, separated for each files
+            basename = os.path.splitext(os.path.basename(zip_file))[0]
+            zip_out_dir = os.path.join(zip_dir, basename)
+            os.makedirs(zip_out_dir, exist_ok=True)
+            with zipfile.ZipFile(zip_file, "r") as zip_ref:
+                zip_ref.extractall(zip_out_dir)
+
+        n_zip_file = 0
+        for root, dirs, files in os.walk(zip_dir):
+            for file in files:
+                ext = os.path.splitext(file)[1]
+
+                # only allow supported file-types ( not zip )
+                if ext not in [".zip"] and ext in self._supported_file_types:
+                    remaining_files += [os.path.join(root, file)]
+                    n_zip_file += 1
+
+        if n_zip_file > 0:
+            print(f"Update zip files: {n_zip_file}")
+
+        return remaining_files
+
     def index_fn(
         self, files, reindex: bool, settings, user_id
     ) -> Generator[tuple[str, str], None, None]:
@@ -492,6 +524,8 @@ class FileIndexPage(BasePage):
             gr.Info("No uploaded file")
             yield "", ""
             return
+
+        files = self._may_extract_zip(files, flowsettings.KH_ZIP_INPUT_DIR)
 
         errors = self.validate(files)
         if errors:
