@@ -100,6 +100,7 @@ class LlamaIndexDocTransformerMixin:
         kotaemon
         """
         docs = self._obj(documents, **kwargs)  # type: ignore
+
         return [Document.from_dict(doc.to_dict()) for doc in docs]
 
 

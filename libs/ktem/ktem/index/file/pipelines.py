@@ -128,12 +128,12 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             results = session.execute(stmt)
             vs_ids = [r[0].target_id for r in results.all()]
 
-        with Session(engine) as session:
-            stmt = select(self.Source).where(
-                self.Source.id.in_(doc_ids),
-            )
-            results = session.execute(stmt)
-            file_names = [r[0].name for r in results.all()]
+        # with Session(engine) as session:
+        #     stmt = select(self.Source).where(
+        #         self.Source.id.in_(doc_ids),
+        #     )
+        #     results = session.execute(stmt)
+        #     file_names = [r[0].name for r in results.all()]
 
         # do first round top_k extension
         retrieval_kwargs["do_extend"] = True
@@ -141,8 +141,8 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
         retrieval_kwargs["filters"] = MetadataFilters(
             filters=[
                 MetadataFilter(
-                    key="file_name",
-                    value=file_names,
+                    key="file_id",
+                    value=doc_ids,
                     operator=FilterOperator.IN,
                 )
             ],
@@ -306,6 +306,8 @@ class IndexPipeline(BaseComponent):
         text_docs = []
         non_text_docs = []
         for doc in docs:
+            # doc.metadata['file_id'] = file_id
+
             if doc.metadata.get("type", "text") == "text":
                 text_docs.append(doc)
             else:
@@ -487,6 +489,8 @@ class IndexPipeline(BaseComponent):
 
         # extract the file
         extra_info = default_file_metadata_func(str(file_path))
+        extra_info["file_id"] = file_id
+
         docs = self.loader.load_data(file_path, extra_info=extra_info)
         for _ in self.handle_docs(docs, file_id, file_path.name):
             continue
@@ -517,6 +521,8 @@ class IndexPipeline(BaseComponent):
 
         # extract the file
         extra_info = default_file_metadata_func(str(file_path))
+        extra_info["file_id"] = file_id
+
         yield Document(f" => Converting {file_path.name} to text", channel="debug")
         docs = self.loader.load_data(file_path, extra_info=extra_info)
         yield Document(f" => Converted {file_path.name} to text", channel="debug")
