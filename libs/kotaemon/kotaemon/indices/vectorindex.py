@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import time
 import uuid
 from pathlib import Path
 from typing import Optional, Sequence, cast
@@ -172,28 +171,18 @@ class VectorRetrieval(BaseRetrieval):
             result = [RetrievedDocument(**doc.to_dict(), score=-1.0) for doc in docs]
         elif self.retrieval_mode == "hybrid":
             # similarity search section
-
-            s_time = time.time()
             emb = self.embedding(text)[0].embedding
-            print(f"Emb takes: {time.time() - s_time}")
 
-            s_time = time.time()
             _, vs_scores, vs_ids = self.vector_store.query(
                 embedding=emb, top_k=top_k_first_round, **kwargs
             )
-            print(f"VS search takes: {time.time() - s_time}")
 
-            s_time = time.time()
             vs_docs = self.doc_store.get(vs_ids)
-            print("With chunk_ids, get doc from DS takes: ", time.time() - s_time)
 
             # full-text search section
-            s_time = time.time()
             query = text.text if isinstance(text, Document) else text
             docs = self.doc_store.query(query, top_k=top_k_first_round, doc_ids=scope)
-            print(f"Query top-k: {top_k_first_round} DS takes: ", time.time() - s_time)
 
-            s_time = time.time()
             result = [
                 RetrievedDocument(**doc.to_dict(), score=-1.0)
                 for doc in docs
@@ -203,17 +192,14 @@ class VectorRetrieval(BaseRetrieval):
                 RetrievedDocument(**doc.to_dict(), score=score)
                 for doc, score in zip(vs_docs, vs_scores)
             ]
-            print(f"Postprocess query takes: {time.time() - s_time}")
 
         # use additional reranker to re-order the document list
         if self.rerankers and text:
             for reranker in self.rerankers:
                 # if reranker is LLMReranking, limit the document with top_k items only
-                s_time = time.time()
                 if isinstance(reranker, LLMReranking):
                     result = self._filter_docs(result, top_k=top_k)
                 result = reranker(documents=result, query=text)
-                print("re-rank takes: ", time.time() - s_time)
 
         result = self._filter_docs(result, top_k=top_k)
 
