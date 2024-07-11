@@ -1,6 +1,7 @@
 import uuid
 
 import chromadb
+from ktem.index.models import Index
 from sqlalchemy import (
     JSON,
     Column,
@@ -108,12 +109,10 @@ def update_metadata(metadata, file_id):
 
 
 def migrate_chroma_db(
-    chroma_db_dir: str,
-    chroma_collection_name: str,
-    sqlite_path: str,
-    is_private: bool = True,
-    int_index: int = 1,
+    chroma_db_dir: str, sqlite_path: str, is_private: bool = True, int_index: int = 1
 ):
+    chroma_collection_name = f"index_{int_index}"
+
     """Update chromadb with metadata.file_id"""
     engine = create_engine(sqlite_path)
     resource = _init_resource(private=is_private, id=int_index)
@@ -162,13 +161,31 @@ def migrate_chroma_db(
         print(f"doc-{doc_id} got updated")
 
 
+def main(chroma_db_dir: str, sqlite_path: str):
+    engine = create_engine(sqlite_path)
+
+    with Session(engine) as session:
+        stmt = select(Index)
+
+        results = session.execute(stmt)
+        file_indices = [r[0] for r in results.all()]
+
+        for file_index in file_indices:
+            _id = file_index.id
+            _is_private = file_index.config["private"]
+
+            print(f"Migrating for Index id: {_id}, is_private: {_is_private}")
+
+            migrate_chroma_db(
+                chroma_db_dir=chroma_db_dir,
+                sqlite_path=sqlite_path,
+                is_private=_is_private,
+                int_index=_id,
+            )
+
+
 if __name__ == "__main__":
     chrome_db_dir: str = "./vectorstore/kan_db"
-    int_index: int = 1
-    is_private: bool = True
-    chroma_collection_name: str = f"index_{int_index}"
     sqlite_path: str = "sqlite:///../ktem_app_data/user_data/sql.db"
 
-    migrate_chroma_db(
-        chrome_db_dir, chroma_collection_name, sqlite_path, is_private, int_index
-    )
+    main(chrome_db_dir, sqlite_path)
