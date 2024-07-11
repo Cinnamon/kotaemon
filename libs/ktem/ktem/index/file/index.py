@@ -436,3 +436,90 @@ class FileIndex(BaseIndex):
             retrievers.append(obj)
 
         return retrievers
+
+
+class KnowledgeNetworkFileIndex(FileIndex):
+    @classmethod
+    def get_admin_settings(cls):
+        return {
+            "supported_file_types": {
+                "name": "Supported file types",
+                "value": ".pdf, .txt",
+                "component": "text",
+                "info": "The file types that can be indexed, separated by comma.",
+            },
+            "max_file_size": {
+                "name": "Max file size (MB)",
+                "value": 1000,
+                "component": "number",
+                "info": "The maximum size of file. Set 0 to disable.",
+            },
+            "max_number_of_files": {
+                "name": "Max number of files that can be indexed",
+                "value": 0,
+                "component": "number",
+                "info": (
+                    "The total number of files that can be indexed on the system. "
+                    "Set 0 to disable."
+                ),
+            },
+            "private": {
+                "name": "Make private",
+                "value": False,
+                "component": "radio",
+                "choices": [("Yes", True), ("No", False)],
+                "info": "If private, files will not be accessible across users.",
+            },
+        }
+
+    def get_indexing_pipeline(self, settings, user_id) -> BaseFileIndexIndexing:
+        """Define the interface of the indexing pipeline"""
+
+        prefix = f"index.options.{self.id}."
+        stripped_settings = {}
+        for key, value in settings.items():
+            if key.startswith(prefix):
+                stripped_settings[key[len(prefix) :]] = value
+            else:
+                stripped_settings[key] = value
+
+        obj = self._indexing_pipeline_cls.get_pipeline(stripped_settings, self.config)
+        obj.Source = self._resources["Source"]
+        obj.Index = self._resources["Index"]
+        obj.VS = None
+        obj.DS = self._docstore
+        obj.FSPath = self._fs_path
+        obj.user_id = user_id
+        obj.private = self.config.get("private", False)
+
+        return obj
+
+    def get_retriever_pipelines(
+        self, settings: dict, user_id: int, selected: Any = None
+    ) -> list["BaseFileIndexRetriever"]:
+        # retrieval settings
+        prefix = f"index.options.{self.id}."
+        stripped_settings = {}
+        for key, value in settings.items():
+            if key.startswith(prefix):
+                stripped_settings[key[len(prefix) :]] = value
+            else:
+                stripped_settings[key] = value
+
+        # transform selected id
+        selected_ids: Optional[list[str]] = self._selector_ui.get_selected_ids(selected)
+
+        retrievers = []
+        for cls in self._retriever_pipeline_cls:
+            obj = cls.get_pipeline(stripped_settings, self.config, selected_ids)
+            if obj is None:
+                continue
+            obj.Source = self._resources["Source"]
+            obj.Index = self._resources["Index"]
+            obj.VS = None
+            obj.DS = self._docstore
+            obj.FSPath = self._fs_path
+            obj.user_id = user_id
+            retrievers.append(obj)
+
+        return retrievers

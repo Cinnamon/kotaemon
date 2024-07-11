@@ -451,7 +451,7 @@ class IndexPipeline(BaseComponent):
                 session.delete(each[0])
             session.commit()
 
-        if vs_ids:
+        if vs_ids and self.VS:
             self.VS.delete(vs_ids)
         if ds_ids:
             self.DS.delete(ds_ids)
@@ -507,6 +507,8 @@ class IndexPipeline(BaseComponent):
 
         # extract the file
         extra_info = default_file_metadata_func(str(file_path))
+        # update file_id metadata
+        extra_info["file_id"] = file_id
         yield Document(f" => Converting {file_path.name} to text", channel="debug")
         docs = self.loader.load_data(file_path, extra_info=extra_info)
         yield Document(f" => Converted {file_path.name} to text", channel="debug")
@@ -516,6 +518,96 @@ class IndexPipeline(BaseComponent):
 
         yield Document(f" => Finished indexing {file_path.name}", channel="debug")
         return file_id
+
+
+class KnowledgeNetworkIndexPipeline(IndexPipeline):
+
+    """KnowledgeNetwork specific indexing pipeline
+
+    This method offloads most of the indexing logics
+    to external KnowledgeNetwork service.
+    In the implementation here we simply
+    disable the chunking & vector embedding process.
+    """
+
+    def handle_docs(self, docs, file_id, file_name) -> Generator[Document, None, int]:
+        """Chunking logics, which is disabled"""
+        chunks = docs
+        n_chunks = len(chunks)
+        yield Document(
+            f" => [{file_name}] Processed {n_chunks} chunks", channel="debug"
+        )
+        return chunks
+
+    def handle_chunks(self, chunks, file_id):
+        """Commit document info to the SQL DB"""
+        # record in the index
+        with Session(engine) as session:
+            nodes = []
+            for chunk in chunks:
+                nodes.append(
+                    self.Index(
+                        source_id=file_id,
+                        target_id=chunk.doc_id,
+                        relation_type="document",
+                    )
+                )
+                nodes.append(
+                    self.Index(
+                        source_id=file_id,
+                        target_id=chunk.doc_id,
+                        relation_type="vector",
+                    )
+                )
+            session.add_all(nodes)
+            session.commit()
+
+
+class KnowledgeNetworkRetrievalPipeline(BaseFileIndexRetriever):
+    collection_name: str
+
+    def run(
+        self,
+        text: str,
+        doc_ids: Optional[list[str]] = None,
+        *args,
+        **kwargs,
+    ) -> list[RetrievedDocument]:
+        """Retrieve document excerpts similar to the text
+
+        Args:
+            text: the text to retrieve similar documents
+            doc_ids: list of document ids to constraint the retrieval
+        """
+        print("searching in doc_ids", doc_ids)
+        docs: list[RetrievedDocument] = []
+        # call KN retrieval API here
+        return docs
+
+    @classmethod
+    def get_user_settings(cls) -> dict:
+        return {
+            "retrieval_mode": {
+                "name": "Retrieval mode",
+                "value": "hybrid",
+                "choices": ["vector", "text", "hybrid"],
+                "component": "dropdown",
+            },
+        }
+
+    @classmethod
+    def get_pipeline(cls, user_settings, index_settings, selected):
+        """Get retriever objects associated with the index
+
+        Args:
+            settings: the settings of the app
+            kwargs: other arguments
+        """
+        retriever = cls(collection_name="knowledge_network")
+        print("retrieval mode", user_settings["retrieval_mode"])
+        kwargs = {".doc_ids": selected}
+        retriever.set_run(kwargs, temp=False)
+        return retriever
 
 
 class IndexDocumentPipeline(BaseFileIndexIndexing):
