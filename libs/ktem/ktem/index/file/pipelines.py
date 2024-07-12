@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import shutil
+import time
 import warnings
 from collections import defaultdict
 from functools import lru_cache
@@ -133,11 +134,10 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
         retrieval_kwargs["filters"] = MetadataFilters(
             filters=[
                 MetadataFilter(
-                    key="doc_id",
-                    value=vs_id,
-                    operator=FilterOperator.EQ,
+                    key="file_id",
+                    value=doc_ids,
+                    operator=FilterOperator.IN,
                 )
-                for vs_id in vs_ids
             ],
             condition=FilterCondition.OR,
         )
@@ -148,7 +148,10 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             retrieval_kwargs["mmr_threshold"] = 0.5
 
         # rerank
+        s_time = time.time()
+        print(f"retrieval_kwargs: {retrieval_kwargs.keys()}")
         docs = self.vector_retrieval(text=text, top_k=self.top_k, **retrieval_kwargs)
+        print("retrieval step took", time.time() - s_time)
 
         if not self.get_extra_table:
             return docs
@@ -477,6 +480,8 @@ class IndexPipeline(BaseComponent):
 
         # extract the file
         extra_info = default_file_metadata_func(str(file_path))
+        extra_info["file_id"] = file_id
+
         docs = self.loader.load_data(file_path, extra_info=extra_info)
         for _ in self.handle_docs(docs, file_id, file_path.name):
             continue
@@ -507,6 +512,8 @@ class IndexPipeline(BaseComponent):
 
         # extract the file
         extra_info = default_file_metadata_func(str(file_path))
+        extra_info["file_id"] = file_id
+
         yield Document(f" => Converting {file_path.name} to text", channel="debug")
         docs = self.loader.load_data(file_path, extra_info=extra_info)
         yield Document(f" => Converted {file_path.name} to text", channel="debug")

@@ -170,16 +170,19 @@ class VectorRetrieval(BaseRetrieval):
             docs = self.doc_store.query(query, top_k=top_k_first_round, doc_ids=scope)
             result = [RetrievedDocument(**doc.to_dict(), score=-1.0) for doc in docs]
         elif self.retrieval_mode == "hybrid":
-            # similartiy search section
+            # similarity search section
             emb = self.embedding(text)[0].embedding
+
             _, vs_scores, vs_ids = self.vector_store.query(
                 embedding=emb, top_k=top_k_first_round, **kwargs
             )
+
             vs_docs = self.doc_store.get(vs_ids)
 
             # full-text search section
             query = text.text if isinstance(text, Document) else text
             docs = self.doc_store.query(query, top_k=top_k_first_round, doc_ids=scope)
+
             result = [
                 RetrievedDocument(**doc.to_dict(), score=-1.0)
                 for doc in docs

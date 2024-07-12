@@ -36,11 +36,9 @@ class DocxReader(BaseReader):
 
         arrays = [["" for _ in range(n_row)] for _ in range(n_col)]
 
-        for row in table.rows:
-            for c in row.cells:
-                for row_index in range(c._tc.top, c._tc.bottom):
-                    for col_index in range(c._tc.left, c._tc.right):
-                        arrays[col_index][row_index] = c.text
+        for i, row in enumerate(table.rows):
+            for j, cell in enumerate(row.cells):
+                arrays[j][i] = cell.text
 
         return arrays
 
