@@ -128,13 +128,6 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             results = session.execute(stmt)
             vs_ids = [r[0].target_id for r in results.all()]
 
-        # with Session(engine) as session:
-        #     stmt = select(self.Source).where(
-        #         self.Source.id.in_(doc_ids),
-        #     )
-        #     results = session.execute(stmt)
-        #     file_names = [r[0].name for r in results.all()]
-
         # do first round top_k extension
         retrieval_kwargs["do_extend"] = True
         retrieval_kwargs["scope"] = vs_ids
@@ -306,8 +299,6 @@ class IndexPipeline(BaseComponent):
         text_docs = []
         non_text_docs = []
         for doc in docs:
-            # doc.metadata['file_id'] = file_id
-
             if doc.metadata.get("type", "text") == "text":
                 text_docs.append(doc)
             else:
