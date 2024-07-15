@@ -246,18 +246,25 @@ class FileIndexPage(BasePage):
                     )
                     doc_type = doc.metadata.get("type", "text")
                     content = ""
-                    if doc_type == "text":
-                        content = html.escape(doc.text)
-                    elif doc_type == "table":
+                    if doc_type == "table":
                         content = Render.table(doc.text)
                     elif doc_type == "image":
                         content = Render.image(
                             url=doc.metadata.get("image_origin", ""), text=doc.text
                         )
+                    else:
+                        content = html.escape(doc.text)
 
                     header_prefix = f"[{idx+1}/{len(docs)}]"
                     if doc.metadata.get("page_label"):
-                        header_prefix += f" [Page {doc.metadata['page_label']}]"
+                        type_prefix = (
+                            doc_type.capitalize() + " from "
+                            if doc_type in ["table", "image"]
+                            else ""
+                        )
+                        header_prefix += (
+                            f" {type_prefix}[Page {doc.metadata['page_label']}]"
+                        )
 
                     chunks.append(
                         Render.collapsible(
@@ -296,7 +303,8 @@ class FileIndexPage(BasePage):
                 session.delete(each[0])
             session.commit()
 
-        self._index._vs.delete(vs_ids)
+        if vs_ids:
+            self._index._vs.delete(vs_ids)
         self._index._docstore.delete(ds_ids)
 
         gr.Info(f"File {file_id} has been deleted")

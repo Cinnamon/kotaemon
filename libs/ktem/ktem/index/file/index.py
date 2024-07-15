@@ -486,6 +486,7 @@ class KnowledgeNetworkFileIndex(FileIndex):
         obj = self._indexing_pipeline_cls.get_pipeline(stripped_settings, self.config)
         obj.Source = self._resources["Source"]
         obj.Index = self._resources["Index"]
+        obj.collection_name = f"kh_index_{self.id}"
         obj.VS = None
         obj.DS = self._docstore
         obj.FSPath = self._fs_path
@@ -516,6 +517,8 @@ class KnowledgeNetworkFileIndex(FileIndex):
                 continue
             obj.Source = self._resources["Source"]
             obj.Index = self._resources["Index"]
+            # set collection name from KN
+            obj.collection_name = f"kh_index_{self.id}"
             obj.VS = None
             obj.DS = self._docstore
             obj.FSPath = self._fs_path

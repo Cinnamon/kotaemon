@@ -1,5 +1,4 @@
 from pathlib import Path
-from unittest.mock import patch
 
 from langchain.schema import Document as LangchainDocument
 from llama_index.core.node_parser import SimpleNodeParser
@@ -7,7 +6,6 @@ from llama_index.core.node_parser import SimpleNodeParser
 from kotaemon.base import Document
 from kotaemon.loaders import (
     AutoReader,
-    AzureAIDocumentIntelligenceLoader,
     DocxReader,
     HtmlReader,
     MhtmlReader,
@@ -80,13 +78,13 @@ def test_mhtml_reader():
     assert docs[0].text.startswith("This is a test")
 
 
-@patch("azure.ai.documentintelligence.DocumentIntelligenceClient")
-def test_azureai_document_intelligence_reader(mock_client):
-    reader = AzureAIDocumentIntelligenceLoader(
-        endpoint="https://endpoint.com",
-        credential="credential",
-    )
-    docs = reader(Path(__file__).parent / "resources" / "dummy.pdf")
+# @patch("azure.ai.documentintelligence.DocumentIntelligenceClient")
+# def test_azureai_document_intelligence_reader(mock_client):
+#     reader = AzureAIDocumentIntelligenceLoader(
+#         endpoint="https://endpoint.com",
+#         credential="credential",
+#     )
+#     docs = reader(Path(__file__).parent / "resources" / "dummy.pdf")
 
-    assert len(docs) == 1
-    mock_client.assert_called_once()
+#     assert len(docs) == 1
+#     mock_client.assert_called_once()

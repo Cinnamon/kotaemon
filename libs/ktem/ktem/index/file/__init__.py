@@ -1,3 +1,3 @@
-from .index import FileIndex
+from .index import FileIndex, KnowledgeNetworkFileIndex
 
-__all__ = ["FileIndex"]
+__all__ = ["FileIndex", "KnowledgeNetworkFileIndex"]

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import shutil
 import warnings
@@ -9,7 +10,9 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Generator, Optional, Sequence
 
+import requests
 import tiktoken
+import yaml
 from ktem.db.models import engine
 from ktem.embeddings.manager import embedding_models_manager
 from ktem.llms.manager import llms
@@ -280,6 +283,7 @@ class IndexPipeline(BaseComponent):
     DS = Param(help="The DocStore")
     FSPath = Param(help="The file storage path")
     user_id = Param(help="The user id")
+    collection_name: str = "default"
     private: bool = False
     embedding: BaseEmbeddings
 
@@ -477,6 +481,8 @@ class IndexPipeline(BaseComponent):
 
         # extract the file
         extra_info = default_file_metadata_func(str(file_path))
+        extra_info["file_id"] = file_id
+        extra_info["collection_name"] = self.collection_name
         docs = self.loader.load_data(file_path, extra_info=extra_info)
         for _ in self.handle_docs(docs, file_id, file_path.name):
             continue
@@ -509,6 +515,7 @@ class IndexPipeline(BaseComponent):
         extra_info = default_file_metadata_func(str(file_path))
         # update file_id metadata
         extra_info["file_id"] = file_id
+        extra_info["collection_name"] = self.collection_name
         yield Document(f" => Converting {file_path.name} to text", channel="debug")
         docs = self.loader.load_data(file_path, extra_info=extra_info)
         yield Document(f" => Converted {file_path.name} to text", channel="debug")
@@ -532,39 +539,32 @@ class KnowledgeNetworkIndexPipeline(IndexPipeline):
 
     def handle_docs(self, docs, file_id, file_name) -> Generator[Document, None, int]:
         """Chunking logics, which is disabled"""
-        chunks = docs
-        n_chunks = len(chunks)
-        yield Document(
-            f" => [{file_name}] Processed {n_chunks} chunks", channel="debug"
-        )
-        return chunks
+        print("Hello from KN index pipeline.")
+        chunks = []
+        n_chunks = 0
+        for cidx, chunk in enumerate(docs):
+            chunks.append(chunk)
+            if cidx % self.chunk_batch_size == 0:
+                self.handle_chunks(chunks, file_id)
+                n_chunks += len(chunks)
+                chunks = []
+                yield Document(
+                    f" => [{file_name}] Processed {n_chunks} chunks", channel="debug"
+                )
 
-    def handle_chunks(self, chunks, file_id):
-        """Commit document info to the SQL DB"""
-        # record in the index
-        with Session(engine) as session:
-            nodes = []
-            for chunk in chunks:
-                nodes.append(
-                    self.Index(
-                        source_id=file_id,
-                        target_id=chunk.doc_id,
-                        relation_type="document",
-                    )
-                )
-                nodes.append(
-                    self.Index(
-                        source_id=file_id,
-                        target_id=chunk.doc_id,
-                        relation_type="vector",
-                    )
-                )
-            session.add_all(nodes)
-            session.commit()
+        if chunks:
+            self.handle_chunks(chunks, file_id)
+            n_chunks += len(chunks)
+            yield Document(
+                f" => [{file_name}] Processed {n_chunks} chunks", channel="debug"
+            )
+        return n_chunks
 
 
 class KnowledgeNetworkRetrievalPipeline(BaseFileIndexRetriever):
-    collection_name: str
+    DEFAULT_DOCREADER_ENDPOINT: str = "http://127.0.0.1:8081/retrieve"
+    collection_name: str = "default"
+    rerankers: Sequence[BaseReranking] = [LLMReranking.withx()]
 
     def run(
         self,
@@ -580,13 +580,62 @@ class KnowledgeNetworkRetrievalPipeline(BaseFileIndexRetriever):
             doc_ids: list of document ids to constraint the retrieval
         """
         print("searching in doc_ids", doc_ids)
+        if not doc_ids:
+            return []
+
         docs: list[RetrievedDocument] = []
-        # call KN retrieval API here
+        params = {
+            "query": text,
+            "collection": self.collection_name,
+            "meta_filters": {"doc_name": doc_ids},
+        }
+        params["meta_filters"] = json.dumps(params["meta_filters"])
+        response = requests.get(self.DEFAULT_DOCREADER_ENDPOINT, params=params)
+        metadata_translation = {
+            "TABLE": "table",
+            "FIGURE": "image",
+        }
+
+        if response.status_code == 200:
+            # Load YAML content from the response content
+            chunks = yaml.safe_load(response.content)
+            for chunk in chunks:
+                metadata = chunk["node"]["metadata"]
+                metadata["type"] = metadata_translation.get(
+                    metadata.pop("content_type", ""), ""
+                )
+                metadata["file_name"] = metadata.pop("company_name", "")
+                docs.append(
+                    RetrievedDocument(text=chunk["node"]["text"], metadata=metadata)
+                )
+        else:
+            raise IOError(f"{response.status_code}: {response.text}")
+
+        for reranker in self.rerankers:
+            docs = reranker(documents=docs, query=text)
+
         return docs
 
     @classmethod
     def get_user_settings(cls) -> dict:
+        from ktem.llms.manager import llms
+
+        try:
+            reranking_llm = llms.get_default_name()
+            reranking_llm_choices = list(llms.options().keys())
+        except Exception as e:
+            logger.error(e)
+            reranking_llm = None
+            reranking_llm_choices = []
+
         return {
+            "reranking_llm": {
+                "name": "LLM for scoring",
+                "value": reranking_llm,
+                "component": "dropdown",
+                "choices": reranking_llm_choices,
+                "special_type": "llm",
+            },
             "retrieval_mode": {
                 "name": "Retrieval mode",
                 "value": "hybrid",
@@ -603,10 +652,21 @@ class KnowledgeNetworkRetrievalPipeline(BaseFileIndexRetriever):
             settings: the settings of the app
             kwargs: other arguments
         """
-        retriever = cls(collection_name="knowledge_network")
+        retriever = cls(
+            collection_name="knowledge_network",
+            rerankers=[LLMTrulensScoring()],
+        )
+
         print("retrieval mode", user_settings["retrieval_mode"])
         kwargs = {".doc_ids": selected}
         retriever.set_run(kwargs, temp=False)
+
+        for reranker in retriever.rerankers:
+            if isinstance(reranker, LLMReranking):
+                reranker.llm = llms.get(
+                    user_settings["reranking_llm"], llms.get_default()
+                )
+
         return retriever
 
 
@@ -623,6 +683,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
     """
 
     embedding: BaseEmbeddings
+    collection_name: str = "default"
 
     @classmethod
     def get_pipeline(cls, user_settings, index_settings) -> BaseFileIndexIndexing:
@@ -658,6 +719,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                 separator="\n\n",
                 backup_separators=["\n", ".", "\u200B"],
             ),
+            collection_name=self.collection_name,
             Source=self.Source,
             Index=self.Index,
             VS=self.VS,

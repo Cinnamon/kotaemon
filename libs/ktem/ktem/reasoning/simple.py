@@ -47,7 +47,7 @@ def get_header(doc: Document):
     if "page_label" in doc.metadata:
         header += f" [Page {doc.metadata['page_label']}]"
 
-    header += f" {doc.metadata.get('file_name', '<Unknown>')}"
+    header += f" {doc.metadata.get('file_name', '(evidence)')}"
     return header.strip()
 
 
@@ -537,13 +537,16 @@ class FullQAPipeline(BaseReasoning):
                     doc_ids.append(doc.doc_id)
 
         info = []
-        for doc in docs:
+        for doc_id, doc in enumerate(docs):
+            header = get_header(doc)
+            if not header:
+                header = f"Chunk #{doc_id + 1}"
             if doc.metadata.get("type", "") == "image":
                 info.append(
                     Document(
                         channel="info",
                         content=Render.collapsible(
-                            header=f"<i>{get_header(doc)}</i>",
+                            header=f"<i>{header}</i>",
                             content=Render.image(
                                 url=doc.metadata["image_origin"], text=doc.text
                             ),
@@ -556,7 +559,7 @@ class FullQAPipeline(BaseReasoning):
                     Document(
                         channel="info",
                         content=Render.collapsible(
-                            header=f"<i>{get_header(doc)}</i>",
+                            header=f"<i>{header}</i>",
                             content=Render.table(doc.text),
                             open=True,
                         ),
@@ -573,6 +576,9 @@ class FullQAPipeline(BaseReasoning):
     ) -> str:
         """Format the retrieval score and the document"""
         # score from doc_store (Elasticsearch)
+        rendered_doc_content = rendered_doc_content.replace("<strong>", "<p>").replace(
+            "</strong>", "</p>"
+        )
         if is_close(doc.score, -1.0):
             vectorstore_score = ""
             text_search_str = " (full-text search)<br>"
@@ -695,6 +701,7 @@ class FullQAPipeline(BaseReasoning):
                             Render.image(
                                 url=doc.metadata["image_origin"], text=doc.text
                             ),
+                            open_collapsible=True,
                         ),
                     )
                 )
@@ -703,7 +710,9 @@ class FullQAPipeline(BaseReasoning):
                     Document(
                         channel="info",
                         content=self._format_retrieval_score_and_doc(
-                            doc, Render.table(doc.text)
+                            doc,
+                            Render.table(doc.text),
+                            open_collapsible=True,
                         ),
                     )
                 )

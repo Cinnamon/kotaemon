@@ -64,18 +64,21 @@ class VectorIndexing(BaseIndexing):
                     f"Invalid input type {type(item)}, should be str or Document"
                 )
 
-        print(f"Getting embeddings for {len(input_)} nodes")
-        embeddings = self.embedding(input_)
-        print("Adding embeddings to vector store")
-        self.vector_store.add(
-            embeddings=embeddings,
-            ids=[t.doc_id for t in input_],
-        )
+        # in case we want to skip embedding
+        if self.vector_store:
+            print(f"Getting embeddings for {len(input_)} nodes")
+            embeddings = self.embedding(input_)
+            print("Adding embeddings to vector store")
+            self.vector_store.add(
+                embeddings=embeddings,
+                ids=[t.doc_id for t in input_],
+            )
         if self.doc_store:
             print("Adding documents to doc store")
             self.doc_store.add(input_)
         # save the chunks content into markdown format
         if self.cache_dir:
+            print("writing to cache")
             file_name = Path(input_[0].metadata["file_name"])
             for i in range(len(input_)):
                 markdown_content = ""
