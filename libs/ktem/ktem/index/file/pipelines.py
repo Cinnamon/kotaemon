@@ -275,7 +275,7 @@ class IndexPipeline(BaseComponent):
 
     loader: BaseReader
     splitter: BaseSplitter
-    chunk_batch_size: int = 50
+    chunk_batch_size: int = 100
 
     Source = Param(help="The SQLAlchemy Source table")
     Index = Param(help="The SQLAlchemy Index table")
@@ -306,7 +306,7 @@ class IndexPipeline(BaseComponent):
 
         for cidx, chunk in enumerate(self.splitter(text_docs)):
             chunks.append(chunk)
-            if cidx % self.chunk_batch_size == 0:
+            if (cidx + 1) % self.chunk_batch_size == 0:
                 self.handle_chunks(chunks, file_id)
                 n_chunks += len(chunks)
                 chunks = []

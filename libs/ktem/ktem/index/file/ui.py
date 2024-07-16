@@ -296,7 +296,8 @@ class FileIndexPage(BasePage):
                 session.delete(each[0])
             session.commit()
 
-        self._index._vs.delete(vs_ids)
+        if vs_ids:
+            self._index._vs.delete(vs_ids)
         self._index._docstore.delete(ds_ids)
 
         gr.Info(f"File {file_id} has been deleted")

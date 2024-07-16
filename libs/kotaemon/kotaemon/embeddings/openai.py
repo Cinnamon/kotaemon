@@ -3,6 +3,7 @@ from typing import Optional
 
 import numpy as np
 import tiktoken
+from tenacity import retry, stop_after_attempt, wait_random_exponential
 from theflow.utils.modules import import_dotted_string
 
 from kotaemon.base import Param
@@ -168,6 +169,7 @@ class OpenAIEmbeddings(BaseOpenAIEmbeddings):
 
         return OpenAI(**params)
 
+    @retry(wait=wait_random_exponential(min=1, max=40), stop=stop_after_attempt(6))
     def openai_response(self, client, **kwargs):
         """Get the openai response"""
         params: dict = {
@@ -224,6 +226,7 @@ class AzureOpenAIEmbeddings(BaseOpenAIEmbeddings):
 
         return AzureOpenAI(**params)
 
+    @retry(wait=wait_random_exponential(min=1, max=40), stop=stop_after_attempt(6))
     def openai_response(self, client, **kwargs):
         """Get the openai response"""
         params: dict = {
