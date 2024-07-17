@@ -20,7 +20,7 @@ class AutoReader(BaseReader):
         """Init reader using string identifier or class name from llama-hub"""
 
         if isinstance(reader_type, str):
-            from llama_index import download_loader
+            from llama_index.core import download_loader
 
             self._reader = download_loader(reader_type)()
         else:
