@@ -45,8 +45,7 @@ documents and developers who want to build their own QA pipeline.
 ```
 
 This repository is under active development. Feedback, issues, and PRs are highly
-appreciated. Your input is valuable as it helps us persuade our business guys to support
-open source.
+appreciated.
 
 ## Installation
 
@@ -57,20 +56,31 @@ it, please follow the [User Guide](https://cinnamon.github.io/kotaemon/).
 
 ### For developers
 
+Install all
+
 ```shell
-# Create a environment
-python -m venv kotaemon-env
-
-# Activate the environment
-source kotaemon-env/bin/activate
-
-# Install the package
-pip install git+https://github.com/Cinnamon/kotaemon.git
+# clone this repo and cd to root directory
+pip install -e "libs/kotaemon[all]"
+pip install -e "libs/ktem"
 ```
 
-## Creating your application
+## Start your application
 
-In order to create your own application, you need to prepare these files:
+Simply run the following command:
+
+```shell
+python app.py
+```
+
+The app will be automatically launched in your browser.
+
+![Chat tab](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/chat-tab.png)
+
+Default username / password are: `admin` / `admin`
+
+## Customize your application
+
+For your specific use-case, you might need to customize those file:
 
 - `flowsettings.py`
 - `app.py`
@@ -178,20 +188,3 @@ Here is how to get the full path of your model file:
 
 - On Windows 11: right click the file and select `Copy as Path`.
 </details>
-
-## Start your application
-
-Simply run the following command:
-
-```shell
-python app.py
-```
-
-The app will be automatically launched in your browser.
-
-![Chat tab](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/chat-tab.png)
-
-## Customize your application
-
-Please refer to the [Developer Guide](https://cinnamon.github.io/kotaemon/development/)
-for more details.
