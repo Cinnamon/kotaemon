@@ -218,7 +218,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             },
             "prioritize_table": {
                 "name": "Prioritize table",
-                "value": True,
+                "value": False,
                 "choices": [True, False],
                 "component": "checkbox",
             },

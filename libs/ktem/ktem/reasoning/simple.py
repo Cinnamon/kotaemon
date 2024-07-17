@@ -64,7 +64,7 @@ def find_text(search_span, context):
             match = SequenceMatcher(
                 None, sentence, context, autojunk=False
             ).find_longest_match()
-            if match.size > len(search_span) * 0.6:
+            if match.size > len(sentence) * 0.6:
                 matches.append((match.b, match.b + match.size))
 
     return matches
@@ -879,7 +879,7 @@ class FullQAPipeline(BaseReasoning):
             },
             "highlight_citation": {
                 "name": "Highlight Citation",
-                "value": False,
+                "value": True,
                 "component": "checkbox",
             },
             "system_prompt": {

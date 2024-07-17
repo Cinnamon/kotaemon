@@ -4,7 +4,6 @@ from io import BytesIO
 from pathlib import Path
 from typing import Optional
 
-import fitz
 from PIL import Image
 
 from kotaemon.base import Document, Param
@@ -29,6 +28,11 @@ def crop_image(file_path: Path, bbox: list[float], page_number: int = 0) -> Imag
     img: Image.Image
     suffix = file_path.suffix.lower()
     if suffix == ".pdf":
+        try:
+            import fitz
+        except ImportError:
+            raise ImportError("Please install PyMuPDF: 'pip install PyMuPDF'")
+
         doc = fitz.open(file_path)
         page = doc.load_page(page_number)
         pm = page.get_pixmap(dpi=150)
