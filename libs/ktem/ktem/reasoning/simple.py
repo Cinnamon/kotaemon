@@ -84,7 +84,7 @@ class PrepareEvidencePipeline(BaseComponent):
     """
 
     trim_func: TokenSplitter = TokenSplitter.withx(
-        chunk_size=3000,
+        chunk_size=32000,
         chunk_overlap=0,
         separator=" ",
         tokenizer=partial(
@@ -755,7 +755,6 @@ class FullQAPipeline(BaseReasoning):
             message = self.rewrite_pipeline(question=message).text
             print("Rewrite result", message)
 
-        print(f"Rewritten message (use_rewrite={self.use_rewrite}): {message}")
         print(f"Retrievers {self.retrievers}")
         # should populate the context
         docs, infos = self.retrieve(message, history)

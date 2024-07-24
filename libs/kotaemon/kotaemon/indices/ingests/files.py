@@ -22,6 +22,7 @@ unstructured = UnstructuredReader()
 KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
     ".xlsx": PandasExcelReader(),
     ".docx": unstructured,
+    ".pptx": unstructured,
     ".xls": unstructured,
     ".doc": unstructured,
     ".html": HtmlReader(),
