@@ -32,6 +32,8 @@ class BaseConversation(SQLModel):
     )
     user: int = Field(default=0)  # For now we only have one user
 
+    is_public: bool = Field(default=False)
+
     # contains messages + current files
     data_source: dict = Field(default={}, sa_column=Column(JSON))
 

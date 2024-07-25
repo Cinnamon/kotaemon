@@ -44,6 +44,7 @@ os.environ["HF_HUB_CACHE"] = str(KH_APP_DATA_DIR / "huggingface")
 
 COHERE_API_KEY = config("COHERE_API_KEY", default="")
 KH_MODE = "dev"
+KH_USER_CAN_SEE_PUBLIC = "public"
 KH_FEATURE_USER_MANAGEMENT = False
 KH_FEATURE_USER_MANAGEMENT_ADMIN = str(
     config("KH_FEATURE_USER_MANAGEMENT_ADMIN", default="admin")
