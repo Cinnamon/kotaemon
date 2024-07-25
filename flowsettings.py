@@ -33,8 +33,21 @@ KH_APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
 KH_USER_DATA_DIR = KH_APP_DATA_DIR / "user_data"
 KH_USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# doc directory
-KH_DOC_DIR = this_dir / "docs"
+# markdowm output directory
+KH_MARKDOWN_OUTPUT_DIR = KH_APP_DATA_DIR / "markdown_cache_dir"
+KH_MARKDOWN_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# chunks output directory
+KH_CHUNKS_OUTPUT_DIR = KH_APP_DATA_DIR / "chunks_cache_dir"
+KH_CHUNKS_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# zip output directory
+KH_ZIP_OUTPUT_DIR = KH_APP_DATA_DIR / "zip_cache_dir"
+KH_ZIP_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# zip input directory
+KH_ZIP_INPUT_DIR = KH_APP_DATA_DIR / "zip_cache_dir_in"
+KH_ZIP_INPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # HF models can be big, let's store them in the app data directory so that it's easier
 # for users to manage their storage.
@@ -42,15 +55,18 @@ KH_DOC_DIR = this_dir / "docs"
 os.environ["HF_HOME"] = str(KH_APP_DATA_DIR / "huggingface")
 os.environ["HF_HUB_CACHE"] = str(KH_APP_DATA_DIR / "huggingface")
 
+# doc directory
+KH_DOC_DIR = this_dir / "docs"
+
 COHERE_API_KEY = config("COHERE_API_KEY", default="")
 KH_MODE = "dev"
 KH_USER_CAN_SEE_PUBLIC = "public"
-KH_FEATURE_USER_MANAGEMENT = False
+KH_FEATURE_USER_MANAGEMENT = True
 KH_FEATURE_USER_MANAGEMENT_ADMIN = str(
     config("KH_FEATURE_USER_MANAGEMENT_ADMIN", default="admin")
 )
 KH_FEATURE_USER_MANAGEMENT_PASSWORD = str(
-    config("KH_FEATURE_USER_MANAGEMENT_PASSWORD", default="XsdMbe8zKP8KdeE@")
+    config("KH_FEATURE_USER_MANAGEMENT_PASSWORD", default="admin")
 )
 KH_ENABLE_ALEMBIC = False
 KH_DATABASE = f"sqlite:///{KH_USER_DATA_DIR / 'sql.db'}"
@@ -84,8 +100,6 @@ if config("AZURE_OPENAI_API_KEY", default="") and config(
                 "timeout": 20,
             },
             "default": False,
-            "accuracy": 5,
-            "cost": 5,
         }
     if config("AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT", default=""):
         KH_EMBEDDINGS["azure"] = {
@@ -112,25 +126,22 @@ if config("OPENAI_API_KEY", default=""):
             or "https://api.openai.com/v1",
             "api_key": config("OPENAI_API_KEY", default=""),
             "model": config("OPENAI_CHAT_MODEL", default="") or "gpt-3.5-turbo",
+            "timeout": 20,
+        },
+        "default": True,
+    }
+    KH_EMBEDDINGS["openai"] = {
+        "spec": {
+            "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
+            "base_url": config("OPENAI_API_BASE", default="")
+            or "https://api.openai.com/v1",
+            "api_key": config("OPENAI_API_KEY", default=""),
+            "model": config("OPENAI_EMBEDDINGS_MODEL", default="text-embedding-ada-002")
+            or "text-embedding-ada-002",
             "timeout": 10,
         },
-        "default": False,
+        "default": True,
     }
-    if len(KH_EMBEDDINGS) < 1:
-        KH_EMBEDDINGS["openai"] = {
-            "spec": {
-                "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
-                "base_url": config("OPENAI_API_BASE", default="")
-                or "https://api.openai.com/v1",
-                "api_key": config("OPENAI_API_KEY", default=""),
-                "model": config(
-                    "OPENAI_EMBEDDINGS_MODEL", default="text-embedding-ada-002"
-                )
-                or "text-embedding-ada-002",
-                "timeout": 10,
-            },
-            "default": False,
-        }
 
 if config("LOCAL_MODEL", default=""):
     KH_LLMS["local"] = {
@@ -160,7 +171,12 @@ if len(KH_EMBEDDINGS) < 1:
         "default": True,
     }
 
-KH_REASONINGS = ["ktem.reasoning.simple.FullQAPipeline"]
+KH_REASONINGS = [
+    "ktem.reasoning.simple.FullQAPipeline",
+    "ktem.reasoning.simple.FullDecomposeQAPipeline",
+    "ktem.reasoning.react.ReactAgentPipeline",
+    "ktem.reasoning.rewoo.RewooAgentPipeline",
+]
 KH_VLM_ENDPOINT = "{0}/openai/deployments/{1}/chat/completions?api-version={2}".format(
     config("AZURE_OPENAI_ENDPOINT", default=""),
     config("OPENAI_VISION_DEPLOYMENT_NAME", default="gpt-4-vision"),
@@ -170,7 +186,7 @@ KH_VLM_ENDPOINT = "{0}/openai/deployments/{1}/chat/completions?api-version={2}".
 
 SETTINGS_APP = {
     "lang": {
-        "name": "Language",
+        "name": "UI Language",
         "value": "en",
         "choices": [("English", "en"), ("Japanese", "ja")],
         "component": "dropdown",
@@ -198,7 +214,12 @@ KH_INDEX_TYPES = ["ktem.index.file.FileIndex"]
 KH_INDICES = [
     {
         "name": "File",
-        "config": {},
+        "config": {
+            "supported_file_types": (
+                ".pdf, .xls, .xlsx, .doc, .docx, " ".pptx, .csv, .html, .txt"
+            ),
+            "private": False,
+        },
         "index_type": "ktem.index.file.FileIndex",
     },
 ]

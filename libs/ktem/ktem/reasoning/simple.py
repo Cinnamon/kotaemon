@@ -64,7 +64,7 @@ def find_text(search_span, context):
             match = SequenceMatcher(
                 None, sentence, context, autojunk=False
             ).find_longest_match()
-            if match.size > len(search_span) * 0.6:
+            if match.size > len(sentence) * 0.6:
                 matches.append((match.b, match.b + match.size))
 
     return matches
@@ -84,7 +84,7 @@ class PrepareEvidencePipeline(BaseComponent):
     """
 
     trim_func: TokenSplitter = TokenSplitter.withx(
-        chunk_size=3000,
+        chunk_size=32000,
         chunk_overlap=0,
         separator=" ",
         tokenizer=partial(
@@ -755,7 +755,6 @@ class FullQAPipeline(BaseReasoning):
             message = self.rewrite_pipeline(question=message).text
             print("Rewrite result", message)
 
-        print(f"Rewritten message (use_rewrite={self.use_rewrite}): {message}")
         print(f"Retrievers {self.retrievers}")
         # should populate the context
         docs, infos = self.retrieve(message, history)
@@ -879,7 +878,7 @@ class FullQAPipeline(BaseReasoning):
             },
             "highlight_citation": {
                 "name": "Highlight Citation",
-                "value": False,
+                "value": True,
                 "component": "checkbox",
             },
             "system_prompt": {

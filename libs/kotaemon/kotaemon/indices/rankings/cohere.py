@@ -21,6 +21,10 @@ class CohereReranking(BaseReranking):
                 "Please install Cohere " "`pip install cohere` to use Cohere Reranking"
             )
 
+        if not self.cohere_api_key:
+            print("Cohere API key not found. Skipping reranking.")
+            return documents
+
         cohere_client = cohere.Client(self.cohere_api_key)
         compressed_docs: list[Document] = []
 
