@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import requests
 from llama_index.core.readers.base import BaseReader
-from tenacity import after_log, retry, stop_after_attempt, wait_fixed, wait_random
+from tenacity import after_log, retry, stop_after_attempt, wait_exponential
 
 from kotaemon.base import Document
 
@@ -19,13 +19,16 @@ DEFAULT_OCR_ENDPOINT = "http://127.0.0.1:8000/v2/ai/infer/"
 
 
 @retry(
-    stop=stop_after_attempt(3),
-    wait=wait_fixed(5) + wait_random(0, 2),
-    after=after_log(logger, logging.DEBUG),
+    stop=stop_after_attempt(6),
+    wait=wait_exponential(multiplier=20, exp_base=2, min=1, max=1000),
+    after=after_log(logger, logging.WARNING),
 )
-def tenacious_api_post(url, **kwargs):
-    resp = requests.post(url=url, **kwargs)
-    resp.raise_for_status()
+def tenacious_api_post(url, file_path, table_only, **kwargs):
+    with file_path.open("rb") as content:
+        files = {"input": content}
+        data = {"job_id": uuid4(), "table_only": table_only}
+        resp = requests.post(url=url, files=files, data=data, **kwargs)
+        resp.raise_for_status()
     return resp
 
 
@@ -71,18 +74,16 @@ class OCRReader(BaseReader):
         """
         file_path = Path(file_path).resolve()
 
-        with file_path.open("rb") as content:
-            files = {"input": content}
-            data = {"job_id": uuid4(), "table_only": not self.use_ocr}
-
-            # call the API from FullOCR endpoint
-            if "response_content" in kwargs:
-                # overriding response content if specified
-                ocr_results = kwargs["response_content"]
-            else:
-                # call original API
-                resp = tenacious_api_post(url=self.ocr_endpoint, files=files, data=data)
-                ocr_results = resp.json()["result"]
+        # call the API from FullOCR endpoint
+        if "response_content" in kwargs:
+            # overriding response content if specified
+            ocr_results = kwargs["response_content"]
+        else:
+            # call original API
+            resp = tenacious_api_post(
+                url=self.ocr_endpoint, file_path=file_path, table_only=not self.use_ocr
+            )
+            ocr_results = resp.json()["result"]
 
         debug_path = kwargs.pop("debug_path", None)
         artifact_path = kwargs.pop("artifact_path", None)
@@ -168,18 +169,16 @@ class ImageReader(BaseReader):
         """
         file_path = Path(file_path).resolve()
 
-        with file_path.open("rb") as content:
-            files = {"input": content}
-            data = {"job_id": uuid4(), "table_only": False}
-
-            # call the API from FullOCR endpoint
-            if "response_content" in kwargs:
-                # overriding response content if specified
-                ocr_results = kwargs["response_content"]
-            else:
-                # call original API
-                resp = tenacious_api_post(url=self.ocr_endpoint, files=files, data=data)
-                ocr_results = resp.json()["result"]
+        # call the API from FullOCR endpoint
+        if "response_content" in kwargs:
+            # overriding response content if specified
+            ocr_results = kwargs["response_content"]
+        else:
+            # call original API
+            resp = tenacious_api_post(
+                url=self.ocr_endpoint, file_path=file_path, table_only=False
+            )
+            ocr_results = resp.json()["result"]
 
         extra_info = extra_info or {}
         result = []
