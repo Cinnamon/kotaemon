@@ -64,7 +64,7 @@ def find_text(search_span, context):
             match = SequenceMatcher(
                 None, sentence, context, autojunk=False
             ).find_longest_match()
-            if match.size > len(sentence) * 0.6:
+            if match.size > len(sentence) * 0.35:
                 matches.append((match.b, match.b + match.size))
 
     return matches
@@ -623,6 +623,7 @@ class FullQAPipeline(BaseReasoning):
         if answer.metadata["citation"] and answer.metadata["citation"].answer:
             for fact_with_evidence in answer.metadata["citation"].answer:
                 for quote in fact_with_evidence.substring_quote:
+                    matched_excerpts = []
                     for doc in docs:
                         matches = find_text(quote, doc.text)
 
@@ -634,6 +635,9 @@ class FullQAPipeline(BaseReasoning):
                                         "end": end,
                                     }
                                 )
+                                matched_excerpts.append(doc.text[start:end])
+
+                    print("Matched citation:", quote, matched_excerpts),
 
         id2docs = {doc.doc_id: doc for doc in docs}
         not_detected = set(id2docs.keys()) - set(spans.keys())

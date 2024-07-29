@@ -130,24 +130,6 @@ class UserManagement(BasePage):
             is_created = create_user(usn, pwd)
             if is_created:
                 gr.Info(f'User "{usn}" created successfully')
-            #
-            # with Session(engine) as session:
-            #     statement = select(User).where(User.username_lower == usn.lower())
-            #     result = session.exec(statement).all()
-            #     if result:
-            #         print(f'User "{usn}" already exists')
-            #
-            #     else:
-            #         hashed_password = hashlib.sha256(pwd.encode()).hexdigest()
-            #         user = User(
-            #             username=usn,
-            #             username_lower=usn.lower(),
-            #             password=hashed_password,
-            #             admin=True,
-            #         )
-            #         session.add(user)
-            #         session.commit()
-            #         gr.Info(f'User "{usn}" created successfully')
 
     def on_building_ui(self):
         with gr.Tab(label="User list"):

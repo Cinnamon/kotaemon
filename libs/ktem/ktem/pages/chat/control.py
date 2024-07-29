@@ -38,7 +38,7 @@ class ConversationControl(BasePage):
             label="Chat sessions",
             choices=[],
             container=False,
-            filterable=False,
+            filterable=True,
             interactive=True,
             elem_classes=["unset-overflow"],
         )
@@ -63,17 +63,17 @@ class ConversationControl(BasePage):
                 min_width=10,
                 interactive=True,
             )
+
             self.conversation_rn_btn = gr.Button(
                 value="Rename",
                 scale=1,
-                min_width=10,
+                min_width=5,
                 elem_classes=["no-background", "body-text-color", "bold-text"],
             )
 
-        with gr.Row():
-            self.is_public_radio = gr.Radio(
-                choices=[True, False], label="Set Public", value=False
-            )
+        self.cb_is_public = gr.Checkbox(
+            value=False, label="Mark conversation as shared", min_width=5
+        )
 
     def load_chat_history(self, user_id):
         """Reload chat history"""
@@ -86,7 +86,12 @@ class ConversationControl(BasePage):
             result = session.exec(statement).one_or_none()
 
             if result is not None:
-                can_see_public = result.username == flowsettings.KH_USER_CAN_SEE_PUBLIC
+                if flowsettings.KH_USER_CAN_SEE_PUBLIC:
+                    can_see_public = (
+                        result.username == flowsettings.KH_USER_CAN_SEE_PUBLIC
+                    )
+                else:
+                    can_see_public = True
 
         print(f"User-id: {user_id}, can see public conversations: {can_see_public}")
 
@@ -168,7 +173,7 @@ class ConversationControl(BasePage):
         else:
             return None, gr.update(value=None, choices=[])
 
-    def select_conv(self, conversation_id):
+    def select_conv(self, conversation_id, user_id):
         """Select the conversation"""
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == conversation_id)
@@ -177,7 +182,14 @@ class ConversationControl(BasePage):
                 id_ = result.id
                 name = result.name
                 is_conv_public = result.is_public
-                selected = result.data_source.get("selected", {})
+
+                # disable file selection ids state if
+                # not the owner of the conversation
+                if user_id == result.user:
+                    selected = result.data_source.get("selected", {})
+                else:
+                    selected = {}
+
                 chats = result.data_source.get("messages", [])
 
                 retrieval_history: list[str] = result.data_source.get(
@@ -188,7 +200,11 @@ class ConversationControl(BasePage):
                 # Ensure len of retrieval and messages are equal
                 retrieval_history = sync_retrieval_n_message(chats, retrieval_history)
 
-                info_panel = retrieval_history[-1]
+                info_panel = (
+                    retrieval_history[-1]
+                    if retrieval_history
+                    else "<h5><b>No evidence found.</b></h5>"
+                )
                 state = result.data_source.get("state", STATE)
 
             except Exception as e:
