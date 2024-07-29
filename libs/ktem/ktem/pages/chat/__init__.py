@@ -28,12 +28,14 @@ class ChatPage(BasePage):
     def __init__(self, app):
         self._app = app
         self._indices_input = []
+
         self.on_building_ui()
         self._reasoning_type = gr.State(value=None)
 
     def on_building_ui(self):
         with gr.Row():
             self.chat_state = gr.State(STATE)
+            self.original_retrieval_history = gr.State([])
             self.original_chat_history = gr.State([])
             self.original_settings = gr.State({})
             self.original_info_panel = gr.State("")
@@ -154,11 +156,14 @@ class ChatPage(BasePage):
             fn=self.update_data_source,
             inputs=[
                 self.chat_control.conversation_id,
+                self._app.user_id,
+                self.info_panel,
+                self.original_retrieval_history,
                 self.chat_panel.chatbot,
                 self.chat_state,
             ]
             + self._indices_input,
-            outputs=None,
+            outputs=[self.original_retrieval_history],
             concurrency_limit=20,
         )
 
@@ -184,11 +189,14 @@ class ChatPage(BasePage):
             fn=self.update_data_source,
             inputs=[
                 self.chat_control.conversation_id,
+                self._app.user_id,
+                self.info_panel,
+                self.original_retrieval_history,
                 self.chat_panel.chatbot,
                 self.chat_state,
             ]
             + self._indices_input,
-            outputs=None,
+            outputs=[self.original_retrieval_history],
             concurrency_limit=20,
         )
 
@@ -218,13 +226,15 @@ class ChatPage(BasePage):
             show_progress="hidden",
         ).then(
             self.chat_control.select_conv,
-            inputs=[self.chat_control.conversation],
+            inputs=[self.chat_control.conversation, self._app.user_id],
             outputs=[
                 self.chat_control.conversation_id,
                 self.chat_control.conversation,
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
                 self.info_panel,
+                self.original_retrieval_history,
+                self.chat_control.cb_is_public,
                 self.chat_state,
             ]
             + self._indices_input,
@@ -243,13 +253,15 @@ class ChatPage(BasePage):
             show_progress="hidden",
         ).then(
             self.chat_control.select_conv,
-            inputs=[self.chat_control.conversation],
+            inputs=[self.chat_control.conversation, self._app.user_id],
             outputs=[
                 self.chat_control.conversation_id,
                 self.chat_control.conversation,
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
                 self.info_panel,
+                self.original_retrieval_history,
+                self.chat_control.cb_is_public,
                 self.chat_state,
             ]
             + self._indices_input,
@@ -275,13 +287,15 @@ class ChatPage(BasePage):
 
         self.chat_control.conversation.select(
             self.chat_control.select_conv,
-            inputs=[self.chat_control.conversation],
+            inputs=[self.chat_control.conversation, self._app.user_id],
             outputs=[
                 self.chat_control.conversation_id,
                 self.chat_control.conversation,
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
                 self.info_panel,
+                self.original_retrieval_history,
+                self.chat_control.cb_is_public,
                 self.chat_state,
             ]
             + self._indices_input,
@@ -289,6 +303,19 @@ class ChatPage(BasePage):
         ).then(
             lambda: self.toggle_delete(""),
             outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
+        )
+
+        # evidence display on message selection
+        self.chat_panel.chatbot.select(
+            self.message_selected,
+            inputs=[self.original_retrieval_history],
+            outputs=self.info_panel,
+        )
+        self.chat_control.cb_is_public.change(
+            self.on_set_public_conversation,
+            inputs=[self.chat_control.cb_is_public, self.chat_control.conversation],
+            outputs=None,
+            show_progress="hidden",
         )
 
         self.report_issue.report_btn.click(
@@ -351,6 +378,28 @@ class ChatPage(BasePage):
         else:
             return gr.update(visible=True), gr.update(visible=False)
 
+    def on_set_public_conversation(self, is_public, convo_id):
+        if not convo_id:
+            gr.Warning("No conversation selected")
+            return
+
+        with Session(engine) as session:
+            statement = select(Conversation).where(Conversation.id == convo_id)
+
+            result = session.exec(statement).one()
+            name = result.name
+
+            if result.is_public != is_public:
+                # Only trigger updating when user
+                # select different value from the current
+                result.is_public = is_public
+                session.add(result)
+                session.commit()
+
+                gr.Info(
+                    f"Conversation: {name} is {'public' if is_public else 'private'}."
+                )
+
     def on_subscribe_public_events(self):
         if self._app.f_user_management:
             self._app.subscribe_event(
@@ -366,24 +415,46 @@ class ChatPage(BasePage):
             self._app.subscribe_event(
                 name="onSignOut",
                 definition={
-                    "fn": lambda: self.chat_control.select_conv(""),
+                    "fn": lambda: self.chat_control.select_conv("", None),
                     "outputs": [
                         self.chat_control.conversation_id,
                         self.chat_control.conversation,
                         self.chat_control.conversation_rn,
                         self.chat_panel.chatbot,
                         self.info_panel,
+                        self.original_retrieval_history,
+                        self.chat_control.cb_is_public,
                     ]
                     + self._indices_input,
                     "show_progress": "hidden",
                 },
             )
 
-    def update_data_source(self, convo_id, messages, state, *selecteds):
+    def update_data_source(
+        self,
+        convo_id,
+        user_id,
+        retrieval_msg,
+        retrival_history,
+        messages,
+        state,
+        *selecteds,
+    ):
         """Update the data source"""
         if not convo_id:
             gr.Warning("No conversation selected")
             return
+
+        # if not regen, then append the new message
+        if not state["app"].get("regen", False):
+            retrival_history = retrival_history + [retrieval_msg]
+        else:
+            if retrival_history:
+                print("Updating retrieval history (regen=True)")
+                retrival_history[-1] = retrieval_msg
+
+        # reset regen state
+        state["app"]["regen"] = False
 
         selecteds_ = {}
         for index in self._app.index_manager.indices:
@@ -399,14 +470,21 @@ class ChatPage(BasePage):
             result = session.exec(statement).one()
 
             data_source = result.data_source
+            old_selecteds = data_source.get("selected", {})
+            is_owner = result.user == user_id
+
+            # Write down to db
             result.data_source = {
-                "selected": selecteds_,
+                "selected": selecteds_ if is_owner else old_selecteds,
                 "messages": messages,
+                "retrieval_messages": retrival_history,
                 "state": state,
                 "likes": deepcopy(data_source.get("likes", [])),
             }
             session.add(result)
             session.commit()
+
+        return retrival_history
 
     def reasoning_changed(self, reasoning_type):
         if reasoning_type != DEFAULT_SETTING:
@@ -427,6 +505,10 @@ class ChatPage(BasePage):
             result.data_source = data_source
             session.add(result)
             session.commit()
+
+    def message_selected(self, retrieval_history, msg: gr.SelectData):
+        index = msg.index
+        return retrieval_history[index[0]]
 
     def create_pipeline(
         self,
@@ -573,11 +655,7 @@ class ChatPage(BasePage):
             user_id,
             *selecteds,
         ):
-            new_state = deepcopy(state)
-            new_state["app"]["regen"] = False
-            yield chat, refs, new_state
-
-        state["app"]["regen"] = False
+            yield chat, refs, state
 
     def backup_original_info(
         self, chat_history, settings, info_pannel, original_chat_history

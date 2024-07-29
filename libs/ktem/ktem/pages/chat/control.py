@@ -2,9 +2,12 @@ import logging
 
 import gradio as gr
 from ktem.app import BasePage
-from ktem.db.models import Conversation, engine
-from sqlmodel import Session, select
+from ktem.db.models import Conversation, User, engine
+from sqlmodel import Session, or_, select
 
+import flowsettings
+
+from ...utils.conversation import sync_retrieval_n_message
 from .common import STATE
 
 logger = logging.getLogger(__name__)
@@ -35,7 +38,7 @@ class ConversationControl(BasePage):
             label="Chat sessions",
             choices=[],
             container=False,
-            filterable=False,
+            filterable=True,
             interactive=True,
             elem_classes=["unset-overflow"],
         )
@@ -60,22 +63,63 @@ class ConversationControl(BasePage):
                 min_width=10,
                 interactive=True,
             )
+
             self.conversation_rn_btn = gr.Button(
                 value="Rename",
                 scale=1,
-                min_width=10,
+                min_width=5,
                 elem_classes=["no-background", "body-text-color", "bold-text"],
             )
 
+        self.cb_is_public = gr.Checkbox(
+            value=False, label="Mark conversation as shared", min_width=5
+        )
+
     def load_chat_history(self, user_id):
         """Reload chat history"""
+
+        # In case user are admin. They can also watch the
+        # public conversations
+        can_see_public: bool = False
+        with Session(engine) as session:
+            statement = select(User).where(User.id == user_id)
+            result = session.exec(statement).one_or_none()
+
+            if result is not None:
+                if flowsettings.KH_USER_CAN_SEE_PUBLIC:
+                    can_see_public = (
+                        result.username == flowsettings.KH_USER_CAN_SEE_PUBLIC
+                    )
+                else:
+                    can_see_public = True
+
+        print(f"User-id: {user_id}, can see public conversations: {can_see_public}")
+
         options = []
         with Session(engine) as session:
-            statement = (
-                select(Conversation)
-                .where(Conversation.user == user_id)
-                .order_by(Conversation.date_created.desc())  # type: ignore
-            )
+            # Define condition based on admin-role:
+            # - can_see: can see their conversations & public files
+            # - can_not_see: only see their conversations
+            if can_see_public:
+                statement = (
+                    select(Conversation)
+                    .where(
+                        or_(
+                            Conversation.user == user_id,
+                            Conversation.is_public,
+                        )
+                    )
+                    .order_by(
+                        Conversation.is_public.desc(), Conversation.date_created.desc()
+                    )  # type: ignore
+                )
+            else:
+                statement = (
+                    select(Conversation)
+                    .where(Conversation.user == user_id)
+                    .order_by(Conversation.date_created.desc())  # type: ignore
+                )
+
             results = session.exec(statement).all()
             for result in results:
                 options.append((result.name, result.id))
@@ -129,7 +173,7 @@ class ConversationControl(BasePage):
         else:
             return None, gr.update(value=None, choices=[])
 
-    def select_conv(self, conversation_id):
+    def select_conv(self, conversation_id, user_id):
         """Select the conversation"""
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == conversation_id)
@@ -137,18 +181,42 @@ class ConversationControl(BasePage):
                 result = session.exec(statement).one()
                 id_ = result.id
                 name = result.name
-                selected = result.data_source.get("selected", {})
+                is_conv_public = result.is_public
+
+                # disable file selection ids state if
+                # not the owner of the conversation
+                if user_id == result.user:
+                    selected = result.data_source.get("selected", {})
+                else:
+                    selected = {}
+
                 chats = result.data_source.get("messages", [])
-                info_panel = ""
+
+                retrieval_history: list[str] = result.data_source.get(
+                    "retrieval_messages", []
+                )
+
+                # On initialization
+                # Ensure len of retrieval and messages are equal
+                retrieval_history = sync_retrieval_n_message(chats, retrieval_history)
+
+                info_panel = (
+                    retrieval_history[-1]
+                    if retrieval_history
+                    else "<h5><b>No evidence found.</b></h5>"
+                )
                 state = result.data_source.get("state", STATE)
+
             except Exception as e:
                 logger.warning(e)
                 id_ = ""
                 name = ""
                 selected = {}
                 chats = []
+                retrieval_history = []
                 info_panel = ""
                 state = STATE
+                is_conv_public = False
 
         indices = []
         for index in self._app.index_manager.indices:
@@ -160,7 +228,17 @@ class ConversationControl(BasePage):
             if isinstance(index.selector, tuple):
                 indices.extend(selected.get(str(index.id), index.default_selector))
 
-        return id_, id_, name, chats, info_panel, state, *indices
+        return (
+            id_,
+            id_,
+            name,
+            chats,
+            info_panel,
+            retrieval_history,
+            is_conv_public,
+            state,
+            *indices,
+        )
 
     def rename_conv(self, conversation_id, new_name, user_id):
         """Rename the conversation"""

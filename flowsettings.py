@@ -60,6 +60,7 @@ KH_DOC_DIR = this_dir / "docs"
 
 COHERE_API_KEY = config("COHERE_API_KEY", default="")
 KH_MODE = "dev"
+KH_USER_CAN_SEE_PUBLIC = "public"
 KH_FEATURE_USER_MANAGEMENT = True
 KH_FEATURE_USER_MANAGEMENT_ADMIN = str(
     config("KH_FEATURE_USER_MANAGEMENT_ADMIN", default="admin")
