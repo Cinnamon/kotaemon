@@ -392,7 +392,15 @@ class AnswerWithContextPipeline(BaseComponent):
         self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
     ) -> Generator[Document, None, Document]:
         history = kwargs.get("history", [])
-        prompt, evidence, images = self.get_prompt(question, evidence, evidence_mode)
+
+        # check if evidence exists, use QA prompt
+        if evidence:
+            prompt, evidence, images = self.get_prompt(
+                question, evidence, evidence_mode
+            )
+        else:
+            prompt = question
+            images = []
 
         output = ""
         logprobs = []
@@ -931,7 +939,8 @@ class FullDecomposeQAPipeline(FullQAPipeline):
         for idx, message in enumerate(messages):
             yield Document(
                 channel="chat",
-                content=f"<br><b>Sub-question {idx + 1}</b><br>{message}<br>",
+                content=f"<br><b>Sub-question {idx + 1}</b>"
+                f"<br>{message}<br><b>Answer</b><br>",
             )
             # should populate the context
             docs, infos = self.retrieve(message, history)
