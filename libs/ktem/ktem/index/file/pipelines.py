@@ -311,15 +311,29 @@ class IndexPipeline(BaseComponent):
                 n_chunks += len(chunks)
                 chunks = []
                 yield Document(
-                    f" => [{file_name}] Processed {n_chunks} chunks", channel="debug"
+                    f" => [{file_name}] Processed {n_chunks} text chunks",
+                    channel="debug",
                 )
 
-        chunks += non_text_docs
+        leftover_text_chunks = chunks
+        chunks = []
+        for cidx, chunk in enumerate(non_text_docs):
+            chunks.append(chunk)
+            if (cidx + 1) % self.chunk_batch_size == 0:
+                self.handle_chunks(chunks, file_id)
+                n_chunks += len(chunks)
+                chunks = []
+                yield Document(
+                    f" => [{file_name}] Processed {n_chunks}" " image + table chunks",
+                    channel="debug",
+                )
+
+        chunks += leftover_text_chunks
         if chunks:
             self.handle_chunks(chunks, file_id)
             n_chunks += len(chunks)
             yield Document(
-                f" => [{file_name}] Processed {n_chunks} chunks", channel="debug"
+                f" => [{file_name}] Processed {n_chunks} final chunks", channel="debug"
             )
 
         return n_chunks
