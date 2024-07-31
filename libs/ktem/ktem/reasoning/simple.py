@@ -987,7 +987,10 @@ class FullDecomposeQAPipeline(FullQAPipeline):
                     [r.text for r in result], conv_id, history, **kwargs
                 )
 
-        yield Document(channel="chat", content=f"<h4>Main question</h4>{message}<br>")
+        yield Document(
+            channel="chat",
+            content=f"<h4>Main question</h4>{message}<br><b>Answer</b><br>",
+        )
 
         # should populate the context
         docs, infos = self.retrieve(message, history)

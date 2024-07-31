@@ -42,10 +42,23 @@ class ConversationControl(BasePage):
             interactive=True,
             elem_classes=["unset-overflow"],
         )
+        self.cb_is_public = gr.Checkbox(
+            value=False, label="Mark conversation as shared", min_width=5
+        )
 
         with gr.Row() as self._new_delete:
-            self.btn_new = gr.Button(value="New", min_width=10, variant="primary")
-            self.btn_del = gr.Button(value="Delete", min_width=10, variant="stop")
+            self.btn_new = gr.Button(
+                value="New", min_width=10, scale=1, variant="primary"
+            )
+            self.btn_del = gr.Button(
+                value="Delete", min_width=10, scale=1, variant="stop"
+            )
+            self.conversation_rn_btn = gr.Button(
+                value="Rename",
+                min_width=10,
+                scale=3,
+                elem_classes=["no-background", "body-text-color", "bold-text"],
+            )
 
         with gr.Row(visible=False) as self._delete_confirm:
             self.btn_del_conf = gr.Button(
@@ -62,18 +75,8 @@ class ConversationControl(BasePage):
                 scale=5,
                 min_width=10,
                 interactive=True,
+                visible=False,
             )
-
-            self.conversation_rn_btn = gr.Button(
-                value="Rename",
-                scale=1,
-                min_width=5,
-                elem_classes=["no-background", "body-text-color", "bold-text"],
-            )
-
-        self.cb_is_public = gr.Checkbox(
-            value=False, label="Mark conversation as shared", min_width=5
-        )
 
     def load_chat_history(self, user_id):
         """Reload chat history"""
@@ -264,7 +267,12 @@ class ConversationControl(BasePage):
 
         history = self.load_chat_history(user_id)
         gr.Info("Conversation renamed.")
-        return gr.update(choices=history), conversation_id
+        return (
+            gr.update(choices=history),
+            conversation_id,
+            gr.update(visible=False),
+            gr.update(value="Rename"),
+        )
 
     def _on_app_created(self):
         """Reload the conversation once the app is created"""

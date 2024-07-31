@@ -275,13 +275,25 @@ class ChatPage(BasePage):
             outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
         )
         self.chat_control.conversation_rn_btn.click(
+            lambda: (gr.update(visible=True), gr.update(value="Enter to save")),
+            outputs=[
+                self.chat_control.conversation_rn,
+                self.chat_control.conversation_rn_btn,
+            ],
+        )
+        self.chat_control.conversation_rn.submit(
             self.chat_control.rename_conv,
             inputs=[
                 self.chat_control.conversation_id,
                 self.chat_control.conversation_rn,
                 self._app.user_id,
             ],
-            outputs=[self.chat_control.conversation, self.chat_control.conversation],
+            outputs=[
+                self.chat_control.conversation,
+                self.chat_control.conversation,
+                self.chat_control.conversation_rn,
+                self.chat_control.conversation_rn_btn,
+            ],
             show_progress="hidden",
         )
 
