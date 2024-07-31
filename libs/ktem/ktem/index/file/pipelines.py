@@ -174,14 +174,17 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             for fn, pls in table_pages.items()
         ]
         if queries:
-            extra_docs = self.vector_retrieval(
-                text="",
-                top_k=50,
-                where=queries[0] if len(queries) == 1 else {"$or": queries},
-            )
-            for doc in extra_docs:
-                if doc.doc_id not in retrieved_id:
-                    docs.append(doc)
+            try:
+                extra_docs = self.vector_retrieval(
+                    text="",
+                    top_k=50,
+                    where=queries[0] if len(queries) == 1 else {"$or": queries},
+                )
+                for doc in extra_docs:
+                    if doc.doc_id not in retrieved_id:
+                        docs.append(doc)
+            except Exception:
+                print("Error retrieving additional tables")
 
         return docs
 
