@@ -135,7 +135,7 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
             List[Document]: List of result documents
         """
         query_dict: dict = {"match": {"content": query}}
-        if doc_ids:
+        if doc_ids is not None:
             query_dict = {"bool": {"must": [query_dict, {"terms": {"_id": doc_ids}}]}}
         query_dict = {"query": query_dict, "size": top_k}
         return self.query_raw(query_dict)
