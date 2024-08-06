@@ -71,20 +71,25 @@ class PDFThumbnailReader(PDFReader):
         """Parse file."""
         documents = super().load_data(file, extra_info, fs)
 
-        page_numbers_int = []
+        page_numbers_str = []
         filtered_docs = []
+        is_int_page_number: dict[str, bool] = {}
+
         for doc in documents:
             if "page_label" in doc.metadata:
                 page_num_str = doc.metadata["page_label"]
+                page_numbers_str.append(page_num_str)
                 try:
-                    p_num = int(page_num_str) - 1
-                    page_numbers_int.append(p_num)
+                    _ = int(page_num_str)
+                    is_int_page_number[page_num_str] = True
                     filtered_docs.append(doc)
                 except ValueError:
+                    is_int_page_number[page_num_str] = False
                     continue
 
         documents = filtered_docs
-        page_numbers = list(set(page_numbers_int))
+        page_numbers = list(range(len(page_numbers_str)))
+
         print("Page numbers:", len(page_numbers))
         page_thumbnails = get_page_thumbnails(file, page_numbers)
 
@@ -95,11 +100,14 @@ class PDFThumbnailReader(PDFReader):
                     metadata={
                         "image_origin": page_thumbnail,
                         "type": "thumbnail",
-                        "page_label": str(page_number + 1),
+                        "page_label": page_number,
                         **(extra_info if extra_info is not None else {}),
                     },
                 )
-                for (page_thumbnail, page_number) in zip(page_thumbnails, page_numbers)
+                for (page_thumbnail, page_number) in zip(
+                    page_thumbnails, page_numbers_str
+                )
+                if is_int_page_number[page_number]
             ]
         )
 
