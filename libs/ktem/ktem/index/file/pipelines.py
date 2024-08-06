@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import shutil
+import threading
 import time
 import warnings
 from collections import defaultdict
@@ -85,7 +86,9 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
     """
 
     embedding: BaseEmbeddings
-    rerankers: Sequence[BaseReranking] = [LLMReranking.withx()]
+    rerankers: Sequence[BaseReranking] = []
+    # use LLM to create relevant scores for displaying on UI
+    llm_scorer: LLMReranking | None = LLMReranking.withx()
     get_extra_table: bool = False
     mmr: bool = False
     top_k: int = 5
@@ -188,6 +191,16 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
 
         return docs
 
+    def generate_relevant_scores(
+        self, query: str, documents: list[RetrievedDocument]
+    ) -> list[RetrievedDocument]:
+        docs = (
+            documents
+            if not self.llm_scorer
+            else self.llm_scorer(documents=documents, query=query)
+        )
+        return docs
+
     @classmethod
     def get_user_settings(cls) -> dict:
         from ktem.llms.manager import llms
@@ -257,16 +270,22 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                 )
             ],
             retrieval_mode=user_settings["retrieval_mode"],
-            rerankers=[CohereReranking(), LLMTrulensScoring()],
+            llm_scorer=LLMTrulensScoring(),
+            rerankers=[CohereReranking()],
         )
         if not user_settings["use_reranking"]:
-            retriever.rerankers = [LLMTrulensScoring()]  # type: ignore
+            retriever.rerankers = []  # type: ignore
 
         for reranker in retriever.rerankers:
             if isinstance(reranker, LLMReranking):
                 reranker.llm = llms.get(
                     user_settings["reranking_llm"], llms.get_default()
                 )
+
+        if retriever.llm_scorer:
+            retriever.llm_scorer.llm = llms.get(
+                user_settings["reranking_llm"], llms.get_default()
+            )
 
         kwargs = {".doc_ids": selected}
         retriever.set_run(kwargs, temp=False)
@@ -278,7 +297,7 @@ class IndexPipeline(BaseComponent):
 
     loader: BaseReader
     splitter: BaseSplitter
-    chunk_batch_size: int = 100
+    chunk_batch_size: int = 200
 
     Source = Param(help="The SQLAlchemy Source table")
     Index = Param(help="The SQLAlchemy Index table")
@@ -287,6 +306,7 @@ class IndexPipeline(BaseComponent):
     FSPath = Param(help="The file storage path")
     user_id = Param(help="The user id")
     private: bool = False
+    run_embedding_in_thread: bool = False
     embedding: BaseEmbeddings
 
     @Node.auto(depends_on=["Source", "Index", "embedding"])
@@ -296,55 +316,77 @@ class IndexPipeline(BaseComponent):
         )
 
     def handle_docs(self, docs, file_id, file_name) -> Generator[Document, None, int]:
-        chunks = []
-        n_chunks = 0
-
+        s_time = time.time()
         text_docs = []
         non_text_docs = []
+        thumbnail_docs = []
+
         for doc in docs:
-            if doc.metadata.get("type", "text") == "text":
+            doc_type = doc.metadata.get("type", "text")
+            if doc_type == "text":
                 text_docs.append(doc)
+            elif doc_type == "thumbnail":
+                thumbnail_docs.append(doc)
             else:
                 non_text_docs.append(doc)
 
-        for cidx, chunk in enumerate(self.splitter(text_docs)):
-            chunks.append(chunk)
-            if (cidx + 1) % self.chunk_batch_size == 0:
-                self.handle_chunks(chunks, file_id)
-                n_chunks += len(chunks)
-                chunks = []
-                yield Document(
-                    f" => [{file_name}] Processed {n_chunks} text chunks",
-                    channel="debug",
-                )
+        print(f"Got {len(thumbnail_docs)} page thumbnails")
+        page_label_to_thumbnail = {
+            doc.metadata["page_label"]: doc.doc_id for doc in thumbnail_docs
+        }
 
-        leftover_text_chunks = chunks
+        all_chunks = self.splitter(text_docs)
+
+        # add the thumbnails doc_id to the chunks
+        for chunk in all_chunks:
+            page_label = chunk.metadata.get("page_label", None)
+            if page_label and page_label in page_label_to_thumbnail:
+                chunk.metadata["thumbnail_doc_id"] = page_label_to_thumbnail[page_label]
+
+        to_index_chunks = all_chunks + non_text_docs + thumbnail_docs
+
+        # add to doc store
         chunks = []
-        for cidx, chunk in enumerate(non_text_docs):
-            chunks.append(chunk)
-            if (cidx + 1) % self.chunk_batch_size == 0:
-                self.handle_chunks(chunks, file_id)
-                n_chunks += len(chunks)
-                chunks = []
-                yield Document(
-                    f" => [{file_name}] Processed {n_chunks}" " image + table chunks",
-                    channel="debug",
-                )
-
-        chunks += leftover_text_chunks
-        if chunks:
-            self.handle_chunks(chunks, file_id)
+        n_chunks = 0
+        chunk_size = self.chunk_batch_size * 4
+        for start_idx in range(0, len(to_index_chunks), chunk_size):
+            chunks = to_index_chunks[start_idx : start_idx + chunk_size]
+            self.handle_chunks_docstore(chunks, file_id)
             n_chunks += len(chunks)
             yield Document(
-                f" => [{file_name}] Processed {n_chunks} final chunks", channel="debug"
+                f" => [{file_name}] Processed {n_chunks} chunks",
+                channel="debug",
             )
 
+        def insert_chunks_to_vectorstore():
+            chunks = []
+            n_chunks = 0
+            chunk_size = self.chunk_batch_size
+            for start_idx in range(0, len(to_index_chunks), chunk_size):
+                chunks = to_index_chunks[start_idx : start_idx + chunk_size]
+                self.handle_chunks_vectorstore(chunks, file_id)
+                n_chunks += len(chunks)
+                yield Document(
+                    f" => [{file_name}] Created embedding for {n_chunks} chunks",
+                    channel="debug",
+                )
+
+        # run vector indexing in thread if specified
+        if self.run_embedding_in_thread:
+            print("Running embedding in thread")
+            threading.Thread(
+                target=lambda: list(insert_chunks_to_vectorstore())
+            ).start()
+        else:
+            yield from insert_chunks_to_vectorstore()
+
+        print("indexing step took", time.time() - s_time)
         return n_chunks
 
-    def handle_chunks(self, chunks, file_id):
+    def handle_chunks_docstore(self, chunks, file_id):
         """Run chunks"""
         # run embedding, add to both vector store and doc store
-        self.vector_indexing(chunks)
+        self.vector_indexing.add_to_docstore(chunks)
 
         # record in the index
         with Session(engine) as session:
@@ -366,6 +408,14 @@ class IndexPipeline(BaseComponent):
                 )
             session.add_all(nodes)
             session.commit()
+
+    def handle_chunks_vectorstore(self, chunks, file_id):
+        """Run chunks"""
+        # run embedding, add to both vector store and doc store
+        self.vector_indexing.add_to_vectorstore(chunks)
+        self.vector_indexing.write_chunk_to_file(chunks)
+
+        print("Finished embeddings for {} chunks".format(len(chunks)))
 
     def get_id_if_exists(self, file_path: Path) -> Optional[str]:
         """Check if the file is already indexed
@@ -555,15 +605,19 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
     """
 
     embedding: BaseEmbeddings
+    run_embedding_in_thread: bool = False
 
     @classmethod
     def get_pipeline(cls, user_settings, index_settings) -> BaseFileIndexIndexing:
+        use_quick_index_mode = user_settings.get("quick_index_mode", False)
+        print("use_quick_index_mode", use_quick_index_mode)
         obj = cls(
             embedding=embedding_models_manager[
                 index_settings.get(
                     "embedding", embedding_models_manager.get_default_name()
                 )
-            ]
+            ],
+            run_embedding_in_thread=use_quick_index_mode,
         )
         return obj
 
@@ -590,6 +644,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                 separator="\n\n",
                 backup_separators=["\n", ".", "\u200B"],
             ),
+            run_embedding_in_thread=self.run_embedding_in_thread,
             Source=self.Source,
             Index=self.Index,
             VS=self.VS,
