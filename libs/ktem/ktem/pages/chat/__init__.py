@@ -63,7 +63,7 @@ class ChatPage(BasePage):
 
                     index_ui.unrender()  # need to rerender later within Accordion
                     with gr.Accordion(
-                        label=f"{index.name} Collection", open=index_id < 2
+                        label=f"{index.name} Collection", open=index_id < 1
                     ):
                         index_ui.render()
                         gr_index = index_ui.as_gradio_component()
@@ -255,6 +255,27 @@ class ChatPage(BasePage):
             + self._indices_input,
             outputs=[self.original_retrieval_history],
             concurrency_limit=20,
+        ).success(
+            fn=self.check_and_suggest_name_conv,
+            inputs=self.chat_panel.chatbot,
+            outputs=[
+                self.chat_control.conversation_rn,
+                self._conversation_renamed,
+            ],
+        ).success(
+            self.chat_control.rename_conv,
+            inputs=[
+                self.chat_control.conversation_id,
+                self.chat_control.conversation_rn,
+                self._conversation_renamed,
+                self._app.user_id,
+            ],
+            outputs=[
+                self.chat_control.conversation,
+                self.chat_control.conversation,
+                self.chat_control.conversation_rn,
+            ],
+            show_progress="hidden",
         )
 
         self.chat_control.btn_info_expand.click(
