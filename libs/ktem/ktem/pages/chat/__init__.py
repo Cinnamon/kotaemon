@@ -107,7 +107,8 @@ class ChatPage(BasePage):
 
             with gr.Column(scale=3, elem_id="chat-info-panel"):
                 with gr.Accordion(label="Information panel", open=True):
-                    self.info_panel = gr.HTML()
+                    self.modal = gr.HTML("<div id='pdf-modal'></div>")
+                    self.info_panel = gr.HTML(elem_id="html-info-panel")
 
     def on_register_events(self):
         gr.on(
