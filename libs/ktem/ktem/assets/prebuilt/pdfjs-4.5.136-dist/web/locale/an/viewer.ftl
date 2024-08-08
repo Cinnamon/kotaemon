@@ -254,4 +254,3 @@ pdfjs-web-fonts-disabled = As fuents web son desactivadas: no se puet incrustar 
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

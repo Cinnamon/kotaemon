@@ -220,4 +220,3 @@ pdfjs-web-fonts-disabled = வலை எழுத்துருக்கள் 
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

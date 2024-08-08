@@ -243,4 +243,3 @@ pdfjs-editor-ink-color-input = رنگ
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

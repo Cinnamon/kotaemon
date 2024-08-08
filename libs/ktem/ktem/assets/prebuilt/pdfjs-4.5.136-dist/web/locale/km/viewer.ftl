@@ -220,4 +220,3 @@ pdfjs-web-fonts-disabled = បាន​បិទ​ពុម្ពអក្ស�
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

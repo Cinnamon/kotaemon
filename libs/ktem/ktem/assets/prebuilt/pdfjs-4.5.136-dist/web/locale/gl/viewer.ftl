@@ -361,4 +361,3 @@ pdfjs-editor-resizer-label-bottom-left = Esquina inferior esquerda: cambia o tam
 pdfjs-editor-resizer-label-middle-left = Medio esquerdo: cambia o tamaño
 
 ## Color picker
-

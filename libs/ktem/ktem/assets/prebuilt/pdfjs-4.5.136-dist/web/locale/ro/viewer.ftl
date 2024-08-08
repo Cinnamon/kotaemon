@@ -248,4 +248,3 @@ pdfjs-web-fonts-disabled = Fonturile web sunt dezactivate: nu se pot folosi font
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

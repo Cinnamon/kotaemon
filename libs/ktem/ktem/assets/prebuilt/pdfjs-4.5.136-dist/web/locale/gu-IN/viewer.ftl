@@ -244,4 +244,3 @@ pdfjs-web-fonts-disabled = વેબ ફોન્ટ નિષ્ક્રિય
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

@@ -210,4 +210,3 @@ pdfjs-web-fonts-disabled = ಜಾಲ ಅಕ್ಷರಶೈಲಿಯನ್ನು 
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

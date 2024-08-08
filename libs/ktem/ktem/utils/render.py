@@ -3,7 +3,6 @@ import os.path
 import markdown
 
 from kotaemon.base import RetrievedDocument
-from ktem.assets import PDFJS_PREBUILT_DIR
 
 
 def replace_mardown_header(text: str) -> str:
@@ -52,10 +51,7 @@ class Render:
         """
 
     @staticmethod
-    def update_preview(
-        html_content: str,
-        doc: RetrievedDocument
-    ) -> str:
+    def update_preview(html_content: str, doc: RetrievedDocument) -> str:
         text = doc.content
         pdf_path = doc.metadata.get("file_path", "")
 

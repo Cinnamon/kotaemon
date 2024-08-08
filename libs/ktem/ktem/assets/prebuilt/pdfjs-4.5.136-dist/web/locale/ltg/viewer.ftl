@@ -243,4 +243,3 @@ pdfjs-web-fonts-disabled = Šķārsteikla fonti nav aktivizāti: Navar īgult PD
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

@@ -309,4 +309,3 @@ pdfjs-editor-alt-text-save-button = Enrollañ
 
 ## Show all highlights
 ## This is a toggle button to show/hide all the highlights.
-

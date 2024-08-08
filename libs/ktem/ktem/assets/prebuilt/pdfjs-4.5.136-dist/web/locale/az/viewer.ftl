@@ -254,4 +254,3 @@ pdfjs-web-fonts-disabled = Web Şriftlər söndürülüb: yerləşdirilmiş PDF 
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

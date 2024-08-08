@@ -244,4 +244,3 @@ pdfjs-web-fonts-disabled = Tīmekļa fonti nav aktivizēti: Nevar iegult PDF fon
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

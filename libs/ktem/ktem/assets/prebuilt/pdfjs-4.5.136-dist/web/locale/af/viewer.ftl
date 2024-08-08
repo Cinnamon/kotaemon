@@ -209,4 +209,3 @@ pdfjs-web-fonts-disabled = Webfonte is gedeaktiveer: kan nie PDF-fonte wat ingeb
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

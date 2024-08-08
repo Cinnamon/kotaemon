@@ -565,10 +565,7 @@ class FullQAPipeline(BaseReasoning):
                         channel="info",
                         content=Render.collapsible(
                             header=f"<i>{get_header(doc)}</i>",
-                            content=Render.update_preview(
-                                Render.table(doc.text),
-                                doc
-                            ),
+                            content=Render.update_preview(Render.table(doc.text), doc),
                             open=True,
                         ),
                     )

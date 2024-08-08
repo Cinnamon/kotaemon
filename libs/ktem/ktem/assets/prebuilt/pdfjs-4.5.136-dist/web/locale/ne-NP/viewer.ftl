@@ -231,4 +231,3 @@ pdfjs-web-fonts-disabled = वेब फन्ट असक्षम छन्: 
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

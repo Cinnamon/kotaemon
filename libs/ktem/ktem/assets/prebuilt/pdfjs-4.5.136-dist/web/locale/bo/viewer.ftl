@@ -244,4 +244,3 @@ pdfjs-web-fonts-disabled = Web fonts are disabled: unable to use embedded PDF fo
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

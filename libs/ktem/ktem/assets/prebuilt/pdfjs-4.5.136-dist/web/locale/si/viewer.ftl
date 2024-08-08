@@ -250,4 +250,3 @@ pdfjs-free-text-default-content = ලිවීීම අරඹන්න…
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

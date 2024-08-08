@@ -276,4 +276,3 @@ pdfjs-free-text-default-content = Počni tipkati …
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

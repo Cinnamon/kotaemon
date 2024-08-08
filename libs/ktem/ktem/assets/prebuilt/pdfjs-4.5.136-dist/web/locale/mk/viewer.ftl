@@ -212,4 +212,3 @@ pdfjs-web-fonts-disabled = Интернет фонтовите се оневоз
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

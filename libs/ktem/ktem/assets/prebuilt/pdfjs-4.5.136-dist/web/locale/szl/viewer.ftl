@@ -254,4 +254,3 @@ pdfjs-web-fonts-disabled = Necowe fōnty sōm zastawiōne: niy idzie użyć wklu
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

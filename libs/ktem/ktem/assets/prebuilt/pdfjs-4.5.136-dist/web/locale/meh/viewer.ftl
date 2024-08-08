@@ -84,4 +84,3 @@ pdfjs-password-cancel-button = Nkuvi-ka
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

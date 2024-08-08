@@ -254,4 +254,3 @@ pdfjs-web-fonts-disabled = Naka-disable ang mga Web font: hindi kayang gamitin a
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

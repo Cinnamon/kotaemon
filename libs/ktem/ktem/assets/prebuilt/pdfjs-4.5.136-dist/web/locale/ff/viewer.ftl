@@ -244,4 +244,3 @@ pdfjs-web-fonts-disabled = Ponte geese ko daaƴaaɗe: horiima huutoraade ponte P
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

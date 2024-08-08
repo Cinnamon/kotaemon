@@ -244,4 +244,3 @@ pdfjs-web-fonts-disabled = I font do web en dizativæ: inposcibile adeuviâ i ca
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

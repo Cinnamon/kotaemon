@@ -244,4 +244,3 @@ pdfjs-web-fonts-disabled = Fon web dinyahdayakan: tidak dapat menggunakan fon te
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

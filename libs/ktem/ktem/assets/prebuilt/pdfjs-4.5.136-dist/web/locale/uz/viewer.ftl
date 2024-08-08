@@ -184,4 +184,3 @@ pdfjs-web-fonts-disabled = Veb shriftlar oʻchirilgan: ichki PDF shriftlardan fo
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

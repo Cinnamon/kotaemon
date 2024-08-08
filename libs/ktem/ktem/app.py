@@ -49,7 +49,9 @@ class BaseApp:
             self._js = self._js.replace("KH_APP_VERSION", self.app_version)
         with (dir_assets / "js" / "pdf_viewer.js").open() as fi:
             self._pdf_view_js = fi.read()
-            self._pdf_view_js = self._pdf_view_js.replace("PDFJS_PREBUILT_DIR", str(PDFJS_PREBUILT_DIR))
+            self._pdf_view_js = self._pdf_view_js.replace(
+                "PDFJS_PREBUILT_DIR", str(PDFJS_PREBUILT_DIR)
+            )
 
         self._favicon = str(dir_assets / "img" / "favicon.svg")
 
@@ -173,7 +175,7 @@ class BaseApp:
             title=self.app_name,
             analytics_enabled=False,
             js=self._js,
-            head=external_js
+            head=external_js,
         ) as demo:
             self.app = demo
             self.settings_state.render()
@@ -186,9 +188,7 @@ class BaseApp:
             self.register_events()
             self.on_app_created()
 
-            demo.load(
-                None, None, None, js=self._pdf_view_js
-            )
+            demo.load(None, None, None, js=self._pdf_view_js)
 
         return demo
 

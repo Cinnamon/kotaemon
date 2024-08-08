@@ -265,4 +265,3 @@ pdfjs-web-fonts-disabled = Veebifondid on keelatud: PDFiga kaasatud fonte pole v
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

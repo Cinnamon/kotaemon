@@ -250,4 +250,3 @@ pdfjs-editor-free-text-color-input = रंग
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-

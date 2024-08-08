@@ -162,7 +162,7 @@ class ChatPage(BasePage):
                 self.original_chat_history,
                 self.original_settings,
                 self.original_info_panel,
-            ]
+            ],
         ).then(
             fn=self.update_data_source,
             inputs=[
@@ -175,12 +175,9 @@ class ChatPage(BasePage):
             ]
             + self._indices_input,
             outputs=[self.original_retrieval_history],
-            concurrency_limit=20
+            concurrency_limit=20,
         ).then(
-            fn=None,
-            inputs=None,
-            outputs=None,
-            js=pdfview_js
+            fn=None, inputs=None, outputs=None, js=pdfview_js
         )
 
         self.chat_panel.regen_btn.click(
@@ -215,10 +212,7 @@ class ChatPage(BasePage):
             outputs=[self.original_retrieval_history],
             concurrency_limit=20,
         ).then(
-            fn=None,
-            inputs=None,
-            outputs=None,
-            js=pdfview_js
+            fn=None, inputs=None, outputs=None, js=pdfview_js
         )
 
         self.chat_panel.chatbot.like(
@@ -337,10 +331,7 @@ class ChatPage(BasePage):
             lambda: self.toggle_delete(""),
             outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
         ).then(
-            fn=None,
-            inputs=None,
-            outputs=None,
-            js=pdfview_js
+            fn=None, inputs=None, outputs=None, js=pdfview_js
         )
 
         # evidence display on message selection

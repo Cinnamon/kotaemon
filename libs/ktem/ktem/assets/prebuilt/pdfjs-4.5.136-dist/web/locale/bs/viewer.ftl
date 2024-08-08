@@ -220,4 +220,3 @@ pdfjs-web-fonts-disabled = Web fontovi su onemogućeni: nemoguće koristiti uba�
 
 ## Editor resizers
 ## This is used in an aria label to help to understand the role of the resizer.
-
