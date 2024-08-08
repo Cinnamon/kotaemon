@@ -565,7 +565,10 @@ class FullQAPipeline(BaseReasoning):
                         channel="info",
                         content=Render.collapsible(
                             header=f"<i>{get_header(doc)}</i>",
-                            content=Render.table(doc.text),
+                            content=Render.update_preview(
+                                Render.table(doc.text),
+                                doc
+                            ),
                             open=True,
                         ),
                     )
@@ -783,42 +786,42 @@ class FullQAPipeline(BaseReasoning):
             **kwargs,
         )
 
-        # show the evidence
-        with_citation, without_citation = self.prepare_citations(answer, docs)
-        if not with_citation and not without_citation:
-            yield Document(channel="info", content="<h5><b>No evidence found.</b></h5>")
-        else:
-            # clear the Info panel
-            max_llm_rerank_score = max(
-                doc.metadata.get("llm_trulens_score", 0.0) for doc in docs
-            )
-            # clear previous info
-            yield Document(channel="info", content=None)
-
-            # yield warning message
-            if max_llm_rerank_score < CONTEXT_RELEVANT_WARNING_SCORE:
-                yield Document(
-                    channel="info",
-                    content=(
-                        "<h5>WARNING! Context relevance score is low. "
-                        "Double check the model answer for correctness.</h5>"
-                    ),
-                )
-
-            # show QA score
-            qa_score = (
-                round(answer.metadata["qa_score"], 2)
-                if answer.metadata.get("qa_score")
-                else None
-            )
-            yield Document(
-                channel="info",
-                content=(f"<h5>Answer confidence: {qa_score}</h5>"),
-            )
-
-            yield from with_citation
-            if without_citation:
-                yield from without_citation
+        # # show the evidence
+        # with_citation, without_citation = self.prepare_citations(answer, docs)
+        # if not with_citation and not without_citation:
+        #     yield Document(channel="info", content="<h5><b>No evidence found.</b></h5>")
+        # else:
+        #     # clear the Info panel
+        #     max_llm_rerank_score = max(
+        #         doc.metadata.get("llm_trulens_score", 0.0) for doc in docs
+        #     )
+        #     # clear previous info
+        #     yield Document(channel="info", content=None)
+        #
+        #     # yield warning message
+        #     if max_llm_rerank_score < CONTEXT_RELEVANT_WARNING_SCORE:
+        #         yield Document(
+        #             channel="info",
+        #             content=(
+        #                 "<h5>WARNING! Context relevance score is low. "
+        #                 "Double check the model answer for correctness.</h5>"
+        #             ),
+        #         )
+        #
+        #     # show QA score
+        #     qa_score = (
+        #         round(answer.metadata["qa_score"], 2)
+        #         if answer.metadata.get("qa_score")
+        #         else None
+        #     )
+        #     yield Document(
+        #         channel="info",
+        #         content=f"<h5>Answer confidence: {qa_score}</h5>",
+        #     )
+        #
+        #     yield from with_citation
+        #     if without_citation:
+        #         yield from without_citation
 
         return answer
 

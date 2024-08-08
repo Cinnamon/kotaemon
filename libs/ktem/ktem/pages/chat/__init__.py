@@ -24,6 +24,17 @@ from .report import ReportIssue
 DEFAULT_SETTING = "(default)"
 
 
+pdfview_js = """
+function() {
+    // Get all links and attach click event
+    var links = document.getElementsByClassName("pdf-link");
+    for (var i = 0; i < links.length; i++) {
+        links[i].onclick = openModal;
+    }
+}
+"""
+
+
 class ChatPage(BasePage):
     def __init__(self, app):
         self._app = app
@@ -151,7 +162,7 @@ class ChatPage(BasePage):
                 self.original_chat_history,
                 self.original_settings,
                 self.original_info_panel,
-            ],
+            ]
         ).then(
             fn=self.update_data_source,
             inputs=[
@@ -164,7 +175,12 @@ class ChatPage(BasePage):
             ]
             + self._indices_input,
             outputs=[self.original_retrieval_history],
-            concurrency_limit=20,
+            concurrency_limit=20
+        ).then(
+            fn=None,
+            inputs=None,
+            outputs=None,
+            js=pdfview_js
         )
 
         self.chat_panel.regen_btn.click(
@@ -198,6 +214,11 @@ class ChatPage(BasePage):
             + self._indices_input,
             outputs=[self.original_retrieval_history],
             concurrency_limit=20,
+        ).then(
+            fn=None,
+            inputs=None,
+            outputs=None,
+            js=pdfview_js
         )
 
         self.chat_panel.chatbot.like(
@@ -315,6 +336,11 @@ class ChatPage(BasePage):
         ).then(
             lambda: self.toggle_delete(""),
             outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
+        ).then(
+            fn=None,
+            inputs=None,
+            outputs=None,
+            js=pdfview_js
         )
 
         # evidence display on message selection
