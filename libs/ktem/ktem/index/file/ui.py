@@ -3,6 +3,7 @@ import os
 import shutil
 import tempfile
 import zipfile
+from copy import deepcopy
 from pathlib import Path
 from typing import Generator
 
@@ -168,16 +169,10 @@ class FileIndexPage(BasePage):
                         "loader",
                         "date_created",
                     ],
+                    column_widths=["0%", "50%", "8%", "7%", "15%", "20%"],
                     interactive=False,
-                    wrap=True,
+                    wrap=False,
                 )
-
-                with gr.Row() as self.selection_info:
-                    self.selected_file_id = gr.State(value=None)
-                    with gr.Column(scale=2):
-                        self.selected_panel = gr.Markdown(self.selected_panel_false)
-
-                self.chunks = gr.HTML(visible=False)
 
                 with gr.Row():
                     self.deselect_button = gr.Button(
@@ -190,6 +185,7 @@ class FileIndexPage(BasePage):
                         visible=False,
                     )
                 with gr.Row():
+                    self.is_zipped_state = gr.State(value=False)
                     self.download_all_button = gr.DownloadButton(
                         "Download all files",
                         visible=True,
@@ -198,6 +194,13 @@ class FileIndexPage(BasePage):
                         "Download file",
                         visible=False,
                     )
+
+                with gr.Row() as self.selection_info:
+                    self.selected_file_id = gr.State(value=None)
+                    with gr.Column(scale=2):
+                        self.selected_panel = gr.Markdown(self.selected_panel_false)
+
+                self.chunks = gr.HTML(visible=False)
 
     def on_subscribe_public_events(self):
         """Subscribe to the declared public event of the app"""
@@ -273,6 +276,7 @@ class FileIndexPage(BasePage):
         )
 
     def delete_event(self, file_id):
+        file_name = ""
         with Session(engine) as session:
             source = session.execute(
                 select(self._index._resources["Source"]).where(
@@ -280,6 +284,7 @@ class FileIndexPage(BasePage):
                 )
             ).first()
             if source:
+                file_name = source[0].name
                 session.delete(source[0])
 
             vs_ids, ds_ids = [], []
@@ -300,7 +305,7 @@ class FileIndexPage(BasePage):
             self._index._vs.delete(vs_ids)
         self._index._docstore.delete(ds_ids)
 
-        gr.Info(f"File {file_id} has been deleted")
+        gr.Info(f"File {file_name} has been deleted")
 
         return None, self.selected_panel_false
 
@@ -310,7 +315,7 @@ class FileIndexPage(BasePage):
             gr.update(visible=False),
         )
 
-    def download_single_file(self, file_id):
+    def download_single_file(self, is_zipped_state, file_id):
         with Session(engine) as session:
             source = session.execute(
                 select(self._index._resources["Source"]).where(
@@ -336,7 +341,15 @@ class FileIndexPage(BasePage):
         with zipfile.ZipFile(f"{zip_file_path}.zip", "w") as zipMe:
             for file in zip_files:
                 zipMe.write(file, arcname=os.path.basename(file))
-        return gr.DownloadButton(label=DOWNLOAD_MESSAGE, value=f"{zip_file_path}.zip")
+
+        if is_zipped_state:
+            new_button = gr.DownloadButton(label="Download", value=None)
+        else:
+            new_button = gr.DownloadButton(
+                label=DOWNLOAD_MESSAGE, value=f"{zip_file_path}.zip"
+            )
+
+        return not is_zipped_state, new_button
 
     def download_all_files(self):
         zip_files = []
@@ -413,8 +426,8 @@ class FileIndexPage(BasePage):
 
         self.download_single_button.click(
             fn=self.download_single_file,
-            inputs=[self.selected_file_id],
-            outputs=self.download_single_button,
+            inputs=[self.is_zipped_state, self.selected_file_id],
+            outputs=[self.is_zipped_state, self.download_single_button],
             show_progress="hidden",
         )
 
@@ -432,6 +445,60 @@ class FileIndexPage(BasePage):
             outputs=[self.upload_result, self.upload_info],
             concurrency_limit=20,
         )
+
+        try:
+            # quick file upload event registration of first Index only
+            if self._index.id == 1:
+                self.quick_upload_state = gr.State(value=[])
+                print("Setting up quick upload event")
+                quickUploadedEvent = (
+                    self._app.chat_page.quick_file_upload.upload(
+                        fn=lambda: gr.update(
+                            value="Please wait for the indexing process "
+                            "to complete before adding your question."
+                        ),
+                        outputs=self._app.chat_page.quick_file_upload_status,
+                    )
+                    .then(
+                        fn=self.index_fn_with_default_loaders,
+                        inputs=[
+                            self._app.chat_page.quick_file_upload,
+                            gr.State(value=False),
+                            self._app.settings_state,
+                            self._app.user_id,
+                        ],
+                        outputs=self.quick_upload_state,
+                    )
+                    .success(
+                        fn=lambda: [
+                            gr.update(value=None),
+                            gr.update(value="select"),
+                        ],
+                        outputs=[
+                            self._app.chat_page.quick_file_upload,
+                            self._app.chat_page._indices_input[0],
+                        ],
+                    )
+                )
+                for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
+                    quickUploadedEvent = quickUploadedEvent.then(**event)
+
+                quickUploadedEvent.success(
+                    fn=lambda x: x,
+                    inputs=self.quick_upload_state,
+                    outputs=self._app.chat_page._indices_input[1],
+                ).then(
+                    fn=lambda: gr.update(value="Indexing completed."),
+                    outputs=self._app.chat_page.quick_file_upload_status,
+                ).then(
+                    fn=self.list_file,
+                    inputs=[self._app.user_id, self.filter],
+                    outputs=[self.file_list_state, self.file_list],
+                    concurrency_limit=20,
+                )
+
+        except Exception as e:
+            print(e)
 
         uploadedEvent = onUploaded.then(
             fn=self.list_file,
@@ -577,6 +644,48 @@ class FileIndexPage(BasePage):
         if n_errors:
             gr.Warning(f"Have errors for {n_errors} files")
 
+        return result
+
+    def index_fn_with_default_loaders(
+        self, files, reindex: bool, settings, user_id
+    ) -> list["str"]:
+        """Function for quick upload with default loaders
+
+        Args:
+            files: the list of files to be uploaded
+            reindex: whether to reindex the files
+            selected_files: the list of files already selected
+            settings: the settings of the app
+        """
+        print("Overriding with default loaders")
+        exist_ids = []
+        to_process_files = []
+        for str_file_path in files:
+            file_path = Path(str(str_file_path))
+            exist_id = (
+                self._index.get_indexing_pipeline(settings, user_id)
+                .route(file_path)
+                .get_id_if_exists(file_path)
+            )
+            if exist_id:
+                exist_ids.append(exist_id)
+            else:
+                to_process_files.append(str_file_path)
+
+        returned_ids = []
+        settings = deepcopy(settings)
+        settings[f"index.options.{self._index.id}.reader_mode"] = "default"
+        settings[f"index.options.{self._index.id}.quick_index_mode"] = True
+        if to_process_files:
+            _iter = self.index_fn(to_process_files, reindex, settings, user_id)
+            try:
+                while next(_iter):
+                    pass
+            except StopIteration as e:
+                returned_ids = e.value
+
+        return exist_ids + returned_ids
+
     def index_files_from_dir(
         self, folder_path, reindex, settings, user_id
     ) -> Generator[tuple[str, str], None, None]:
@@ -650,6 +759,18 @@ class FileIndexPage(BasePage):
 
         yield from self.index_fn(files, reindex, settings, user_id)
 
+    def format_size_human_readable(self, num: float | str, suffix="B"):
+        try:
+            num = float(num)
+        except ValueError:
+            return num
+
+        for unit in ("", "K", "M", "G", "T", "P", "E", "Z"):
+            if abs(num) < 1024.0:
+                return f"{num:3.0f}{unit}{suffix}"
+            num /= 1024.0
+        return f"{num:.0f}Yi{suffix}"
+
     def list_file(self, user_id, name_pattern=""):
         if user_id is None:
             # not signed in
@@ -677,8 +798,10 @@ class FileIndexPage(BasePage):
                 {
                     "id": each[0].id,
                     "name": each[0].name,
-                    "size": each[0].size,
-                    "tokens": each[0].note.get("tokens", "-"),
+                    "size": self.format_size_human_readable(each[0].size),
+                    "tokens": self.format_size_human_readable(
+                        each[0].note.get("tokens", "-"), suffix=""
+                    ),
                     "loader": each[0].note.get("loader", "-"),
                     "date_created": each[0].date_created.strftime("%Y-%m-%d %H:%M:%S"),
                 }

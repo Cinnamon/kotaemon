@@ -42,22 +42,42 @@ class ConversationControl(BasePage):
             interactive=True,
             elem_classes=["unset-overflow"],
         )
-        self.cb_is_public = gr.Checkbox(
-            value=False, label="Mark conversation as shared", min_width=5
-        )
 
         with gr.Row() as self._new_delete:
             self.btn_new = gr.Button(
-                value="New", min_width=10, scale=1, variant="primary"
+                value="",
+                icon="assets/icons/new.svg",
+                min_width=2,
+                scale=1,
+                size="sm",
+                elem_classes=["no-background", "body-text-color"],
             )
             self.btn_del = gr.Button(
-                value="Delete", min_width=10, scale=1, variant="stop"
+                value="",
+                icon="assets/icons/delete.svg",
+                min_width=2,
+                scale=1,
+                size="sm",
+                elem_classes=["no-background", "body-text-color"],
             )
-            self.conversation_rn_btn = gr.Button(
-                value="Rename",
-                min_width=10,
-                scale=3,
-                elem_classes=["no-background", "body-text-color", "bold-text"],
+            self.btn_conversation_rn = gr.Button(
+                value="",
+                icon="assets/icons/rename.svg",
+                min_width=2,
+                scale=1,
+                size="sm",
+                elem_classes=["no-background", "body-text-color"],
+            )
+            self.btn_info_expand = gr.Button(
+                value="",
+                icon="assets/icons/sidebar.svg",
+                min_width=2,
+                scale=1,
+                size="sm",
+                elem_classes=["no-background", "body-text-color"],
+            )
+            self.cb_is_public = gr.Checkbox(
+                value=False, label="Shared", min_width=10, scale=4
             )
 
         with gr.Row(visible=False) as self._delete_confirm:
@@ -70,8 +90,9 @@ class ConversationControl(BasePage):
 
         with gr.Row():
             self.conversation_rn = gr.Text(
+                label="(Enter) to save",
                 placeholder="Conversation name",
-                container=False,
+                container=True,
                 scale=5,
                 min_width=10,
                 interactive=True,
@@ -243,8 +264,15 @@ class ConversationControl(BasePage):
             *indices,
         )
 
-    def rename_conv(self, conversation_id, new_name, user_id):
+    def rename_conv(self, conversation_id, new_name, is_renamed, user_id):
         """Rename the conversation"""
+        if not is_renamed:
+            return (
+                gr.update(),
+                conversation_id,
+                gr.update(visible=False),
+            )
+
         if user_id is None:
             gr.Warning("Please sign in first (Settings → User Settings)")
             return gr.update(), ""
@@ -271,7 +299,6 @@ class ConversationControl(BasePage):
             gr.update(choices=history),
             conversation_id,
             gr.update(visible=False),
-            gr.update(value="Rename"),
         )
 
     def _on_app_created(self):

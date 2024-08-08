@@ -12,7 +12,7 @@ class ReportIssue(BasePage):
         self.on_building_ui()
 
     def on_building_ui(self):
-        with gr.Accordion(label="Report", open=False):
+        with gr.Accordion(label="Feedback", open=False):
             self.correctness = gr.Radio(
                 choices=[
                     ("The answer is correct", "correct"),

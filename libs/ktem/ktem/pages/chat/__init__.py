@@ -10,10 +10,15 @@ from filelock import FileLock
 from ktem.app import BasePage
 from ktem.components import reasonings
 from ktem.db.models import Conversation, engine
+from ktem.index.file.ui import File
+from ktem.reasoning.prompt_optimization.suggest_conversation_name import (
+    SuggestConvNamePipeline,
+)
 from sqlmodel import Session, select
 from theflow.settings import settings as flowsettings
 
 from kotaemon.base import Document
+from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 
 from .chat_panel import ChatPanel
 from .chat_suggestion import ChatSuggestion
@@ -42,6 +47,9 @@ class ChatPage(BasePage):
 
         self.on_building_ui()
         self._reasoning_type = gr.State(value=None)
+        self._llm_type = gr.State(value=None)
+        self._conversation_renamed = gr.State(value=False)
+        self.info_panel_expanded = gr.State(value=False)
 
     def on_building_ui(self):
         with gr.Row():
@@ -51,13 +59,13 @@ class ChatPage(BasePage):
             self.original_settings = gr.State({})
             self.original_info_panel = gr.State("")
 
-            with gr.Column(scale=1, elem_id="conv-settings-panel"):
+            with gr.Column(scale=1, elem_id="conv-settings-panel") as self.conv_column:
                 self.chat_control = ConversationControl(self._app)
 
                 if getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False):
                     self.chat_suggestion = ChatSuggestion(self._app)
 
-                for index in self._app.index_manager.indices:
+                for index_id, index in enumerate(self._app.index_manager.indices):
                     index.selector = None
                     index_ui = index.get_selector_component_ui()
                     if not index_ui:
@@ -65,7 +73,9 @@ class ChatPage(BasePage):
                         continue
 
                     index_ui.unrender()  # need to rerender later within Accordion
-                    with gr.Accordion(label=f"{index.name} Index", open=True):
+                    with gr.Accordion(
+                        label=f"{index.name} Collection", open=index_id < 1
+                    ):
                         index_ui.render()
                         gr_index = index_ui.as_gradio_component()
                         if gr_index:
@@ -84,28 +94,52 @@ class ChatPage(BasePage):
                                 self._indices_input.append(gr_index)
                         setattr(self, f"_index_{index.id}", index_ui)
 
-                with gr.Accordion(label="Hint") as _:
-                    self.upload_help = gr.HTML(
-                        "<i>To upload new file(s), go to "
-                        "<b>Indices</b> section in top navigation bar.</i>"
-                    )
+                if len(self._app.index_manager.indices) > 0:
+                    with gr.Accordion(label="Quick Upload") as _:
+                        self.quick_file_upload = File(
+                            file_types=list(KH_DEFAULT_FILE_EXTRACTORS.keys()),
+                            file_count="multiple",
+                            container=True,
+                            show_label=False,
+                        )
+                        self.quick_file_upload_status = gr.Markdown()
 
-                # a hacky quick switch for reasoning type option
-                with gr.Accordion(label="Reasoning options", open=False) as _:
-                    reasoning_type_values = [
-                        (DEFAULT_SETTING, DEFAULT_SETTING)
-                    ] + self._app.default_settings.reasoning.settings["use"].choices
-                    self.reasoning_types = gr.Dropdown(
-                        choices=reasoning_type_values,
-                        value=DEFAULT_SETTING,
-                        show_label=False,
-                    )
                 self.report_issue = ReportIssue(self._app)
 
             with gr.Column(scale=6, elem_id="chat-area"):
                 self.chat_panel = ChatPanel(self._app)
 
-            with gr.Column(scale=3, elem_id="chat-info-panel"):
+                with gr.Row():
+                    with gr.Accordion(label="Chat settings", open=False):
+                        # a quick switch for reasoning type option
+                        with gr.Row():
+                            gr.HTML("Reasoning method")
+                            gr.HTML("Model")
+
+                        with gr.Row():
+                            reasoning_type_values = [
+                                (DEFAULT_SETTING, DEFAULT_SETTING)
+                            ] + self._app.default_settings.reasoning.settings[
+                                "use"
+                            ].choices
+                            self.reasoning_types = gr.Dropdown(
+                                choices=reasoning_type_values,
+                                value=DEFAULT_SETTING,
+                                container=False,
+                                show_label=False,
+                            )
+                            self.model_types = gr.Dropdown(
+                                choices=self._app.default_settings.reasoning.options[
+                                    "simple"
+                                ]
+                                .settings["llm"]
+                                .choices,
+                                value="",
+                                container=False,
+                                show_label=False,
+                            )
+
+            with gr.Column(scale=4, elem_id="chat-info-panel") as self.info_column:
                 with gr.Accordion(label="Information panel", open=True):
                     self.modal = gr.HTML("<div id='pdf-modal'></div>")
                     self.info_panel = gr.HTML(elem_id="html-info-panel")
@@ -140,6 +174,7 @@ class ChatPage(BasePage):
                 self.chat_panel.chatbot,
                 self._app.settings_state,
                 self._reasoning_type,
+                self._llm_type,
                 self.chat_state,
                 self._app.user_id,
             ]
@@ -179,6 +214,27 @@ class ChatPage(BasePage):
             concurrency_limit=20,
         ).then(
             fn=None, inputs=None, outputs=None, js=pdfview_js
+        ).success(
+            fn=self.check_and_suggest_name_conv,
+            inputs=self.chat_panel.chatbot,
+            outputs=[
+                self.chat_control.conversation_rn,
+                self._conversation_renamed,
+            ],
+        ).success(
+            self.chat_control.rename_conv,
+            inputs=[
+                self.chat_control.conversation_id,
+                self.chat_control.conversation_rn,
+                self._conversation_renamed,
+                self._app.user_id,
+            ],
+            outputs=[
+                self.chat_control.conversation,
+                self.chat_control.conversation,
+                self.chat_control.conversation_rn,
+            ],
+            show_progress="hidden",
         )
 
         self.chat_panel.regen_btn.click(
@@ -188,6 +244,7 @@ class ChatPage(BasePage):
                 self.chat_panel.chatbot,
                 self._app.settings_state,
                 self._reasoning_type,
+                self._llm_type,
                 self.chat_state,
                 self._app.user_id,
             ]
@@ -214,6 +271,36 @@ class ChatPage(BasePage):
             concurrency_limit=20,
         ).then(
             fn=None, inputs=None, outputs=None, js=pdfview_js
+        ).success(
+            fn=self.check_and_suggest_name_conv,
+            inputs=self.chat_panel.chatbot,
+            outputs=[
+                self.chat_control.conversation_rn,
+                self._conversation_renamed,
+            ],
+        ).success(
+            self.chat_control.rename_conv,
+            inputs=[
+                self.chat_control.conversation_id,
+                self.chat_control.conversation_rn,
+                self._conversation_renamed,
+                self._app.user_id,
+            ],
+            outputs=[
+                self.chat_control.conversation,
+                self.chat_control.conversation,
+                self.chat_control.conversation_rn,
+            ],
+            show_progress="hidden",
+        )
+
+        self.chat_control.btn_info_expand.click(
+            fn=lambda is_expanded: (
+                gr.update(scale=4) if is_expanded else gr.update(scale=8),
+                not is_expanded,
+            ),
+            inputs=self.info_panel_expanded,
+            outputs=[self.info_column, self.info_panel_expanded],
         )
 
         self.chat_panel.chatbot.like(
@@ -290,11 +377,10 @@ class ChatPage(BasePage):
             lambda: self.toggle_delete(""),
             outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
         )
-        self.chat_control.conversation_rn_btn.click(
-            lambda: (gr.update(visible=True), gr.update(value="Enter to save")),
+        self.chat_control.btn_conversation_rn.click(
+            lambda: gr.update(visible=True),
             outputs=[
                 self.chat_control.conversation_rn,
-                self.chat_control.conversation_rn_btn,
             ],
         )
         self.chat_control.conversation_rn.submit(
@@ -302,13 +388,13 @@ class ChatPage(BasePage):
             inputs=[
                 self.chat_control.conversation_id,
                 self.chat_control.conversation_rn,
+                gr.State(value=True),
                 self._app.user_id,
             ],
             outputs=[
                 self.chat_control.conversation,
                 self.chat_control.conversation,
                 self.chat_control.conversation_rn,
-                self.chat_control.conversation_rn_btn,
             ],
             show_progress="hidden",
         )
@@ -368,6 +454,11 @@ class ChatPage(BasePage):
             self.reasoning_changed,
             inputs=[self.reasoning_types],
             outputs=[self._reasoning_type],
+        )
+        self.model_types.change(
+            lambda x: x,
+            inputs=[self.model_types],
+            outputs=[self._llm_type],
         )
         if getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False):
             self.chat_suggestion.example.select(
@@ -544,6 +635,7 @@ class ChatPage(BasePage):
         self,
         settings: dict,
         session_reasoning_type: str,
+        session_llm: str,
         state: dict,
         user_id: int,
         *selecteds,
@@ -561,6 +653,7 @@ class ChatPage(BasePage):
         """
         # override reasoning_mode by temporary chat page state
         print("Session reasoning type", session_reasoning_type)
+        print("Session LLM", session_llm)
         reasoning_mode = (
             settings["reasoning.use"]
             if session_reasoning_type in (DEFAULT_SETTING, None)
@@ -569,6 +662,11 @@ class ChatPage(BasePage):
         reasoning_cls = reasonings[reasoning_mode]
         print("Reasoning class", reasoning_cls)
         reasoning_id = reasoning_cls.get_info()["id"]
+
+        settings = deepcopy(settings)
+        llm_setting_key = f"reasoning.options.{reasoning_id}.llm"
+        if llm_setting_key in settings and session_llm not in (DEFAULT_SETTING, None):
+            settings[llm_setting_key] = session_llm
 
         # get retrievers
         retrievers = []
@@ -600,6 +698,7 @@ class ChatPage(BasePage):
         chat_history,
         settings,
         reasoning_type,
+        llm_type,
         state,
         user_id,
         *selecteds,
@@ -612,7 +711,7 @@ class ChatPage(BasePage):
 
         # construct the pipeline
         pipeline, reasoning_state = self.create_pipeline(
-            settings, reasoning_type, state, user_id, *selecteds
+            settings, reasoning_type, llm_type, state, user_id, *selecteds
         )
         print("Reasoning state", reasoning_state)
         pipeline.set_output_queue(queue)
@@ -665,6 +764,7 @@ class ChatPage(BasePage):
         chat_history,
         settings,
         reasoning_type,
+        llm_type,
         state,
         user_id,
         *selecteds,
@@ -681,11 +781,25 @@ class ChatPage(BasePage):
             chat_history,
             settings,
             reasoning_type,
+            llm_type,
             state,
             user_id,
             *selecteds,
         ):
             yield chat, refs, state
+
+    def check_and_suggest_name_conv(self, chat_history):
+        suggest_pipeline = SuggestConvNamePipeline()
+        new_name = gr.update()
+        renamed = False
+
+        # check if this is a newly created conversation
+        if len(chat_history) == 1:
+            suggested_name = suggest_pipeline(chat_history).text[:40]
+            new_name = gr.update(value=suggested_name)
+            renamed = True
+
+        return new_name, renamed
 
     def backup_original_info(
         self, chat_history, settings, info_pannel, original_chat_history

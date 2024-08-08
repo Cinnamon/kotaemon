@@ -2,6 +2,7 @@ import asyncio
 import html
 import logging
 import re
+import threading
 from collections import defaultdict
 from difflib import SequenceMatcher
 from functools import partial
@@ -402,6 +403,20 @@ class AnswerWithContextPipeline(BaseComponent):
             prompt = question
             images = []
 
+        # retrieve the citation
+        citation = None
+
+        def citation_call():
+            nonlocal citation
+            citation = self.citation_pipeline(context=evidence, question=question)
+
+        if evidence and self.enable_citation:
+            # execute function call in thread
+            citation_thread = threading.Thread(target=citation_call)
+            citation_thread.start()
+        else:
+            citation_thread = None
+
         output = ""
         logprobs = []
         if evidence_mode == EVIDENCE_MODE_FIGURE:
@@ -432,16 +447,13 @@ class AnswerWithContextPipeline(BaseComponent):
                 output = self.llm(messages).text
                 yield Document(channel="chat", content=output)
 
-        # retrieve the citation
-        citation = None
-        if evidence and self.enable_citation:
-            citation = self.citation_pipeline(context=evidence, question=question)
-
         if logprobs:
             qa_score = np.exp(np.average(logprobs))
         else:
             qa_score = None
 
+        if citation_thread:
+            citation_thread.join()
         answer = Document(
             text=output,
             metadata={"citation": citation, "qa_score": qa_score},
@@ -539,7 +551,8 @@ class FullQAPipeline(BaseReasoning):
         docs, doc_ids = [], []
         for idx, retriever in enumerate(self.retrievers):
             retriever_node = self._prepare_child(retriever, f"retriever_{idx}")
-            for doc in retriever_node(text=query):
+            retriever_docs = retriever_node(text=query)
+            for doc in retriever_docs:
                 if doc.doc_id not in doc_ids:
                     docs.append(doc)
                     doc_ids.append(doc.doc_id)
@@ -698,6 +711,10 @@ class FullQAPipeline(BaseReasoning):
 
         for id_, _ in sorted_not_detected_items_with_scores:
             doc = id2docs[id_]
+            doc_score = doc.metadata.get("llm_trulens_score", 0.0)
+            is_open = (
+                doc_score > CONTEXT_RELEVANT_WARNING_SCORE and len(with_citation) == 0
+            )
             if doc.metadata.get("type", "") == "image":
                 without_citation.append(
                     Document(
@@ -705,8 +722,10 @@ class FullQAPipeline(BaseReasoning):
                         content=self._format_retrieval_score_and_doc(
                             doc,
                             Render.image(
-                                url=doc.metadata["image_origin"], text=doc.text
+                                url=doc.metadata["image_origin"],
+                                text=doc.text,
                             ),
+                            open_collapsible=is_open,
                         ),
                     )
                 )
@@ -715,7 +734,9 @@ class FullQAPipeline(BaseReasoning):
                     Document(
                         channel="info",
                         content=self._format_retrieval_score_and_doc(
-                            doc, Render.table(doc.text)
+                            doc,
+                            Render.table(doc.text),
+                            open_collapsible=is_open,
                         ),
                     )
                 )
@@ -774,6 +795,18 @@ class FullQAPipeline(BaseReasoning):
         yield from infos
 
         evidence_mode, evidence = self.evidence_pipeline(docs).content
+
+        def generate_relevant_scores():
+            nonlocal docs
+            docs = self.retrievers[0].generate_relevant_scores(message, docs)
+
+        # generate relevant score using
+        if evidence and self.retrievers:
+            scoring_thread = threading.Thread(target=generate_relevant_scores)
+            scoring_thread.start()
+        else:
+            scoring_thread = None
+
         answer = yield from self.answering_pipeline.stream(
             question=message,
             history=history,
@@ -783,10 +816,17 @@ class FullQAPipeline(BaseReasoning):
             **kwargs,
         )
 
+        # show the evidence
+        if scoring_thread:
+            scoring_thread.join()
+
         # # show the evidence
         # with_citation, without_citation = self.prepare_citations(answer, docs)
         # if not with_citation and not without_citation:
-        #     yield Document(channel="info", content="<h5><b>No evidence found.</b></h5>")
+        # yield Document(
+        #     channel="info",
+        #     content="<h5><b>No evidence found.</b></h5>"
+        # )
         # else:
         #     # clear the Info panel
         #     max_llm_rerank_score = max(

@@ -40,7 +40,7 @@ class ReactAgent(BaseAgent):
     max_iterations: int = 5
     strict_decode: bool = False
     trim_func: TokenSplitter = TokenSplitter.withx(
-        chunk_size=800,
+        chunk_size=3500,
         chunk_overlap=0,
         separator=" ",
         tokenizer=partial(

@@ -1,5 +1,3 @@
-# Basic Usage
-
 ## 1. Add your AI models
 
 ![resources tab](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/resources-tab.png)
@@ -63,12 +61,15 @@ AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT=text-embedding-ada-002 # change to your deplo
 
 ### Local models
 
-- Pros:
+Pros:
+
 - Privacy. Your documents will be stored and process locally.
 - Choices. There are a wide range of LLMs in terms of size, domain, language to choose
   from.
 - Cost. It's free.
-- Cons:
+
+Cons:
+
 - Quality. Local models are much smaller and thus have lower generative quality than
   paid APIs.
 - Speed. Local models are deployed using your machine so the processing speed is
@@ -137,5 +138,20 @@ Now navigate back to the `Chat` tab. The chat tab is divided into 3 regions:
 2. Chat Panel
    - This is where you can chat with the chatbot.
 3. Information panel
-   - Supporting information such as the retrieved evidence and reference will be
-     displayed here.
+
+![information panel](https://raw.githubusercontent.com/Cinnamon/kotaemon/develop/docs/images/info-panel-scores.png)
+
+- Supporting information such as the retrieved evidence and reference will be
+  displayed here.
+- Direct citation for the answer produced by the LLM is highlighted.
+- The confidence score of the answer and relevant scores of evidences are displayed to quickly assess the quality of the answer and retrieved content.
+
+- Meaning of the score displayed:
+  - **Answer confidence**: answer confidence level from the LLM model.
+  - **Relevance score**: overall relevant score between evidence and user question.
+  - **Vectorstore score**: relevant score from vector embedding similarity calculation (show `full-text search` if retrieved from full-text search DB).
+  - **LLM reranking score**: relevant score from LLM model (which judge relevancy between question and evidence using specific prompt).
+  - **Cohere reranking score**: relevant score from Cohere [reranking model](https://cohere.com/rerank).
+
+Generally, the score quality is `LLM reranking score` > `Cohere reranking score` > `Vectorscore`.
+By default, overall relevance score is taken directly from LLM reranking score. Evidences are sorted based on their overall relevance score and whether they have citation or not.
