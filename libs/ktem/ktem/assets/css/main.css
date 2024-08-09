@@ -170,6 +170,7 @@ pdfjs-viewer-element {
 }
 
 /* Modal styles */
+
 .modal {
   display: none;
   position: relative;
@@ -189,8 +190,6 @@ pdfjs-viewer-element {
 
 .modal-content {
   background-color: #fefefe;
-  margin: 1% auto;
-  border: 1px solid #888;
   height: 110%;
   display: flex;
   flex-direction: column;
