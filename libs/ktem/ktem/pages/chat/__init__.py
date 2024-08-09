@@ -429,7 +429,7 @@ class ChatPage(BasePage):
             self.message_selected,
             inputs=[self.original_retrieval_history],
             outputs=self.info_panel,
-        )
+        ).then(fn=None, inputs=None, outputs=None, js=pdfview_js)
         self.chat_control.cb_is_public.change(
             self.on_set_public_conversation,
             inputs=[self.chat_control.cb_is_public, self.chat_control.conversation],
