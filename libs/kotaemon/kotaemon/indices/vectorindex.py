@@ -279,9 +279,13 @@ class VectorRetrieval(BaseRetrieval):
             doc_dict["_id"] = text_doc.doc_id
             doc_dict["content"] = text_doc.content
             doc_dict["metadata"]["type"] = "image"
+            for key in text_doc.metadata:
+                if key not in doc_dict["metadata"]:
+                    doc_dict["metadata"][key] = text_doc.metadata[key]
+
             additional_docs.append(RetrievedDocument(**doc_dict, score=text_doc.score))
 
-        result = non_thumbnail_docs + additional_docs
+        result = additional_docs + non_thumbnail_docs
 
         if not result:
             # return output from raw retrieved thumbnails
