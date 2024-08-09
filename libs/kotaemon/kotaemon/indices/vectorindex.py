@@ -149,7 +149,7 @@ class VectorRetrieval(BaseRetrieval):
             top_k = self.top_k
 
         do_extend = kwargs.pop("do_extend", False)
-        thumbnail_count = kwargs.pop("thumbnail_count", 4)
+        thumbnail_count = kwargs.pop("thumbnail_count", 3)
 
         if do_extend:
             top_k_first_round = top_k * self.first_round_top_k_mult
