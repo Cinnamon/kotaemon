@@ -23,6 +23,8 @@ from kotaemon.llms import ChatLLM, PromptTemplate
 logger = logging.getLogger(__name__)
 
 
+SUPPORTED_LANGUAGE_MAP = {"en": "English", "ja": "Japanese", "vi": "Vietnamese"}
+
 DEFAULT_PLANNER_PROMPT = (
     "You are an AI agent who makes step-by-step plans to solve a problem under the "
     "help of external tools. For each step, make one plan followed by one tool-call, "
@@ -404,7 +406,7 @@ class RewooAgentPipeline(BaseReasoning):
                 tool.llm = solver_llm
             tools.append(tool)
         pipeline.agent.plugins = tools
-        pipeline.agent.output_lang = {"en": "English", "ja": "Japanese"}.get(
+        pipeline.agent.output_lang = SUPPORTED_LANGUAGE_MAP.get(
             settings["reasoning.lang"], "English"
         )
         pipeline.agent.prompt_template["Planner"] = PromptTemplate(

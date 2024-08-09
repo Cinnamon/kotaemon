@@ -27,6 +27,7 @@ from .control import ConversationControl
 from .report import ReportIssue
 
 DEFAULT_SETTING = "(default)"
+INFO_PANEL_SCALES = {True: 8, False: 4}
 
 
 pdfview_js = """
@@ -49,7 +50,7 @@ class ChatPage(BasePage):
         self._reasoning_type = gr.State(value=None)
         self._llm_type = gr.State(value=None)
         self._conversation_renamed = gr.State(value=False)
-        self.info_panel_expanded = gr.State(value=False)
+        self.info_panel_expanded = gr.State(value=True)
 
     def on_building_ui(self):
         with gr.Row():
@@ -139,7 +140,9 @@ class ChatPage(BasePage):
                                 show_label=False,
                             )
 
-            with gr.Column(scale=4, elem_id="chat-info-panel") as self.info_column:
+            with gr.Column(
+                scale=INFO_PANEL_SCALES[False], elem_id="chat-info-panel"
+            ) as self.info_column:
                 with gr.Accordion(label="Information panel", open=True):
                     self.modal = gr.HTML("<div id='pdf-modal'></div>")
                     self.info_panel = gr.HTML(elem_id="html-info-panel")
@@ -212,8 +215,6 @@ class ChatPage(BasePage):
             + self._indices_input,
             outputs=[self.original_retrieval_history],
             concurrency_limit=20,
-        ).then(
-            fn=None, inputs=None, outputs=None, js=pdfview_js
         ).success(
             fn=self.check_and_suggest_name_conv,
             inputs=self.chat_panel.chatbot,
@@ -235,6 +236,8 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_rn,
             ],
             show_progress="hidden",
+        ).then(
+            fn=None, inputs=None, outputs=None, js=pdfview_js
         )
 
         self.chat_panel.regen_btn.click(
@@ -269,8 +272,6 @@ class ChatPage(BasePage):
             + self._indices_input,
             outputs=[self.original_retrieval_history],
             concurrency_limit=20,
-        ).then(
-            fn=None, inputs=None, outputs=None, js=pdfview_js
         ).success(
             fn=self.check_and_suggest_name_conv,
             inputs=self.chat_panel.chatbot,
@@ -292,11 +293,13 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_rn,
             ],
             show_progress="hidden",
+        ).then(
+            fn=None, inputs=None, outputs=None, js=pdfview_js
         )
 
         self.chat_control.btn_info_expand.click(
             fn=lambda is_expanded: (
-                gr.update(scale=4) if is_expanded else gr.update(scale=8),
+                gr.update(scale=INFO_PANEL_SCALES[is_expanded]),
                 not is_expanded,
             ),
             inputs=self.info_panel_expanded,

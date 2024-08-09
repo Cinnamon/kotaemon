@@ -22,6 +22,9 @@ from kotaemon.llms import ChatLLM, PromptTemplate
 logger = logging.getLogger(__name__)
 
 
+SUPPORTED_LANGUAGE_MAP = {"en": "English", "ja": "Japanese", "vi": "Vietnamese"}
+
+
 class DocSearchArgs(BaseModel):
     query: str = Field(..., description="a search query as input to the doc search")
 
@@ -275,7 +278,7 @@ class ReactAgentPipeline(BaseReasoning):
                 tool.llm = llm
             tools.append(tool)
         pipeline.agent.plugins = tools
-        pipeline.agent.output_lang = {"en": "English", "ja": "Japanese"}.get(
+        pipeline.agent.output_lang = SUPPORTED_LANGUAGE_MAP.get(
             settings["reasoning.lang"], "English"
         )
         pipeline.use_rewrite = states.get("app", {}).get("regen", False)

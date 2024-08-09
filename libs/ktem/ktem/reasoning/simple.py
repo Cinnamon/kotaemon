@@ -36,24 +36,12 @@ from .base import BaseReasoning
 
 logger = logging.getLogger(__name__)
 
+SUPPORTED_LANGUAGE_MAP = {"en": "English", "ja": "Japanese", "vi": "Vietnamese"}
+
 EVIDENCE_MODE_TEXT = 0
 EVIDENCE_MODE_TABLE = 1
 EVIDENCE_MODE_CHATBOT = 2
 EVIDENCE_MODE_FIGURE = 3
-
-
-def get_header(doc: Document):
-    """Get the header for the document"""
-    header = ""
-    if "page_label" in doc.metadata:
-        header += f" [Page {doc.metadata['page_label']}]"
-
-    header += f" {doc.metadata.get('file_name', '<Unknown>')}"
-    return header.strip()
-
-
-def is_close(val1, val2, tolerance=1e-9):
-    return abs(val1 - val2) <= tolerance
 
 
 def find_text(search_span, context):
@@ -69,9 +57,6 @@ def find_text(search_span, context):
                 matches.append((match.b, match.b + match.size))
 
     return matches
-
-
-_default_token_func = tiktoken.encoding_for_model("gpt-3.5-turbo").encode
 
 
 class PrepareEvidencePipeline(BaseComponent):
@@ -557,84 +542,15 @@ class FullQAPipeline(BaseReasoning):
                     docs.append(doc)
                     doc_ids.append(doc.doc_id)
 
-        info = []
-        for doc in docs:
-            if doc.metadata.get("type", "") == "image":
-                info.append(
-                    Document(
-                        channel="info",
-                        content=Render.collapsible(
-                            header=f"<i>{get_header(doc)}</i>",
-                            content=Render.image(
-                                url=doc.metadata["image_origin"], text=doc.text
-                            ),
-                            open=True,
-                        ),
-                    )
-                )
-            else:
-                info.append(
-                    Document(
-                        channel="info",
-                        content=Render.collapsible(
-                            header=f"<i>{get_header(doc)}</i>",
-                            content=Render.update_preview(Render.table(doc.text), doc),
-                            open=True,
-                        ),
-                    )
-                )
+        info = [
+            Document(
+                channel="info",
+                content=Render.collapsible_with_header(doc, open_collapsible=True),
+            )
+            for doc in docs
+        ]
 
         return docs, info
-
-    def _format_retrieval_score_and_doc(
-        self,
-        doc: Document,
-        rendered_doc_content: str,
-        open_collapsible: bool = False,
-    ) -> str:
-        """Format the retrieval score and the document"""
-        # score from doc_store (Elasticsearch)
-        if is_close(doc.score, -1.0):
-            vectorstore_score = ""
-            text_search_str = " (full-text search)<br>"
-        else:
-            vectorstore_score = round(doc.score, 2)
-            text_search_str = "<br>"
-
-        llm_reranking_score = (
-            round(doc.metadata["llm_trulens_score"], 2)
-            if doc.metadata.get("llm_trulens_score") is not None
-            else 0.0
-        )
-        cohere_reranking_score = (
-            round(doc.metadata["cohere_reranking_score"], 2)
-            if doc.metadata.get("cohere_reranking_score") is not None
-            else 0.0
-        )
-        item_type_prefix = doc.metadata.get("type", "")
-        item_type_prefix = item_type_prefix.capitalize()
-        if item_type_prefix:
-            item_type_prefix += " from "
-
-        rendered_score = Render.collapsible(
-            header=f"<b>&emsp;Relevance score</b>: {llm_reranking_score}",
-            content="<b>&emsp;&emsp;Vectorstore score:</b>"
-            f" {vectorstore_score}"
-            f"{text_search_str}"
-            "<b>&emsp;&emsp;LLM reranking score:</b>"
-            f" {llm_reranking_score}<br>"
-            "<b>&emsp;&emsp;Cohere reranking score:</b>"
-            f" {cohere_reranking_score}<br>",
-        )
-
-        return Render.collapsible(
-            header=(
-                f"<i>{item_type_prefix}{get_header(doc)}</i>"
-                f" [score: {llm_reranking_score}]"
-            ),
-            content=rendered_score + rendered_doc_content,
-            open=open_collapsible,
-        )
 
     def prepare_citations(self, answer, docs) -> tuple[list[Document], list[Document]]:
         """Prepare the citations to show on the UI"""
@@ -669,38 +585,31 @@ class FullQAPipeline(BaseReasoning):
                 not_detected.add(_id)
                 continue
             cur_doc = id2docs[_id]
+            highlight_text = ""
+
             ss = sorted(ss, key=lambda x: x["start"])
             text = cur_doc.text[: ss[0]["start"]]
             for idx, span in enumerate(ss):
-                text += Render.highlight(cur_doc.text[span["start"] : span["end"]])
+                to_highlight = cur_doc.text[span["start"] : span["end"]]
+                if len(to_highlight) > len(highlight_text):
+                    highlight_text = to_highlight
+                text += Render.highlight(to_highlight)
                 if idx < len(ss) - 1:
                     text += cur_doc.text[span["end"] : ss[idx + 1]["start"]]
             text += cur_doc.text[ss[-1]["end"] :]
             # add to display list
-            if cur_doc.metadata.get("type", "") == "image":
-                with_citation.append(
-                    Document(
-                        channel="info",
-                        content=self._format_retrieval_score_and_doc(
-                            cur_doc,
-                            Render.image(
-                                url=cur_doc.metadata["image_origin"], text=text
-                            ),
-                            open_collapsible=True,
-                        ),
-                    )
+            with_citation.append(
+                Document(
+                    channel="info",
+                    content=Render.collapsible_with_header_score(
+                        cur_doc,
+                        override_text=text,
+                        highlight_text=highlight_text,
+                        open_collapsible=True,
+                    ),
                 )
-            else:
-                with_citation.append(
-                    Document(
-                        channel="info",
-                        content=self._format_retrieval_score_and_doc(
-                            cur_doc,
-                            Render.table(text),
-                            open_collapsible=True,
-                        ),
-                    )
-                )
+            )
+
         print("Got {} cited docs".format(len(with_citation)))
 
         sorted_not_detected_items_with_scores = [
@@ -715,32 +624,53 @@ class FullQAPipeline(BaseReasoning):
             is_open = (
                 doc_score > CONTEXT_RELEVANT_WARNING_SCORE and len(with_citation) == 0
             )
-            if doc.metadata.get("type", "") == "image":
-                without_citation.append(
-                    Document(
-                        channel="info",
-                        content=self._format_retrieval_score_and_doc(
-                            doc,
-                            Render.image(
-                                url=doc.metadata["image_origin"],
-                                text=doc.text,
-                            ),
-                            open_collapsible=is_open,
-                        ),
-                    )
+            without_citation.append(
+                Document(
+                    channel="info",
+                    content=Render.collapsible_with_header_score(
+                        doc, open_collapsible=is_open
+                    ),
                 )
-            else:
-                without_citation.append(
-                    Document(
-                        channel="info",
-                        content=self._format_retrieval_score_and_doc(
-                            doc,
-                            Render.table(doc.text),
-                            open_collapsible=is_open,
-                        ),
-                    )
-                )
+            )
         return with_citation, without_citation
+
+    def show_citations(self, answer, docs):
+        # show the evidence
+        with_citation, without_citation = self.prepare_citations(answer, docs)
+        if not with_citation and not without_citation:
+            yield Document(channel="info", content="<h5><b>No evidence found.</b></h5>")
+        else:
+            # clear the Info panel
+            max_llm_rerank_score = max(
+                doc.metadata.get("llm_trulens_score", 0.0) for doc in docs
+            )
+            # clear previous info
+            yield Document(channel="info", content=None)
+
+            # yield warning message
+            if max_llm_rerank_score < CONTEXT_RELEVANT_WARNING_SCORE:
+                yield Document(
+                    channel="info",
+                    content=(
+                        "<h5>WARNING! Context relevance score is low. "
+                        "Double check the model answer for correctness.</h5>"
+                    ),
+                )
+
+            # show QA score
+            qa_score = (
+                round(answer.metadata["qa_score"], 2)
+                if answer.metadata.get("qa_score")
+                else None
+            )
+            yield Document(
+                channel="info",
+                content=f"<h5>Answer confidence: {qa_score}</h5>",
+            )
+
+            yield from with_citation
+            if without_citation:
+                yield from without_citation
 
     async def ainvoke(  # type: ignore
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
@@ -820,45 +750,7 @@ class FullQAPipeline(BaseReasoning):
         if scoring_thread:
             scoring_thread.join()
 
-        # # show the evidence
-        # with_citation, without_citation = self.prepare_citations(answer, docs)
-        # if not with_citation and not without_citation:
-        # yield Document(
-        #     channel="info",
-        #     content="<h5><b>No evidence found.</b></h5>"
-        # )
-        # else:
-        #     # clear the Info panel
-        #     max_llm_rerank_score = max(
-        #         doc.metadata.get("llm_trulens_score", 0.0) for doc in docs
-        #     )
-        #     # clear previous info
-        #     yield Document(channel="info", content=None)
-        #
-        #     # yield warning message
-        #     if max_llm_rerank_score < CONTEXT_RELEVANT_WARNING_SCORE:
-        #         yield Document(
-        #             channel="info",
-        #             content=(
-        #                 "<h5>WARNING! Context relevance score is low. "
-        #                 "Double check the model answer for correctness.</h5>"
-        #             ),
-        #         )
-        #
-        #     # show QA score
-        #     qa_score = (
-        #         round(answer.metadata["qa_score"], 2)
-        #         if answer.metadata.get("qa_score")
-        #         else None
-        #     )
-        #     yield Document(
-        #         channel="info",
-        #         content=f"<h5>Answer confidence: {qa_score}</h5>",
-        #     )
-        #
-        #     yield from with_citation
-        #     if without_citation:
-        #         yield from without_citation
+        yield from self.show_citations(answer, docs)
 
         return answer
 
@@ -887,7 +779,7 @@ class FullQAPipeline(BaseReasoning):
         answer_pipeline.enable_citation = settings[f"{prefix}.highlight_citation"]
         answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
         answer_pipeline.qa_template = settings[f"{prefix}.qa_prompt"]
-        answer_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
+        answer_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
             settings["reasoning.lang"], "English"
         )
 
@@ -900,7 +792,7 @@ class FullQAPipeline(BaseReasoning):
         pipeline.use_rewrite = states.get("app", {}).get("regen", False)
         if pipeline.rewrite_pipeline:
             pipeline.rewrite_pipeline.llm = llm
-            pipeline.rewrite_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
+            pipeline.rewrite_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
                 settings["reasoning.lang"], "English"
             )
         return pipeline
@@ -1053,11 +945,8 @@ class FullDecomposeQAPipeline(FullQAPipeline):
             yield Document(channel="info", content="<h5><b>No evidence found.</b></h5>")
         else:
             yield Document(channel="info", content=None)
-            for _ in with_citation:
-                yield _
-            if without_citation:
-                for _ in without_citation:
-                    yield _
+            yield from with_citation
+            yield from without_citation
 
         return answer
 
@@ -1097,7 +986,7 @@ class FullDecomposeQAPipeline(FullQAPipeline):
         answer_pipeline.enable_citation = settings[f"{prefix}.highlight_citation"]
         answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
         answer_pipeline.qa_template = settings[f"{prefix}.qa_prompt"]
-        answer_pipeline.lang = {"en": "English", "ja": "Japanese"}.get(
+        answer_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
             settings["reasoning.lang"], "English"
         )
 
