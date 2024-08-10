@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import base64
 import json
 import logging
+import os
 import shutil
 import warnings
 from collections import defaultdict
@@ -566,6 +568,14 @@ class KnowledgeNetworkRetrievalPipeline(BaseFileIndexRetriever):
     collection_name: str = "default"
     rerankers: Sequence[BaseReranking] = [LLMReranking.withx()]
 
+    def encode_image_base64(self, image_path: str | Path) -> bytes | str:
+        """Convert image to base64"""
+        img_base64 = "data:image/png;base64,{}"
+        with open(image_path, "rb") as image_file:
+            return img_base64.format(
+                base64.b64encode(image_file.read()).decode("utf-8")
+            )
+
     def run(
         self,
         text: str,
@@ -605,6 +615,15 @@ class KnowledgeNetworkRetrievalPipeline(BaseFileIndexRetriever):
                     metadata.pop("content_type", ""), ""
                 )
                 metadata["file_name"] = metadata.pop("company_name", "")
+
+                # load image from returned path
+                image_path = metadata.get("image_path", "")
+                if image_path and os.path.isfile(image_path):
+                    base64_im = self.encode_image_base64(image_path)
+                    # explicitly set document type
+                    metadata["type"] = "image"
+                    metadata["image_origin"] = base64_im
+
                 docs.append(
                     RetrievedDocument(text=chunk["node"]["text"], metadata=metadata)
                 )

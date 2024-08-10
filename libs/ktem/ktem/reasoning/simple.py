@@ -66,6 +66,11 @@ def find_text(search_span, context):
             ).find_longest_match()
             if match.size > len(search_span) * 0.6:
                 matches.append((match.b, match.b + match.size))
+                print(
+                    "matched citation `{}` vs `{}`".format(
+                        sentence, context[match.b : match.b + match.size]
+                    )
+                )
 
     return matches
 
@@ -84,7 +89,7 @@ class PrepareEvidencePipeline(BaseComponent):
     """
 
     trim_func: TokenSplitter = TokenSplitter.withx(
-        chunk_size=3000,
+        chunk_size=32000,
         chunk_overlap=0,
         separator=" ",
         tokenizer=partial(
@@ -99,6 +104,7 @@ class PrepareEvidencePipeline(BaseComponent):
         table_found = 0
         evidence_modes = []
 
+        print(f"Formatting {len(docs)} docs to envidence")
         for _id, retrieved_item in enumerate(docs):
             retrieved_content = ""
             page = retrieved_item.metadata.get("page_label", None)
@@ -108,7 +114,9 @@ class PrepareEvidencePipeline(BaseComponent):
             if retrieved_item.metadata.get("type", "") == "table":
                 evidence_modes.append(EVIDENCE_MODE_TABLE)
                 if table_found < 5:
-                    retrieved_content = retrieved_item.metadata.get("table_origin", "")
+                    retrieved_content = retrieved_item.metadata.get(
+                        "table_origin", retrieved_item.text
+                    )
                     if retrieved_content not in evidence:
                         table_found += 1
                         evidence += (
@@ -415,6 +423,10 @@ class AnswerWithContextPipeline(BaseComponent):
             try:
                 # try streaming first
                 print("Trying LLM streaming")
+                print("LLM prompt")
+                print(messages[-1].content)
+                print("=" * 50)
+
                 for out_msg in self.llm.stream(messages):
                     output += out_msg.text
                     logprobs += out_msg.logprobs
