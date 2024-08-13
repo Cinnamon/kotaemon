@@ -4,6 +4,7 @@ from ktem.db.models import User, engine
 from ktem.embeddings.ui import EmbeddingManagement
 from ktem.index.ui import IndexManagement
 from ktem.llms.ui import LLMManagement
+from ktem.tags.ui import TagManagement
 from sqlmodel import Session, select
 
 from .user import UserManagement
@@ -27,6 +28,9 @@ class ResourcesTab(BasePage):
 
         with gr.Tab("Index Management") as self.index_management_tab:
             self.index_management = IndexManagement(self._app)
+
+        with gr.Tab("Tag Management") as self.tag_management_tab:
+            self.tag_management = TagManagement(self._app)
 
     def on_subscribe_public_events(self):
         if self._app.f_user_management:

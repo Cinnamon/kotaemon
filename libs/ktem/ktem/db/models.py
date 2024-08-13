@@ -45,5 +45,13 @@ class IssueReport(_base_issue_report, table=True):  # type: ignore
     """Record of issues"""
 
 
+class Tag(base_models.BaseTag, table=True):  # type: ignore
+    """Record of tags"""
+
+
+class ChunkTagIndex(base_models.BaseChunkTagIndex, table=True):  # type: ignore
+    """Record of meta-doc index"""
+
+
 if not getattr(settings, "KH_ENABLE_ALEMBIC", False):
     SQLModel.metadata.create_all(engine)
