@@ -146,7 +146,7 @@ class BaseTag(SQLModel):
 
     __table_args__ = {"extend_existing": True}
 
-    id: Optional[str] = Field(
+    id: str = Field(
         default_factory=lambda: uuid.uuid4().hex, primary_key=True, index=True
     )
 
@@ -161,7 +161,7 @@ class BaseTag(SQLModel):
 class BaseChunkTagIndex(SQLModel):
     __table_args__ = {"extend_existing": True}
 
-    id: Optional[str] = Field(
+    id: str = Field(
         default_factory=lambda: uuid.uuid4().hex, primary_key=True, index=True
     )
 

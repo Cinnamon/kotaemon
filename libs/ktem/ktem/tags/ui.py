@@ -1,12 +1,12 @@
 import gradio as gr
 import pandas as pd
 from ktem.app import BasePage
-from ktem.db.base_models import TagScope, TagType
+from ktem.db.base_models import BaseTag, TagScope, TagType
 from ktem.db.models import engine
 
 from .crud import TagCRUD
 
-TAG_DISPLAY_COLUMNS = ["name", "type", "prompt"]
+TAG_DISPLAY_COLUMNS = ["name", "scope", "type", "prompt"]
 
 
 class TagManagement(BasePage):
@@ -40,14 +40,20 @@ class TagManagement(BasePage):
                             info="Description of the tag",
                             lines=5,
                         )
+                        self.edit_scope = gr.Radio(
+                            label="Scope",
+                            choices=TagScope.get_types(),
+                            value=TagScope.chunk.value,
+                            info="Select the scope of the tag (file / chunk level)",
+                        )
                         self.edit_type = gr.Radio(
-                            label="Tag Type",
+                            label="Tag type",
                             choices=TagType.get_types(),
                             value=TagType.text.value,
                             info="Select the type of the tag",
                         )
                         self.edit_valid_classes = gr.Textbox(
-                            label="Valid Classes",
+                            label="Valid classes",
                             info="Enter valid classes for "
                             "classification (comma-separated)",
                             visible=False,
@@ -88,33 +94,28 @@ class TagManagement(BasePage):
                         label="Meta tag name",
                         info="Must be unique and non-empty.",
                     )
-
                     self.prompt = gr.Textbox(
                         label="Prompt",
                         info="Description of the tag",
                         lines=5,
                     )
-
                     self.scope = gr.Radio(
                         label="Scope",
                         choices=TagScope.get_types(),
                         value=TagScope.chunk.value,
                         info="Select the scope of the tag (file / chunk level)",
                     )
-
                     self.type = gr.Radio(
                         label="Tag type",
                         choices=TagType.get_types(),
                         value=TagType.text.value,
                         info="Select the type of the tag",
                     )
-
                     self.valid_classes = gr.Textbox(
                         label="Valid classes",
                         info="Enter valid classes for classification (comma-separated)",
                         visible=False,
                     )
-
                     self.btn_new = gr.Button("Add", variant="primary")
 
                 with gr.Column(scale=3):
@@ -171,6 +172,7 @@ class TagManagement(BasePage):
     def on_selected_tag_change(self, selected_tag_name):
         edit_tag_name = gr.update(value="")
         edit_tag_prompt = gr.update(value="")
+        edit_tag_scope = gr.update(value="")
         edit_tag_type = gr.update(value="")
         edit_tag_config = gr.update(value="")
         edit_tag_meta = gr.update(value="")
@@ -181,8 +183,6 @@ class TagManagement(BasePage):
             btn_delete = gr.update(visible=True)
             btn_delete_yes = gr.update(visible=False)
             btn_delete_no = gr.update(visible=False)
-
-            tag_info = ""
         else:
             _selected_panel = gr.update(visible=True)
             _selected_panel_btn = gr.update(visible=True)
@@ -190,13 +190,14 @@ class TagManagement(BasePage):
             btn_delete_yes = gr.update(visible=False)
             btn_delete_no = gr.update(visible=False)
 
-            tag_info = self._tag_crud.query_by_name(selected_tag_name)
-            if tag_info:
-                edit_tag_name = tag_info["name"]
-                edit_tag_prompt = tag_info["prompt"]
-                edit_tag_type = tag_info["type"]
-                edit_tag_config = tag_info["config"]
-                edit_tag_meta = tag_info["meta"].get("valid_classes", "")
+            tag_obj: BaseTag | None = self._tag_crud.query_by_name(selected_tag_name)
+            if tag_obj:
+                edit_tag_name = tag_obj.name
+                edit_tag_prompt = tag_obj.prompt
+                edit_tag_scope = tag_obj.scope
+                edit_tag_type = tag_obj.type
+                edit_tag_config = tag_obj.config
+                edit_tag_meta = tag_obj.meta.get("valid_classes", "")
 
         return (
             _selected_panel,
@@ -207,6 +208,7 @@ class TagManagement(BasePage):
             # tag info
             edit_tag_name,
             edit_tag_prompt,
+            edit_tag_scope,
             edit_tag_type,
             edit_tag_config,
             edit_tag_meta,
@@ -226,7 +228,13 @@ class TagManagement(BasePage):
         return ""
 
     def save_tag(
-        self, name: str, prompt: str, type: str, config: str, valid_classes: str
+        self,
+        name: str,
+        prompt: str,
+        scope: str,
+        type: str,
+        config: str,
+        valid_classes: str,
     ):
         try:
             self._tag_crud.update_by_name(
@@ -234,6 +242,7 @@ class TagManagement(BasePage):
                 prompt=prompt,
                 config=config,
                 type=type,
+                scope=scope,
                 valid_classes=valid_classes,
             )
             gr.Info(f'Updated tag "{name}" successfully')
@@ -275,6 +284,7 @@ class TagManagement(BasePage):
                 # tag info,
                 self.edit_name,
                 self.edit_prompt,
+                self.edit_scope,
                 self.edit_type,
                 self.edit_config,
                 self.edit_valid_classes,
@@ -297,6 +307,23 @@ class TagManagement(BasePage):
             self.broadcast_tag_updated_to_index,
             inputs=[
                 self.name,
+            ],
+        ).then(
+            fn=lambda: (
+                gr.update(value=""),
+                gr.update(value=""),
+                gr.update(value=""),
+                gr.update(value=""),
+                gr.update(value=""),
+                gr.update(value=""),
+            ),
+            outputs=[
+                self.name,
+                self.prompt,
+                self.config,
+                self.type,
+                self.scope,
+                self.valid_classes,
             ],
         )
 
@@ -336,6 +363,7 @@ class TagManagement(BasePage):
             inputs=[
                 self.selected_tag_name,
                 self.edit_prompt,
+                self.edit_scope,
                 self.edit_type,
                 self.edit_config,
                 self.edit_valid_classes,

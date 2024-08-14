@@ -1,6 +1,8 @@
+from collections import defaultdict
 from pathlib import Path
 from typing import Generator
 
+from ktem.db.base_models import BaseTag, TagScope
 from ktem.db.models import engine
 from ktem.index.file.base import BaseFileIndexIndexing
 from ktem.index.file.pipelines import IndexDocumentPipeline, IndexPipeline
@@ -44,9 +46,11 @@ class MetaIndexPipeline(IndexDocumentPipeline):
         return tags
 
     @classmethod
-    def get_pipeline(cls, user_settings, index_settings) -> BaseFileIndexIndexing:
+    def get_pipeline(
+        cls, user_settings: dict, index_settings: dict
+    ) -> BaseFileIndexIndexing:
         """Get custom settings (tag_ids) from index settings"""
-        llm = llms.get(index_settings.get("llm", llms.get_default_name()))
+        llm = llms.get(index_settings.get("llm", ""), llms.get_default_name())
         tags = index_settings.get("tags", "")
         obj = super().get_pipeline(user_settings, index_settings)
 
@@ -68,23 +72,66 @@ class MetaIndexPipeline(IndexDocumentPipeline):
 
         return pipeline
 
-    def process_tag(self, tag_prompt: str, doc_content: str) -> str:
+    def generate_with_llm(self, tag_prompt: str, doc_content: str) -> str:
         # TODO: add LLM logic to automatically tag document content
         return f"{type(self.llm)} {tag_prompt} - {doc_content}"
 
+    def create_tag_content(
+        self, tag_id: str, chunk_id: str, tag_prompt: str, doc_content: str
+    ) -> str:
+        # pending
+        index_id = self.chunk_tag_index_crud.create(
+            tag_id=tag_id, chunk_id=chunk_id, content=""
+        )
+        # in - progress
+        self.chunk_tag_index_crud.update_status_by_id(
+            index_id, new_status=TagProcessStatus.in_progress
+        )
+        # main LLM call to populate tag content
+        tag_content: str = self.generate_with_llm(tag_prompt, doc_content)
+
+        # TODO: create additional vectorstore and
+        # perform vector indexing for tag content
+        self.chunk_tag_index_crud.update_content_by_id(
+            index_id,
+            new_content=tag_content,
+        )
+        self.chunk_tag_index_crud.update_status_by_id(
+            index_id, new_status=TagProcessStatus.done
+        )
+        return index_id
+
     def process_docs(
-        self, docs: list[DocumentWithEmbedding], clean_previous=False, chunk_size=20
+        self,
+        docs: list[DocumentWithEmbedding],
+        clean_previous=False,
+        chunk_size=20,
     ) -> Generator[Document, None, list[str]]:
         doc_ids = [doc.doc_id for doc in docs]
         n_docs = len(docs)
         n_tags = len(self.tags)
 
+        # group doc by file_id
+        file_id_to_docs = defaultdict(list)
+        for doc in docs:
+            file_id = doc.metadata.get("file_id", "")
+            if file_id:
+                file_id_to_docs[file_id].append(doc)
+
+        n_files = len(file_id_to_docs)
+        file_ids = list(file_id_to_docs.keys())
+
         indexed_ids = []
 
         # clean previous tagging results if specified
         if clean_previous:
-            deleted_items = self.chunk_tag_index_crud.delete_by_chunk_ids(doc_ids)
-            print(f"Deleted {len(deleted_items)} previous tagging results.")
+            deleted_items = self.chunk_tag_index_crud.delete_by_chunk_ids(
+                doc_ids + file_ids
+            )
+            yield Document(
+                content=(f"Cleaned {len(deleted_items)} previous tagging results."),
+                channel="debug",
+            )
 
         # tagging process
         for _tag_idx, tag in enumerate(self.tags):
@@ -92,63 +139,77 @@ class MetaIndexPipeline(IndexDocumentPipeline):
                 content=f"Tagging [{_tag_idx+1}/{n_tags} tag(s) `{tag}`]:",
                 channel="debug",
             )
-            tag_dict = self.tag_crud.query_by_name(tag)
-            if tag_dict is None:
+            tag_obj: BaseTag | None = self.tag_crud.query_by_name(tag)
+            if tag_obj is None:
                 continue
 
-            tag_prompt = tag_dict.get("prompt", "")
-            tag_id = tag_dict.get("id", "")
+            tag_prompt = tag_obj.prompt
+            tag_id = tag_obj.id
+            tag_scope = tag_obj.scope
 
-            for _idx, doc in enumerate(docs):
-                doc_content = doc.text
-                doc_id = doc.doc_id
-
-                # pending
-                index_id = self.chunk_tag_index_crud.create(
-                    tag_id=tag_id, chunk_id=doc_id, content=""
-                )
-                indexed_ids += [index_id]
-
-                try:
-                    # in - progress
-                    self.chunk_tag_index_crud.update_status_by_id(
-                        index_id, new_status=TagProcessStatus.in_progress
-                    )
-                    # main LLM call to populate tag content
-                    tag_content: str = self.process_tag(tag_prompt, doc_content)
-
-                    # TODO: create additional vectorstore and
-                    # perform vector indexing for tag content
-                    self.chunk_tag_index_crud.update_content_by_id(
-                        index_id,
-                        new_content=tag_content,
-                    )
-                    self.chunk_tag_index_crud.update_status_by_id(
-                        index_id, new_status=TagProcessStatus.done
-                    )
-
-                    if (_idx + 1) % chunk_size == 0 or _idx == n_docs - 1:
+            if tag_scope == TagScope.chunk.value:
+                for _idx, doc in enumerate(docs):
+                    try:
+                        doc_content = doc.text
+                        doc_id = doc.doc_id
+                        index_id = self.create_tag_content(
+                            tag_id, doc_id, tag_prompt, doc_content
+                        )
+                        indexed_ids.append(index_id)
+                        if (_idx + 1) % chunk_size == 0 or _idx == n_docs - 1:
+                            yield Document(
+                                content=(
+                                    f"Tagging [{_tag_idx+1}/{n_tags}] - "
+                                    f"Processed [{_idx+1}/{n_docs} documents]"
+                                ),
+                                channel="debug",
+                            )
+                    except Exception as e:
+                        # failed
+                        self.chunk_tag_index_crud.update_status_by_id(
+                            index_id, new_status=TagProcessStatus.failed
+                        )
+                        print(e)
+                        yield Document(
+                            content=(
+                                f"Tagging [{_tag_idx+1}/{n_tags}]: - "
+                                f"Failed to tag document {_idx + 1}: {e}"
+                            ),
+                            channel="debug",
+                        )
+            elif tag_scope == TagScope.file.value:
+                for _idx, (file_id, file_docs) in enumerate(file_id_to_docs.items()):
+                    try:
+                        doc_content = "\n".join([doc.text for doc in file_docs])
+                        index_id = self.create_tag_content(
+                            tag_id, file_id, tag_prompt, doc_content
+                        )
+                        indexed_ids.append(index_id)
                         yield Document(
                             content=(
                                 f"Tagging [{_tag_idx+1}/{n_tags}] - "
-                                f"Processed [{_idx+1}/{n_docs} documents]"
+                                f"Processed [{_idx+1}/{n_files} files]"
+                            ),
+                            channel="debug",
+                        )
+                    except Exception as e:
+                        # failed
+                        self.chunk_tag_index_crud.update_status_by_id(
+                            index_id, new_status=TagProcessStatus.failed
+                        )
+                        print(e)
+                        yield Document(
+                            content=(
+                                f"Tagging [{_tag_idx+1}/{n_tags}]: - "
+                                f"Failed to tag document {_idx + 1}: {e}"
                             ),
                             channel="debug",
                         )
 
-                except Exception as e:
-                    # failed
-                    self.chunk_tag_index_crud.update_status_by_id(
-                        index_id, new_status=TagProcessStatus.failed
-                    )
-                    print(e)
-                    yield Document(
-                        content=(
-                            f"Tagging [{_tag_idx+1}/{n_tags}]: - "
-                            f"Failed to tag document {_idx + 1}: {e}"
-                        ),
-                        channel="debug",
-                    )
+        yield Document(
+            content="Completed.",
+            channel="debug",
+        )
 
         return indexed_ids
 
@@ -179,4 +240,6 @@ class MetaIndexPipeline(IndexDocumentPipeline):
 
         docs = self.DS.get(doc_ids)
         print(f"Got {len(docs)} docs in index.")
-        yield from self.process_docs(docs, clean_previous=True)
+        indexed_ids = yield from self.process_docs(docs, clean_previous=True)
+
+        return indexed_ids

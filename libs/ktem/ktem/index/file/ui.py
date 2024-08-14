@@ -247,29 +247,47 @@ class FileIndexPage(BasePage):
                     docs, key=lambda x: x.metadata.get("page_label", float("inf"))
                 )
                 # get tagging information from the database
-                doc_id_to_tags = chunk_tag_index_crud.query_by_chunk_ids(doc_ids)
+                doc_id_to_tags = chunk_tag_index_crud.query_by_chunk_ids(
+                    doc_ids + [file_id]
+                )
+
+                file_tags = doc_id_to_tags.get(file_id, {})
+                if file_tags:
+                    file_tag_info = {}
+                    for _, tag in file_tags.items():
+                        file_tag_info[tag["name"]] = tag["content"][:100]
+
+                    tag_info_str = html.escape(json.dumps(file_tag_info, indent=2))
+                    content = "<div><mark>" f"{tag_info_str}" "</mark></div>"
+                    chunks.append(
+                        Render.collapsible(
+                            header="<b>File tags</b>",
+                            content=content,
+                            open=True,
+                        )
+                    )
 
                 for idx, doc in enumerate(docs):
                     doc_id = doc.doc_id
-                    # create display for tagging information
-                    tags = doc_id_to_tags.get(doc_id, {})
-                    tag_info = {}
-                    for _, tag in tags.items():
-                        tag_info[tag["name"]] = tag["content"][:100]
+                    content = ""
 
+                    # get title and chunk type
                     title = html.escape(
                         f"{doc.text[:50]}..." if len(doc.text) > 50 else doc.text
                     )
                     doc_type = doc.metadata.get("type", "text")
-                    content = ""
 
-                    # if tagging information exist, append to start of content
-                    if tag_info:
-                        content += (
-                            "<div><mark>"
-                            f"{html.escape(json.dumps(tag_info))}"
-                            "</mark></div>"
-                        )
+                    # create display for tagging information
+                    tags = doc_id_to_tags.get(doc_id, {})
+                    if tags:
+                        tag_info = {}
+                        for _, tag in tags.items():
+                            tag_info[tag["name"]] = tag["content"][:100]
+
+                        # if tagging information exist, append to start of content
+                        if tag_info:
+                            tag_info_str = html.escape(json.dumps(tag_info, indent=2))
+                            content += "<div><mark>" f"{tag_info_str}" "</mark></div>"
 
                     if doc_type == "text":
                         content += html.escape(doc.text)

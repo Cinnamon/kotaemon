@@ -1,7 +1,9 @@
+# mypy: ignore-errors
+
 from collections import defaultdict
 from datetime import datetime
 
-from ktem.db.base_models import TagProcessStatus, TagType
+from ktem.db.base_models import BaseTag, TagProcessStatus, TagType
 from ktem.db.models import ChunkTagIndex, Tag
 from sqlmodel import Session, select
 
@@ -56,14 +58,12 @@ class TagCRUD:
 
             return tag.id
 
-    def query_by_id(self, tag_id: str) -> dict | None:
+    def query_by_id(self, tag_id: str) -> BaseTag | None:
         with Session(self._engine) as session:
             statement = select(Tag).where(Tag.id == tag_id)
 
             result = session.exec(statement).first()
-            if result:
-                return dict(result)
-        return
+            return result
 
     def query_by_ids(self, tag_ids: list[str]) -> list[dict]:
         with Session(self._engine) as session:
@@ -73,14 +73,12 @@ class TagCRUD:
             results = [dict(result) for result in results]
         return results
 
-    def query_by_name(self, tag_name: str) -> dict | None:
+    def query_by_name(self, tag_name: str) -> BaseTag | None:
         with Session(self._engine) as session:
             statement = select(Tag).where(Tag.name == tag_name)
 
             result = session.exec(statement).first()
-            if result:
-                return dict(result)
-        return
+            return result
 
     def delete_by_name(self, tag_name: str) -> bool:
         with Session(self._engine) as session:
@@ -99,6 +97,7 @@ class TagCRUD:
         name: str,
         prompt: str | None = None,
         config: str | None = None,
+        scope: str | None = None,
         type: str | None = None,
         valid_classes: str | None = None,
     ):
@@ -116,6 +115,9 @@ class TagCRUD:
 
                 if type is not None:
                     result.type = type
+
+                if scope is not None:
+                    result.scope = scope
 
                 if valid_classes is not None:
                     if result.type != TagType.classification.value:
@@ -152,9 +154,7 @@ class ChunkTagIndexCRUD:
             statement = select(ChunkTagIndex).where(ChunkTagIndex.id == record_id)
 
             result = session.exec(statement).first()
-            if result:
-                return dict(result)
-        return
+            return result
 
     def query_by_chunk_ids(self, chunk_ids: list[str]) -> dict[str, dict]:
         chunk_id_to_tags = defaultdict(dict)
