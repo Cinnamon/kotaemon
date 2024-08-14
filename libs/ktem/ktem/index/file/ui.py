@@ -265,9 +265,11 @@ class FileIndexPage(BasePage):
 
                     # if tagging information exist, append to start of content
                     if tag_info:
-                        content += "<div><mark>"
-                        f"{html.escape(json.dumps(tag_info))}"
-                        "</mark></div>"
+                        content += (
+                            "<div><mark>"
+                            f"{html.escape(json.dumps(tag_info))}"
+                            "</mark></div>"
+                        )
 
                     if doc_type == "text":
                         content += html.escape(doc.text)

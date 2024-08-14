@@ -129,8 +129,10 @@ class MetaIndexPipeline(IndexDocumentPipeline):
 
                     if (_idx + 1) % chunk_size == 0 or _idx == n_docs - 1:
                         yield Document(
-                            content=f"Tagging [{_tag_idx+1}/{n_tags}] - "
-                            f"Processed [{_idx+1}/{n_docs} documents]",
+                            content=(
+                                f"Tagging [{_tag_idx+1}/{n_tags}] - "
+                                f"Processed [{_idx+1}/{n_docs} documents]"
+                            ),
                             channel="debug",
                         )
 
@@ -141,8 +143,10 @@ class MetaIndexPipeline(IndexDocumentPipeline):
                     )
                     print(e)
                     yield Document(
-                        content=f"Tagging [{_tag_idx+1}/{n_tags}]: - "
-                        f"Failed to tag document {_idx + 1}: {e}",
+                        content=(
+                            f"Tagging [{_tag_idx+1}/{n_tags}]: - "
+                            f"Failed to tag document {_idx + 1}: {e}"
+                        ),
                         channel="debug",
                     )
 
