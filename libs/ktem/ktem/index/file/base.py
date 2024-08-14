@@ -150,3 +150,7 @@ class BaseFileIndexIndexing(BaseComponent):
             msg: the message to log
         """
         print(msg)
+
+    def rebuild_index(self):
+        """Rebuild the index"""
+        raise NotImplementedError

@@ -86,13 +86,15 @@ class VectorIndexing(BaseIndexing):
             self.doc_store.add(docs)
 
     def add_to_vectorstore(self, docs: list[Document]):
-        print(f"Getting embeddings for {len(docs)} nodes")
-        embeddings = self.embedding(docs)
-        print("Adding embeddings to vector store")
-        self.vector_store.add(
-            embeddings=embeddings,
-            ids=[t.doc_id for t in docs],
-        )
+        # in case we want to skip embedding
+        if self.vector_store:
+            print(f"Getting embeddings for {len(docs)} nodes")
+            embeddings = self.embedding(docs)
+            print("Adding embeddings to vector store")
+            self.vector_store.add(
+                embeddings=embeddings,
+                ids=[t.doc_id for t in docs],
+            )
 
     def run(self, text: str | list[str] | Document | list[Document]):
         input_: list[Document] = []
