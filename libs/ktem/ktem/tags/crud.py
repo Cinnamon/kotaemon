@@ -1,7 +1,7 @@
 import copy
 from datetime import datetime
 
-from sqlmodel import Session, select
+from sqlmodel import Session, select, and_
 
 from ktem.db.base_models import TagType, TagProcessStatus
 from ktem.db.models import Tag, ChunkTagIndex
@@ -22,7 +22,14 @@ class TagCRUD:
 
         return records
 
-    def create(self, name: str, prompt: str, config: str, type: str = "text", valid_classes: str = None) -> str:
+    def create(
+        self,
+        name: str,
+        prompt: str,
+        config: str,
+        type: str = "text",
+        valid_classes: str = None
+    ) -> str:
         print(
             f"On creating tag with "
             f"name: {name}, "
@@ -76,6 +83,42 @@ class TagCRUD:
 
         return
 
+    def update_by_name(
+        self,
+        name: str,
+        prompt: str | None = None,
+        config: str | None = None,
+        type: str | None = None,
+        valid_classes: str | None = None
+    ):
+        with Session(self._engine) as session:
+            statement = select(Tag).where(Tag.name == name)
+            result = session.exec(statement).first()
+
+            if result:
+                # Update the status and date_updated fields
+                if prompt is not None:
+                    result.prompt = prompt
+
+                if config is not None:
+                    result.config = config
+
+                if type is not None:
+                    result.type = type
+
+                if valid_classes is not None:
+                    if result.type != TagType.classification.value:
+                        result.meta = {}
+                    else:
+                        result.meta = {"valid_classes": valid_classes}
+
+                session.add(result)
+                session.commit()
+
+                return True
+
+        return False
+
 
 class ChunkTagIndexCRUD:
     def __init__(self, engine):
@@ -92,6 +135,23 @@ class ChunkTagIndexCRUD:
     def query_by_id(self, record_id: str) -> dict | None:
         with Session(self._engine) as session:
             statement = select(ChunkTagIndex).where(ChunkTagIndex.id == record_id)
+
+            result = session.exec(statement).first()
+            if result:
+                return dict(result)
+        return
+
+    def query_by_chunk_tag_id(self, chunk_id: str, tag_id: str) -> dict | None:
+        with Session(self._engine) as session:
+            statement = (
+                select(ChunkTagIndex)
+                .where(
+                    and_(
+                        ChunkTagIndex.chunk_id == chunk_id,
+                        ChunkTagIndex.tag_id == tag_id
+                    )
+                )
+            )
 
             result = session.exec(statement).first()
             if result:
@@ -120,6 +180,14 @@ class ChunkTagIndexCRUD:
               f"tag_id: {tag_id}, "
               f"chunk_id: {chunk_id}, "
               )
+
+        exist_record = self.query_by_chunk_tag_id(
+            chunk_id=chunk_id, tag_id=tag_id
+        )
+
+        if exist_record:
+            print("Index has been existed!")
+            return exist_record['id']
 
         default_status = TagProcessStatus.pending.value
 

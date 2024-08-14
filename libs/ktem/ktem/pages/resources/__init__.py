@@ -30,6 +30,7 @@ class ResourcesTab(BasePage):
             self.index_management = IndexManagement(self._app)
 
         with gr.Tab("Tag Management") as self.tag_management_tab:
+
             self.tag_management = TagManagement(self._app)
 
     def on_subscribe_public_events(self):

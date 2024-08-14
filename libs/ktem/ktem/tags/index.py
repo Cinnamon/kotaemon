@@ -9,13 +9,20 @@ from .pipelines import MetaIndexPipeline
 
 class MetaIndex(FileIndex):
     def _setup_resources(self):
+        super()._setup_resources()
+
         self._vs: BaseVectorStore = get_vectorstore(f"index_{self.id}")
         self._vs_tag_index: BaseVectorStore = get_vectorstore(f"index_{self.id}_tag")
 
-        self._resources = {
+        updated_resources = {
             "VectorStore": self._vs,
             "VectorStoreTagIndex": self._vs_tag_index,
         }
+
+        self._resources.update(updated_resources)
+
+    def get_user_settings(self):
+        return {}
 
     def _setup_retriever_cls(self):
         pass
@@ -31,14 +38,13 @@ class MetaIndex(FileIndex):
     def get_indexing_pipeline(
         self,
         user_id,
-        tag_id
     ) -> MetaIndexPipeline:
         """Define the interface of the indexing pipeline"""
         obj = self._indexing_pipeline_cls()
-        obj.VS = self._vs
-        obj.VS_tag_index = self._vs_tag_index
+        obj.VS = self._resources["VectorStore"]
+        obj.VS_tag_index = self._resources["VectorStoreTagIndex"]
         obj.user_id = user_id
-        obj.tag_id = tag_id
+        # obj.tag_id = tag_id
         obj.private = self.config.get("private", False)
         obj.embedding = embedding_models_manager.get_default()
 
