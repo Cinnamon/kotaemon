@@ -1,11 +1,10 @@
 import datetime
 import uuid
+from enum import Enum
 from typing import Optional
 from zoneinfo import ZoneInfo
 
-from enum import Enum
-
-from sqlalchemy import JSON, Column, Enum as SQLENum
+from sqlalchemy import JSON, Column
 from sqlmodel import Field, SQLModel
 from theflow.settings import settings as flowsettings
 
@@ -102,14 +101,26 @@ class BaseIssueReport(SQLModel):
 class TagType(str, Enum):
     text = "Text"
     classification = "Classification"
-    boolean = "Boolean"
+    boolean = "True/False"
 
     @staticmethod
     def get_types() -> list[str]:
         return [
             TagType.text.value,
             TagType.classification.value,
-            TagType.boolean.value
+            TagType.boolean.value,
+        ]
+
+
+class TagScope(str, Enum):
+    chunk = "Chunk"
+    file = "File"
+
+    @staticmethod
+    def get_types() -> list[str]:
+        return [
+            TagScope.chunk.value,
+            TagScope.file.value,
         ]
 
 
@@ -132,6 +143,7 @@ class BaseTag(SQLModel):
               In case meta['classes'] is the acceptable classes.
         meta: store additional information about the tag
     """
+
     __table_args__ = {"extend_existing": True}
 
     id: Optional[str] = Field(
@@ -142,7 +154,7 @@ class BaseTag(SQLModel):
     config: str = Field(default="")
     name: str = Field(unique=True)
     type: str
-
+    scope: str = Field(default=TagScope.chunk.value)
     meta: dict = Field(default={}, sa_column=Column(JSON))
 
 
@@ -157,7 +169,5 @@ class BaseChunkTagIndex(SQLModel):
     chunk_id: str
     content: str
 
-    date_updated: datetime.datetime = Field(
-        default_factory=datetime.datetime.utcnow
-    )
+    date_updated: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
     status: str
