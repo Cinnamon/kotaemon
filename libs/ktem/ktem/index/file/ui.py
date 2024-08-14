@@ -366,6 +366,20 @@ class FileIndexPage(BasePage):
                 zipMe.write(file, arcname=arcname.name)
         return gr.DownloadButton(label=DOWNLOAD_MESSAGE, value=f"{zip_file_path}.zip")
 
+    def broadcast(self, user_id):
+        from ktem.tags.crud import TagCRUD
+
+        tags = TagCRUD(engine).list_all()
+
+        print(f"Will broadcast to {len(tags)} tags")
+        meta_indexing_pipeline = self._index.get_meta_indexing_pipeline(user_id)
+
+        # Query all chunk_ids
+        meta_indexing_pipeline.run(
+            tag_prompts=[tag['prompt'] for tag in tags],
+            tag_ids=[tag['id'] for tag in tags]
+        )
+
     def on_register_events(self):
         """Register all events to the app"""
         onDeleted = (
@@ -444,6 +458,10 @@ class FileIndexPage(BasePage):
             ],
             outputs=[self.upload_result, self.upload_info],
             concurrency_limit=20,
+        ).then(
+            fn=self.broadcast,
+            inputs=[self._app.user_id],
+            outputs=[]
         )
 
         try:

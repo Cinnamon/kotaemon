@@ -11,9 +11,11 @@ from sqlalchemy.sql import func
 from theflow.settings import settings as flowsettings
 from theflow.utils.modules import import_dotted_string
 
+from ktem.tags.pipelines import MetaIndexPipeline
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
+from ...embeddings.manager import embedding_models_manager
 
 
 class FileIndex(BaseIndex):
@@ -384,6 +386,16 @@ class FileIndex(BaseIndex):
                 "info": "If private, files will not be accessible across users.",
             },
         }
+
+    def get_meta_indexing_pipeline(self, user_id) -> MetaIndexPipeline:
+        obj = MetaIndexPipeline()
+        obj.VS = self._vs
+        obj.VS_tag_index = get_vectorstore(f"index_{self.id}_tag")
+        obj.user_id = user_id
+        obj.private = self.config.get("private", False)
+        obj.embedding = embedding_models_manager.get_default()
+
+        return obj
 
     def get_indexing_pipeline(self, settings, user_id) -> BaseFileIndexIndexing:
         """Define the interface of the indexing pipeline"""
