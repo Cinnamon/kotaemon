@@ -117,7 +117,7 @@ class MetaIndexPipeline(IndexDocumentPipeline):
                     # main LLM call to populate tag content
                     tag_content: str = self.process_tag(tag_prompt, doc_content)
 
-                    # TODO: create additional vectorstore and 
+                    # TODO: create additional vectorstore and
                     # perform vector indexing for tag content
                     self.chunk_tag_index_crud.update_content_by_id(
                         index_id,

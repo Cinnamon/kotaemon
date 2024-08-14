@@ -1,4 +1,5 @@
 import html
+import json
 import os
 import shutil
 import tempfile
@@ -13,6 +14,7 @@ from gradio.data_classes import FileData
 from gradio.utils import NamedString
 from ktem.app import BasePage
 from ktem.db.engine import engine
+from ktem.tags.crud import ChunkTagIndexCRUD
 from ktem.utils.render import Render
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -225,6 +227,8 @@ class FileIndexPage(BasePage):
             )
 
     def file_selected(self, file_id):
+        chunk_tag_index_crud = ChunkTagIndexCRUD(engine)
+
         chunks = []
         if file_id is not None:
             # get the chunks
@@ -242,19 +246,35 @@ class FileIndexPage(BasePage):
                 docs = sorted(
                     docs, key=lambda x: x.metadata.get("page_label", float("inf"))
                 )
+                # get tagging information from the database
+                doc_id_to_tags = chunk_tag_index_crud.query_by_chunk_ids(doc_ids)
 
                 for idx, doc in enumerate(docs):
+                    doc_id = doc.doc_id
+                    # create display for tagging information
+                    tags = doc_id_to_tags.get(doc_id, {})
+                    tag_info = {}
+                    for _, tag in tags.items():
+                        tag_info[tag["name"]] = tag["content"][:100]
+
                     title = html.escape(
                         f"{doc.text[:50]}..." if len(doc.text) > 50 else doc.text
                     )
                     doc_type = doc.metadata.get("type", "text")
                     content = ""
+
+                    # if tagging information exist, append to start of content
+                    if tag_info:
+                        content += "<div><mark>"
+                        f"{html.escape(json.dumps(tag_info))}"
+                        "</mark></div>"
+
                     if doc_type == "text":
-                        content = html.escape(doc.text)
+                        content += html.escape(doc.text)
                     elif doc_type == "table":
-                        content = Render.table(doc.text)
+                        content += Render.table(doc.text)
                     elif doc_type == "image":
-                        content = Render.image(
+                        content += Render.image(
                             url=doc.metadata.get("image_origin", ""), text=doc.text
                         )
 
@@ -296,12 +316,12 @@ class FileIndexPage(BasePage):
             for each in index:
                 if each[0].relation_type == "vector":
                     vs_ids.append(each[0].target_id)
-                else:
+                elif each[0].relation_type == "document":
                     ds_ids.append(each[0].target_id)
                 session.delete(each[0])
             session.commit()
 
-        if vs_ids:
+        if vs_ids and self._index._vs:
             self._index._vs.delete(vs_ids)
         self._index._docstore.delete(ds_ids)
 
@@ -631,7 +651,7 @@ class FileIndexPage(BasePage):
                     debugs.append(response.text)
                 yield "\n".join(outputs), "\n".join(debugs)
         except StopIteration as e:
-            result, errors = e.value
+            result, errors, docs = e.value
         except Exception as e:
             debugs.append(f"Error: {e}")
             yield "\n".join(outputs), "\n".join(debugs)

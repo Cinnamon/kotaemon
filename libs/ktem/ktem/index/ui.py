@@ -7,6 +7,21 @@ from ktem.utils.file import YAMLNoDateSafeLoader
 from .manager import IndexManager
 
 
+# UGLY way to restart gradio server by updating atime
+def update_current_module_atime():
+    import os
+    import time
+
+    # Define the file path
+    file_path = __file__
+    print("Updating atime for", file_path)
+
+    # Get the current time
+    current_time = time.time()
+    # Set the modified time (and access time) to the current time
+    os.utime(file_path, (current_time, current_time))
+
+
 def format_description(cls):
     user_settings = cls.get_admin_settings()
     params_lines = ["| Name | Default | Description |", "| --- | --- | --- |"]
@@ -66,6 +81,15 @@ class IndexManagement(BasePage):
                                 )
                                 self.btn_delete_no = gr.Button("Cancel", min_width=10)
                             self.btn_close = gr.Button("Close", min_width=10)
+                            self.btn_rebuild = gr.Button("Rebuild Index", min_width=10)
+
+                        with gr.Row():
+                            self.rebuild_index_log = gr.TextArea(
+                                label="Indexing progress",
+                                visible=False,
+                                lines=8,
+                                max_lines=20,
+                            )
 
                     with gr.Column():
                         self.edit_spec_desc = gr.Markdown("# Spec description")
@@ -125,6 +149,8 @@ class IndexManagement(BasePage):
                 self.spec,
                 self.spec_desc,
             ],
+        ).success(
+            update_current_module_atime
         )
         self.index_list.select(
             self.select_index,
@@ -166,10 +192,8 @@ class IndexManagement(BasePage):
             inputs=[self.selected_index_id],
             outputs=[self.selected_index_id],
             show_progress="hidden",
-        ).then(
-            self.list_indices,
-            inputs=[],
-            outputs=[self.index_list],
+        ).then(self.list_indices, inputs=[], outputs=[self.index_list],).success(
+            update_current_module_atime
         )
         self.btn_delete_no.click(
             lambda: (
@@ -203,6 +227,18 @@ class IndexManagement(BasePage):
         self.btn_close.click(
             lambda: -1,
             outputs=[self.selected_index_id],
+        )
+        self.btn_rebuild.click(
+            lambda: gr.update(visible=True),
+            outputs=[self.rebuild_index_log],
+        ).then(
+            self.rebuild_index,
+            inputs=[
+                self.selected_index_id,
+                self._app.settings_state,
+                self._app.user_id,
+            ],
+            outputs=[self.rebuild_index_log],
         )
 
     def on_index_type_change(self, index_type: str):
@@ -312,3 +348,20 @@ class IndexManagement(BasePage):
             return selected_index_id
 
         return -1
+
+    def rebuild_index(self, selected_index_id: int, settings, user_id):
+        index = self.manager.info()[selected_index_id]
+        indexing_pipeline = index.get_indexing_pipeline(settings, user_id)
+        _iter = indexing_pipeline.rebuild_index()
+        debugs = []
+
+        try:
+            while True:
+                response = next(_iter)
+                if response is None:
+                    continue
+                if response.channel == "debug":
+                    debugs.append(response.text)
+                yield "\n".join(debugs)
+        except StopIteration:
+            pass
