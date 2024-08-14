@@ -123,8 +123,11 @@ class IndexManager:
             )
 
         try:
-            # clean up
-            index.on_delete()
+            try:
+                # clean up
+                index.on_delete()
+            except Exception as e:
+                print(f"Error while deleting index {index.name}: {e}")
 
             # remove from database
             with Session(engine) as sess:
