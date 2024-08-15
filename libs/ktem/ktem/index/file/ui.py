@@ -341,9 +341,8 @@ class FileIndexPage(BasePage):
                 session.delete(each[0])
             session.commit()
 
-        if vs_ids and self._index._vs:
-            self._index._vs.delete(vs_ids)
-        self._index._docstore.delete(ds_ids)
+        self._index.delete_from_docstore(ds_ids)
+        self._index.delete_from_vectorstore(vs_ids)
 
         gr.Info(f"File {file_name} has been deleted")
 
@@ -671,20 +670,20 @@ class FileIndexPage(BasePage):
                     debugs.append(response.text)
                 yield "\n".join(outputs), "\n".join(debugs)
         except StopIteration as e:
-            result, errors, docs = e.value
+            results, index_errors, docs = e.value
         except Exception as e:
             debugs.append(f"Error: {e}")
             yield "\n".join(outputs), "\n".join(debugs)
             return
 
-        n_successes = len([_ for _ in result if _])
+        n_successes = len([_ for _ in results if _])
         if n_successes:
             gr.Info(f"Successfully index {n_successes} files")
-        n_errors = len([_ for _ in errors if _])
+        n_errors = len([_ for _ in index_errors if _])
         if n_errors:
             gr.Warning(f"Have errors for {n_errors} files")
 
-        return result
+        return results
 
     def index_fn_with_default_loaders(
         self, files, reindex: bool, settings, user_id

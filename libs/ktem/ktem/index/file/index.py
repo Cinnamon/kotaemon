@@ -274,6 +274,14 @@ class FileIndex(BaseIndex):
 
         self._index_ui_cls = FileIndexPage
 
+    def delete_from_docstore(self, doc_ids: list[str]):
+        if self._docstore is not None:
+            self._docstore.delete(doc_ids)
+
+    def delete_from_vectorstore(self, vec_ids: list[str]):
+        if self._vs is not None:
+            self._vs.delete(vec_ids)
+
     def on_create(self):
         """Create the index for the first time
 
