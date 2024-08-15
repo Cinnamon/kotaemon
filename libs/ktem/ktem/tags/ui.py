@@ -2,7 +2,7 @@ import gradio as gr
 import pandas as pd
 from ktem.app import BasePage
 from ktem.db.base_models import BaseTag, TagScope, TagType
-from ktem.db.models import engine
+from ktem.db.models import Tag, engine
 
 from .crud import TagCRUD
 
@@ -126,9 +126,11 @@ class TagManagement(BasePage):
                     )
 
     def list_tag(self) -> pd.DataFrame:
-        tags: list[dict] = self._tag_crud.list_all()
+        tags: list[Tag] = self._tag_crud.list_all()
         if tags:
-            tag_df = pd.DataFrame.from_records(tags)[TAG_DISPLAY_COLUMNS]
+            tag_df = pd.DataFrame.from_records([dict(tag) for tag in tags])[
+                TAG_DISPLAY_COLUMNS
+            ]
         else:
             tag_df = pd.DataFrame(columns=TAG_DISPLAY_COLUMNS)
         return tag_df

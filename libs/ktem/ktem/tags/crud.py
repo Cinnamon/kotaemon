@@ -2,8 +2,9 @@
 
 from collections import defaultdict
 from datetime import datetime
+from functools import cached_property
 
-from ktem.db.base_models import BaseTag, TagProcessStatus, TagType
+from ktem.db.base_models import TagProcessStatus, TagScope, TagType
 from ktem.db.models import ChunkTagIndex, Tag
 from sqlmodel import Session, select
 
@@ -12,24 +13,20 @@ class TagCRUD:
     def __init__(self, engine):
         self._engine = engine
 
-    def list_all(self) -> list[dict]:
+    def list_all(self) -> list[Tag]:
         with Session(self._engine) as session:
             statement = select(Tag)
             results = session.exec(statement).all()
 
-        records: list[dict] = []
-        for result in results:
-            records += [dict(result)]
-
-        return records
+            return results
 
     def create(
         self,
         name: str,
         prompt: str,
         config: str,
-        type: str = "text",
-        scope: str = "chunk",
+        type: str = TagType.text.value,
+        scope: str = TagScope.chunk.value,
         valid_classes: str | None = None,
     ) -> str | None:
         meta = {}
@@ -58,22 +55,21 @@ class TagCRUD:
 
             return tag.id
 
-    def query_by_id(self, tag_id: str) -> BaseTag | None:
+    def query_by_id(self, tag_id: str) -> Tag | None:
         with Session(self._engine) as session:
             statement = select(Tag).where(Tag.id == tag_id)
 
             result = session.exec(statement).first()
             return result
 
-    def query_by_ids(self, tag_ids: list[str]) -> list[dict]:
+    def query_by_ids(self, tag_ids: list[str]) -> list[Tag] | None:
         with Session(self._engine) as session:
             statement = select(Tag).where(Tag.id.in_(tag_ids))
 
             results = session.exec(statement).all()
-            results = [dict(result) for result in results]
         return results
 
-    def query_by_name(self, tag_name: str) -> BaseTag | None:
+    def query_by_name(self, tag_name: str) -> Tag | None:
         with Session(self._engine) as session:
             statement = select(Tag).where(Tag.name == tag_name)
 
@@ -106,21 +102,13 @@ class TagCRUD:
             result = session.exec(statement).first()
 
             if result:
-                # Update the status and date_updated fields
-                if prompt is not None:
-                    result.prompt = prompt
-
-                if config is not None:
-                    result.config = config
-
-                if type is not None:
-                    result.type = type
-
-                if scope is not None:
-                    result.scope = scope
+                result.prompt = prompt or result.prompt
+                result.config = config or result.config
+                result.type = type or result.type
+                result.scope = scope or result.scope
 
                 if valid_classes is not None:
-                    if result.type != TagType.classification.value:
+                    if TagType(result.type) != TagType.classification:
                         result.meta = {}
                     else:
                         result.meta = {"valid_classes": valid_classes}
@@ -137,26 +125,25 @@ class ChunkTagIndexCRUD:
     def __init__(self, engine):
         self._engine = engine
 
-    @property
+    @cached_property
     def tag_crud(self) -> TagCRUD:
         return TagCRUD(self._engine)
 
-    def list_all(self) -> list[dict]:
+    def list_all(self) -> list[ChunkTagIndex]:
         with Session(self._engine) as session:
             statement = select(ChunkTagIndex)
             results = session.exec(statement).all()
 
-            results = [dict(result) for result in results]
         return results
 
-    def query_by_id(self, record_id: str) -> dict | None:
+    def query_by_id(self, record_id: str) -> ChunkTagIndex | None:
         with Session(self._engine) as session:
             statement = select(ChunkTagIndex).where(ChunkTagIndex.id == record_id)
 
             result = session.exec(statement).first()
             return result
 
-    def query_by_chunk_ids(self, chunk_ids: list[str]) -> dict[str, dict]:
+    def query_by_chunk_ids(self, chunk_ids: list[str]) -> dict[str, dict[str, str]]:
         chunk_id_to_tags = defaultdict(dict)
         tag_ids = set()
 
@@ -175,8 +162,8 @@ class ChunkTagIndexCRUD:
                     "status": result.status,
                 }
 
-        tags = self.tag_crud.query_by_ids(list(tag_ids))
-        tag_id_to_tag = {tag["id"]: tag["name"] for tag in tags}
+        tags: list[Tag] = self.tag_crud.query_by_ids(list(tag_ids))
+        tag_id_to_tag: dict[str, str] = {tag.id: tag.name for tag in tags}
         for chunk_id, tags_dict in chunk_id_to_tags.items():
             for tag_id, tag_dict in tags_dict.items():
                 tag_dict["name"] = tag_id_to_tag[tag_id]
