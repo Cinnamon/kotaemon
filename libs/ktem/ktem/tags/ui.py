@@ -144,7 +144,7 @@ class TagManagement(BasePage):
     ) -> pd.DataFrame:
         try:
             self._tag_crud.create(name, prompt, config, type, scope, valid_classes)
-            gr.Info(f'Create index "{name}" successfully')
+            gr.Info(f'Create tag "{name}" successfully')
         except Exception as e:
             raise gr.Error(f"Failed to create tag {name}: {e}")
 
