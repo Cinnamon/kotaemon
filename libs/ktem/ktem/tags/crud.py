@@ -1,12 +1,12 @@
 # mypy: ignore-errors
-
 from collections import defaultdict
 from datetime import datetime
 from functools import cached_property
+from typing import Any
 
 from ktem.db.base_models import TagProcessStatus, TagScope, TagType
 from ktem.db.models import ChunkTagIndex, Tag
-from sqlmodel import Session, select
+from sqlmodel import Session, select, update
 
 
 class TagCRUD:
@@ -25,8 +25,8 @@ class TagCRUD:
         name: str,
         prompt: str,
         config: str,
-        type: str = TagType.text.value,
-        scope: str = TagScope.chunk.value,
+        type: str | TagType = TagType.text,
+        scope: str | TagType = TagScope.chunk,
         valid_classes: str | None = None,
     ) -> str | None:
         meta = {}
@@ -46,8 +46,8 @@ class TagCRUD:
                 name=name,
                 prompt=prompt,
                 config=config,
-                type=type,
-                scope=scope,
+                type=type.value if isinstance(type, TagType) else type,
+                scope=scope.value if isinstance(type, TagScope) else scope,
                 meta=meta,
             )
             session.add(tag)
@@ -85,6 +85,8 @@ class TagCRUD:
                 session.delete(result)
                 session.commit()
                 return True
+            else:
+                raise Exception(f"Record with name-{tag_name} does not exist!")
 
         return False
 
@@ -97,26 +99,28 @@ class TagCRUD:
         type: str | None = None,
         valid_classes: str | None = None,
     ):
+        fields_to_update = {
+            "prompt": prompt,
+            "config": config,
+            "type": type,
+            "scope": scope,
+        }
+
+        # Add `meta` update based on valid_classes
+        if valid_classes is not None:
+            if type == TagType.classification.value:
+                fields_to_update["meta"] = {"valid_classes": valid_classes}
+            else:
+                fields_to_update["meta"] = {}
+
+        # Ensure that only non-None values are updated
+        fields_to_update = {k: v for k, v in fields_to_update.items() if v is not None}
+
+        stmt = update(Tag).where(Tag.name == name).values(**fields_to_update)
+
         with Session(self._engine) as session:
-            statement = select(Tag).where(Tag.name == name)
-            result = session.exec(statement).first()
-
-            if result:
-                result.prompt = prompt or result.prompt
-                result.config = config or result.config
-                result.type = type or result.type
-                result.scope = scope or result.scope
-
-                if valid_classes is not None:
-                    if TagType(result.type) != TagType.classification:
-                        result.meta = {}
-                    else:
-                        result.meta = {"valid_classes": valid_classes}
-
-                session.add(result)
-                session.commit()
-
-                return True
+            session.execute(stmt)
+            session.commit()
 
         return False
 
@@ -143,7 +147,7 @@ class ChunkTagIndexCRUD:
             result = session.exec(statement).first()
             return result
 
-    def query_by_chunk_ids(self, chunk_ids: list[str]) -> dict[str, dict[str, str]]:
+    def query_by_chunk_ids(self, chunk_ids: list[str]) -> dict[str, dict[str, Any]]:
         chunk_id_to_tags = defaultdict(dict)
         tag_ids = set()
 
@@ -184,6 +188,8 @@ class ChunkTagIndexCRUD:
                 session.commit()
 
                 return True
+            else:
+                raise Exception(f"Record with id-{record_id} does not exist!")
 
         return False
 
@@ -201,6 +207,8 @@ class ChunkTagIndexCRUD:
                 session.commit()
 
                 return True
+            else:
+                raise Exception(f"Record with id-{record_id} does not exist!")
 
         return False
 
