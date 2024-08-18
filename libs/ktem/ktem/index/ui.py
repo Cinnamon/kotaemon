@@ -81,7 +81,7 @@ class IndexManagement(BasePage):
                                 )
                                 self.btn_delete_no = gr.Button("Cancel", min_width=10)
                             self.btn_close = gr.Button("Close", min_width=10)
-                            
+
                         with gr.Row():
                             self.btn_rebuild = gr.Button("Rebuild Index", min_width=10)
 
