@@ -27,9 +27,9 @@ class KnowledgeNetworkFileIndex(FileIndex):
 
         obj = super().get_indexing_pipeline(settings, user_id)
         # disable vectorstore for this kind of Index
-        # also set the collect_name for API call
+        # also set the collection_name for API call
         obj.VS = None
-        obj.collect_name = f"kh_index_{self.id}"
+        obj.collection_name = f"kh_index_{self.id}"
 
         return obj
 
@@ -40,8 +40,8 @@ class KnowledgeNetworkFileIndex(FileIndex):
 
         for obj in retrievers:
             # disable vectorstore for this kind of Index
-            # also set the collect_name for API call
+            # also set the collection_name for API call
             obj.VS = None
-            obj.collect_name = f"kh_index_{self.id}"
+            obj.collection_name = f"kh_index_{self.id}"
 
         return retrievers

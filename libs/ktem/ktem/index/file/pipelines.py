@@ -305,6 +305,7 @@ class IndexPipeline(BaseComponent):
     DS = Param(help="The DocStore")
     FSPath = Param(help="The file storage path")
     user_id = Param(help="The user id")
+    collection_name: str = "default"
     private: bool = False
     run_embedding_in_thread: bool = False
     embedding: BaseEmbeddings
@@ -565,6 +566,7 @@ class IndexPipeline(BaseComponent):
         # extract the file
         extra_info = default_file_metadata_func(str(file_path))
         extra_info["file_id"] = file_id
+        extra_info["collection_name"] = self.collection_name
 
         yield Document(f" => Converting {file_path.name} to text", channel="debug")
         docs = self.loader.load_data(file_path, extra_info=extra_info)

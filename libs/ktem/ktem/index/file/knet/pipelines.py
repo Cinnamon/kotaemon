@@ -36,6 +36,8 @@ class KnetIndexingPipeline(IndexDocumentPipeline):
         """Simply disable the splitter (chunking) for this pipeline"""
         pipeline = super().route(file_path)
         pipeline.splitter = None
+        # assign IndexPipeline collection name to parse to loader
+        pipeline.collection_name = self.collection_name
 
         return pipeline
 
