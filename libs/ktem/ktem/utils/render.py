@@ -144,7 +144,7 @@ class Render:
             vectorstore_score = ""
             text_search_str = " (full-text search)<br>"
         else:
-            vectorstore_score = round(doc.score, 2)
+            vectorstore_score = str(round(doc.score, 2))
             text_search_str = "<br>"
 
         llm_reranking_score = (

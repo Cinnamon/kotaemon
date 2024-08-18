@@ -145,6 +145,7 @@ class ChatPage(BasePage):
             ) as self.info_column:
                 with gr.Accordion(label="Information panel", open=True):
                     self.modal = gr.HTML("<div id='pdf-modal'></div>")
+                    self.plot_panel = gr.Plot(visible=False)
                     self.info_panel = gr.HTML(elem_id="html-info-panel")
 
     def on_register_events(self):
@@ -185,6 +186,7 @@ class ChatPage(BasePage):
             outputs=[
                 self.chat_panel.chatbot,
                 self.info_panel,
+                self.plot_panel,
                 self.chat_state,
             ],
             concurrency_limit=20,
@@ -255,6 +257,7 @@ class ChatPage(BasePage):
             outputs=[
                 self.chat_panel.chatbot,
                 self.info_panel,
+                self.plot_panel,
                 self.chat_state,
             ],
             concurrency_limit=20,
@@ -463,6 +466,11 @@ class ChatPage(BasePage):
             inputs=[self.model_types],
             outputs=[self._llm_type],
         )
+        self.chat_control.conversation_id.change(
+            lambda: gr.update(visible=False),
+            outputs=self.plot_panel,
+        )
+
         if getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False):
             self.chat_suggestion.example.select(
                 self.chat_suggestion.select_example,
@@ -719,12 +727,12 @@ class ChatPage(BasePage):
         print("Reasoning state", reasoning_state)
         pipeline.set_output_queue(queue)
 
-        text, refs = "", ""
+        text, refs, plot = "", "", gr.update(visible=False)
         msg_placeholder = getattr(
             flowsettings, "KH_CHAT_MSG_PLACEHOLDER", "Thinking ..."
         )
         print(msg_placeholder)
-        yield chat_history + [(chat_input, text or msg_placeholder)], refs, state
+        yield chat_history + [(chat_input, text or msg_placeholder)], refs, plot, state
 
         len_ref = -1  # for logging purpose
 
@@ -748,18 +756,26 @@ class ChatPage(BasePage):
                 else:
                     refs += response.content
 
+            if response.channel == "plot":
+                if response.content is None:
+                    plot = gr.update(visible=False)
+                else:
+                    plot = gr.update(visible=True, value=response.content)
+
             if len(refs) > len_ref:
                 len_ref = len(refs)
 
             state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
-            yield chat_history + [(chat_input, text or msg_placeholder)], refs, state
+            yield chat_history + [
+                (chat_input, text or msg_placeholder)
+            ], refs, plot, state
 
         if not text:
             empty_msg = getattr(
                 flowsettings, "KH_CHAT_EMPTY_MSG_PLACEHOLDER", "(Sorry, I don't know)"
             )
             print(f"Generate nothing: {empty_msg}")
-            yield chat_history + [(chat_input, text or empty_msg)], refs, state
+            yield chat_history + [(chat_input, text or empty_msg)], refs, plot, state
 
     def regen_fn(
         self,
@@ -779,7 +795,7 @@ class ChatPage(BasePage):
             return
 
         state["app"]["regen"] = True
-        for chat, refs, state in self.chat_fn(
+        for chat, refs, plot, state in self.chat_fn(
             conversation_id,
             chat_history,
             settings,
@@ -789,7 +805,7 @@ class ChatPage(BasePage):
             user_id,
             *selecteds,
         ):
-            yield chat, refs, state
+            yield chat, refs, plot, state
 
     def check_and_suggest_name_conv(self, chat_history):
         suggest_pipeline = SuggestConvNamePipeline()

@@ -414,8 +414,6 @@ class FileIndex(BaseIndex):
         for key, value in settings.items():
             if key.startswith(prefix):
                 stripped_settings[key[len(prefix) :]] = value
-            else:
-                stripped_settings[key] = value
 
         # transform selected id
         selected_ids: Optional[list[str]] = self._selector_ui.get_selected_ids(selected)

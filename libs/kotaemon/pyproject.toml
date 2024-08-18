@@ -37,12 +37,11 @@ dependencies = [
     "tenacity>=8.2.3,<8.3",
     "python-dotenv>=1.0.1,<1.1",
     "chromadb>=0.4.21,<0.5",
-    "unstructured==0.13.4",
     "pypdf>=4.2.0,<4.3",
     "html2text==2024.2.26",
-    "fastembed==0.2.6",
-    "llama-cpp-python>=0.2.72,<0.3",
     "azure-ai-documentintelligence",
+    "plotly",
+    "tabulate",
     "cohere>=5.3.2,<5.4",
 ]
 readme = "README.md"
@@ -63,8 +62,6 @@ adv = [
     "duckduckgo-search>=6.1.0,<6.2",
     "googlesearch-python>=1.2.4,<1.3",
     "python-docx>=1.1.0,<1.2",
-    "unstructured[pdf]==0.13.4",
-    "sentence_transformers==2.7.0",
     "elasticsearch>=8.13.0,<8.14",
     "beautifulsoup4>=4.12.3,<4.13",
 ]
