@@ -19,6 +19,19 @@ class KnetIndexingPipeline(IndexDocumentPipeline):
     # collection name for external indexing call
     collection_name: str = "default"
 
+    @classmethod
+    def get_user_settings(cls):
+        return {
+            "reader_mode": {
+                "name": "Index parser",
+                "value": "knowledge_network",
+                "choices": [
+                    ("Default (KN)", "knowledge_network"),
+                ],
+                "component": "dropdown",
+            },
+        }
+
     def route(self, file_path: Path) -> IndexPipeline:
         """Simply disable the splitter (chunking) for this pipeline"""
         pipeline = super().route(file_path)
