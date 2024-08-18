@@ -74,7 +74,9 @@ class BaseFileIndexIndexing(BaseComponent):
 
     def stream(
         self, file_paths: str | Path | list[str | Path], *args, **kwargs
-    ) -> Generator[Document, None, tuple[list[str | None], list[str | None]]]:
+    ) -> Generator[
+        Document, None, tuple[list[str | None], list[str | None], list[Document]]
+    ]:
         """Stream the indexing pipeline
 
         Args:
@@ -150,3 +152,7 @@ class BaseFileIndexIndexing(BaseComponent):
             msg: the message to log
         """
         print(msg)
+
+    def rebuild_index(self):
+        """Rebuild the index"""
+        raise NotImplementedError

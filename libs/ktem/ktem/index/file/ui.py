@@ -296,7 +296,7 @@ class FileIndexPage(BasePage):
             for each in index:
                 if each[0].relation_type == "vector":
                     vs_ids.append(each[0].target_id)
-                else:
+                elif each[0].relation_type == "document":
                     ds_ids.append(each[0].target_id)
                 session.delete(each[0])
             session.commit()
@@ -631,7 +631,7 @@ class FileIndexPage(BasePage):
                     debugs.append(response.text)
                 yield "\n".join(outputs), "\n".join(debugs)
         except StopIteration as e:
-            result, errors = e.value
+            result, errors, docs = e.value
         except Exception as e:
             debugs.append(f"Error: {e}")
             yield "\n".join(outputs), "\n".join(debugs)

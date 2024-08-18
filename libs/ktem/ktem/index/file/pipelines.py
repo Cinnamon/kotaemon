@@ -296,7 +296,7 @@ class IndexPipeline(BaseComponent):
     """Index a single file"""
 
     loader: BaseReader
-    splitter: BaseSplitter
+    splitter: BaseSplitter | None
     chunk_batch_size: int = 200
 
     Source = Param(help="The SQLAlchemy Source table")
@@ -335,7 +335,10 @@ class IndexPipeline(BaseComponent):
             doc.metadata["page_label"]: doc.doc_id for doc in thumbnail_docs
         }
 
-        all_chunks = self.splitter(text_docs)
+        if self.splitter:
+            all_chunks = self.splitter(text_docs)
+        else:
+            all_chunks = text_docs
 
         # add the thumbnails doc_id to the chunks
         for chunk in all_chunks:
@@ -366,10 +369,11 @@ class IndexPipeline(BaseComponent):
                 chunks = to_index_chunks[start_idx : start_idx + chunk_size]
                 self.handle_chunks_vectorstore(chunks, file_id)
                 n_chunks += len(chunks)
-                yield Document(
-                    f" => [{file_name}] Created embedding for {n_chunks} chunks",
-                    channel="debug",
-                )
+                if self.VS:
+                    yield Document(
+                        f" => [{file_name}] Created embedding for {n_chunks} chunks",
+                        channel="debug",
+                    )
 
         # run vector indexing in thread if specified
         if self.run_embedding_in_thread:
@@ -399,13 +403,6 @@ class IndexPipeline(BaseComponent):
                         relation_type="document",
                     )
                 )
-                nodes.append(
-                    self.Index(
-                        source_id=file_id,
-                        target_id=chunk.doc_id,
-                        relation_type="vector",
-                    )
-                )
             session.add_all(nodes)
             session.commit()
 
@@ -415,7 +412,20 @@ class IndexPipeline(BaseComponent):
         self.vector_indexing.add_to_vectorstore(chunks)
         self.vector_indexing.write_chunk_to_file(chunks)
 
-        print("Finished embeddings for {} chunks".format(len(chunks)))
+        if self.VS:
+            # record in the index
+            with Session(engine) as session:
+                nodes = []
+                for chunk in chunks:
+                    nodes.append(
+                        self.Index(
+                            source_id=file_id,
+                            target_id=chunk.doc_id,
+                            relation_type="vector",
+                        )
+                    )
+                session.add_all(nodes)
+                session.commit()
 
     def get_id_if_exists(self, file_path: Path) -> Optional[str]:
         """Check if the file is already indexed
@@ -516,49 +526,24 @@ class IndexPipeline(BaseComponent):
             for each in index:
                 if each[0].relation_type == "vector":
                     vs_ids.append(each[0].target_id)
-                else:
+                elif each[0].relation_type == "document":
                     ds_ids.append(each[0].target_id)
                 session.delete(each[0])
             session.commit()
 
-        if vs_ids:
+        if vs_ids and self.VS:
             self.VS.delete(vs_ids)
         if ds_ids:
             self.DS.delete(ds_ids)
 
-    def run(self, file_path: str | Path, reindex: bool, **kwargs) -> str:
-        """Index the file and return the file id"""
-        # check for duplication
-        file_path = Path(file_path).resolve()
-        file_id = self.get_id_if_exists(file_path)
-        if file_id is not None:
-            if not reindex:
-                raise ValueError(
-                    f"File {file_path.name} already indexed. Please rerun with "
-                    "reindex=True to force reindexing."
-                )
-            else:
-                # remove the existing records
-                self.delete_file(file_id)
-                file_id = self.store_file(file_path)
-        else:
-            # add record to db
-            file_id = self.store_file(file_path)
-
-        # extract the file
-        extra_info = default_file_metadata_func(str(file_path))
-        extra_info["file_id"] = file_id
-
-        docs = self.loader.load_data(file_path, extra_info=extra_info)
-        for _ in self.handle_docs(docs, file_id, file_path.name):
-            continue
-        self.finish(file_id, file_path)
-
-        return file_id
+    def run(
+        self, file_path: str | Path, reindex: bool, **kwargs
+    ) -> tuple[str, list[Document]]:
+        raise NotImplementedError
 
     def stream(
         self, file_path: str | Path, reindex: bool, **kwargs
-    ) -> Generator[Document, None, str]:
+    ) -> Generator[Document, None, tuple[str, list[Document]]]:
         # check for duplication
         file_path = Path(file_path).resolve()
         file_id = self.get_id_if_exists(file_path)
@@ -589,7 +574,7 @@ class IndexPipeline(BaseComponent):
         self.finish(file_id, file_path)
 
         yield Document(f" => Finished indexing {file_path.name}", channel="debug")
-        return file_id
+        return file_id, docs
 
 
 class IndexDocumentPipeline(BaseFileIndexIndexing):
@@ -658,38 +643,23 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         return pipeline
 
     def run(
-        self, file_paths: str | Path | list[str | Path], reindex: bool = False, **kwargs
+        self, file_paths: str | Path | list[str | Path], *args, **kwargs
     ) -> tuple[list[str | None], list[str | None]]:
-        """Return a list of indexed file ids, and a list of errors"""
-        if not isinstance(file_paths, list):
-            file_paths = [file_paths]
-
-        file_ids: list[str | None] = []
-        errors: list[str | None] = []
-        for file_path in file_paths:
-            file_path = Path(file_path)
-
-            try:
-                pipeline = self.route(file_path)
-                file_id = pipeline.run(file_path, reindex=reindex, **kwargs)
-                file_ids.append(file_id)
-                errors.append(None)
-            except Exception as e:
-                logger.error(e)
-                file_ids.append(None)
-                errors.append(str(e))
-
-        return file_ids, errors
+        raise NotImplementedError
 
     def stream(
         self, file_paths: str | Path | list[str | Path], reindex: bool = False, **kwargs
-    ) -> Generator[Document, None, tuple[list[str | None], list[str | None]]]:
+    ) -> Generator[
+        Document, None, tuple[list[str | None], list[str | None], list[Document]]
+    ]:
         """Return a list of indexed file ids, and a list of errors"""
         if not isinstance(file_paths, list):
             file_paths = [file_paths]
 
         file_ids: list[str | None] = []
         errors: list[str | None] = []
+        all_docs = []
+
         n_files = len(file_paths)
         for idx, file_path in enumerate(file_paths):
             file_path = Path(file_path)
@@ -700,9 +670,10 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
 
             try:
                 pipeline = self.route(file_path)
-                file_id = yield from pipeline.stream(
+                file_id, docs = yield from pipeline.stream(
                     file_path, reindex=reindex, **kwargs
                 )
+                all_docs.extend(docs)
                 file_ids.append(file_id)
                 errors.append(None)
                 yield Document(
@@ -722,4 +693,4 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                     channel="index",
                 )
 
-        return file_ids, errors
+        return file_ids, errors, all_docs
