@@ -32,11 +32,10 @@ from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import ChatLLM, PromptTemplate
 from kotaemon.loaders.utils.gpt4v import generate_gpt4v, stream_gpt4v
 
+from ..utils import SUPPORTED_LANGUAGE_MAP
 from .base import BaseReasoning
 
 logger = logging.getLogger(__name__)
-
-SUPPORTED_LANGUAGE_MAP = {"en": "English", "ja": "Japanese", "vi": "Vietnamese"}
 
 EVIDENCE_MODE_TEXT = 0
 EVIDENCE_MODE_TABLE = 1

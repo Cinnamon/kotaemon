@@ -20,10 +20,10 @@ from kotaemon.agents import (
 from kotaemon.base import BaseComponent, Document, HumanMessage, Node, SystemMessage
 from kotaemon.llms import ChatLLM, PromptTemplate
 
+from ..utils import SUPPORTED_LANGUAGE_MAP
+
 logger = logging.getLogger(__name__)
 
-
-SUPPORTED_LANGUAGE_MAP = {"en": "English", "ja": "Japanese", "vi": "Vietnamese"}
 
 DEFAULT_PLANNER_PROMPT = (
     "You are an AI agent who makes step-by-step plans to solve a problem under the "

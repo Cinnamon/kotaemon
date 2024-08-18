@@ -19,10 +19,9 @@ from kotaemon.agents import (
 from kotaemon.base import BaseComponent, Document, HumanMessage, Node, SystemMessage
 from kotaemon.llms import ChatLLM, PromptTemplate
 
+from ..utils import SUPPORTED_LANGUAGE_MAP
+
 logger = logging.getLogger(__name__)
-
-
-SUPPORTED_LANGUAGE_MAP = {"en": "English", "ja": "Japanese", "vi": "Vietnamese"}
 
 
 class DocSearchArgs(BaseModel):
