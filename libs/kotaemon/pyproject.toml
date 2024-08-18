@@ -43,6 +43,7 @@ dependencies = [
     "azure-ai-documentintelligence",
     "plotly",
     "tabulate",
+    "fast_langdetect",
     "cohere>=5.3.2,<5.4",
 ]
 readme = "README.md"
