@@ -676,10 +676,10 @@ class FileIndexPage(BasePage):
             yield "\n".join(outputs), "\n".join(debugs)
             return
 
-        n_successes = len([_ for _ in results if _])
+        n_successes = len(list(map(bool, results)))
         if n_successes:
             gr.Info(f"Successfully index {n_successes} files")
-        n_errors = len([_ for _ in index_errors if _])
+        n_errors = len(list(map(bool, index_errors)))
         if n_errors:
             gr.Warning(f"Have errors for {n_errors} files")
 

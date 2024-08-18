@@ -39,11 +39,13 @@ class MetaIndexPipeline(IndexDocumentPipeline):
     def resolve_tag_names(cls, tag_str: str) -> list[str]:
         tag_str = tag_str.strip()
         tags = []
-        if tag_str != "":
-            if "," in tag_str:
-                tags = [tag.strip() for tag in tag_str.split(",")]
-            else:
-                tags = [tag_str]
+        if tag_str.strip() == "":
+            return []
+
+        if "," in tag_str:
+            tags = [tag.strip() for tag in tag_str.split(",")]
+        else:
+            tags = [tag_str]
 
         return tags
 

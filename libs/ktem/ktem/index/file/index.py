@@ -120,13 +120,13 @@ class FileIndex(BaseIndex):
             },
         )
 
-        self._vs: BaseVectorStore = get_vectorstore(f"index_{self.id}")
+        self._vectorstore: BaseVectorStore = get_vectorstore(f"index_{self.id}")
         self._docstore: BaseDocumentStore = get_docstore(f"index_{self.id}")
         self._fs_path = filestorage_path / f"index_{self.id}"
         self._resources = {
             "Source": Source,
             "Index": Index,
-            "VectorStore": self._vs,
+            "VectorStore": self._vectorstore,
             "DocStore": self._docstore,
             "FileStoragePath": self._fs_path,
         }
@@ -279,8 +279,8 @@ class FileIndex(BaseIndex):
             self._docstore.delete(doc_ids)
 
     def delete_from_vectorstore(self, vec_ids: list[str]):
-        if self._vs is not None:
-            self._vs.delete(vec_ids)
+        if self._vectorstore is not None:
+            self._vectorstore.delete(vec_ids)
 
     def on_create(self):
         """Create the index for the first time
@@ -314,7 +314,7 @@ class FileIndex(BaseIndex):
         self._setup_resources()
         self._resources["Source"].__table__.drop(engine)  # type: ignore
         self._resources["Index"].__table__.drop(engine)  # type: ignore
-        self._vs.drop()
+        self._vectorstore.drop()
         self._docstore.drop()
         shutil.rmtree(self._fs_path)
 
@@ -405,7 +405,7 @@ class FileIndex(BaseIndex):
         obj = self._indexing_pipeline_cls.get_pipeline(stripped_settings, self.config)
         obj.Source = self._resources["Source"]
         obj.Index = self._resources["Index"]
-        obj.VS = self._vs
+        obj.VS = self._vectorstore
         obj.DS = self._docstore
         obj.FSPath = self._fs_path
         obj.user_id = user_id
@@ -433,7 +433,7 @@ class FileIndex(BaseIndex):
                 continue
             obj.Source = self._resources["Source"]
             obj.Index = self._resources["Index"]
-            obj.VS = self._vs
+            obj.VS = self._vectorstore
             obj.DS = self._docstore
             obj.FSPath = self._fs_path
             obj.user_id = user_id
