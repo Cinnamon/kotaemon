@@ -254,35 +254,56 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
         )
         return context_builder
 
-    def format_context_records(self, context_records):
+    def _to_document(self, header: str, context_text: str) -> RetrievedDocument:
+        return (
+            RetrievedDocument(
+                text=context_text,
+                metadata={
+                    "file_name": header,
+                    "type": "table",
+                    "llm_trulens_score": 1.0,
+                },
+                score=1.0,
+            ),
+        )
+
+    def format_context_records(self, context_records) -> list[RetrievedDocument]:
         entities = context_records.get("entities", [])
         relationships = context_records.get("relationships", [])
         reports = context_records.get("reports", [])
         sources = context_records.get("sources", [])
 
+        docs = []
+
         context: str = ""
 
-        context += "<h4>Entities</h4>\n"
-        context += entities[["entity", "description"]].to_markdown(index=False)
+        header = "<h4>Entities</h4>\n"
+        context = entities[["entity", "description"]].to_markdown(index=False)
+        docs.append(self._to_document(header, context))
 
-        context += "\n<h4>Relationships</h4>\n"
-        context += relationships[["source", "target", "description"]].to_markdown(
+        header = "\n<h4>Relationships</h4>\n"
+        context = relationships[["source", "target", "description"]].to_markdown(
             index=False
         )
+        docs.append(self._to_document(header, context))
 
-        context += "\n<h4>Reports</h4>\n"
+        header = "\n<h4>Reports</h4>\n"
+        context = ""
         for idx, row in reports.iterrows():
             title, content = row["title"], row["content"]
             context += f"\n\n<h5>Report <b>{title}</b></h5>\n"
             context += content
+        docs.append(self._to_document(header, context))
 
-        context += "\n<h4>Sources</h4>\n"
+        header = "\n<h4>Sources</h4>\n"
+        context = ""
         for idx, row in sources.iterrows():
             title, content = row["id"], row["text"]
             context += f"\n\n<h5>Source <b>#{title}</b></h5>\n"
             context += content
+        docs.append(self._to_document(header, context))
 
-        return context
+        return docs
 
     def plot_graph(self, context_records):
         relationships = context_records.get("relationships", [])
@@ -323,20 +344,10 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             conversation_history=None,
             **local_context_params,
         )
-        context_text = self.format_context_records(context_records)
+        documents = self.format_context_records(context_records)
         plot = self.plot_graph(context_records)
 
-        return [
-            RetrievedDocument(
-                text=context_text,
-                metadata={
-                    "file_name": "GraphRAG",
-                    "type": "table",
-                    "data": context_records,
-                    "llm_trulens_score": 1.0,
-                },
-                score=1.0,
-            ),
+        return documents + [
             RetrievedDocument(
                 text="",
                 metadata={
