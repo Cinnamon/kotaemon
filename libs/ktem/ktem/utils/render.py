@@ -29,7 +29,7 @@ def get_header(doc: RetrievedDocument) -> str:
     if "page_label" in doc.metadata:
         header += f" [Page {doc.metadata['page_label']}]"
 
-    header += f" {doc.metadata.get('file_name', '<Unknown>')}"
+    header += f" {doc.metadata.get('file_name', '<evidence>')}"
     return header.strip()
 
 

@@ -38,10 +38,12 @@ dependencies = [
     "python-dotenv>=1.0.1,<1.1",
     "chromadb>=0.4.21,<0.5",
     "pypdf>=4.2.0,<4.3",
+    "PyMuPDF>=1.23",
     "html2text==2024.2.26",
     "azure-ai-documentintelligence",
     "plotly",
     "tabulate",
+    "fast_langdetect",
     "cohere>=5.3.2,<5.4",
 ]
 readme = "README.md"
