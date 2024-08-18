@@ -4,6 +4,7 @@ from typing import Optional
 import gradio as gr
 import pluggy
 from ktem import extension_protocol
+from ktem.assets import PDFJS_PREBUILT_DIR
 from ktem.components import reasonings
 from ktem.exceptions import HookAlreadyDeclared, HookNotDeclared
 from ktem.index import IndexManager
@@ -46,6 +47,12 @@ class BaseApp:
         with (dir_assets / "js" / "main.js").open() as fi:
             self._js = fi.read()
             self._js = self._js.replace("KH_APP_VERSION", self.app_version)
+        with (dir_assets / "js" / "pdf_viewer.js").open() as fi:
+            self._pdf_view_js = fi.read()
+            self._pdf_view_js = self._pdf_view_js.replace(
+                "PDFJS_PREBUILT_DIR", str(PDFJS_PREBUILT_DIR)
+            )
+
         self._favicon = str(dir_assets / "img" / "favicon.svg")
 
         self.default_settings = SettingGroup(
@@ -158,12 +165,17 @@ class BaseApp:
         """Called when the app is created"""
 
     def make(self):
+        external_js = """
+        <script type="module" src="https://cdn.skypack.dev/pdfjs-viewer-element"></script>
+        """
+
         with gr.Blocks(
             theme=self._theme,
             css=self._css,
             title=self.app_name,
             analytics_enabled=False,
             js=self._js,
+            head=external_js,
         ) as demo:
             self.app = demo
             self.settings_state.render()
@@ -175,6 +187,8 @@ class BaseApp:
             self.subscribe_public_events()
             self.register_events()
             self.on_app_created()
+
+            demo.load(None, None, None, js=self._pdf_view_js)
 
         return demo
 

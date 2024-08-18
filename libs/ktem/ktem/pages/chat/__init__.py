@@ -27,6 +27,18 @@ from .control import ConversationControl
 from .report import ReportIssue
 
 DEFAULT_SETTING = "(default)"
+INFO_PANEL_SCALES = {True: 8, False: 4}
+
+
+pdfview_js = """
+function() {
+    // Get all links and attach click event
+    var links = document.getElementsByClassName("pdf-link");
+    for (var i = 0; i < links.length; i++) {
+        links[i].onclick = openModal;
+    }
+}
+"""
 
 
 class ChatPage(BasePage):
@@ -38,7 +50,7 @@ class ChatPage(BasePage):
         self._reasoning_type = gr.State(value=None)
         self._llm_type = gr.State(value=None)
         self._conversation_renamed = gr.State(value=False)
-        self.info_panel_expanded = gr.State(value=False)
+        self.info_panel_expanded = gr.State(value=True)
 
     def on_building_ui(self):
         with gr.Row():
@@ -128,9 +140,12 @@ class ChatPage(BasePage):
                                 show_label=False,
                             )
 
-            with gr.Column(scale=4, elem_id="chat-info-panel") as self.info_column:
+            with gr.Column(
+                scale=INFO_PANEL_SCALES[False], elem_id="chat-info-panel"
+            ) as self.info_column:
                 with gr.Accordion(label="Information panel", open=True):
-                    self.info_panel = gr.HTML()
+                    self.modal = gr.HTML("<div id='pdf-modal'></div>")
+                    self.info_panel = gr.HTML(elem_id="html-info-panel")
 
     def on_register_events(self):
         gr.on(
@@ -221,6 +236,8 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_rn,
             ],
             show_progress="hidden",
+        ).then(
+            fn=None, inputs=None, outputs=None, js=pdfview_js
         )
 
         self.chat_panel.regen_btn.click(
@@ -276,11 +293,13 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_rn,
             ],
             show_progress="hidden",
+        ).then(
+            fn=None, inputs=None, outputs=None, js=pdfview_js
         )
 
         self.chat_control.btn_info_expand.click(
             fn=lambda is_expanded: (
-                gr.update(scale=4) if is_expanded else gr.update(scale=8),
+                gr.update(scale=INFO_PANEL_SCALES[is_expanded]),
                 not is_expanded,
             ),
             inputs=self.info_panel_expanded,
@@ -401,6 +420,8 @@ class ChatPage(BasePage):
         ).then(
             lambda: self.toggle_delete(""),
             outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
+        ).then(
+            fn=None, inputs=None, outputs=None, js=pdfview_js
         )
 
         # evidence display on message selection
@@ -408,7 +429,7 @@ class ChatPage(BasePage):
             self.message_selected,
             inputs=[self.original_retrieval_history],
             outputs=self.info_panel,
-        )
+        ).then(fn=None, inputs=None, outputs=None, js=pdfview_js)
         self.chat_control.cb_is_public.change(
             self.on_set_public_conversation,
             inputs=[self.chat_control.cb_is_public, self.chat_control.conversation],

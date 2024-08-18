@@ -19,6 +19,8 @@ from kotaemon.agents import (
 from kotaemon.base import BaseComponent, Document, HumanMessage, Node, SystemMessage
 from kotaemon.llms import ChatLLM, PromptTemplate
 
+from ..utils import SUPPORTED_LANGUAGE_MAP
+
 logger = logging.getLogger(__name__)
 
 
@@ -275,7 +277,7 @@ class ReactAgentPipeline(BaseReasoning):
                 tool.llm = llm
             tools.append(tool)
         pipeline.agent.plugins = tools
-        pipeline.agent.output_lang = {"en": "English", "ja": "Japanese"}.get(
+        pipeline.agent.output_lang = SUPPORTED_LANGUAGE_MAP.get(
             settings["reasoning.lang"], "English"
         )
         pipeline.use_rewrite = states.get("app", {}).get("regen", False)
