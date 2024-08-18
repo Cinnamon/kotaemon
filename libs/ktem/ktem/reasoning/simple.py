@@ -93,7 +93,9 @@ class PrepareEvidencePipeline(BaseComponent):
             if retrieved_item.metadata.get("type", "") == "table":
                 evidence_modes.append(EVIDENCE_MODE_TABLE)
                 if table_found < 5:
-                    retrieved_content = retrieved_item.metadata.get("table_origin", "")
+                    retrieved_content = retrieved_item.metadata.get(
+                        "table_origin", retrieved_item.text
+                    )
                     if retrieved_content not in evidence:
                         table_found += 1
                         evidence += (
@@ -533,13 +535,27 @@ class FullQAPipeline(BaseReasoning):
             query = message
 
         docs, doc_ids = [], []
+        plot_docs = []
+
         for idx, retriever in enumerate(self.retrievers):
             retriever_node = self._prepare_child(retriever, f"retriever_{idx}")
             retriever_docs = retriever_node(text=query)
+
+            retriever_docs_text = []
+            retriever_docs_plot = []
+
             for doc in retriever_docs:
+                if doc.metadata.get("type", "") == "plot":
+                    retriever_docs_plot.append(doc)
+                else:
+                    retriever_docs_text.append(doc)
+
+            for doc in retriever_docs_text:
                 if doc.doc_id not in doc_ids:
                     docs.append(doc)
                     doc_ids.append(doc.doc_id)
+
+            plot_docs.extend(retriever_docs_plot)
 
         info = [
             Document(
@@ -547,6 +563,12 @@ class FullQAPipeline(BaseReasoning):
                 content=Render.collapsible_with_header(doc, open_collapsible=True),
             )
             for doc in docs
+        ] + [
+            Document(
+                channel="plot",
+                content=doc.metadata.get("data", ""),
+            )
+            for doc in plot_docs
         ]
 
         return docs, info
