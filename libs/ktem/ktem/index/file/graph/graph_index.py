@@ -10,6 +10,9 @@ class GraphRAGIndex(FileIndex):
     def _setup_indexing_cls(self):
         self._indexing_pipeline_cls = GraphRAGIndexingPipeline
 
+    def _setup_retriever_cls(self):
+        self._retriever_pipeline_cls = [GraphRAGRetrieverPipeline]
+
     def get_indexing_pipeline(self, settings, user_id) -> BaseFileIndexIndexing:
         """Define the interface of the indexing pipeline"""
 

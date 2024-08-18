@@ -160,7 +160,7 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
 
     def _build_graph_search(self):
         assert (
-            len(self.file_ids) == 1
+            len(self.file_ids) <= 1
         ), "GraphRAG retriever only supports one file_id at a time"
 
         file_id = self.file_ids[0]
@@ -255,16 +255,14 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
         return context_builder
 
     def _to_document(self, header: str, context_text: str) -> RetrievedDocument:
-        return (
-            RetrievedDocument(
-                text=context_text,
-                metadata={
-                    "file_name": header,
-                    "type": "table",
-                    "llm_trulens_score": 1.0,
-                },
-                score=1.0,
-            ),
+        return RetrievedDocument(
+            text=context_text,
+            metadata={
+                "file_name": header,
+                "type": "table",
+                "llm_trulens_score": 1.0,
+            },
+            score=1.0,
         )
 
     def format_context_records(self, context_records) -> list[RetrievedDocument]:
@@ -277,17 +275,17 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
 
         context: str = ""
 
-        header = "<h4>Entities</h4>\n"
+        header = "<b>Entities</b>\n"
         context = entities[["entity", "description"]].to_markdown(index=False)
         docs.append(self._to_document(header, context))
 
-        header = "\n<h4>Relationships</h4>\n"
+        header = "\n<b>Relationships</b>\n"
         context = relationships[["source", "target", "description"]].to_markdown(
             index=False
         )
         docs.append(self._to_document(header, context))
 
-        header = "\n<h4>Reports</h4>\n"
+        header = "\n<b>Reports</b>\n"
         context = ""
         for idx, row in reports.iterrows():
             title, content = row["title"], row["content"]
@@ -295,7 +293,7 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             context += content
         docs.append(self._to_document(header, context))
 
-        header = "\n<h4>Sources</h4>\n"
+        header = "\n<b>Sources</b>\n"
         context = ""
         for idx, row in sources.iterrows():
             title, content = row["id"], row["text"]
@@ -318,6 +316,8 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
         self,
         text: str,
     ) -> list[RetrievedDocument]:
+        if not self.file_ids:
+            return []
         context_builder = self._build_graph_search()
 
         local_context_params = {
