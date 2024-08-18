@@ -7,6 +7,21 @@ from ktem.utils.file import YAMLNoDateSafeLoader
 from .manager import IndexManager
 
 
+# UGLY way to restart gradio server by updating atime
+def update_current_module_atime():
+    import os
+    import time
+
+    # Define the file path
+    file_path = __file__
+    print("Updating atime for", file_path)
+
+    # Get the current time
+    current_time = time.time()
+    # Set the modified time (and access time) to the current time
+    os.utime(file_path, (current_time, current_time))
+
+
 def format_description(cls):
     user_settings = cls.get_admin_settings()
     params_lines = ["| Name | Default | Description |", "| --- | --- | --- |"]
@@ -125,6 +140,8 @@ class IndexManagement(BasePage):
                 self.spec,
                 self.spec_desc,
             ],
+        ).success(
+            update_current_module_atime
         )
         self.index_list.select(
             self.select_index,
@@ -166,10 +183,8 @@ class IndexManagement(BasePage):
             inputs=[self.selected_index_id],
             outputs=[self.selected_index_id],
             show_progress="hidden",
-        ).then(
-            self.list_indices,
-            inputs=[],
-            outputs=[self.index_list],
+        ).then(self.list_indices, inputs=[], outputs=[self.index_list],).success(
+            update_current_module_atime
         )
         self.btn_delete_no.click(
             lambda: (
