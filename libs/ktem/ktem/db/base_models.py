@@ -1,7 +1,7 @@
 import datetime
 import uuid
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import JSON, Column
@@ -36,7 +36,7 @@ class BaseConversation(SQLModel):
     is_public: bool = Field(default=False)
 
     # contains messages + current files
-    data_source: dict = Field(default={}, sa_column=Column(JSON))
+    data_source: dict[str, Any] = Field(default={}, sa_column=Column(JSON))
 
     date_created: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
     date_updated: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
@@ -75,7 +75,7 @@ class BaseSettings(SQLModel):
         default_factory=lambda: uuid.uuid4().hex, primary_key=True, index=True
     )
     user: int = Field(default=0)
-    setting: dict = Field(default={}, sa_column=Column(JSON))
+    setting: dict[str, Any] = Field(default={}, sa_column=Column(JSON))
 
 
 class BaseIssueReport(SQLModel):
@@ -92,9 +92,9 @@ class BaseIssueReport(SQLModel):
     __table_args__ = {"extend_existing": True}
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    issues: dict = Field(default={}, sa_column=Column(JSON))
-    chat: Optional[dict] = Field(default=None, sa_column=Column(JSON))
-    settings: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+    issues: dict[str, Any] = Field(default={}, sa_column=Column(JSON))
+    chat: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
+    settings: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     user: Optional[int] = Field(default=None)
 
 
@@ -103,25 +103,18 @@ class TagType(str, Enum):
     classification = "Classification"
     boolean = "True/False"
 
-    @staticmethod
-    def get_types() -> list[str]:
-        return [
-            TagType.text.value,
-            TagType.classification.value,
-            TagType.boolean.value,
-        ]
+    @classmethod
+    def get_types(cls) -> list[str]:
+        return [en.value for en in cls]
 
 
 class TagScope(str, Enum):
     chunk = "Chunk"
     file = "File"
 
-    @staticmethod
-    def get_types() -> list[str]:
-        return [
-            TagScope.chunk.value,
-            TagScope.file.value,
-        ]
+    @classmethod
+    def get_types(cls) -> list[str]:
+        return [en.value for en in cls]
 
 
 class TagProcessStatus(str, Enum):
@@ -155,7 +148,7 @@ class BaseTag(SQLModel):
     name: str = Field(unique=True)
     type: str
     scope: str = Field(default=TagScope.chunk.value)
-    meta: dict = Field(default={}, sa_column=Column(JSON))
+    meta: dict[str, Any] = Field(default={}, sa_column=Column(JSON))
 
 
 class BaseChunkTagIndex(SQLModel):
