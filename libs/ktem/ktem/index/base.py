@@ -108,6 +108,11 @@ class BaseIndex(abc.ABC):
         """
         return {}
 
+    @classmethod
+    def get_admin_settings_gradio(cls):
+        """Return the default admin settings in gradio format"""
+        return {}
+
     @abc.abstractmethod
     def get_indexing_pipeline(
         self, settings: dict, user_id: Optional[int]
