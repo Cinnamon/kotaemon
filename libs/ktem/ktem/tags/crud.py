@@ -30,6 +30,9 @@ class TagCRUD:
         valid_classes: str | None = None,
     ) -> str | None:
         meta = {}
+
+        assert name != "" and prompt != "", "Invalid name or prompt: cannot be empty."
+
         if type == TagType.classification:
             assert (
                 valid_classes is not None and valid_classes != ""
@@ -76,34 +79,42 @@ class TagCRUD:
             result = session.exec(statement).first()
             return result
 
-    def delete_by_name(self, tag_name: str) -> bool:
+    def delete_by_name(self, tag_name: str):
         with Session(self._engine) as session:
             statement = select(Tag).where(Tag.name == tag_name)
             result = session.exec(statement).first()
 
             if result:
-                session.delete(result)
-                session.commit()
-                return True
+                tag_id = result.id
+                tag_idx_crud = ChunkTagIndexCRUD(self._engine)
+                chunk_tag_items = tag_idx_crud.query_by_tag_ids([tag_id])
+                if len(chunk_tag_items) == 0:
+                    session.delete(result)
+                    session.commit()
+                else:
+                    raise Exception(f"Tag with name-{tag_name} is still in use!")
+
             else:
                 raise Exception(f"Record with name-{tag_name} does not exist!")
-
-        return False
 
     def update_by_name(
         self,
         name: str,
+        new_name: str | None = None,
         prompt: str | None = None,
         config: str | None = None,
         scope: str | None = None,
         type: str | None = None,
         valid_classes: str | None = None,
     ):
+        assert name != "" and prompt != "", "Invalid name or prompt: cannot be empty."
+
         fields_to_update = {
             "prompt": prompt,
             "config": config,
             "type": type,
             "scope": scope,
+            "name": new_name,
         }
 
         # Add `meta` update based on valid_classes
@@ -123,6 +134,10 @@ class TagCRUD:
             session.commit()
 
         return False
+
+    def get_all_tags(self) -> list[str]:
+        """Present tag pools option for gradio"""
+        return [item.name for item in self.list_all()]
 
 
 class ChunkTagIndexCRUD:
@@ -173,6 +188,13 @@ class ChunkTagIndexCRUD:
                 tag_dict["name"] = tag_id_to_tag[tag_id]
 
         return chunk_id_to_tags
+
+    def query_by_tag_ids(self, tag_ids: list[str]) -> list[ChunkTagIndex]:
+        with Session(self._engine) as session:
+            statement = select(ChunkTagIndex).where(ChunkTagIndex.tag_id.in_(tag_ids))
+
+            results = session.exec(statement).all()
+        return results
 
     def update_content_by_id(self, record_id: str, new_content: str) -> bool:
         with Session(self._engine) as session:

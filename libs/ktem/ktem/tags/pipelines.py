@@ -36,7 +36,10 @@ class MetaIndexPipeline(IndexDocumentPipeline):
         return TagCRUD(engine)
 
     @classmethod
-    def resolve_tag_names(cls, tag_str: str) -> list[str]:
+    def resolve_tag_names(cls, tag_str: str | list) -> list[str]:
+        if isinstance(tag_str, list):
+            return tag_str
+
         tag_str = tag_str.strip()
         tags = []
         if tag_str.strip() == "":

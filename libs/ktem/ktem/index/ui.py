@@ -60,6 +60,14 @@ class IndexManagement(BasePage):
                             info="Admin configuration of the Index in YAML format",
                             lines=10,
                         )
+                        self.spec_dropdown_field = gr.State(value=None)
+                        self.spec_dropdown = gr.Dropdown(
+                            visible=False,
+                            multiselect=True,
+                            allow_custom_value=False,
+                            interactive=True,
+                            value=[],
+                        )
 
                         gr.Markdown(
                             "IMPORTANT: Changing or deleting the index will require "
@@ -169,6 +177,8 @@ class IndexManagement(BasePage):
                 # edit section
                 self.edit_spec,
                 self.edit_spec_desc,
+                self.spec_dropdown,
+                self.spec_dropdown_field,
                 self.edit_name,
             ],
             show_progress="hidden",
@@ -219,6 +229,8 @@ class IndexManagement(BasePage):
                 self.selected_index_id,
                 self.edit_name,
                 self.edit_spec,
+                self.spec_dropdown,
+                self.spec_dropdown_field,
             ],
             show_progress="hidden",
         ).then(
@@ -314,28 +326,59 @@ class IndexManagement(BasePage):
         Args:
             selected_index_id: the id of the selected index
         """
+        dropdown_values = []
+
         if selected_index_id == -1:
             _selected_panel = gr.update(visible=False)
             edit_spec = gr.update(value="")
             edit_spec_desc = gr.update(value="")
             edit_name = gr.update(value="")
+            spec_dropdown = gr.update(visible=False)
+            spec_dropdown_id = None
         else:
             _selected_panel = gr.update(visible=True)
             index = self.manager.info()[selected_index_id]
+            edit_name = index.name
+
+            # additional dropdown for spec description
+            dropdown_settings = index.get_admin_settings_gradio()
+            spec_dropdown_id = dropdown_settings.pop("id", None)
+
+            # remove the dropdown field id from the config
+            if spec_dropdown_id is not None:
+                dropdown_values = index.config.pop(spec_dropdown_id, None)
+
             edit_spec = yaml.dump(index.config)
             edit_spec_desc = format_description(index.__class__)
-            edit_name = index.name
+
+            if dropdown_settings:
+                dropdown_settings["visible"] = True
+                dropdown_settings["value"] = dropdown_values
+                spec_dropdown = gr.update(**dropdown_settings)
+            else:
+                spec_dropdown = gr.update(visible=False)
 
         return (
             _selected_panel,
             edit_spec,
             edit_spec_desc,
+            spec_dropdown,
+            spec_dropdown_id,
             edit_name,
         )
 
-    def update_index(self, selected_index_id: int, name: str, config: str):
+    def update_index(
+        self,
+        selected_index_id: int,
+        name: str,
+        config: str,
+        tags: list[str],
+        tag_id: str | None,
+    ):
         try:
             spec = yaml.load(config, Loader=YAMLNoDateSafeLoader)
+            if tag_id is not None:
+                spec[tag_id] = tags
             self.manager.update_index(selected_index_id, name, spec)
             gr.Info(f'Update index "{name}" successfully. Please restart the app!')
         except Exception as e:

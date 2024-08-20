@@ -1,5 +1,4 @@
 import html
-import json
 import os
 import shutil
 import tempfile
@@ -257,8 +256,13 @@ class FileIndexPage(BasePage):
                     for _, tag in file_tags.items():
                         file_tag_info[tag["name"]] = tag["content"][:100]
 
-                    tag_info_str = html.escape(json.dumps(file_tag_info, indent=2))
-                    content = "<div><mark>" f"{tag_info_str}" "</mark></div>"
+                    content = "\n".join(
+                        [
+                            f"<div><mark><b>[{key}]</b>: {value}</mark></div>"
+                            for key, value in file_tag_info.items()
+                        ]
+                    )
+
                     chunks.append(
                         Render.collapsible(
                             header="<b>File tags</b>",
@@ -286,8 +290,12 @@ class FileIndexPage(BasePage):
 
                         # if tagging information exist, append to start of content
                         if tag_info:
-                            tag_info_str = html.escape(json.dumps(tag_info, indent=2))
-                            content += "<div><mark>" f"{tag_info_str}" "</mark></div>"
+                            content += "\n".join(
+                                [
+                                    f"<div><mark><b>[{key}]</b>: {value}</mark></div>"
+                                    for key, value in tag_info.items()
+                                ]
+                            )
 
                     if doc_type == "text":
                         content += html.escape(doc.text)

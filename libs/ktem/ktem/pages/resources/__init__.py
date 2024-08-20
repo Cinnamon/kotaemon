@@ -16,7 +16,7 @@ class ResourcesTab(BasePage):
         self.on_building_ui()
 
     def on_building_ui(self):
-        with gr.Tab("File Collections") as self.index_management_tab:
+        with gr.Tab("Index Collections") as self.index_management_tab:
             self.index_management = IndexManagement(self._app)
 
         with gr.Tab("Tags") as self.tag_management_tab:
