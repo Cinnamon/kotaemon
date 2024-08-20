@@ -296,7 +296,7 @@ class IndexPipeline(BaseComponent):
     """Index a single file"""
 
     loader: BaseReader
-    splitter: BaseSplitter
+    splitter: BaseSplitter | None
     chunk_batch_size: int = 200
 
     Source = Param(help="The SQLAlchemy Source table")

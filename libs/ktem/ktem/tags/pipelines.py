@@ -25,6 +25,7 @@ class MetaIndexPipeline(IndexDocumentPipeline):
 
     llm: BaseLLM
     tags: list[str]
+    DEFAULT_CHUNK_SIZE = 20
 
     @property
     def chunk_tag_index_crud(self) -> ChunkTagIndexCRUD:
@@ -36,21 +37,24 @@ class MetaIndexPipeline(IndexDocumentPipeline):
 
     @classmethod
     def resolve_tag_names(cls, tag_str: str) -> list[str]:
+        tag_str = tag_str.strip()
         tags = []
-        if tag_str:
-            if "," in tag_str:
-                tags = [tag.strip() for tag in tag_str.split(",")]
-            else:
-                tags = [tag_str]
+        if tag_str.strip() == "":
+            return []
+
+        if "," in tag_str:
+            tags = [tag.strip() for tag in tag_str.split(",")]
+        else:
+            tags = [tag_str]
 
         return tags
 
     @classmethod
     def get_pipeline(
-        cls, user_settings: dict, index_settings: dict
+        cls, user_settings: dict, index_settings: dict[str, str]
     ) -> BaseFileIndexIndexing:
         """Get custom settings (tag_ids) from index settings"""
-        llm = llms.get(index_settings.get("llm", ""), llms.get_default_name())
+        llm = llms.get(index_settings.get("llm", llms.get_default_name()), None)
         tags = index_settings.get("tags", "")
         obj = super().get_pipeline(user_settings, index_settings)
 
@@ -105,7 +109,7 @@ class MetaIndexPipeline(IndexDocumentPipeline):
         self,
         docs: list[DocumentWithEmbedding],
         clean_previous=False,
-        chunk_size=20,
+        chunk_size=DEFAULT_CHUNK_SIZE,
     ) -> Generator[Document, None, list[str]]:
         doc_ids = [doc.doc_id for doc in docs]
         n_docs = len(docs)
@@ -236,7 +240,7 @@ class MetaIndexPipeline(IndexDocumentPipeline):
                 self.Index.relation_type == "document",
             )
             results = session.execute(stmt)
-            doc_ids = list(set([r[0].target_id for r in results.all()]))
+            doc_ids = list(set(result.target_id for result in results.scalars()))
 
         docs = self.DS.get(doc_ids)
         print(f"Got {len(docs)} docs in index.")
