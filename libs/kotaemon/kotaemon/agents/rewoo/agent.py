@@ -39,16 +39,11 @@ class RewooAgent(BaseAgent):
     examples: dict[str, str | list[str]] = Param(
         default_callback=lambda _: {}, help="Examples to be used in the agent."
     )
-    trim_func: TokenSplitter = TokenSplitter.withx(
-        chunk_size=3000,
-        chunk_overlap=0,
-        separator=" ",
-        tokenizer=partial(
-            tiktoken.encoding_for_model("gpt-3.5-turbo").encode,
-            allowed_special=set(),
-            disallowed_special="all",
-        ),
+    max_context_length: int = Param(
+        default=3000,
+        help="Max context length for each tool output.",
     )
+    trim_func: TokenSplitter | None = None
 
     @Node.auto(depends_on=["planner_llm", "plugins", "prompt_template", "examples"])
     def planner(self):
@@ -248,8 +243,22 @@ class RewooAgent(BaseAgent):
                 return p
 
     def _trim_evidence(self, evidence: str):
+        evidence_trim_func = (
+            self.trim_func
+            if self.trim_func
+            else TokenSplitter(
+                chunk_size=self.max_context_length,
+                chunk_overlap=0,
+                separator=" ",
+                tokenizer=partial(
+                    tiktoken.encoding_for_model("gpt-3.5-turbo").encode,
+                    allowed_special=set(),
+                    disallowed_special="all",
+                ),
+            )
+        )
         if evidence:
-            texts = self.trim_func([Document(text=evidence)])
+            texts = evidence_trim_func([Document(text=evidence)])
             evidence = texts[0].text
             logging.info(f"len (trimmed): {len(evidence)}")
             return evidence

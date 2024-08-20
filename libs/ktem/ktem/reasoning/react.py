@@ -22,6 +22,7 @@ from kotaemon.llms import ChatLLM, PromptTemplate
 from ..utils import SUPPORTED_LANGUAGE_MAP
 
 logger = logging.getLogger(__name__)
+DEFAULT_AGENT_STEPS = 4
 
 
 class DocSearchArgs(BaseModel):
@@ -265,9 +266,17 @@ class ReactAgentPipeline(BaseReasoning):
         llm_name = settings[f"{prefix}.llm"]
         llm = llms.get(llm_name, llms.get_default())
 
+        max_context_length_setting = settings.get("reasoning.max_context_length", None)
+
         pipeline = ReactAgentPipeline(retrievers=retrievers)
         pipeline.agent.llm = llm
         pipeline.agent.max_iterations = settings[f"{prefix}.max_iterations"]
+
+        if max_context_length_setting:
+            pipeline.agent.max_context_length = (
+                max_context_length_setting // DEFAULT_AGENT_STEPS
+            )
+
         tools = []
         for tool_name in settings[f"reasoning.options.{_id}.tools"]:
             tool = TOOL_REGISTRY[tool_name]

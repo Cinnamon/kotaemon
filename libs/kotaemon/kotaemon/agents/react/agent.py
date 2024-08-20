@@ -39,16 +39,11 @@ class ReactAgent(BaseAgent):
     )
     max_iterations: int = 5
     strict_decode: bool = False
-    trim_func: TokenSplitter = TokenSplitter.withx(
-        chunk_size=3500,
-        chunk_overlap=0,
-        separator=" ",
-        tokenizer=partial(
-            tiktoken.encoding_for_model("gpt-3.5-turbo").encode,
-            allowed_special=set(),
-            disallowed_special="all",
-        ),
+    max_context_length: int = Param(
+        default=3000,
+        help="Max context length for each tool output.",
     )
+    trim_func: TokenSplitter | None = None
 
     def _compose_plugin_description(self) -> str:
         """
@@ -149,14 +144,28 @@ class ReactAgent(BaseAgent):
             function_map[plugin.name] = plugin
         return function_map
 
-    def _trim(self, text: str) -> str:
+    def _trim(self, text: str | Document) -> str:
         """
         Trim the text to the maximum token length.
         """
+        evidence_trim_func = (
+            self.trim_func
+            if self.trim_func
+            else TokenSplitter(
+                chunk_size=self.max_context_length,
+                chunk_overlap=0,
+                separator=" ",
+                tokenizer=partial(
+                    tiktoken.encoding_for_model("gpt-3.5-turbo").encode,
+                    allowed_special=set(),
+                    disallowed_special="all",
+                ),
+            )
+        )
         if isinstance(text, str):
-            texts = self.trim_func([Document(text=text)])
+            texts = evidence_trim_func([Document(text=text)])
         elif isinstance(text, Document):
-            texts = self.trim_func([text])
+            texts = evidence_trim_func([text])
         else:
             raise ValueError("Invalid text type to trim")
         trim_text = texts[0].text

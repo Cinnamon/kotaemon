@@ -23,6 +23,7 @@ from kotaemon.llms import ChatLLM, PromptTemplate
 from ..utils import SUPPORTED_LANGUAGE_MAP
 
 logger = logging.getLogger(__name__)
+DEFAULT_AGENT_STEPS = 4
 
 
 DEFAULT_PLANNER_PROMPT = (
@@ -389,6 +390,8 @@ class RewooAgentPipeline(BaseReasoning):
         prefix = f"reasoning.options.{_id}"
         pipeline = RewooAgentPipeline(retrievers=retrievers)
 
+        max_context_length_setting = settings.get("reasoning.max_context_length", None)
+
         planner_llm_name = settings[f"{prefix}.planner_llm"]
         planner_llm = llms.get(planner_llm_name, llms.get_default())
         solver_llm_name = settings[f"{prefix}.solver_llm"]
@@ -396,6 +399,10 @@ class RewooAgentPipeline(BaseReasoning):
 
         pipeline.agent.planner_llm = planner_llm
         pipeline.agent.solver_llm = solver_llm
+        if max_context_length_setting:
+            pipeline.agent.max_context_length = (
+                max_context_length_setting // DEFAULT_AGENT_STEPS
+            )
 
         tools = []
         for tool_name in settings[f"{prefix}.tools"]:
