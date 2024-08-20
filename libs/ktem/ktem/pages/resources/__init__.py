@@ -4,6 +4,7 @@ from ktem.db.models import User, engine
 from ktem.embeddings.ui import EmbeddingManagement
 from ktem.index.ui import IndexManagement
 from ktem.llms.ui import LLMManagement
+from ktem.scenarios.ui import ScenarioManagement
 from ktem.tags.ui import TagManagement
 from sqlmodel import Session, select
 
@@ -21,6 +22,9 @@ class ResourcesTab(BasePage):
 
         with gr.Tab("Tags") as self.tag_management_tab:
             self.tag_management = TagManagement(self._app)
+
+        with gr.Tab("Scenarios") as self.scenario_management_tab:
+            self.scenario_management = ScenarioManagement(self._app)
 
         with gr.Tab("LLMs") as self.llm_management_tab:
             self.llm_management = LLMManagement(self._app)

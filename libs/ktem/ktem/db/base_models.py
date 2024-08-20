@@ -124,6 +124,14 @@ class TagProcessStatus(str, Enum):
     failed = "Failed"
 
 
+class ScenarioType(str, Enum):
+    incident_search = "Incident Search"
+
+    @classmethod
+    def get_types(cls) -> list[str]:
+        return [en.value for en in cls]
+
+
 class BaseTag(SQLModel):
     """
     Store records of tag
@@ -164,3 +172,29 @@ class BaseChunkTagIndex(SQLModel):
 
     date_updated: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
     status: str
+
+
+class BaseScenario(SQLModel):
+    """
+    Store records of scenarios
+
+    Attributes:
+        id: canonical id to identify the scenario
+        name: human-friendly name of the scenario
+        scenario_type: type of the scenario, using an enum for specific classes
+        specification: detailed specification of the scenario
+        base_prompt: base prompt to be used in the scenario
+        retrieval_validator: string representing the retrieval validator logic
+    """
+
+    __table_args__ = {"extend_existing": True}
+
+    id: str = Field(
+        default_factory=lambda: uuid.uuid4().hex, primary_key=True, index=True
+    )
+
+    name: str = Field(unique=True)
+    scenario_type: str
+    specification: str
+    base_prompt: str
+    retrieval_validator: str
