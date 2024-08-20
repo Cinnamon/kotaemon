@@ -215,7 +215,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
 
         return {
             "reranking_llm": {
-                "name": "LLM for reranking",
+                "name": "LLM for relevant scoring",
                 "value": reranking_llm,
                 "component": "dropdown",
                 "choices": reranking_llm_choices,
@@ -245,7 +245,13 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                 "component": "checkbox",
             },
             "use_reranking": {
-                "name": "Use reranking (Cohere)",
+                "name": "Use reranking",
+                "value": True,
+                "choices": [True, False],
+                "component": "checkbox",
+            },
+            "use_llm_reranking": {
+                "name": "Use LLM relevant scoring",
                 "value": True,
                 "choices": [True, False],
                 "component": "checkbox",
@@ -260,6 +266,8 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             settings: the settings of the app
             kwargs: other arguments
         """
+        use_llm_reranking = user_settings.get("use_llm_reranking", False)
+
         retriever = cls(
             get_extra_table=user_settings["prioritize_table"],
             top_k=user_settings["num_retrieval"],
@@ -270,7 +278,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                 )
             ],
             retrieval_mode=user_settings["retrieval_mode"],
-            llm_scorer=LLMTrulensScoring(),
+            llm_scorer=(LLMTrulensScoring() if use_llm_reranking else None),
             rerankers=[CohereReranking()],
         )
         if not user_settings["use_reranking"]:

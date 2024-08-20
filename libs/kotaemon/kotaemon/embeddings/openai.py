@@ -55,7 +55,7 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
         ),
     )
     context_length: Optional[int] = Param(
-        8191, help="The maximum context length of the embedding model"
+        None, help="The maximum context length of the embedding model"
     )
 
     @Param.auto(depends_on=["max_retries"])
