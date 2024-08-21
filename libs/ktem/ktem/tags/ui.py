@@ -314,12 +314,14 @@ class TagManagement(BasePage):
         edit_tag_meta = gr.update(value="")
 
         if selected_tag_name == "":
+            trial_panel = gr.update(visible=False)
             _selected_panel = gr.update(visible=False)
             _selected_panel_btn = gr.update(visible=False)
             btn_delete = gr.update(visible=True)
             btn_delete_yes = gr.update(visible=False)
             btn_delete_no = gr.update(visible=False)
         else:
+            trial_panel = gr.update(visible=True)
             _selected_panel = gr.update(visible=True)
             _selected_panel_btn = gr.update(visible=True)
             btn_delete = gr.update(visible=True)
@@ -348,6 +350,8 @@ class TagManagement(BasePage):
             edit_tag_type,
             edit_tag_config,
             edit_tag_meta,
+            # trial
+            trial_panel
         )
 
     def on_btn_delete_click(self):
@@ -496,10 +500,10 @@ class TagManagement(BasePage):
                 self.edit_type,
                 self.edit_config,
                 self.edit_valid_classes,
+                # trial
+                self._trial_panel
             ],
             show_progress="hidden",
-        ).success(
-            lambda: gr.update(visible=True), inputs=[], outputs=[self._trial_panel]
         )
 
         # Add events
