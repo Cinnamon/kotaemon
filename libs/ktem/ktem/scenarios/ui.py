@@ -36,27 +36,27 @@ class ScenarioManagement(BasePage):
                         label="Scenario Name",
                         info="Must be unique and non-empty.",
                     )
-                    self.specification = gr.Textbox(
-                        label="Specification",
-                        info="Detailed specification of the scenario",
+                    self.base_prompt = gr.Textbox(
+                        label="Base Prompt",
+                        info="Base prompt to be used in the scenario",
                         lines=5,
                     )
                     self.scenario_type = gr.Dropdown(
                         label="Scenario Type",
                         choices=ScenarioType.get_types(),
                         value=ScenarioType.incident_search.value,
+                        allow_custom_value=True,
                         info="Select the type of the scenario",
                     )
 
                     self.btn_new = gr.Button("Add", variant="primary")
 
                 with gr.Column(scale=3):
-                    self.base_prompt = gr.Textbox(
-                        label="Base Prompt",
-                        info="Base prompt to be used in the scenario",
+                    self.specification = gr.Textbox(
+                        label="Specification",
+                        info="Detailed specification of the scenario",
                         lines=5,
                     )
-
                     self.retrieval_validator = gr.Textbox(
                         label="Retrieval Validator",
                         info="Logic for retrieval validation",
@@ -78,8 +78,24 @@ class ScenarioManagement(BasePage):
                         self.edit_name = gr.Textbox(
                             label="Scenario Name",
                             info="Must be unique and non-empty.",
-                            interactive=False,
+                            interactive=True,
                         )
+                        self.edit_base_prompt = gr.Textbox(
+                            label="Base Prompt",
+                            info="Base prompt to be used in the scenario",
+                            lines=5,
+                            interactive=True,
+                        )
+                        self.edit_scenario_type = gr.Dropdown(
+                            label="Scenario Type",
+                            choices=ScenarioType.get_types(),
+                            value=ScenarioType.incident_search.value,
+                            info="Select the type of the scenario",
+                            allow_custom_value=True,
+                            interactive=True,
+                        )
+
+                    with gr.Column():
                         self.edit_specification = gr.Textbox(
                             label="Specification",
                             info="Detailed specification of the scenario",
@@ -87,21 +103,6 @@ class ScenarioManagement(BasePage):
                             interactive=True,
                         )
 
-                        self.edit_scenario_type = gr.Dropdown(
-                            label="Scenario Type",
-                            choices=ScenarioType.get_types(),
-                            value=ScenarioType.incident_search.value,
-                            info="Select the type of the scenario",
-                            interactive=True,
-                        )
-
-                    with gr.Column():
-                        self.edit_base_prompt = gr.Textbox(
-                            label="Base Prompt",
-                            info="Base prompt to be used in the scenario",
-                            lines=5,
-                            interactive=True,
-                        )
                         self.edit_retrieval_validator = gr.Textbox(
                             label="Retrieval Validator",
                             info="Logic for retrieval validation",
@@ -109,27 +110,27 @@ class ScenarioManagement(BasePage):
                             interactive=True,
                         )
 
-                with gr.Row(visible=False) as self._selected_panel_btn:
-                    with gr.Column():
-                        self.btn_edit_save = gr.Button(
-                            "Save", min_width=10, variant="primary"
-                        )
-                    with gr.Column():
-                        self.btn_delete = gr.Button(
-                            "Delete", min_width=10, variant="stop"
-                        )
-                        with gr.Row():
-                            self.btn_delete_yes = gr.Button(
-                                "Confirm Delete",
-                                variant="stop",
-                                visible=False,
-                                min_width=10,
-                            )
-                            self.btn_delete_no = gr.Button(
-                                "Cancel", visible=False, min_width=10
-                            )
-                    with gr.Column():
-                        self.btn_close = gr.Button("Close", min_width=10)
+                        with gr.Row(visible=False) as self._selected_panel_btn:
+                            with gr.Column():
+                                self.btn_edit_save = gr.Button(
+                                    "Save", min_width=10, variant="primary"
+                                )
+                            with gr.Column():
+                                self.btn_delete = gr.Button(
+                                    "Delete", min_width=10, variant="stop"
+                                )
+                                with gr.Row():
+                                    self.btn_delete_yes = gr.Button(
+                                        "Confirm Delete",
+                                        variant="stop",
+                                        visible=False,
+                                        min_width=10,
+                                    )
+                                    self.btn_delete_no = gr.Button(
+                                        "Cancel", visible=False, min_width=10
+                                    )
+                            with gr.Column():
+                                self.btn_close = gr.Button("Close", min_width=10)
 
     def list_scenario(self) -> pd.DataFrame:
         scenarios: list[Scenario] = self._scenario_crud.list_all()
@@ -138,7 +139,9 @@ class ScenarioManagement(BasePage):
                 [dict(scenario) for scenario in scenarios]
             )[SCENARIO_DISPLAY_COLUMNS]
         else:
-            scenario_df = pd.DataFrame(columns=SCENARIO_DISPLAY_COLUMNS)
+            scenario_df = pd.DataFrame.from_records(
+                [{k: "-" for k in SCENARIO_DISPLAY_COLUMNS}]
+            )
         return scenario_df
 
     def create_scenario(
@@ -229,12 +232,14 @@ class ScenarioManagement(BasePage):
     def delete_scenario(self, selected_scenario_name):
         result = self._scenario_crud.delete_by_name(selected_scenario_name)
         assert result, f"Failed to delete scenario {selected_scenario_name}"
+        gr.Info(f'Deleted scenario "{selected_scenario_name}" successfully')
 
         return ""
 
     def save_scenario(
         self,
         name: str,
+        new_name: str,
         scenario_type: str,
         specification: str,
         base_prompt: str,
@@ -243,6 +248,7 @@ class ScenarioManagement(BasePage):
         try:
             self._scenario_crud.update_by_name(
                 name=name,
+                new_name=new_name,
                 scenario_type=scenario_type,
                 specification=specification,
                 base_prompt=base_prompt,
@@ -319,11 +325,12 @@ class ScenarioManagement(BasePage):
             inputs=[self.selected_scenario_name],
             outputs=[self.selected_scenario_name],
             show_progress="hidden",
-        )
+        ).success(self.list_scenario, inputs=[], outputs=[self.scenario_list])
 
         self.btn_edit_save.click(
             self.save_scenario,
             inputs=[
+                self.selected_scenario_name,
                 self.edit_name,
                 self.edit_scenario_type,
                 self.edit_specification,
@@ -335,4 +342,9 @@ class ScenarioManagement(BasePage):
             self.list_scenario,
             inputs=[],
             outputs=[self.scenario_list],
+        )
+
+        self.btn_close.click(
+            lambda: "",
+            outputs=[self.selected_scenario_name],
         )

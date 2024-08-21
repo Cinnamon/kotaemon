@@ -104,7 +104,7 @@ class TagType(str, Enum):
     boolean = "True/False"
 
     @classmethod
-    def get_types(cls) -> list[str]:
+    def list_all(cls) -> list[str]:
         return [en.value for en in cls]
 
 
@@ -113,7 +113,7 @@ class TagScope(str, Enum):
     file = "File"
 
     @classmethod
-    def get_types(cls) -> list[str]:
+    def list_all(cls) -> list[str]:
         return [en.value for en in cls]
 
 

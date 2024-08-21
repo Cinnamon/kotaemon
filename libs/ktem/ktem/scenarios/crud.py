@@ -24,6 +24,13 @@ class ScenarioCRUD:
         base_prompt: str,
         retrieval_validator: str,
     ) -> str:
+        # validate name and prompt
+        name = name.strip()
+        base_prompt = base_prompt.strip()
+        assert (
+            name != "" and base_prompt != ""
+        ), "Invalid name or prompt: cannot be empty."
+
         if isinstance(scenario_type, ScenarioType):
             scenario_type = scenario_type.value
 
@@ -75,12 +82,21 @@ class ScenarioCRUD:
     def update_by_name(
         self,
         name: str,
+        new_name: str | None = None,
         scenario_type: str | None = None,
         specification: str | None = None,
         base_prompt: str | None = None,
         retrieval_validator: str | None = None,
     ) -> bool:
+        # validate name and prompt
+        new_name = new_name.strip()
+        base_prompt = base_prompt.strip()
+        assert (
+            new_name != "" and base_prompt != ""
+        ), "Invalid name or prompt: cannot be empty."
+
         fields_to_update = {
+            "name": new_name,
             "scenario_type": scenario_type,
             "specification": specification,
             "base_prompt": base_prompt,

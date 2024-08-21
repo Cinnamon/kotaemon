@@ -6,6 +6,8 @@ from ktem.utils.file import YAMLNoDateSafeLoader
 
 from .manager import IndexManager
 
+DISPLAY_INDEX_COLUMNS = ["id", "name", "index type"]
+
 
 # UGLY way to restart gradio server by updating atime
 def update_current_module_atime():
@@ -44,7 +46,7 @@ class IndexManagement(BasePage):
     def on_building_ui(self):
         with gr.Tab(label="View"):
             self.index_list = gr.DataFrame(
-                headers=["ID", "Name", "Index Type"],
+                headers=DISPLAY_INDEX_COLUMNS,
                 interactive=False,
             )
 
@@ -295,16 +297,17 @@ class IndexManagement(BasePage):
         items = []
         for item in self.manager.indices:
             record = {}
-            record["ID"] = item.id
-            record["Name"] = item.name
-            record["Index Type"] = item.__class__.__name__
+            for key, value in zip(
+                DISPLAY_INDEX_COLUMNS, (item.id, item.name, item.__class__.__name__)
+            ):
+                record[key] = value
             items.append(record)
 
         if items:
             indices_list = pd.DataFrame.from_records(items)
         else:
             indices_list = pd.DataFrame.from_records(
-                [{"ID": "-", "Name": "-", "Index Type": "-"}]
+                [{key: "-" for key in DISPLAY_INDEX_COLUMNS}]
             )
 
         return indices_list
@@ -318,7 +321,7 @@ class IndexManagement(BasePage):
         if not ev.selected:
             return -1
 
-        return int(index_list["ID"][ev.index[0]])
+        return int(index_list["id"][ev.index[0]])
 
     def on_selected_index_change(self, selected_index_id: int):
         """Show the relevant index as user selects it on the UI

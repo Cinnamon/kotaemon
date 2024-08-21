@@ -8,9 +8,11 @@ from sqlalchemy import JSON, Column, DateTime, Integer, String, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.sql import func
+from sqlmodel import Session, select
 from theflow.settings import settings as flowsettings
 from theflow.utils.modules import import_dotted_string
 
+from kotaemon.base import Document
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
@@ -347,6 +349,49 @@ class FileIndex(BaseIndex):
 
         self._default_settings = settings
         return settings
+
+    def list_files(self) -> list[str]:
+        source = self._resources["Source"]
+        file_names: list[str] = []
+        with Session(engine) as session:
+            statement = select(source)
+
+            results = session.exec(statement).all()
+            for result in results:
+                file_names += [result.name]
+
+        return file_names
+
+    def get_chunks_by_file_name(
+        self, file_name: str, n_chunk: int = -1
+    ) -> list[Document]:
+
+        index = self._resources["Index"]
+        source = self._resources["Source"]
+        ds: BaseDocumentStore = self._docstore
+
+        with Session(engine) as session:
+            statement = select(source).where(source.name.in_([file_name]))
+
+            # Retrieve all satisfied file_ids
+            results = session.exec(statement).all()
+            file_id = [result.id for result in results]
+            assert len(file_id) == 1, Exception(
+                f"Invalid number of file_id for name: {file_name}. "
+                f"Expect 1, got: {len(file_id)}"
+            )
+            file_id = file_id[0]
+
+            # Retrieve chunk ids
+            statement = select(index).where(index.source_id.in_([file_id]))
+            if n_chunk > 0:
+                statement = statement.limit(n_chunk)
+            results = session.exec(statement).all()
+
+            chunk_ids = [r.target_id for r in results]
+            docs: list[Document] = ds.get(chunk_ids)
+
+            return docs
 
     @classmethod
     def get_admin_settings(cls):

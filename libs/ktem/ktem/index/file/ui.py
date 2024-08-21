@@ -173,6 +173,7 @@ class FileIndexPage(BasePage):
                     column_widths=["0%", "50%", "8%", "7%", "15%", "20%"],
                     interactive=False,
                     wrap=False,
+                    elem_id="file_list_view",
                 )
 
                 with gr.Row():
