@@ -2,11 +2,10 @@
 import re
 from datetime import datetime
 
-from sqlmodel import Session, select, update
-
 from ktem.db.base_models import ScenarioType
 from ktem.db.models import Scenario
 from ktem.tags.crud import TagCRUD
+from sqlmodel import Session, select, update
 
 
 class ScenarioValidator:
@@ -23,9 +22,11 @@ class ScenarioValidator:
     @staticmethod
     def validate_type(type: str | ScenarioType) -> bool:
         if type is None or type not in ScenarioType.get_types():
-            raise Exception(f"Invalid type. "
-                            f"Expected: {','.join(ScenarioType.get_types())}. "
-                            f"Got: {type}")
+            raise Exception(
+                f"Invalid type. "
+                f"Expected: {','.join(ScenarioType.get_types())}. "
+                f"Got: {type}"
+            )
         return True
 
     @staticmethod
@@ -39,11 +40,11 @@ class ScenarioValidator:
         Extract the tags from content.
         IF tags exist, it should be valid otherwise error will be raised
         """
-        tags = re.findall(r'#\w+', content)
+        tags = re.findall(r"#\w+", content)
 
         if len(tags) > 0:
             for tag in tags:
-                tag_name = tag[1:] if tag.startswith('#') else tag
+                tag_name = tag[1:] if tag.startswith("#") else tag
                 tag_result = self._tag_crud.query_by_name(tag_name=tag_name)
 
                 if tag_result is None:
@@ -70,7 +71,7 @@ class ScenarioCRUD:
         specification: str,
         base_prompt: str,
         retrieval_validator: str,
-        valid_tags: bool = False
+        valid_tags: bool = False,
     ) -> str:
         if isinstance(scenario_type, ScenarioType):
             scenario_type = scenario_type.value
@@ -134,7 +135,7 @@ class ScenarioCRUD:
         specification: str | None = None,
         base_prompt: str | None = None,
         retrieval_validator: str | None = None,
-        valid_tags: bool = False
+        valid_tags: bool = False,
     ) -> bool:
 
         self.validator.validate_type(scenario_type)

@@ -351,7 +351,7 @@ class TagManagement(BasePage):
             edit_tag_config,
             edit_tag_meta,
             # trial
-            trial_panel
+            trial_panel,
         )
 
     def on_btn_delete_click(self):
@@ -501,7 +501,7 @@ class TagManagement(BasePage):
                 self.edit_config,
                 self.edit_valid_classes,
                 # trial
-                self._trial_panel
+                self._trial_panel,
             ],
             show_progress="hidden",
         )

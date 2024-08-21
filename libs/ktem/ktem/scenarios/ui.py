@@ -1,16 +1,16 @@
 import gradio as gr
 import pandas as pd
-from sqlmodel import Session, select
-
-from kotaemon.base import Document
-from kotaemon.storages import BaseDocumentStore
 from ktem.app import BasePage
 from ktem.db.base_models import ScenarioType
 from ktem.db.models import Scenario, engine
 from ktem.index import IndexManager
+from sqlmodel import Session, select
 
-from .crud import ScenarioCRUD
+from kotaemon.base import Document
+from kotaemon.storages import BaseDocumentStore
+
 from ..tags import TagIndex
+from .crud import ScenarioCRUD
 
 SCENARIO_DISPLAY_COLUMNS = [
     "name",
@@ -49,7 +49,7 @@ class ScenarioManagement(BasePage):
                         lines=5,
                     )
                     self.scenario_type = gr.Dropdown(
-                        label="Scenario Type",
+                        label="Scenario Class",
                         choices=ScenarioType.get_types(),
                         value=ScenarioType.incident_search.value,
                         info="Select the type of the scenario",
@@ -88,7 +88,7 @@ class ScenarioManagement(BasePage):
                 self.trial_select_file = gr.Dropdown(
                     label="Existing file",
                     interactive=True,
-                    multiselect=True
+                    multiselect=True,
                 )
 
         # Input Description
@@ -97,7 +97,7 @@ class ScenarioManagement(BasePage):
                 self.trial_description = gr.Textbox(
                     label="Description",
                     placeholder="Type your description here",
-                    lines=5
+                    lines=5,
                 )
 
         # Button
@@ -110,7 +110,10 @@ class ScenarioManagement(BasePage):
 
     def build_view_panel(self):
         with gr.Tab(label="View"):
-            self.build_filter_panel()
+            with gr.Accordion(
+                "Filter",
+            ):
+                self.build_filter_panel()
 
             self.scenario_list = gr.DataFrame(
                 headers=SCENARIO_DISPLAY_COLUMNS,
@@ -120,7 +123,7 @@ class ScenarioManagement(BasePage):
 
             self.build_edit_panel()
 
-            with gr.Accordion("Trial", visible=True) as self._trial_panel:
+            with gr.Accordion("Trial", visible=False) as self._trial_panel:
                 self.build_trial_panel()
 
     def build_filter_panel(self):
@@ -137,7 +140,7 @@ class ScenarioManagement(BasePage):
                 self.filter_types = gr.Dropdown(
                     label="Filter by class",
                     choices=ScenarioType.get_types(),
-                    multiselect=True
+                    multiselect=True,
                 )
 
             with gr.Column(scale=1):
@@ -162,7 +165,7 @@ class ScenarioManagement(BasePage):
                     )
 
                     self.edit_scenario_type = gr.Dropdown(
-                        label="Scenario Type",
+                        label="Scenario Class",
                         choices=ScenarioType.get_types(),
                         value=ScenarioType.incident_search.value,
                         info="Select the type of the scenario",
@@ -189,9 +192,7 @@ class ScenarioManagement(BasePage):
                         "Save", min_width=10, variant="primary"
                     )
                 with gr.Column():
-                    self.btn_delete = gr.Button(
-                        "Delete", min_width=10, variant="stop"
-                    )
+                    self.btn_delete = gr.Button("Delete", min_width=10, variant="stop")
                     with gr.Row():
                         self.btn_delete_yes = gr.Button(
                             "Confirm Delete",
@@ -205,20 +206,22 @@ class ScenarioManagement(BasePage):
                 with gr.Column():
                     self.btn_close = gr.Button("Close", min_width=10)
 
-    def list_scenario(self, name_pattern: str = "", types: list[str] = []) -> pd.DataFrame:
+    def list_scenario(
+        self, name_pattern: str = "", types: list[str] = []
+    ) -> pd.DataFrame:
         scenarios: list[Scenario] = self._scenario_crud.list_all()
         if scenarios:
             # Filter by class name
             if name_pattern is not None and name_pattern != "":
                 scenarios = [
-                    scenario for scenario in scenarios
-                    if name_pattern in scenario.name
+                    scenario for scenario in scenarios if name_pattern in scenario.name
                 ]
 
             # Filter by types
             if types is not None and len(types) > 0:
                 scenarios = [
-                    scenario for scenario in scenarios
+                    scenario
+                    for scenario in scenarios
                     if scenario.scenario_type in ScenarioType.get_types()
                 ]
 
@@ -358,7 +361,6 @@ class ScenarioManagement(BasePage):
             btn_delete_yes = gr.update(visible=False)
             btn_delete_no = gr.update(visible=False)
 
-
             scenario_obj: Scenario | None = self._scenario_crud.query_by_name(
                 selected_scenario_name
             )
@@ -382,7 +384,7 @@ class ScenarioManagement(BasePage):
             edit_base_prompt,
             edit_retrieval_validator,
             # trial panel
-            trial_panel
+            trial_panel,
         )
 
     def on_btn_delete_click(self):
@@ -429,16 +431,15 @@ class ScenarioManagement(BasePage):
         if index_id is None:
             raise gr.Error("Please select an index")
 
+        if file_names is None or len(file_names) < 1:
+            file_names = self.list_files(index_id)
+
         chunks: list[Document] = self.get_chunks_by_file_name(
-            index_id,
-            file_names,
-            n_chunk=-1
+            index_id, file_names, n_chunk=-1
         )
 
         if len(chunks) < 1:
             raise gr.Warning(f"No chunks in files-{','.join(file_names)}. Return")
-
-        contents_in: list[str] = [chunk.text for chunk in chunks]
 
         html_result = (
             "<div style='max-height: 400px; overflow-y: auto;'>"
@@ -447,16 +448,19 @@ class ScenarioManagement(BasePage):
         html_result += (
             "<tr>"
             "<th>#</th>"
+            "<th>File Name</th>"
             "<th>Chunk</th>"
             "<th>Relevant Score</th>"
             "</tr>"
         )
 
-        for i, content_in in enumerate(contents_in):
+        for i, chunk in enumerate(chunks):
+
             html_result += (
                 f"<tr>"
                 f"<td>{i}</td>"
-                f"<td><details><summary>Chunk</summary>{content_in}</details></td>"
+                f"<td>{chunk.extra_info['file_name']} - Page: {chunk.extra_info['page_label']}</td>"
+                f"<td><details><summary>Chunk</summary>{chunk.text}</details></td>"
                 f"<td>0.9</td>"
                 f"</tr>"
             )
@@ -489,7 +493,7 @@ class ScenarioManagement(BasePage):
                 self.edit_scenario_type,
                 self.edit_base_prompt,
                 self.edit_retrieval_validator,
-                self._trial_panel
+                self._trial_panel,
             ],
             show_progress="hidden",
         )
@@ -506,11 +510,8 @@ class ScenarioManagement(BasePage):
             outputs=None,
         ).success(
             self.list_scenario,
-            inputs=[
-                self.filter_class_name,
-                self.filter_types
-            ],
-            outputs=[self.scenario_list]
+            inputs=[self.filter_class_name, self.filter_types],
+            outputs=[self.scenario_list],
         ).then(
             fn=lambda: (
                 gr.update(value=""),
@@ -531,10 +532,7 @@ class ScenarioManagement(BasePage):
         self.btn_delete.click(
             self.on_btn_delete_click,
             inputs=[],
-            outputs=[
-                self.btn_delete,
-                self.btn_delete_yes,
-                self.btn_delete_no],
+            outputs=[self.btn_delete, self.btn_delete_yes, self.btn_delete_no],
             show_progress="hidden",
         )
 
@@ -557,45 +555,27 @@ class ScenarioManagement(BasePage):
             show_progress="hidden",
         ).then(
             self.list_scenario,
-            inputs=[
-                self.filter_class_name,
-                self.filter_types
-            ],
+            inputs=[self.filter_class_name, self.filter_types],
             outputs=[self.scenario_list],
         )
 
         # Filter events
         self.filter_btn.click(
             fn=self.list_scenario,
-            inputs=[
-                self.filter_class_name,
-                self.filter_types
-            ],
-            outputs=[
-                self.scenario_list
-            ]
+            inputs=[self.filter_class_name, self.filter_types],
+            outputs=[self.scenario_list],
         ).success(
             lambda: gr.update(value=""),
             inputs=[],
-            outputs=[self.selected_scenario_name]
+            outputs=[self.selected_scenario_name],
         )
 
         self.filter_reset.click(
-            fn=self.list_scenario,
-            inputs=[],
-            outputs=[
-                self.scenario_list
-            ]
+            fn=self.list_scenario, inputs=[], outputs=[self.scenario_list]
         ).success(
-            lambda: (
-                gr.update(value=""),
-                gr.update(value=None)
-            ),
+            lambda: (gr.update(value=""), gr.update(value=None)),
             inputs=[],
-            outputs=[
-                self.filter_class_name,
-                self.filter_types
-            ]
+            outputs=[self.filter_class_name, self.filter_types],
         )
 
         # Trial events
@@ -618,11 +598,7 @@ class ScenarioManagement(BasePage):
                 self.trial_description,
                 self.trial_select_file,
                 self.edit_base_prompt,
-                self.edit_retrieval_validator
+                self.edit_retrieval_validator,
             ],
-            outputs=[
-                self.trial_output_content
-            ]
+            outputs=[self.trial_output_content],
         )
-
-
