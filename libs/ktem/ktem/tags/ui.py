@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Literal
+from typing import Generator, Literal
 
 import gradio as gr
 import pandas as pd
@@ -13,10 +13,11 @@ from kotaemon.base import Document
 
 from .crud import TagCRUD
 from .index import TagIndex
-from .pipelines import MetaIndexPipeline
+from .pipelines import N_CHUNKS_PER_FILE_FOR_TAGGING, MetaIndexPipeline
 
 TAG_DISPLAY_COLUMNS = ["name", "scope", "type", "prompt", "id"]
-N_CHUNKS_IN_PREVIEW = 10
+N_CHUNKS_IN_PREVIEW = 8
+MAX_CONTENT_LENGTH_IN_PREVIEW = 1000
 
 
 class TrialInputType(str, Enum):
@@ -360,14 +361,16 @@ class TagManagement(BasePage):
         self,
         index_id: int,
         selected_type: Literal["Content", "Files"],
+        tag_name: str,
         tag_prompt: str,
+        tag_type: str,
         tag_scope: str,
-        tag_config: str,
+        valid_classes: str,
         file_name: str,
         content: str,
         settings: dict,
         user_id: str,
-    ) -> str:
+    ) -> Generator[str, None, None]:
         if index_id is None:
             raise gr.Error("Please select an index")
 
@@ -394,16 +397,16 @@ class TagManagement(BasePage):
             if len(chunks) < 1:
                 raise gr.Warning(f"No chunks in file-{file_name}. Return")
 
+            contents_in = [chunk.text for chunk in chunks]
             if tag_scope == TagScope.file:
+                contents_in = contents_in[:N_CHUNKS_PER_FILE_FOR_TAGGING]
                 contents_in = ["\n".join([elem for elem in contents_in])]
-            else:
-                contents_in = [chunk.text for chunk in chunks]
 
         else:
             raise Exception("Not implemented error!")
 
         html_result = (
-            "<div style='max-height: 400px; overflow-y: auto;'>"
+            "<div style='max-height: 600px; overflow-y: auto;'>"
             "<table border='1' style='width:100%; border-collapse: collapse;'>"
         )
         html_result += (
@@ -417,24 +420,30 @@ class TagManagement(BasePage):
 
         for idx, content_in in enumerate(contents_in):
             generated_content = tag_index_pipeline.generate_with_llm(
-                tag_prompt, content_in
+                BaseTag(
+                    name=tag_name,
+                    prompt=tag_prompt,
+                    type=tag_type,
+                    meta={"valid_classes": valid_classes},
+                ),
+                content_in,
             )
+            if len(content_in) > MAX_CONTENT_LENGTH_IN_PREVIEW:
+                content_in = content_in[:MAX_CONTENT_LENGTH_IN_PREVIEW] + "..."
 
             html_result += (
                 "<tr>"
                 f"<td>{idx}</td>"
-                f"<td><details><summary>Tag prompt</summary>{tag_prompt}"
+                f"<td><details><summary><b>Tag prompt</b></summary>{tag_prompt}"
                 "</details></td>"
-                "<td><details><summary>Input content"
+                "<td><details open='true'><summary><b>Input content</b>"
                 f"</summary>{content_in}</details></td>"
-                "<td><details><summary>Generated content"
-                f"</summary>{generated_content}</details></td>"
+                "<td><details open='true'><summary><b>Generated content</b>"
+                f"</summary><mark>{generated_content}</mark></details></td>"
                 "</tr>"
             )
-
-        html_result += "</table></div>"
-
-        return html_result
+            final_html_result = html_result + "</table></div>"
+            yield final_html_result
 
     def on_register_events(self):
         # Enable selection while user select classification
@@ -589,9 +598,11 @@ class TagManagement(BasePage):
             inputs=[
                 self.trial_select_index,
                 self.trial_input_type,
+                self.edit_name,
                 self.edit_prompt,
+                self.edit_type,
                 self.edit_scope,
-                self.edit_config,
+                self.edit_valid_classes,
                 self.trial_select_file,
                 self.trial_raw_content,
                 self._app.settings_state,

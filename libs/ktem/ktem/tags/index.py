@@ -52,5 +52,6 @@ class TagIndex(FileIndex):
         obj = super().get_indexing_pipeline(settings, user_id)
         # disable vectorstore for this kind of Index
         obj.VS = None
+        obj.meta_vectorstore = self._vectorstore
 
         return obj
