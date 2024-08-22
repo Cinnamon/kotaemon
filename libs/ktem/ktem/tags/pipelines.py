@@ -360,9 +360,7 @@ class LLMMetaTagPipeline(BaseComponent):
                     )
                 ),
                 HumanMessage(
-                    content=(
-                        f"Tag name:{self.tag.name}" "\nInstruction:{self.tag.prompt}"
-                    )
+                    content=(f"Tag name:{self.tag.name}\nInstruction:{self.tag.prompt}")
                 ),
                 HumanMessage(content=f"Context:\n{context}"),
                 HumanMessage(
