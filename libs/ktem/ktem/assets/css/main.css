@@ -147,6 +147,16 @@ mark {
   max-height: 42px;
 }
 
+/* Hide sort buttons at gr.DataFrame */
+.sort-button {
+  display: none !important;
+}
+
+/* Show sort button only in File list*/
+#file_list_view .sort-button {
+  display: block !important;
+}
+
 .scrollable {
   overflow-y: auto;
 }

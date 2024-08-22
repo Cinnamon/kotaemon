@@ -32,11 +32,11 @@ class TagCRUD:
         meta = {}
 
         assert name != "" and prompt != "", "Invalid name or prompt: cannot be empty."
+        assert type in TagType.list_all(), "Invalid tag type!"
+        assert scope in TagScope.list_all(), "Invalid tag scope!"
 
         if type == TagType.classification:
-            assert (
-                valid_classes is not None and valid_classes != ""
-            ), "Invalid valid classes!"
+            assert valid_classes is not None and valid_classes != "", "Invalid classes!"
             meta["valid_classes"] = valid_classes
 
         with Session(self._engine) as session:

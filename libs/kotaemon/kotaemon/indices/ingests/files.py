@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Type
 
 from llama_index.core.readers.base import BaseReader
+from llama_index.readers.file import PDFReader
 
 from kotaemon.base import BaseComponent, Document, Param
 from kotaemon.indices.extractors import BaseDocParser
@@ -14,7 +15,6 @@ from kotaemon.loaders import (
     MhtmlReader,
     OCRReader,
     PandasExcelReader,
-    PDFThumbnailReader,
     UnstructuredReader,
 )
 
@@ -32,7 +32,7 @@ KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
     ".jpg": unstructured,
     ".tiff": unstructured,
     ".tif": unstructured,
-    ".pdf": PDFThumbnailReader(),
+    ".pdf": PDFReader(),
 }
 
 

@@ -1,20 +1,67 @@
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Generator
 
-from ktem.db.base_models import BaseTag, TagScope
+from ktem.db.base_models import BaseTag, TagScope, TagType
 from ktem.db.models import engine
 from ktem.index.file.base import BaseFileIndexIndexing
 from ktem.index.file.pipelines import IndexDocumentPipeline, IndexPipeline
 from ktem.llms.manager import llms
+from llama_index.core.vector_stores import (
+    FilterCondition,
+    FilterOperator,
+    MetadataFilter,
+    MetadataFilters,
+)
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from kotaemon.base import Document, DocumentWithEmbedding
+from kotaemon.base import BaseComponent, Document, DocumentWithEmbedding, Param
+from kotaemon.base.schema import HumanMessage, SystemMessage
+from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.llms import BaseLLM
+from kotaemon.storages import BaseVectorStore
 
 from ..db.base_models import TagProcessStatus
 from .crud import ChunkTagIndexCRUD, TagCRUD
+
+N_CHUNKS_PER_FILE_FOR_TAGGING = 5
+
+
+class ChunkTagIndexVectorStore:
+    def __init__(self, vectorstore: BaseVectorStore, embeddings: BaseEmbeddings):
+        self._vectorstore = vectorstore
+        self._embedding = embeddings
+
+    def add(self, doc_ids: list[str], doc_contents: list[str]):
+        embeddings = self._embedding(doc_contents)
+        self._vectorstore.add(
+            embeddings=embeddings,
+            ids=doc_ids,
+        )
+
+    def query(self, query: str, top_k: int = 10, tag_names: list[str] = []):
+        retrieval_kwargs = {}
+
+        if tag_names:
+            retrieval_kwargs["filters"] = MetadataFilters(
+                filters=[
+                    MetadataFilter(
+                        key="tag_name",
+                        value=tag_names,
+                        operator=FilterOperator.IN,
+                    )
+                ],
+                condition=FilterCondition.OR,
+            )
+
+        emb = self._embedding(query)[0].embedding
+        _, scores, ids = self._vectorstore.query(
+            embedding=emb, top_k=top_k, **retrieval_kwargs
+        )
+
+        return ids
 
 
 class MetaIndexPipeline(IndexDocumentPipeline):
@@ -25,7 +72,8 @@ class MetaIndexPipeline(IndexDocumentPipeline):
 
     llm: BaseLLM
     tags: list[str]
-    DEFAULT_CHUNK_SIZE = 20
+    meta_vectorstore = Param(help="The VectorStore")
+    DEFAULT_CHUNK_SIZE = 10
 
     @property
     def chunk_tag_index_crud(self) -> ChunkTagIndexCRUD:
@@ -63,6 +111,7 @@ class MetaIndexPipeline(IndexDocumentPipeline):
 
         # assign custom settings for the pipeline
         obj.llm = llm
+        print(f"Tags: {tags}")
         obj.tags = cls.resolve_tag_names(tags)
         return obj
 
@@ -79,14 +128,13 @@ class MetaIndexPipeline(IndexDocumentPipeline):
 
         return pipeline
 
-    def generate_with_llm(self, tag_prompt: str, doc_content: str) -> str:
-        # TODO: add LLM logic to automatically tag document content
-        return f"{type(self.llm)} {tag_prompt} - {doc_content}"
+    def generate_with_llm(self, tag: BaseTag, doc_content: str) -> str:
+        llm_tag_pipeline = LLMMetaTagPipeline(llm=self.llm, tag=tag)
+        return llm_tag_pipeline.run(doc_content)
 
-    def create_tag_content(
-        self, tag_id: str, chunk_id: str, tag_prompt: str, doc_content: str
-    ) -> str:
+    def create_tag_content(self, chunk_id: str, tag: BaseTag, doc_content: str) -> str:
         # pending
+        tag_id = tag.id
         index_id = self.chunk_tag_index_crud.create(
             tag_id=tag_id, chunk_id=chunk_id, content=""
         )
@@ -95,7 +143,7 @@ class MetaIndexPipeline(IndexDocumentPipeline):
             index_id, new_status=TagProcessStatus.in_progress
         )
         # main LLM call to populate tag content
-        tag_content: str = self.generate_with_llm(tag_prompt, doc_content)
+        tag_content: str = self.generate_with_llm(tag, doc_content)
 
         # TODO: create additional vectorstore and
         # perform vector indexing for tag content
@@ -150,20 +198,28 @@ class MetaIndexPipeline(IndexDocumentPipeline):
             if tag_obj is None:
                 continue
 
-            tag_prompt = tag_obj.prompt
-            tag_id = tag_obj.id
             tag_scope = tag_obj.scope
 
             if tag_scope == TagScope.chunk.value:
+                pool = ThreadPoolExecutor(max_workers=N_CHUNKS_PER_FILE_FOR_TAGGING)
+                futures = []
                 for _idx, doc in enumerate(docs):
                     try:
                         doc_content = doc.text
                         doc_id = doc.doc_id
-                        index_id = self.create_tag_content(
-                            tag_id, doc_id, tag_prompt, doc_content
+                        futures.append(
+                            pool.submit(
+                                self.create_tag_content, doc_id, tag_obj, doc_content
+                            )
                         )
-                        indexed_ids.append(index_id)
                         if (_idx + 1) % chunk_size == 0 or _idx == n_docs - 1:
+                            # get output from current thread pool
+                            for future in futures:
+                                index_id = future.result()
+                                indexed_ids.append(index_id)
+
+                            futures = []
+
                             yield Document(
                                 content=(
                                     f"Tagging [{_tag_idx+1}/{n_tags}] - "
@@ -184,12 +240,20 @@ class MetaIndexPipeline(IndexDocumentPipeline):
                             ),
                             channel="debug",
                         )
+                # finish the rest of the threads
+                pool.shutdown(wait=True)
+
             elif tag_scope == TagScope.file.value:
                 for _idx, (file_id, file_docs) in enumerate(file_id_to_docs.items()):
                     try:
-                        doc_content = "\n".join([doc.text for doc in file_docs])
+                        doc_content = "\n".join(
+                            [
+                                doc.text
+                                for doc in file_docs[:N_CHUNKS_PER_FILE_FOR_TAGGING]
+                            ]
+                        )
                         index_id = self.create_tag_content(
-                            tag_id, file_id, tag_prompt, doc_content
+                            file_id, tag_obj, doc_content
                         )
                         indexed_ids.append(index_id)
                         yield Document(
@@ -250,3 +314,83 @@ class MetaIndexPipeline(IndexDocumentPipeline):
         indexed_ids = yield from self.process_docs(docs, clean_previous=True)
 
         return indexed_ids
+
+
+class LLMMetaTagPipeline(BaseComponent):
+    llm: BaseLLM
+    tag: BaseTag
+
+    def run(self, context: str):
+        return self.invoke(context)
+
+    def get_prompt(self, context: str):
+        context = context.replace("\n", " ")
+        if self.tag.type == TagType.text.value:
+            messages = [
+                SystemMessage(
+                    content=(
+                        "You are a world class algorithm to convert "
+                        "the input text to a tag value based on "
+                        "the instruction below."
+                    )
+                ),
+                HumanMessage(
+                    content=(f"Tag name:{self.tag.name}\nInstruction:{self.tag.prompt}")
+                ),
+                HumanMessage(content=f"Context:\n{context}"),
+                HumanMessage(content="Create a tag value based on the above context."),
+                HumanMessage(
+                    content=("Only output the tag value " "without any explanation.")
+                ),
+            ]
+            classes = None
+        else:
+            if self.tag.type == TagType.classification.value:
+                classes = self.tag.meta["valid_classes"]
+            else:
+                classes = "true, false"
+            messages = [
+                SystemMessage(
+                    content=(
+                        "You are a world class algorithm to classify "
+                        "the input text to predefined classed based on "
+                        "the instruction below."
+                    )
+                ),
+                HumanMessage(
+                    content=(f"Tag name:{self.tag.name}\nInstruction:{self.tag.prompt}")
+                ),
+                HumanMessage(content=f"Context:\n{context}"),
+                HumanMessage(
+                    content=(
+                        "Classify the above context "
+                        f"to one of the classes: {classes}"
+                    )
+                ),
+                HumanMessage(
+                    content=(
+                        "Only output the exact class name " "without any explanation."
+                    )
+                ),
+            ]
+
+        if classes is not None:
+            classes = [it.strip() for it in classes.split(",")]
+
+        return messages, classes
+
+    def invoke(self, context: str):
+        messages, classes = self.get_prompt(context)
+        kwargs = {
+            "max_tokens": 100,
+        }
+        try:
+            llm_output = self.llm(messages, **kwargs).text
+            if classes is not None:
+                assert llm_output in classes, f"Output {llm_output} not in {classes}"
+            print(self.tag.name, context[:100].replace("\n", " "), llm_output)
+        except Exception as e:
+            print(e)
+            return None
+
+        return llm_output

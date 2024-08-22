@@ -53,5 +53,9 @@ class ChunkTagIndex(base_models.BaseChunkTagIndex, table=True):  # type: ignore
     """Record of meta-doc index"""
 
 
+class Scenario(base_models.BaseScenario, table=True):  # type: ignore
+    """Record of scenarios"""
+
+
 if not getattr(settings, "KH_ENABLE_ALEMBIC", False):
     SQLModel.metadata.create_all(engine)

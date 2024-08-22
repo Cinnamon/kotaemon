@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import gradio as gr
 import pandas as pd
 import yaml
@@ -5,6 +7,8 @@ from ktem.app import BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
 
 from .manager import IndexManager
+
+DISPLAY_INDEX_COLUMNS = ["id", "name", "index type"]
 
 
 # UGLY way to restart gradio server by updating atime
@@ -44,7 +48,7 @@ class IndexManagement(BasePage):
     def on_building_ui(self):
         with gr.Tab(label="View"):
             self.index_list = gr.DataFrame(
-                headers=["ID", "Name", "Index Type"],
+                headers=DISPLAY_INDEX_COLUMNS,
                 interactive=False,
             )
 
@@ -295,16 +299,17 @@ class IndexManagement(BasePage):
         items = []
         for item in self.manager.indices:
             record = {}
-            record["ID"] = item.id
-            record["Name"] = item.name
-            record["Index Type"] = item.__class__.__name__
+            for key, value in zip(
+                DISPLAY_INDEX_COLUMNS, (item.id, item.name, item.__class__.__name__)
+            ):
+                record[key] = value
             items.append(record)
 
         if items:
             indices_list = pd.DataFrame.from_records(items)
         else:
             indices_list = pd.DataFrame.from_records(
-                [{"ID": "-", "Name": "-", "Index Type": "-"}]
+                [{key: "-" for key in DISPLAY_INDEX_COLUMNS}]
             )
 
         return indices_list
@@ -318,7 +323,7 @@ class IndexManagement(BasePage):
         if not ev.selected:
             return -1
 
-        return int(index_list["ID"][ev.index[0]])
+        return int(index_list["id"][ev.index[0]])
 
     def on_selected_index_change(self, selected_index_id: int):
         """Show the relevant index as user selects it on the UI
@@ -346,9 +351,13 @@ class IndexManagement(BasePage):
 
             # remove the dropdown field id from the config
             if spec_dropdown_id is not None:
-                dropdown_values = index.config.pop(spec_dropdown_id, None)
+                dropdown_values = index.config.get(spec_dropdown_id, None)
 
-            edit_spec = yaml.dump(index.config)
+            # create a modified config without the dropdown field to display
+            modified_index_config = deepcopy(index.config)
+            modified_index_config.pop(spec_dropdown_id)
+
+            edit_spec = yaml.dump(modified_index_config)
             edit_spec_desc = format_description(index.__class__)
 
             if dropdown_settings:
