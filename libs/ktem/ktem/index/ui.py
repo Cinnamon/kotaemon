@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import gradio as gr
 import pandas as pd
 import yaml
@@ -349,9 +351,13 @@ class IndexManagement(BasePage):
 
             # remove the dropdown field id from the config
             if spec_dropdown_id is not None:
-                dropdown_values = index.config.pop(spec_dropdown_id, None)
+                dropdown_values = index.config.get(spec_dropdown_id, None)
 
-            edit_spec = yaml.dump(index.config)
+            # create a modified config without the dropdown field to display
+            modified_index_config = deepcopy(index.config)
+            modified_index_config.pop(spec_dropdown_id)
+
+            edit_spec = yaml.dump(modified_index_config)
             edit_spec_desc = format_description(index.__class__)
 
             if dropdown_settings:
