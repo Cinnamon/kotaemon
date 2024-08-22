@@ -281,7 +281,7 @@ class FileIndex(BaseIndex):
             self._docstore.delete(doc_ids)
 
     def delete_from_vectorstore(self, vec_ids: list[str]):
-        if self._vectorstore is not None:
+        if self._vectorstore is not None and vec_ids:
             self._vectorstore.delete(vec_ids)
 
     def on_create(self):
