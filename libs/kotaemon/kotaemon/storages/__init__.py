@@ -2,6 +2,7 @@ from .docstores import (
     BaseDocumentStore,
     ElasticsearchDocumentStore,
     InMemoryDocumentStore,
+    LanceDBDocumentStore,
     SimpleFileDocumentStore,
 )
 from .vectorstores import (
@@ -17,6 +18,7 @@ __all__ = [
     "InMemoryDocumentStore",
     "ElasticsearchDocumentStore",
     "SimpleFileDocumentStore",
+    "LanceDBDocumentStore",
     # Vector stores
     "BaseVectorStore",
     "ChromaVectorStore",
