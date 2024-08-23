@@ -125,15 +125,15 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
         retrieval_kwargs: dict = {}
         with Session(engine) as session:
             stmt = select(self.Index).where(
-                self.Index.relation_type == "vector",
+                self.Index.relation_type == "document",
                 self.Index.source_id.in_(doc_ids),
             )
             results = session.execute(stmt)
-            vs_ids = [r[0].target_id for r in results.all()]
+            chunk_ids = [r[0].target_id for r in results.all()]
 
         # do first round top_k extension
         retrieval_kwargs["do_extend"] = True
-        retrieval_kwargs["scope"] = vs_ids
+        retrieval_kwargs["scope"] = chunk_ids
         retrieval_kwargs["filters"] = MetadataFilters(
             filters=[
                 MetadataFilter(

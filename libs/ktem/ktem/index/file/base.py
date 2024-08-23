@@ -90,6 +90,7 @@ class BaseFileIndexIndexing(BaseComponent):
                 None if the indexing failed for that file path)
             - the error messages (each error message corresponds to an input file path,
                 or None if the indexing was successful for that file path)
+            - the indexed documents in form of list[Documents]
         """
         raise NotImplementedError
 
