@@ -141,7 +141,11 @@ class LLMTrulensScoring(LLMReranking):
                             )
                         )
                     )
-                    futures.append(executor.submit(lambda: self.llm(messages).text))
+
+                    def llm_call():
+                        return self.llm(messages).text
+
+                    futures.append(executor.submit(llm_call))
 
                 results = [future.result() for future in futures]
         else:
