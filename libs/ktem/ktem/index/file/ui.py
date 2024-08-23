@@ -172,6 +172,7 @@ class FileIndexPage(BasePage):
                     column_widths=["0%", "50%", "8%", "7%", "15%", "20%"],
                     interactive=False,
                     wrap=False,
+                    elem_id="file_list_view",
                 )
 
                 with gr.Row():
@@ -631,20 +632,20 @@ class FileIndexPage(BasePage):
                     debugs.append(response.text)
                 yield "\n".join(outputs), "\n".join(debugs)
         except StopIteration as e:
-            result, errors, docs = e.value
+            results, index_errors, docs = e.value
         except Exception as e:
             debugs.append(f"Error: {e}")
             yield "\n".join(outputs), "\n".join(debugs)
             return
 
-        n_successes = len([_ for _ in result if _])
+        n_successes = len([_ for _ in results if _])
         if n_successes:
             gr.Info(f"Successfully index {n_successes} files")
         n_errors = len([_ for _ in errors if _])
         if n_errors:
             gr.Warning(f"Have errors for {n_errors} files")
 
-        return result
+        return results
 
     def index_fn_with_default_loaders(
         self, files, reindex: bool, settings, user_id

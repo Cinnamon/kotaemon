@@ -44,7 +44,7 @@ class IndexManagement(BasePage):
     def on_building_ui(self):
         with gr.Tab(label="View"):
             self.index_list = gr.DataFrame(
-                headers=["ID", "Name", "Index Type"],
+                headers=["id", "name", "index type"],
                 interactive=False,
             )
 
@@ -260,9 +260,9 @@ class IndexManagement(BasePage):
         items = []
         for item in self.manager.indices:
             record = {}
-            record["ID"] = item.id
-            record["Name"] = item.name
-            record["Index Type"] = item.__class__.__name__
+            record["id"] = item.id
+            record["name"] = item.name
+            record["index type"] = item.__class__.__name__
             items.append(record)
 
         if items:
