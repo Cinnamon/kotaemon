@@ -2,7 +2,7 @@
 import re
 from datetime import datetime
 
-from ktem.db.base_models import ScenarioType
+from ktem.db.base_models import PromptVariableType, ScenarioType
 from ktem.db.models import Scenario, Tag
 from ktem.tags.crud import TagCRUD
 from sqlmodel import Session, select, update
@@ -55,6 +55,23 @@ class ScenarioValidator:
 
         return matched_tags
 
+    def validate_variables(self, content: str) -> list[PromptVariableType]:
+        """
+        Validate the variables in the content
+        """
+        pattern = r"%([^%]+)%"
+        variables = re.findall(pattern, content)
+        validated_variables = []
+
+        if len(variables) > 0:
+            for variable in variables:
+                if variable not in PromptVariableType.get_types():
+                    raise Exception(f"Variable {variable} is not valid")
+                else:
+                    validated_variables.append(PromptVariableType(variable))
+
+        return validated_variables
+
 
 class ScenarioCRUD:
     def __init__(self, engine):
@@ -74,7 +91,7 @@ class ScenarioCRUD:
         specification: str,
         base_prompt: str,
         retrieval_validator: str,
-        do_valid_tags: bool = False,
+        do_valid_tags: bool = True,
     ) -> str:
         if isinstance(scenario_type, ScenarioType):
             scenario_type = scenario_type.value
@@ -84,6 +101,7 @@ class ScenarioCRUD:
 
         if do_valid_tags:
             self.validator.validate_tags(base_prompt)
+            self.validator.validate_variables(base_prompt)
             # self.validator.validate_tags(retrieval_validator)
 
         with Session(self._engine) as session:
@@ -139,12 +157,13 @@ class ScenarioCRUD:
         specification: str | None = None,
         base_prompt: str | None = None,
         retrieval_validator: str | None = None,
-        do_valid_tags: bool = False,
+        do_valid_tags: bool = True,
     ) -> bool:
         # validate tag names in base prompt
         # self.validator.validate_type(scenario_type)
         if do_valid_tags:
             self.validator.validate_tags(base_prompt)
+            self.validator.validate_variables(base_prompt)
             # self.validator.validate_tags(retrieval_validator)
 
         fields_to_update = {

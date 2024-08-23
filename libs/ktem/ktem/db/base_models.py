@@ -132,6 +132,16 @@ class ScenarioType(str, Enum):
         return [en.value for en in cls]
 
 
+class PromptVariableType(str, Enum):
+    input = "INPUT"
+    file_name = "FILE_NAME"
+    index_name = "INDEX_NAME"
+
+    @classmethod
+    def get_types(cls) -> list[str]:
+        return [en.value for en in cls]
+
+
 class BaseTag(SQLModel):
     """
     Store records of tag

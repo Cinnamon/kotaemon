@@ -36,7 +36,7 @@ class LLMScenarioPipeline(BaseComponent):
         ]
         return messages
 
-    def parse_structure_output(output: str):
+    def parse_structure_output(self, output: str):
         # temporary method LLM output to query value
         output_lines = [line for line in output.split("\n") if "|" in line]
         if output_lines:
@@ -58,6 +58,7 @@ class LLMScenarioPipeline(BaseComponent):
         }
         try:
             llm_output = default_llm(messages, **kwargs).text
+            llm_output = self.parse_structure_output(llm_output)
         except Exception as e:
             print(e)
             return None

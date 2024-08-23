@@ -4,7 +4,7 @@ from typing import Generator
 import gradio as gr
 import pandas as pd
 from ktem.app import BasePage
-from ktem.db.base_models import ScenarioType
+from ktem.db.base_models import PromptVariableType, ScenarioType
 from ktem.db.models import Scenario, engine
 from ktem.index import IndexManager
 from ktem.index.file import FileIndex
@@ -392,21 +392,37 @@ class ScenarioManagement(BasePage):
         # get tagging information from the database
         doc_id_to_tags = chunk_tag_index_crud.query_by_chunk_ids(chunk_ids)
 
-        # extract tags from the scenario prompt
         validator = ScenarioValidator(engine)
+        # extract tags from the scenario prompt
         tag_objs = validator.validate_tags(scenario_prompt)
+        # extract variables from the scenario prompt
+        variables: list[PromptVariableType] = validator.validate_variables(
+            scenario_prompt
+        )
+
         tag_names = [tag.name for tag in tag_objs]
         print("Using tags:", tag_names)
 
         query_pipeline = LLMScenarioPipeline()
+
+        # add variables to the query prompt if exist
         query_prompt = scenario_prompt
+        # only support INPUT variable for now
+        if PromptVariableType.input in variables:
+            query_prompt = query_prompt.replace(
+                f"%{PromptVariableType.input.value}%", input_param
+            )
+
         tag_schema_str = "\n".join(
             [f"| {tag.name} | {tag.type} | {tag.meta} |" for tag in tag_objs]
         )
         search_query_dict = query_pipeline.run(query_prompt, tag_schema_str)
 
         if search_query_dict:
-            search_tag_name, search_tag_value = list(search_query_dict.items())[0]
+            try:
+                search_tag_name, search_tag_value = list(search_query_dict.items())[0]
+            except (ValueError, IndexError):
+                search_tag_name, search_tag_value = None, None
         else:
             search_tag_name, search_tag_value = None, None
 
