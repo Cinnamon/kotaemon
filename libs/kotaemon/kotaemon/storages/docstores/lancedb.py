@@ -32,7 +32,7 @@ class LanceDBDocumentStore(BaseDocumentStore):
     ):
         """Load documents into lancedb storage."""
         doc_ids = ids if ids else [doc.doc_id for doc in docs]
-        data: list[dict[str, str | dict]] | None = [
+        data: list[dict[str, str]] | None = [
             {
                 "id": doc_id,
                 "text": doc.text,
@@ -68,10 +68,8 @@ class LanceDBDocumentStore(BaseDocumentStore):
         else:
             query_filter = None
         try:
+            document_collection = self.db_connection.open_table(self.collection_name)
             if query_filter:
-                document_collection = self.db_connection.open_table(
-                    self.collection_name
-                )
                 docs = (
                     document_collection.search(query, query_type="fts")
                     .where(query_filter, prefilter=True)
