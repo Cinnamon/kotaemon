@@ -1,0 +1,7 @@
+.github/
+.git/
+.pre-commit-config.yaml
+.commitlintrc
+.gitignore
+.gitmodules
+README.md
