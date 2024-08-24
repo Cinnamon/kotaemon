@@ -115,7 +115,7 @@ class LanceDBDocumentStore(BaseDocumentStore):
             for doc in docs
         ]
 
-    def delete(self, ids: Union[List[str], str]):
+    def delete(self, ids: Union[List[str], str], refresh_indices: bool = True):
         """Delete document by id"""
         if not isinstance(ids, list):
             ids = [ids]
@@ -124,6 +124,13 @@ class LanceDBDocumentStore(BaseDocumentStore):
         id_filter = ", ".join([f"'{_id}'" for _id in ids])
         query_filter = f"id in ({id_filter})"
         document_collection.delete(query_filter)
+
+        if refresh_indices:
+            document_collection.create_fts_index(
+                "text",
+                tokenizer_name="en_stem",
+                replace=True,
+            )
 
     def drop(self):
         """Drop the document store"""
