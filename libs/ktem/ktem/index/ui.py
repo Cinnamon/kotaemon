@@ -269,7 +269,7 @@ class IndexManagement(BasePage):
             indices_list = pd.DataFrame.from_records(items)
         else:
             indices_list = pd.DataFrame.from_records(
-                [{"ID": "-", "Name": "-", "Index Type": "-"}]
+                [{"id": "-", "name": "-", "index type": "-"}]
             )
 
         return indices_list
@@ -283,7 +283,7 @@ class IndexManagement(BasePage):
         if not ev.selected:
             return -1
 
-        return int(index_list["ID"][ev.index[0]])
+        return int(index_list["id"][ev.index[0]])
 
     def on_selected_index_change(self, selected_index_id: int):
         """Show the relevant index as user selects it on the UI

@@ -632,10 +632,11 @@ class FullQAPipeline(BaseReasoning):
                 if answer.metadata.get("qa_score")
                 else None
             )
-            yield Document(
-                channel="info",
-                content=f"<h5>Answer confidence: {qa_score}</h5>",
-            )
+            if qa_score:
+                yield Document(
+                    channel="info",
+                    content=f"<h5>Answer confidence: {qa_score}</h5>",
+                )
 
             yield from with_citation
             if without_citation:

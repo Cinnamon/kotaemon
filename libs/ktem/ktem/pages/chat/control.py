@@ -1,4 +1,5 @@
 import logging
+import os
 
 import gradio as gr
 from ktem.app import BasePage
@@ -11,6 +12,9 @@ from ...utils.conversation import sync_retrieval_n_message
 from .common import STATE
 
 logger = logging.getLogger(__name__)
+ASSETS_DIR = "assets/icons"
+if not os.path.isdir(ASSETS_DIR):
+    ASSETS_DIR = "libs/ktem/ktem/assets/icons"
 
 
 def is_conv_name_valid(name):
@@ -46,7 +50,7 @@ class ConversationControl(BasePage):
         with gr.Row() as self._new_delete:
             self.btn_new = gr.Button(
                 value="",
-                icon="assets/icons/new.svg",
+                icon=f"{ASSETS_DIR}/new.svg",
                 min_width=2,
                 scale=1,
                 size="sm",
@@ -54,7 +58,7 @@ class ConversationControl(BasePage):
             )
             self.btn_del = gr.Button(
                 value="",
-                icon="assets/icons/delete.svg",
+                icon=f"{ASSETS_DIR}/delete.svg",
                 min_width=2,
                 scale=1,
                 size="sm",
@@ -62,7 +66,7 @@ class ConversationControl(BasePage):
             )
             self.btn_conversation_rn = gr.Button(
                 value="",
-                icon="assets/icons/rename.svg",
+                icon=f"{ASSETS_DIR}/rename.svg",
                 min_width=2,
                 scale=1,
                 size="sm",
@@ -70,7 +74,7 @@ class ConversationControl(BasePage):
             )
             self.btn_info_expand = gr.Button(
                 value="",
-                icon="assets/icons/sidebar.svg",
+                icon=f"{ASSETS_DIR}/sidebar.svg",
                 min_width=2,
                 scale=1,
                 size="sm",
