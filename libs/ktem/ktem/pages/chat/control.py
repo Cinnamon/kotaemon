@@ -223,6 +223,7 @@ class ConversationControl(BasePage):
                 retrieval_history: list[str] = result.data_source.get(
                     "retrieval_messages", []
                 )
+                plot_history: list[dict] = result.data_source.get("plot_history", [])
 
                 # On initialization
                 # Ensure len of retrieval and messages are equal
@@ -233,6 +234,7 @@ class ConversationControl(BasePage):
                     if retrieval_history
                     else "<h5><b>No evidence found.</b></h5>"
                 )
+                plot_data = plot_history[-1] if plot_history else None
                 state = result.data_source.get("state", STATE)
 
             except Exception as e:
@@ -242,7 +244,9 @@ class ConversationControl(BasePage):
                 selected = {}
                 chats = []
                 retrieval_history = []
+                plot_history = []
                 info_panel = ""
+                plot_data = None
                 state = STATE
                 is_conv_public = False
 
@@ -262,7 +266,9 @@ class ConversationControl(BasePage):
             name,
             chats,
             info_panel,
+            plot_data,
             retrieval_history,
+            plot_history,
             is_conv_public,
             state,
             *indices,

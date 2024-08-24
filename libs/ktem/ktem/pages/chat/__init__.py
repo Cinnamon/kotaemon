@@ -14,6 +14,7 @@ from ktem.index.file.ui import File
 from ktem.reasoning.prompt_optimization.suggest_conversation_name import (
     SuggestConvNamePipeline,
 )
+from plotly.io import from_json
 from sqlmodel import Session, select
 from theflow.settings import settings as flowsettings
 
@@ -54,11 +55,13 @@ class ChatPage(BasePage):
 
     def on_building_ui(self):
         with gr.Row():
-            self.chat_state = gr.State(STATE)
-            self.original_retrieval_history = gr.State([])
-            self.original_chat_history = gr.State([])
-            self.original_settings = gr.State({})
-            self.original_info_panel = gr.State("")
+            self.state_chat = gr.State(STATE)
+            self.state_retrieval_history = gr.State([])
+            self.state_chat_history = gr.State([])
+            self.state_plot_history = gr.State([])
+            self.state_settings = gr.State({})
+            self.state_info_panel = gr.State("")
+            self.state_plot_panel = gr.State(None)
 
             with gr.Column(scale=1, elem_id="conv-settings-panel") as self.conv_column:
                 self.chat_control = ConversationControl(self._app)
@@ -148,6 +151,15 @@ class ChatPage(BasePage):
                     self.plot_panel = gr.Plot(visible=False)
                     self.info_panel = gr.HTML(elem_id="html-info-panel")
 
+    def _json_to_plot(self, json_dict: dict | None):
+        print(json_dict)
+        if json_dict:
+            plot = from_json(json_dict)
+            plot = gr.update(visible=True, value=plot)
+        else:
+            plot = gr.update(visible=False)
+        return plot
+
     def on_register_events(self):
         gr.on(
             triggers=[
@@ -179,30 +191,35 @@ class ChatPage(BasePage):
                 self._app.settings_state,
                 self._reasoning_type,
                 self._llm_type,
-                self.chat_state,
+                self.state_chat,
                 self._app.user_id,
             ]
             + self._indices_input,
             outputs=[
                 self.chat_panel.chatbot,
                 self.info_panel,
-                self.plot_panel,
-                self.chat_state,
+                self.state_plot_panel,
+                self.state_chat,
             ],
             concurrency_limit=20,
             show_progress="minimal",
         ).success(
+            fn=self._json_to_plot,
+            inputs=self.state_plot_panel,
+            outputs=self.plot_panel,
+            js=pdfview_js,
+        ).then(
             fn=self.backup_original_info,
             inputs=[
                 self.chat_panel.chatbot,
                 self._app.settings_state,
                 self.info_panel,
-                self.original_chat_history,
+                self.state_chat_history,
             ],
             outputs=[
-                self.original_chat_history,
-                self.original_settings,
-                self.original_info_panel,
+                self.state_chat_history,
+                self.state_settings,
+                self.state_info_panel,
             ],
         ).then(
             fn=self.update_data_source,
@@ -210,12 +227,17 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_id,
                 self._app.user_id,
                 self.info_panel,
-                self.original_retrieval_history,
+                self.state_plot_panel,
+                self.state_retrieval_history,
+                self.state_plot_history,
                 self.chat_panel.chatbot,
-                self.chat_state,
+                self.state_chat,
             ]
             + self._indices_input,
-            outputs=[self.original_retrieval_history],
+            outputs=[
+                self.state_retrieval_history,
+                self.state_plot_history,
+            ],
             concurrency_limit=20,
         ).success(
             fn=self.check_and_suggest_name_conv,
@@ -238,8 +260,6 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_rn,
             ],
             show_progress="hidden",
-        ).then(
-            fn=None, inputs=None, outputs=None, js=pdfview_js
         )
 
         self.chat_panel.regen_btn.click(
@@ -250,30 +270,40 @@ class ChatPage(BasePage):
                 self._app.settings_state,
                 self._reasoning_type,
                 self._llm_type,
-                self.chat_state,
+                self.state_chat,
                 self._app.user_id,
             ]
             + self._indices_input,
             outputs=[
                 self.chat_panel.chatbot,
                 self.info_panel,
-                self.plot_panel,
-                self.chat_state,
+                self.state_plot_panel,
+                self.state_chat,
             ],
             concurrency_limit=20,
             show_progress="minimal",
+        ).success(
+            fn=self._json_to_plot,
+            inputs=self.state_plot_panel,
+            outputs=self.plot_panel,
+            js=pdfview_js,
         ).then(
             fn=self.update_data_source,
             inputs=[
                 self.chat_control.conversation_id,
                 self._app.user_id,
                 self.info_panel,
-                self.original_retrieval_history,
+                self.state_plot_panel,
+                self.state_retrieval_history,
+                self.state_plot_history,
                 self.chat_panel.chatbot,
-                self.chat_state,
+                self.state_chat,
             ]
             + self._indices_input,
-            outputs=[self.original_retrieval_history],
+            outputs=[
+                self.state_retrieval_history,
+                self.state_plot_history,
+            ],
             concurrency_limit=20,
         ).success(
             fn=self.check_and_suggest_name_conv,
@@ -296,8 +326,6 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_rn,
             ],
             show_progress="hidden",
-        ).then(
-            fn=None, inputs=None, outputs=None, js=pdfview_js
         )
 
         self.chat_control.btn_info_expand.click(
@@ -320,9 +348,9 @@ class ChatPage(BasePage):
                 self.chat_panel.chatbot,
                 self._app.settings_state,
                 self.info_panel,
-                self.original_chat_history,
-                self.original_settings,
-                self.original_info_panel,
+                self.state_chat_history,
+                self.state_settings,
+                self.state_info_panel,
                 gr.State(getattr(flowsettings, "KH_APP_DATA_DIR", "logs")),
             ],
             outputs=None,
@@ -342,12 +370,18 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
                 self.info_panel,
-                self.original_retrieval_history,
+                self.state_plot_panel,
+                self.state_retrieval_history,
+                self.state_plot_history,
                 self.chat_control.cb_is_public,
-                self.chat_state,
+                self.state_chat,
             ]
             + self._indices_input,
             show_progress="hidden",
+        ).then(
+            fn=self._json_to_plot,
+            inputs=self.state_plot_panel,
+            outputs=self.plot_panel,
         )
 
         self.chat_control.btn_del.click(
@@ -369,12 +403,18 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
                 self.info_panel,
-                self.original_retrieval_history,
+                self.state_plot_panel,
+                self.state_retrieval_history,
+                self.state_plot_history,
                 self.chat_control.cb_is_public,
-                self.chat_state,
+                self.state_chat,
             ]
             + self._indices_input,
             show_progress="hidden",
+        ).then(
+            fn=self._json_to_plot,
+            inputs=self.state_plot_panel,
+            outputs=self.plot_panel,
         ).then(
             lambda: self.toggle_delete(""),
             outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
@@ -414,12 +454,18 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
                 self.info_panel,
-                self.original_retrieval_history,
+                self.state_plot_panel,
+                self.state_retrieval_history,
+                self.state_plot_history,
                 self.chat_control.cb_is_public,
-                self.chat_state,
+                self.state_chat,
             ]
             + self._indices_input,
             show_progress="hidden",
+        ).then(
+            fn=self._json_to_plot,
+            inputs=self.state_plot_panel,
+            outputs=self.plot_panel,
         ).then(
             lambda: self.toggle_delete(""),
             outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
@@ -430,9 +476,22 @@ class ChatPage(BasePage):
         # evidence display on message selection
         self.chat_panel.chatbot.select(
             self.message_selected,
-            inputs=[self.original_retrieval_history],
-            outputs=self.info_panel,
-        ).then(fn=None, inputs=None, outputs=None, js=pdfview_js)
+            inputs=[
+                self.state_retrieval_history,
+                self.state_plot_history,
+            ],
+            outputs=[
+                self.info_panel,
+                self.state_plot_panel,
+            ],
+        ).then(
+            fn=self._json_to_plot,
+            inputs=self.state_plot_panel,
+            outputs=self.plot_panel,
+        ).then(
+            fn=None, inputs=None, outputs=None, js=pdfview_js
+        )
+
         self.chat_control.cb_is_public.change(
             self.on_set_public_conversation,
             inputs=[self.chat_control.cb_is_public, self.chat_control.conversation],
@@ -451,7 +510,7 @@ class ChatPage(BasePage):
                 self._app.settings_state,
                 self._app.user_id,
                 self.info_panel,
-                self.chat_state,
+                self.state_chat,
             ]
             + self._indices_input,
             outputs=None,
@@ -554,7 +613,9 @@ class ChatPage(BasePage):
                         self.chat_control.conversation_rn,
                         self.chat_panel.chatbot,
                         self.info_panel,
-                        self.original_retrieval_history,
+                        self.state_plot_panel,
+                        self.state_retrieval_history,
+                        self.state_plot_history,
                         self.chat_control.cb_is_public,
                     ]
                     + self._indices_input,
@@ -567,7 +628,9 @@ class ChatPage(BasePage):
         convo_id,
         user_id,
         retrieval_msg,
+        plot_data,
         retrival_history,
+        plot_history,
         messages,
         state,
         *selecteds,
@@ -580,10 +643,12 @@ class ChatPage(BasePage):
         # if not regen, then append the new message
         if not state["app"].get("regen", False):
             retrival_history = retrival_history + [retrieval_msg]
+            plot_history = plot_history + [plot_data]
         else:
             if retrival_history:
                 print("Updating retrieval history (regen=True)")
                 retrival_history[-1] = retrieval_msg
+                plot_history[-1] = plot_data
 
         # reset regen state
         state["app"]["regen"] = False
@@ -610,13 +675,14 @@ class ChatPage(BasePage):
                 "selected": selecteds_ if is_owner else old_selecteds,
                 "messages": messages,
                 "retrieval_messages": retrival_history,
+                "plot_history": plot_history,
                 "state": state,
                 "likes": deepcopy(data_source.get("likes", [])),
             }
             session.add(result)
             session.commit()
 
-        return retrival_history
+        return retrival_history, plot_history
 
     def reasoning_changed(self, reasoning_type):
         if reasoning_type != DEFAULT_SETTING:
@@ -638,9 +704,9 @@ class ChatPage(BasePage):
             session.add(result)
             session.commit()
 
-    def message_selected(self, retrieval_history, msg: gr.SelectData):
-        index = msg.index
-        return retrieval_history[index[0]]
+    def message_selected(self, retrieval_history, plot_history, msg: gr.SelectData):
+        index = msg.index[0]
+        return retrieval_history[index], plot_history[index]
 
     def create_pipeline(
         self,
@@ -727,7 +793,7 @@ class ChatPage(BasePage):
         print("Reasoning state", reasoning_state)
         pipeline.set_output_queue(queue)
 
-        text, refs, plot = "", "", gr.update(visible=False)
+        text, refs, plot = "", "", None
         msg_placeholder = getattr(
             flowsettings, "KH_CHAT_MSG_PLACEHOLDER", "Thinking ..."
         )
@@ -757,10 +823,7 @@ class ChatPage(BasePage):
                     refs += response.content
 
             if response.channel == "plot":
-                if response.content is None:
-                    plot = gr.update(visible=False)
-                else:
-                    plot = gr.update(visible=True, value=response.content)
+                plot = response.content
 
             if len(refs) > len_ref:
                 len_ref = len(refs)
