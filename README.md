@@ -17,7 +17,7 @@ https://github.com/Cinnamon/kotaemon/assets/25688648/815ecf68-3a02-4914-a0dd-3f8
 [![built with Codeium](https://codeium.com/badges/main)](https://codeium.com)
 
 This project would like to appeal to both end users who want to do QA on their
-documents and developers who want to build their own QA pipeline.
+documents and developers who want to build their own RAG pipeline.
 
 - For end users:
   - A local Question Answering UI for RAG-based QA.
