@@ -225,4 +225,15 @@ KH_INDICES = [
         },
         "index_type": "ktem.index.file.FileIndex",
     },
+    {
+        "name": "GraphRAG",
+        "config": {
+            "supported_file_types": (
+                ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
+                ".pptx, .csv, .html, .mhtml, .txt, .zip"
+            ),
+            "private": False,
+        },
+        "index_type": "ktem.index.file.graph.GraphRAGIndex",
+    },
 ]

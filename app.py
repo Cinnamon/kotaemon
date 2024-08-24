@@ -1,8 +1,12 @@
 import os
 
 from ktem.main import App
+from theflow.settings import settings as flowsettings
 
-GRADIO_TEMP_DIR = os.getenv("GRADIO_TEMP_DIR", "./gradio_tmp")
+KH_APP_DATA_DIR = getattr(flowsettings, "KH_MARKDOWN_OUTPUT_DIR", ".")
+GRADIO_TEMP_DIR = os.getenv(
+    "GRADIO_TEMP_DIR", os.path.join(KH_APP_DATA_DIR, "gradio_tmp")
+)
 
 app = App()
 demo = app.make()
