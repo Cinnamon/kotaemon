@@ -152,7 +152,6 @@ class ChatPage(BasePage):
                     self.info_panel = gr.HTML(elem_id="html-info-panel")
 
     def _json_to_plot(self, json_dict: dict | None):
-        print(json_dict)
         if json_dict:
             plot = from_json(json_dict)
             plot = gr.update(visible=True, value=plot)
