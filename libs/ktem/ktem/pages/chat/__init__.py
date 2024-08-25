@@ -197,17 +197,13 @@ class ChatPage(BasePage):
             outputs=[
                 self.chat_panel.chatbot,
                 self.info_panel,
+                self.plot_panel,
                 self.state_plot_panel,
                 self.state_chat,
             ],
             concurrency_limit=20,
             show_progress="minimal",
         ).success(
-            fn=self._json_to_plot,
-            inputs=self.state_plot_panel,
-            outputs=self.plot_panel,
-            js=pdfview_js,
-        ).then(
             fn=self.backup_original_info,
             inputs=[
                 self.chat_panel.chatbot,
@@ -221,7 +217,7 @@ class ChatPage(BasePage):
                 self.state_info_panel,
             ],
         ).then(
-            fn=self.update_data_source,
+            fn=self.persist_data_source,
             inputs=[
                 self.chat_control.conversation_id,
                 self._app.user_id,
@@ -259,6 +255,8 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_rn,
             ],
             show_progress="hidden",
+        ).then(
+            fn=None, inputs=None, outputs=None, js=pdfview_js
         )
 
         self.chat_panel.regen_btn.click(
@@ -276,18 +274,14 @@ class ChatPage(BasePage):
             outputs=[
                 self.chat_panel.chatbot,
                 self.info_panel,
+                self.plot_panel,
                 self.state_plot_panel,
                 self.state_chat,
             ],
             concurrency_limit=20,
             show_progress="minimal",
-        ).success(
-            fn=self._json_to_plot,
-            inputs=self.state_plot_panel,
-            outputs=self.plot_panel,
-            js=pdfview_js,
         ).then(
-            fn=self.update_data_source,
+            fn=self.persist_data_source,
             inputs=[
                 self.chat_control.conversation_id,
                 self._app.user_id,
@@ -325,6 +319,8 @@ class ChatPage(BasePage):
                 self.chat_control.conversation_rn,
             ],
             show_progress="hidden",
+        ).then(
+            fn=None, inputs=None, outputs=None, js=pdfview_js
         )
 
         self.chat_control.btn_info_expand.click(
@@ -622,7 +618,7 @@ class ChatPage(BasePage):
                 },
             )
 
-    def update_data_source(
+    def persist_data_source(
         self,
         convo_id,
         user_id,
@@ -792,14 +788,18 @@ class ChatPage(BasePage):
         print("Reasoning state", reasoning_state)
         pipeline.set_output_queue(queue)
 
-        text, refs, plot = "", "", None
+        text, refs, plot, plot_gr = "", "", None, gr.update(visible=False)
         msg_placeholder = getattr(
             flowsettings, "KH_CHAT_MSG_PLACEHOLDER", "Thinking ..."
         )
         print(msg_placeholder)
-        yield chat_history + [(chat_input, text or msg_placeholder)], refs, plot, state
-
-        len_ref = -1  # for logging purpose
+        yield (
+            chat_history + [(chat_input, text or msg_placeholder)],
+            refs,
+            plot_gr,
+            plot,
+            state,
+        )
 
         for response in pipeline.stream(chat_input, conversation_id, chat_history):
 
@@ -823,21 +823,29 @@ class ChatPage(BasePage):
 
             if response.channel == "plot":
                 plot = response.content
-
-            if len(refs) > len_ref:
-                len_ref = len(refs)
+                plot_gr = self._json_to_plot(plot)
 
             state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
-            yield chat_history + [
-                (chat_input, text or msg_placeholder)
-            ], refs, plot, state
+            yield (
+                chat_history + [(chat_input, text or msg_placeholder)],
+                refs,
+                plot_gr,
+                plot,
+                state,
+            )
 
         if not text:
             empty_msg = getattr(
                 flowsettings, "KH_CHAT_EMPTY_MSG_PLACEHOLDER", "(Sorry, I don't know)"
             )
             print(f"Generate nothing: {empty_msg}")
-            yield chat_history + [(chat_input, text or empty_msg)], refs, plot, state
+            yield (
+                chat_history + [(chat_input, text or empty_msg)],
+                refs,
+                plot_gr,
+                plot,
+                state,
+            )
 
     def regen_fn(
         self,
@@ -857,7 +865,7 @@ class ChatPage(BasePage):
             return
 
         state["app"]["regen"] = True
-        for chat, refs, plot, state in self.chat_fn(
+        yield from self.chat_fn(
             conversation_id,
             chat_history,
             settings,
@@ -866,8 +874,7 @@ class ChatPage(BasePage):
             state,
             user_id,
             *selecteds,
-        ):
-            yield chat, refs, plot, state
+        )
 
     def check_and_suggest_name_conv(self, chat_history):
         suggest_pipeline = SuggestConvNamePipeline()
