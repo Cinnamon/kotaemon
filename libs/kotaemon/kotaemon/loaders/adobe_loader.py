@@ -154,7 +154,7 @@ class AdobeReader(BaseReader):
         for page_number, table_content, table_caption in tables:
             documents.append(
                 Document(
-                    text=table_caption,
+                    text=table_content,
                     metadata={
                         "table_origin": table_content,
                         "type": "table",
