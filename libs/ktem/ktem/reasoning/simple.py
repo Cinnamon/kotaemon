@@ -824,12 +824,13 @@ class FullDecomposeQAPipeline(FullQAPipeline):
 
             yield from infos
 
-            evidence_mode, evidence = self.evidence_pipeline(docs).content
+            evidence_mode, evidence, images = self.evidence_pipeline(docs).content
             answer = yield from self.answering_pipeline.stream(
                 question=message,
                 history=history,
                 evidence=evidence,
                 evidence_mode=evidence_mode,
+                images=images,
                 conv_id=conv_id,
                 **kwargs,
             )
@@ -873,12 +874,13 @@ class FullDecomposeQAPipeline(FullQAPipeline):
         print(f"Got {len(docs)} retrieved documents")
         yield from infos
 
-        evidence_mode, evidence = self.evidence_pipeline(docs).content
+        evidence_mode, evidence, images = self.evidence_pipeline(docs).content
         answer = yield from self.answering_pipeline.stream(
             question=message,
             history=history,
             evidence=evidence + "\n" + sub_question_answer_output,
             evidence_mode=evidence_mode,
+            images=images,
             conv_id=conv_id,
             **kwargs,
         )
