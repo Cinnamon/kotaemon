@@ -78,8 +78,8 @@ KH_DOCSTORE = {
     "path": str(KH_USER_DATA_DIR / "docstore"),
 }
 KH_VECTORSTORE = {
-    "__type__": "kotaemon.storages.LanceDBVectorStore",
-    # "__type__": "kotaemon.storages.ChromaVectorStore",
+    # "__type__": "kotaemon.storages.LanceDBVectorStore",
+    "__type__": "kotaemon.storages.ChromaVectorStore",
     "path": str(KH_USER_DATA_DIR / "vectorstore"),
 }
 KH_LLMS = {}
@@ -127,7 +127,7 @@ if config("OPENAI_API_KEY", default=""):
             "base_url": config("OPENAI_API_BASE", default="")
             or "https://api.openai.com/v1",
             "api_key": config("OPENAI_API_KEY", default=""),
-            "model": config("OPENAI_CHAT_MODEL", default="") or "gpt-3.5-turbo",
+            "model": config("OPENAI_CHAT_MODEL", default="gpt-3.5-turbo"),
             "timeout": 20,
         },
         "default": True,
@@ -135,12 +135,13 @@ if config("OPENAI_API_KEY", default=""):
     KH_EMBEDDINGS["openai"] = {
         "spec": {
             "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
-            "base_url": config("OPENAI_API_BASE", default="")
-            or "https://api.openai.com/v1",
+            "base_url": config("OPENAI_API_BASE", default="https://api.openai.com/v1"),
             "api_key": config("OPENAI_API_KEY", default=""),
-            "model": config("OPENAI_EMBEDDINGS_MODEL", default="text-embedding-ada-002")
-            or "text-embedding-ada-002",
+            "model": config(
+                "OPENAI_EMBEDDINGS_MODEL", default="text-embedding-ada-002"
+            ),
             "timeout": 10,
+            "context_length": 8191,
         },
         "default": True,
     }

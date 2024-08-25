@@ -31,6 +31,7 @@ FROM base_image as dev
 COPY . /app
 RUN --mount=type=ssh pip install -e "libs/kotaemon[all]"
 RUN --mount=type=ssh pip install -e "libs/ktem"
-RUN pip install graphrag
+RUN pip install graphrag future
+RUN pip install "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
 
-ENTRYPOINT ["python", "launch.py"]
+ENTRYPOINT ["gradio", "app.py"]
