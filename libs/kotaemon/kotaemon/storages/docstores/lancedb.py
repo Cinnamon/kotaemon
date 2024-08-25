@@ -86,7 +86,9 @@ class LanceDBDocumentStore(BaseDocumentStore):
             docs = []
         return [
             Document(
-                id_=doc["id"], text=doc["text"], metadata=json.loads(doc["attributes"])
+                id_=doc["id"],
+                text=doc["text"] if doc["text"] else "<empty>",
+                metadata=json.loads(doc["attributes"]),
             )
             for doc in docs
         ]
@@ -110,7 +112,9 @@ class LanceDBDocumentStore(BaseDocumentStore):
             docs = []
         return [
             Document(
-                id_=doc["id"], text=doc["text"], metadata=json.loads(doc["attributes"])
+                id_=doc["id"],
+                text=doc["text"] if doc["text"] else "<empty>",
+                metadata=json.loads(doc["attributes"]),
             )
             for doc in docs
         ]
