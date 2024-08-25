@@ -9,3 +9,5 @@ env/
 .gitignore
 .gitattributes
 README.md
+*.zip
+*.sh
