@@ -163,7 +163,7 @@ KH_REASONINGS = [
 )
 ```
 
-</detail>
+</details>
 
 ### `.env`
 
