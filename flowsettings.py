@@ -33,7 +33,7 @@ KH_APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
 KH_USER_DATA_DIR = KH_APP_DATA_DIR / "user_data"
 KH_USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# markdowm output directory
+# markdown output directory
 KH_MARKDOWN_OUTPUT_DIR = KH_APP_DATA_DIR / "markdown_cache_dir"
 KH_MARKDOWN_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
