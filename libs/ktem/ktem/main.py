@@ -44,7 +44,7 @@ class App(BaseApp):
             if len(self.index_manager.indices) == 1:
                 for index in self.index_manager.indices:
                     with gr.Tab(
-                        f"{index.name} Index",
+                        f"{index.name}",
                         elem_id="indices-tab",
                         elem_classes=[
                             "fill-main-area-height",
@@ -58,7 +58,7 @@ class App(BaseApp):
                         setattr(self, f"_index_{index.id}", page)
             elif len(self.index_manager.indices) > 1:
                 with gr.Tab(
-                    "Indices",
+                    "Files",
                     elem_id="indices-tab",
                     elem_classes=["fill-main-area-height", "scrollable", "indices-tab"],
                     id="indices-tab",
@@ -66,7 +66,7 @@ class App(BaseApp):
                 ) as self._tabs["indices-tab"]:
                     for index in self.index_manager.indices:
                         with gr.Tab(
-                            f"{index.name}",
+                            f"{index.name} Collection",
                             elem_id=f"{index.id}-tab",
                         ) as self._tabs[f"{index.id}-tab"]:
                             page = index.get_index_page_ui()

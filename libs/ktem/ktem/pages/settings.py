@@ -2,13 +2,15 @@ import hashlib
 
 import gradio as gr
 from ktem.app import BasePage
+from ktem.components import reasonings
 from ktem.db.models import Settings, User, engine
 from sqlmodel import Session, select
 
 signout_js = """
-function() {
+function(u, c, pw, pwc) {
     removeFromStorage('username');
     removeFromStorage('password');
+    return [u, c, pw, pwc];
 }
 """
 
@@ -72,6 +74,10 @@ class SettingsPage(BasePage):
         self._components = {}
         self._reasoning_mode = {}
 
+        # store llms and embeddings components
+        self._llms = []
+        self._embeddings = []
+
         # render application page if there are application settings
         self._render_app_tab = False
         if self._default_settings.application.settings:
@@ -101,14 +107,13 @@ class SettingsPage(BasePage):
 
     def on_building_ui(self):
         if self._app.f_user_management:
-            with gr.Tab("Users"):
+            with gr.Tab("User settings"):
                 self.user_tab()
-        with gr.Tab("General"):
-            self.app_tab()
-        with gr.Tab("Document Indices"):
-            self.index_tab()
-        with gr.Tab("Reasoning Pipelines"):
-            self.reasoning_tab()
+
+        self.app_tab()
+        self.index_tab()
+        self.reasoning_tab()
+
         self.setting_save_btn = gr.Button(
             "Save changes", variant="primary", scale=1, elem_classes=["right-button"]
         )
@@ -192,7 +197,7 @@ class SettingsPage(BasePage):
             )
             onSignOutClick = self.signout.click(
                 lambda: (None, "Current user: ___", "", ""),
-                inputs=None,
+                inputs=[],
                 outputs=[
                     self._user_id,
                     self.current_name,
@@ -248,10 +253,14 @@ class SettingsPage(BasePage):
         return "", ""
 
     def app_tab(self):
-        with gr.Tab("General application settings", visible=self._render_app_tab):
+        with gr.Tab("General", visible=self._render_app_tab):
             for n, si in self._default_settings.application.settings.items():
                 obj = render_setting_item(si, si.value)
                 self._components[f"application.{n}"] = obj
+                if si.special_type == "llm":
+                    self._llms.append(obj)
+                if si.special_type == "embedding":
+                    self._embeddings.append(obj)
 
     def index_tab(self):
         # TODO: double check if we need general
@@ -260,12 +269,18 @@ class SettingsPage(BasePage):
         #         obj = render_setting_item(si, si.value)
         #         self._components[f"index.{n}"] = obj
 
-        with gr.Tab("Index settings", visible=self._render_index_tab):
+        id2name = {k: v.name for k, v in self._app.index_manager.info().items()}
+        with gr.Tab("Retrieval settings", visible=self._render_index_tab):
             for pn, sig in self._default_settings.index.options.items():
-                with gr.Tab(f"Index {pn}"):
+                name = "{} Collection".format(id2name.get(pn, f"<id {pn}>"))
+                with gr.Tab(name):
                     for n, si in sig.settings.items():
                         obj = render_setting_item(si, si.value)
                         self._components[f"index.options.{pn}.{n}"] = obj
+                        if si.special_type == "llm":
+                            self._llms.append(obj)
+                        if si.special_type == "embedding":
+                            self._embeddings.append(obj)
 
     def reasoning_tab(self):
         with gr.Tab("Reasoning settings", visible=self._render_reasoning_tab):
@@ -275,6 +290,10 @@ class SettingsPage(BasePage):
                         continue
                     obj = render_setting_item(si, si.value)
                     self._components[f"reasoning.{n}"] = obj
+                    if si.special_type == "llm":
+                        self._llms.append(obj)
+                    if si.special_type == "embedding":
+                        self._embeddings.append(obj)
 
             gr.Markdown("### Reasoning-specific settings")
             self._components["reasoning.use"] = render_setting_item(
@@ -289,10 +308,19 @@ class SettingsPage(BasePage):
                     visible=idx == 0,
                     elem_id=pn,
                 ) as self._reasoning_mode[pn]:
-                    gr.Markdown("**Name**: Description")
+                    reasoning = reasonings.get(pn, None)
+                    if reasoning is None:
+                        gr.Markdown("**Name**: Description")
+                    else:
+                        info = reasoning.get_info()
+                        gr.Markdown(f"**{info['name']}**: {info['description']}")
                     for n, si in sig.settings.items():
                         obj = render_setting_item(si, si.value)
                         self._components[f"reasoning.options.{pn}.{n}"] = obj
+                        if si.special_type == "llm":
+                            self._llms.append(obj)
+                        if si.special_type == "embedding":
+                            self._embeddings.append(obj)
 
     def change_reasoning_mode(self, value):
         output = []
@@ -358,5 +386,40 @@ class SettingsPage(BasePage):
                 self.load_setting,
                 inputs=self._user_id,
                 outputs=[self._settings_state] + self.components(),
+                show_progress="hidden",
+            )
+
+        def update_llms():
+            from ktem.llms.manager import llms
+
+            if llms._default:
+                llm_choices = [(f"{llms._default} (default)", "")]
+            else:
+                llm_choices = [("(random)", "")]
+            llm_choices += [(_, _) for _ in llms.options().keys()]
+            return gr.update(choices=llm_choices)
+
+        def update_embeddings():
+            from ktem.embeddings.manager import embedding_models_manager
+
+            if embedding_models_manager._default:
+                emb_choices = [(f"{embedding_models_manager._default} (default)", "")]
+            else:
+                emb_choices = [("(random)", "")]
+            emb_choices += [(_, _) for _ in embedding_models_manager.options().keys()]
+            return gr.update(choices=emb_choices)
+
+        for llm in self._llms:
+            self._app.app.load(
+                update_llms,
+                inputs=[],
+                outputs=[llm],
+                show_progress="hidden",
+            )
+        for emb in self._embeddings:
+            self._app.app.load(
+                update_embeddings,
+                inputs=[],
+                outputs=[emb],
                 show_progress="hidden",
             )

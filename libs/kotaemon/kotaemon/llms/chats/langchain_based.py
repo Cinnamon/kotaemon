@@ -221,3 +221,27 @@ class LCAzureChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
             from langchain.chat_models import AzureChatOpenAI
 
         return AzureChatOpenAI
+
+
+class LCAnthropicChat(LCChatMixin, ChatLLM):  # type: ignore
+    def __init__(
+        self,
+        api_key: str | None = None,
+        model_name: str | None = None,
+        temperature: float = 0.7,
+        **params,
+    ):
+        super().__init__(
+            api_key=api_key,
+            model_name=model_name,
+            temperature=temperature,
+            **params,
+        )
+
+    def _get_lc_class(self):
+        try:
+            from langchain_anthropic import ChatAnthropic
+        except ImportError:
+            raise ImportError("Please install langchain-anthropic")
+
+        return ChatAnthropic

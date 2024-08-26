@@ -1,27 +1,42 @@
 from pathlib import Path
 from typing import Type
 
-from llama_index.readers import PDFReader
-from llama_index.readers.base import BaseReader
+from decouple import config
+from llama_index.core.readers.base import BaseReader
+from theflow.settings import settings as flowsettings
 
 from kotaemon.base import BaseComponent, Document, Param
 from kotaemon.indices.extractors import BaseDocParser
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 from kotaemon.loaders import (
     AdobeReader,
+    AzureAIDocumentIntelligenceLoader,
     DirectoryReader,
     HtmlReader,
     MathpixPDFReader,
     MhtmlReader,
     OCRReader,
     PandasExcelReader,
+    PDFThumbnailReader,
     UnstructuredReader,
 )
 
 unstructured = UnstructuredReader()
+adobe_reader = AdobeReader()
+azure_reader = AzureAIDocumentIntelligenceLoader(
+    endpoint=str(config("AZURE_DI_ENDPOINT", default="")),
+    credential=str(config("AZURE_DI_CREDENTIAL", default="")),
+    cache_dir=getattr(flowsettings, "KH_MARKDOWN_OUTPUT_DIR", None),
+)
+adobe_reader.vlm_endpoint = azure_reader.vlm_endpoint = getattr(
+    flowsettings, "KH_VLM_ENDPOINT", ""
+)
+
+
 KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
     ".xlsx": PandasExcelReader(),
     ".docx": unstructured,
+    ".pptx": unstructured,
     ".xls": unstructured,
     ".doc": unstructured,
     ".html": HtmlReader(),
@@ -31,7 +46,7 @@ KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
     ".jpg": unstructured,
     ".tiff": unstructured,
     ".tif": unstructured,
-    ".pdf": PDFReader(),
+    ".pdf": PDFThumbnailReader(),
 }
 
 

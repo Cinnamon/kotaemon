@@ -2,25 +2,29 @@ from __future__ import annotations
 
 import logging
 import shutil
+import threading
+import time
 import warnings
 from collections import defaultdict
+from copy import deepcopy
 from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Generator, Optional, Sequence
 
+import tiktoken
 from ktem.db.models import engine
 from ktem.embeddings.manager import embedding_models_manager
 from ktem.llms.manager import llms
-from llama_index.readers.base import BaseReader
-from llama_index.readers.file.base import default_file_metadata_func
-from llama_index.vector_stores import (
+from llama_index.core.readers.base import BaseReader
+from llama_index.core.readers.file.base import default_file_metadata_func
+from llama_index.core.vector_stores import (
     FilterCondition,
     FilterOperator,
     MetadataFilter,
     MetadataFilters,
 )
-from llama_index.vector_stores.types import VectorStoreQueryMode
+from llama_index.core.vector_stores.types import VectorStoreQueryMode
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from theflow.settings import settings
@@ -29,8 +33,18 @@ from theflow.utils.modules import import_dotted_string
 from kotaemon.base import BaseComponent, Document, Node, Param, RetrievedDocument
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.indices import VectorIndexing, VectorRetrieval
-from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
-from kotaemon.indices.rankings import BaseReranking, LLMReranking
+from kotaemon.indices.ingests.files import (
+    KH_DEFAULT_FILE_EXTRACTORS,
+    adobe_reader,
+    azure_reader,
+    unstructured,
+)
+from kotaemon.indices.rankings import (
+    BaseReranking,
+    CohereReranking,
+    LLMReranking,
+    LLMTrulensScoring,
+)
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 
 from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
@@ -60,6 +74,9 @@ def dev_settings():
     return file_extractors, chunk_size, chunk_overlap
 
 
+_default_token_func = tiktoken.encoding_for_model("gpt-3.5-turbo").encode
+
+
 class DocumentRetrievalPipeline(BaseFileIndexRetriever):
     """Retrieve relevant document
 
@@ -75,10 +92,13 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
     """
 
     embedding: BaseEmbeddings
-    reranker: BaseReranking = LLMReranking.withx()
+    rerankers: Sequence[BaseReranking] = []
+    # use LLM to create relevant scores for displaying on UI
+    llm_scorer: LLMReranking | None = LLMReranking.withx()
     get_extra_table: bool = False
     mmr: bool = False
     top_k: int = 5
+    retrieval_mode: str = "hybrid"
 
     @Node.auto(depends_on=["embedding", "VS", "DS"])
     def vector_retrieval(self) -> VectorRetrieval:
@@ -86,6 +106,8 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             embedding=self.embedding,
             vector_store=self.VS,
             doc_store=self.DS,
+            retrieval_mode=self.retrieval_mode,  # type: ignore
+            rerankers=self.rerankers,
         )
 
     def run(
@@ -101,27 +123,30 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             text: the text to retrieve similar documents
             doc_ids: list of document ids to constraint the retrieval
         """
+        print("searching in doc_ids", doc_ids)
         if not doc_ids:
             logger.info(f"Skip retrieval because of no selected files: {self}")
             return []
 
-        retrieval_kwargs = {}
+        retrieval_kwargs: dict = {}
         with Session(engine) as session:
             stmt = select(self.Index).where(
-                self.Index.relation_type == "vector",
+                self.Index.relation_type == "document",
                 self.Index.source_id.in_(doc_ids),
             )
             results = session.execute(stmt)
-            vs_ids = [r[0].target_id for r in results.all()]
+            chunk_ids = [r[0].target_id for r in results.all()]
 
+        # do first round top_k extension
+        retrieval_kwargs["do_extend"] = True
+        retrieval_kwargs["scope"] = chunk_ids
         retrieval_kwargs["filters"] = MetadataFilters(
             filters=[
                 MetadataFilter(
-                    key="doc_id",
-                    value=vs_id,
-                    operator=FilterOperator.EQ,
+                    key="file_id",
+                    value=doc_ids,
+                    operator=FilterOperator.IN,
                 )
-                for vs_id in vs_ids
             ],
             condition=FilterCondition.OR,
         )
@@ -132,9 +157,10 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             retrieval_kwargs["mmr_threshold"] = 0.5
 
         # rerank
+        s_time = time.time()
+        print(f"retrieval_kwargs: {retrieval_kwargs.keys()}")
         docs = self.vector_retrieval(text=text, top_k=self.top_k, **retrieval_kwargs)
-        if docs and self.get_from_path("reranker"):
-            docs = self.reranker(docs, query=text)
+        print("retrieval step took", time.time() - s_time)
 
         if not self.get_extra_table:
             return docs
@@ -157,15 +183,28 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             for fn, pls in table_pages.items()
         ]
         if queries:
-            extra_docs = self.vector_retrieval(
-                text="",
-                top_k=50,
-                where=queries[0] if len(queries) == 1 else {"$or": queries},
-            )
-            for doc in extra_docs:
-                if doc.doc_id not in retrieved_id:
-                    docs.append(doc)
+            try:
+                extra_docs = self.vector_retrieval(
+                    text="",
+                    top_k=50,
+                    where=queries[0] if len(queries) == 1 else {"$or": queries},
+                )
+                for doc in extra_docs:
+                    if doc.doc_id not in retrieved_id:
+                        docs.append(doc)
+            except Exception:
+                print("Error retrieving additional tables")
 
+        return docs
+
+    def generate_relevant_scores(
+        self, query: str, documents: list[RetrievedDocument]
+    ) -> list[RetrievedDocument]:
+        docs = (
+            documents
+            if not self.llm_scorer
+            else self.llm_scorer(documents=documents, query=query)
+        )
         return docs
 
     @classmethod
@@ -182,43 +221,44 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
 
         return {
             "reranking_llm": {
-                "name": "LLM for reranking",
+                "name": "LLM for relevant scoring",
                 "value": reranking_llm,
                 "component": "dropdown",
                 "choices": reranking_llm_choices,
-            },
-            "separate_embedding": {
-                "name": "Use separate embedding",
-                "value": False,
-                "choices": [("Yes", True), ("No", False)],
-                "component": "dropdown",
+                "special_type": "llm",
             },
             "num_retrieval": {
                 "name": "Number of document chunks to retrieve",
-                "value": 3,
+                "value": 10,
                 "component": "number",
             },
             "retrieval_mode": {
                 "name": "Retrieval mode",
-                "value": "vector",
+                "value": "hybrid",
                 "choices": ["vector", "text", "hybrid"],
                 "component": "dropdown",
             },
             "prioritize_table": {
                 "name": "Prioritize table",
-                "value": True,
+                "value": False,
                 "choices": [True, False],
                 "component": "checkbox",
             },
             "mmr": {
                 "name": "Use MMR",
-                "value": True,
+                "value": False,
                 "choices": [True, False],
                 "component": "checkbox",
             },
             "use_reranking": {
                 "name": "Use reranking",
-                "value": False,
+                "value": True,
+                "choices": [True, False],
+                "component": "checkbox",
+            },
+            "use_llm_reranking": {
+                "name": "Use LLM relevant scoring",
+                "value": True,
                 "choices": [True, False],
                 "component": "checkbox",
             },
@@ -232,6 +272,8 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             settings: the settings of the app
             kwargs: other arguments
         """
+        use_llm_reranking = user_settings.get("use_llm_reranking", False)
+
         retriever = cls(
             get_extra_table=user_settings["prioritize_table"],
             top_k=user_settings["num_retrieval"],
@@ -241,16 +283,26 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                     "embedding", embedding_models_manager.get_default_name()
                 )
             ],
+            retrieval_mode=user_settings["retrieval_mode"],
+            llm_scorer=(LLMTrulensScoring() if use_llm_reranking else None),
+            rerankers=[CohereReranking()],
         )
         if not user_settings["use_reranking"]:
-            retriever.reranker = None  # type: ignore
-        else:
-            retriever.reranker.llm = llms.get(
+            retriever.rerankers = []  # type: ignore
+
+        for reranker in retriever.rerankers:
+            if isinstance(reranker, LLMReranking):
+                reranker.llm = llms.get(
+                    user_settings["reranking_llm"], llms.get_default()
+                )
+
+        if retriever.llm_scorer:
+            retriever.llm_scorer.llm = llms.get(
                 user_settings["reranking_llm"], llms.get_default()
             )
 
         kwargs = {".doc_ids": selected}
-        retriever.set_run(kwargs, temp=True)
+        retriever.set_run(kwargs, temp=False)
         return retriever
 
 
@@ -258,8 +310,8 @@ class IndexPipeline(BaseComponent):
     """Index a single file"""
 
     loader: BaseReader
-    splitter: BaseSplitter
-    chunk_batch_size: int = 50
+    splitter: BaseSplitter | None
+    chunk_batch_size: int = 200
 
     Source = Param(help="The SQLAlchemy Source table")
     Index = Param(help="The SQLAlchemy Index table")
@@ -267,6 +319,9 @@ class IndexPipeline(BaseComponent):
     DS = Param(help="The DocStore")
     FSPath = Param(help="The file storage path")
     user_id = Param(help="The user id")
+    collection_name: str = "default"
+    private: bool = False
+    run_embedding_in_thread: bool = False
     embedding: BaseEmbeddings
 
     @Node.auto(depends_on=["Source", "Index", "embedding"])
@@ -276,31 +331,81 @@ class IndexPipeline(BaseComponent):
         )
 
     def handle_docs(self, docs, file_id, file_name) -> Generator[Document, None, int]:
+        s_time = time.time()
+        text_docs = []
+        non_text_docs = []
+        thumbnail_docs = []
+
+        for doc in docs:
+            doc_type = doc.metadata.get("type", "text")
+            if doc_type == "text":
+                text_docs.append(doc)
+            elif doc_type == "thumbnail":
+                thumbnail_docs.append(doc)
+            else:
+                non_text_docs.append(doc)
+
+        print(f"Got {len(thumbnail_docs)} page thumbnails")
+        page_label_to_thumbnail = {
+            doc.metadata["page_label"]: doc.doc_id for doc in thumbnail_docs
+        }
+
+        if self.splitter:
+            all_chunks = self.splitter(text_docs)
+        else:
+            all_chunks = text_docs
+
+        # add the thumbnails doc_id to the chunks
+        for chunk in all_chunks:
+            page_label = chunk.metadata.get("page_label", None)
+            if page_label and page_label in page_label_to_thumbnail:
+                chunk.metadata["thumbnail_doc_id"] = page_label_to_thumbnail[page_label]
+
+        to_index_chunks = all_chunks + non_text_docs + thumbnail_docs
+
+        # add to doc store
         chunks = []
         n_chunks = 0
-        for cidx, chunk in enumerate(self.splitter(docs)):
-            chunks.append(chunk)
-            if cidx % self.chunk_batch_size == 0:
-                self.handle_chunks(chunks, file_id)
-                n_chunks += len(chunks)
-                chunks = []
-                yield Document(
-                    f" => [{file_name}] Processed {n_chunks} chunks", channel="debug"
-                )
-
-        if chunks:
-            self.handle_chunks(chunks, file_id)
+        chunk_size = self.chunk_batch_size * 4
+        for start_idx in range(0, len(to_index_chunks), chunk_size):
+            chunks = to_index_chunks[start_idx : start_idx + chunk_size]
+            self.handle_chunks_docstore(chunks, file_id)
             n_chunks += len(chunks)
             yield Document(
-                f" => [{file_name}] Processed {n_chunks} chunks", channel="debug"
+                f" => [{file_name}] Processed {n_chunks} chunks",
+                channel="debug",
             )
 
+        def insert_chunks_to_vectorstore():
+            chunks = []
+            n_chunks = 0
+            chunk_size = self.chunk_batch_size
+            for start_idx in range(0, len(to_index_chunks), chunk_size):
+                chunks = to_index_chunks[start_idx : start_idx + chunk_size]
+                self.handle_chunks_vectorstore(chunks, file_id)
+                n_chunks += len(chunks)
+                if self.VS:
+                    yield Document(
+                        f" => [{file_name}] Created embedding for {n_chunks} chunks",
+                        channel="debug",
+                    )
+
+        # run vector indexing in thread if specified
+        if self.run_embedding_in_thread:
+            print("Running embedding in thread")
+            threading.Thread(
+                target=lambda: list(insert_chunks_to_vectorstore())
+            ).start()
+        else:
+            yield from insert_chunks_to_vectorstore()
+
+        print("indexing step took", time.time() - s_time)
         return n_chunks
 
-    def handle_chunks(self, chunks, file_id):
+    def handle_chunks_docstore(self, chunks, file_id):
         """Run chunks"""
         # run embedding, add to both vector store and doc store
-        self.vector_indexing(chunks)
+        self.vector_indexing.add_to_docstore(chunks)
 
         # record in the index
         with Session(engine) as session:
@@ -313,15 +418,29 @@ class IndexPipeline(BaseComponent):
                         relation_type="document",
                     )
                 )
-                nodes.append(
-                    self.Index(
-                        source_id=file_id,
-                        target_id=chunk.doc_id,
-                        relation_type="vector",
-                    )
-                )
             session.add_all(nodes)
             session.commit()
+
+    def handle_chunks_vectorstore(self, chunks, file_id):
+        """Run chunks"""
+        # run embedding, add to both vector store and doc store
+        self.vector_indexing.add_to_vectorstore(chunks)
+        self.vector_indexing.write_chunk_to_file(chunks)
+
+        if self.VS:
+            # record in the index
+            with Session(engine) as session:
+                nodes = []
+                for chunk in chunks:
+                    nodes.append(
+                        self.Index(
+                            source_id=file_id,
+                            target_id=chunk.doc_id,
+                            relation_type="vector",
+                        )
+                    )
+                session.add_all(nodes)
+                session.commit()
 
     def get_id_if_exists(self, file_path: Path) -> Optional[str]:
         """Check if the file is already indexed
@@ -332,8 +451,16 @@ class IndexPipeline(BaseComponent):
         Returns:
             the file id if the file is indexed, otherwise None
         """
+        if self.private:
+            cond: tuple = (
+                self.Source.name == file_path.name,
+                self.Source.user == self.user_id,
+            )
+        else:
+            cond = (self.Source.name == file_path.name,)
+
         with Session(engine) as session:
-            stmt = select(self.Source).where(self.Source.name == file_path.name)
+            stmt = select(self.Source).where(*cond)
             item = session.execute(stmt).first()
             if item:
                 return item[0].id
@@ -369,19 +496,35 @@ class IndexPipeline(BaseComponent):
     def finish(self, file_id: str, file_path: Path) -> str:
         """Finish the indexing"""
         with Session(engine) as session:
-            stmt = select(self.Index.target_id).where(self.Index.source_id == file_id)
-            doc_ids = [_[0] for _ in session.execute(stmt)]
-            if doc_ids:
+            stmt = select(self.Source).where(self.Source.id == file_id)
+            result = session.execute(stmt).first()
+            if not result:
+                return file_id
+
+            item = result[0]
+
+            # populate the number of tokens
+            doc_ids_stmt = select(self.Index.target_id).where(
+                self.Index.source_id == file_id,
+                self.Index.relation_type == "document",
+            )
+            doc_ids = [_[0] for _ in session.execute(doc_ids_stmt)]
+            token_func = self.get_token_func()
+            if doc_ids and token_func:
                 docs = self.DS.get(doc_ids)
-                stmt = select(self.Source).where(self.Source.id == file_id)
-                result = session.execute(stmt).first()
-                if result:
-                    item = result[0]
-                    item.text_length = sum([len(doc.text) for doc in docs])
-                    session.add(item)
-                session.commit()
+                item.note["tokens"] = sum([len(token_func(doc.text)) for doc in docs])
+
+            # populate the note
+            item.note["loader"] = self.get_from_path("loader").__class__.__name__
+
+            session.add(item)
+            session.commit()
 
         return file_id
+
+    def get_token_func(self):
+        """Get the token function for calculating the number of tokens"""
+        return _default_token_func
 
     def delete_file(self, file_id: str):
         """Delete a file from the db, including its chunks in docstore and vectorstore
@@ -398,44 +541,24 @@ class IndexPipeline(BaseComponent):
             for each in index:
                 if each[0].relation_type == "vector":
                     vs_ids.append(each[0].target_id)
-                else:
+                elif each[0].relation_type == "document":
                     ds_ids.append(each[0].target_id)
                 session.delete(each[0])
             session.commit()
-        self.VS.delete(vs_ids)
-        self.DS.delete(ds_ids)
 
-    def run(self, file_path: str | Path, reindex: bool, **kwargs) -> str:
-        """Index the file and return the file id"""
-        # check for duplication
-        file_path = Path(file_path).resolve()
-        file_id = self.get_id_if_exists(file_path)
-        if file_id is not None:
-            if not reindex:
-                raise ValueError(
-                    f"File {file_path.name} already indexed. Please rerun with "
-                    "reindex=True to force reindexing."
-                )
-            else:
-                # remove the existing records
-                self.delete_file(file_id)
-                file_id = self.store_file(file_path)
-        else:
-            # add record to db
-            file_id = self.store_file(file_path)
+        if vs_ids and self.VS:
+            self.VS.delete(vs_ids)
+        if ds_ids:
+            self.DS.delete(ds_ids)
 
-        # extract the file
-        extra_info = default_file_metadata_func(str(file_path))
-        docs = self.loader.load_data(file_path, extra_info=extra_info)
-        for _ in self.handle_docs(docs, file_id, file_path.name):
-            continue
-        self.finish(file_id, file_path)
-
-        return file_id
+    def run(
+        self, file_path: str | Path, reindex: bool, **kwargs
+    ) -> tuple[str, list[Document]]:
+        raise NotImplementedError
 
     def stream(
         self, file_path: str | Path, reindex: bool, **kwargs
-    ) -> Generator[Document, None, str]:
+    ) -> Generator[Document, None, tuple[str, list[Document]]]:
         # check for duplication
         file_path = Path(file_path).resolve()
         file_id = self.get_id_if_exists(file_path)
@@ -456,6 +579,9 @@ class IndexPipeline(BaseComponent):
 
         # extract the file
         extra_info = default_file_metadata_func(str(file_path))
+        extra_info["file_id"] = file_id
+        extra_info["collection_name"] = self.collection_name
+
         yield Document(f" => Converting {file_path.name} to text", channel="debug")
         docs = self.loader.load_data(file_path, extra_info=extra_info)
         yield Document(f" => Converted {file_path.name} to text", channel="debug")
@@ -464,7 +590,7 @@ class IndexPipeline(BaseComponent):
         self.finish(file_id, file_path)
 
         yield Document(f" => Finished indexing {file_path.name}", channel="debug")
-        return file_id
+        return file_id, docs
 
 
 class IndexDocumentPipeline(BaseFileIndexIndexing):
@@ -479,16 +605,54 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
     decide which pipeline should be used.
     """
 
+    reader_mode: str = Param("default", help="The reader mode")
     embedding: BaseEmbeddings
+    run_embedding_in_thread: bool = False
+
+    @Param.auto(depends_on="reader_mode")
+    def readers(self):
+        readers = deepcopy(KH_DEFAULT_FILE_EXTRACTORS)
+        print("reader_mode", self.reader_mode)
+        if self.reader_mode == "adobe":
+            readers[".pdf"] = adobe_reader
+        elif self.reader_mode == "azure-di":
+            readers[".pdf"] = azure_reader
+
+        dev_readers, _, _ = dev_settings()
+        readers.update(dev_readers)
+
+        return readers
+
+    @classmethod
+    def get_user_settings(cls):
+        return {
+            "reader_mode": {
+                "name": "File loader",
+                "value": "default",
+                "choices": [
+                    ("Default (open-source)", "default"),
+                    ("Adobe API (figure+table extraction)", "adobe"),
+                    (
+                        "Azure AI Document Intelligence (figure+table extraction)",
+                        "azure-di",
+                    ),
+                ],
+                "component": "dropdown",
+            },
+        }
 
     @classmethod
     def get_pipeline(cls, user_settings, index_settings) -> BaseFileIndexIndexing:
+        use_quick_index_mode = user_settings.get("quick_index_mode", False)
+        print("use_quick_index_mode", use_quick_index_mode)
         obj = cls(
             embedding=embedding_models_manager[
                 index_settings.get(
                     "embedding", embedding_models_manager.get_default_name()
                 )
-            ]
+            ],
+            run_embedding_in_thread=use_quick_index_mode,
+            reader_mode=user_settings.get("reader_mode", "default"),
         )
         return obj
 
@@ -497,16 +661,17 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
 
         Can subclass this method for a more elaborate pipeline routing strategy.
         """
-        readers, chunk_size, chunk_overlap = dev_settings()
+        _, chunk_size, chunk_overlap = dev_settings()
 
-        ext = file_path.suffix
-        reader = readers.get(ext, KH_DEFAULT_FILE_EXTRACTORS.get(ext, None))
+        ext = file_path.suffix.lower()
+        reader = self.readers.get(ext, unstructured)
         if reader is None:
             raise NotImplementedError(
                 f"No supported pipeline to index {file_path.name}. Please specify "
                 "the suitable pipeline for this file type in the settings."
             )
 
+        print("Using reader", reader)
         pipeline: IndexPipeline = IndexPipeline(
             loader=reader,
             splitter=TokenSplitter(
@@ -515,50 +680,37 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                 separator="\n\n",
                 backup_separators=["\n", ".", "\u200B"],
             ),
+            run_embedding_in_thread=self.run_embedding_in_thread,
             Source=self.Source,
             Index=self.Index,
             VS=self.VS,
             DS=self.DS,
             FSPath=self.FSPath,
             user_id=self.user_id,
+            private=self.private,
             embedding=self.embedding,
         )
 
         return pipeline
 
     def run(
-        self, file_paths: str | Path | list[str | Path], reindex: bool = False, **kwargs
+        self, file_paths: str | Path | list[str | Path], *args, **kwargs
     ) -> tuple[list[str | None], list[str | None]]:
-        """Return a list of indexed file ids, and a list of errors"""
-        if not isinstance(file_paths, list):
-            file_paths = [file_paths]
-
-        file_ids: list[str | None] = []
-        errors: list[str | None] = []
-        for file_path in file_paths:
-            file_path = Path(file_path)
-
-            try:
-                pipeline = self.route(file_path)
-                file_id = pipeline.run(file_path, reindex=reindex, **kwargs)
-                file_ids.append(file_id)
-                errors.append(None)
-            except Exception as e:
-                logger.error(e)
-                file_ids.append(None)
-                errors.append(str(e))
-
-        return file_ids, errors
+        raise NotImplementedError
 
     def stream(
         self, file_paths: str | Path | list[str | Path], reindex: bool = False, **kwargs
-    ) -> Generator[Document, None, tuple[list[str | None], list[str | None]]]:
+    ) -> Generator[
+        Document, None, tuple[list[str | None], list[str | None], list[Document]]
+    ]:
         """Return a list of indexed file ids, and a list of errors"""
         if not isinstance(file_paths, list):
             file_paths = [file_paths]
 
         file_ids: list[str | None] = []
         errors: list[str | None] = []
+        all_docs = []
+
         n_files = len(file_paths)
         for idx, file_path in enumerate(file_paths):
             file_path = Path(file_path)
@@ -569,9 +721,10 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
 
             try:
                 pipeline = self.route(file_path)
-                file_id = yield from pipeline.stream(
+                file_id, docs = yield from pipeline.stream(
                     file_path, reindex=reindex, **kwargs
                 )
+                all_docs.extend(docs)
                 file_ids.append(file_id)
                 errors.append(None)
                 yield Document(
@@ -579,7 +732,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                     channel="index",
                 )
             except Exception as e:
-                logger.error(e)
+                logger.exception(e)
                 file_ids.append(None)
                 errors.append(str(e))
                 yield Document(
@@ -591,4 +744,4 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                     channel="index",
                 )
 
-        return file_ids, errors
+        return file_ids, errors, all_docs

@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Any, Optional, Type
 
 import fsspec
-from llama_index.vector_stores import SimpleVectorStore as LISimpleVectorStore
-from llama_index.vector_stores.simple import SimpleVectorStoreData
+from llama_index.core.vector_stores import SimpleVectorStore as LISimpleVectorStore
+from llama_index.core.vector_stores.simple import SimpleVectorStoreData
 
 from kotaemon.base import DocumentWithEmbedding
 

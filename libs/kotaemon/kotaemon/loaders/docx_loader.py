@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import pandas as pd
-from llama_index.readers.base import BaseReader
+from llama_index.core.readers.base import BaseReader
 
 from kotaemon.base import Document
 
@@ -26,6 +26,21 @@ class DocxReader(BaseReader):
                 "docx is not installed. "
                 "Please install it using `pip install python-docx`"
             )
+
+    def _load_single_table(self, table) -> List[List[str]]:
+        """Extract content from tables. Return a list of columns: list[str]
+        Some merged cells will share duplicated content.
+        """
+        n_row = len(table.rows)
+        n_col = len(table.columns)
+
+        arrays = [["" for _ in range(n_row)] for _ in range(n_col)]
+
+        for i, row in enumerate(table.rows):
+            for j, cell in enumerate(row.cells):
+                arrays[j][i] = cell.text
+
+        return arrays
 
     def load_data(
         self, file_path: Path, extra_info: Optional[dict] = None, **kwargs
@@ -50,13 +65,9 @@ class DocxReader(BaseReader):
 
         tables = []
         for t in doc.tables:
-            arrays = [
-                [
-                    unicodedata.normalize("NFKC", t.cell(i, j).text)
-                    for i in range(len(t.rows))
-                ]
-                for j in range(len(t.columns))
-            ]
+            # return list of columns: list of string
+            arrays = self._load_single_table(t)
+
             tables.append(pd.DataFrame({a[0]: a[1:] for a in arrays}))
 
         extra_info = extra_info or {}

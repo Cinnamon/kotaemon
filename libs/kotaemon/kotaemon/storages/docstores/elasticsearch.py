@@ -92,7 +92,10 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
                 "_id": doc_id,
             }
             requests.append(request)
-        self.es_bulk(self.client, requests)
+
+        success, failed = self.es_bulk(self.client, requests)
+        print("Added/Updated documents to index", success)
+        print("Failed documents to index", failed)
 
         if refresh_indices:
             self.client.indices.refresh(index=self.index_name)
@@ -131,16 +134,17 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
         Returns:
             List[Document]: List of result documents
         """
-        query_dict: dict = {"query": {"match": {"content": query}}, "size": top_k}
-        if doc_ids:
-            query_dict["query"]["match"]["_id"] = {"values": doc_ids}
+        query_dict: dict = {"match": {"content": query}}
+        if doc_ids is not None:
+            query_dict = {"bool": {"must": [query_dict, {"terms": {"_id": doc_ids}}]}}
+        query_dict = {"query": query_dict, "size": top_k}
         return self.query_raw(query_dict)
 
     def get(self, ids: Union[List[str], str]) -> List[Document]:
         """Get document by id"""
         if not isinstance(ids, list):
             ids = [ids]
-        query_dict = {"query": {"terms": {"_id": ids}}}
+        query_dict = {"query": {"terms": {"_id": ids}}, "size": 10000}
         return self.query_raw(query_dict)
 
     def count(self) -> int:

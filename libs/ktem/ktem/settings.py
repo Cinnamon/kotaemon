@@ -19,6 +19,7 @@ class SettingItem(BaseModel):
     choices: list = Field(default_factory=list)
     metadata: dict = Field(default_factory=dict)
     component: str = "text"
+    special_type: str = ""
 
 
 class BaseSettingGroup(BaseModel):
@@ -54,6 +55,9 @@ class BaseSettingGroup(BaseModel):
         option_id, sub_path = sub_path.split(".", 1)
         option = self.options[option_id]
         return option.get_setting_item(sub_path)
+
+    def __bool__(self):
+        return bool(self.settings) or bool(self.options)
 
 
 class SettingReasoningGroup(BaseSettingGroup):

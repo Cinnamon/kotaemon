@@ -1,7 +1,7 @@
 from typing import AnyStr, Optional, Type
 from urllib.error import HTTPError
 
-from langchain.utilities import SerpAPIWrapper
+from langchain_community.utilities import SerpAPIWrapper
 from pydantic import BaseModel, Field
 
 from .base import BaseTool

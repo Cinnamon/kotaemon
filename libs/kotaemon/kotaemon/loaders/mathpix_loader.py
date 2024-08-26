@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 
 import requests
 from langchain.utils import get_from_dict_or_env
-from llama_index.readers.base import BaseReader
+from llama_index.core.readers.base import BaseReader
 
 from kotaemon.base import Document
 

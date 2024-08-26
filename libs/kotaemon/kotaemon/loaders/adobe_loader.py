@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from decouple import config
-from llama_index.readers.base import BaseReader
+from llama_index.core.readers.base import BaseReader
 
 from kotaemon.base import Document
 
@@ -154,7 +154,7 @@ class AdobeReader(BaseReader):
         for page_number, table_content, table_caption in tables:
             documents.append(
                 Document(
-                    text=table_caption,
+                    text=table_content,
                     metadata={
                         "table_origin": table_content,
                         "type": "table",

@@ -1,4 +1,4 @@
-from llama_index.schema import NodeRelationship
+from llama_index.core.schema import NodeRelationship
 
 from kotaemon.base import Document
 from kotaemon.indices.splitters import TokenSplitter

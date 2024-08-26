@@ -15,7 +15,7 @@ class TitleExtractor(LlamaIndexDocTransformerMixin, BaseDocParser):
         super().__init__(llm=llm, nodes=nodes, **params)
 
     def _get_li_class(self):
-        from llama_index.extractors import TitleExtractor
+        from llama_index.core.extractors import TitleExtractor
 
         return TitleExtractor
 
@@ -30,6 +30,6 @@ class SummaryExtractor(LlamaIndexDocTransformerMixin, BaseDocParser):
         super().__init__(llm=llm, summaries=summaries, **params)
 
     def _get_li_class(self):
-        from llama_index.extractors import SummaryExtractor
+        from llama_index.core.extractors import SummaryExtractor
 
         return SummaryExtractor

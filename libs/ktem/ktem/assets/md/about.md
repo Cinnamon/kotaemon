@@ -8,3 +8,6 @@ An open-source tool for you to chat with your documents.
 [User Guide](https://cinnamon.github.io/kotaemon/) |
 [Developer Guide](https://cinnamon.github.io/kotaemon/development/) |
 [Feedback](https://github.com/Cinnamon/kotaemon/issues)
+
+[Dark Mode](?__theme=dark)
+[Night Mode](?__theme=light)

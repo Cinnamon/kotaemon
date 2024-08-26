@@ -91,7 +91,7 @@ def construct_pipeline_ui(
                 save_btn.click(func_save, inputs=params, outputs=history_dataframe)
                 load_params_btn = gr.Button("Reload params")
                 load_params_btn.click(
-                    func_load_params, inputs=None, outputs=history_dataframe
+                    func_load_params, inputs=[], outputs=history_dataframe
                 )
             history_dataframe.render()
             history_dataframe.select(
@@ -103,7 +103,7 @@ def construct_pipeline_ui(
             export_btn = gr.Button(
                 "Export (Result will be in Exported file next to Output)"
             )
-            export_btn.click(func_export, inputs=None, outputs=exported_file)
+            export_btn.click(func_export, inputs=[], outputs=exported_file)
         with gr.Row():
             with gr.Column():
                 if params:

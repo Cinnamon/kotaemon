@@ -7,9 +7,9 @@ from sqlmodel import Session, select
 
 fetch_creds = """
 function() {
-    const username = getStorage('username')
-    const password = getStorage('password')
-    return [username, password];
+    const username = getStorage('username', '')
+    const password = getStorage('password', '')
+    return [username, password, null];
 }
 """
 

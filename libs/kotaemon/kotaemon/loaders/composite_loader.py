@@ -1,6 +1,6 @@
 from typing import Callable, List, Optional, Type
 
-from llama_index.readers.base import BaseReader as LIBaseReader
+from llama_index.core.readers.base import BaseReader as LIBaseReader
 
 from .base import BaseReader, LIReaderMixin
 
@@ -48,6 +48,6 @@ class DirectoryReader(LIReaderMixin, BaseReader):
     file_metadata: Optional[Callable[[str], dict]] = None
 
     def _get_wrapped_class(self) -> Type["LIBaseReader"]:
-        from llama_index import SimpleDirectoryReader
+        from llama_index.core import SimpleDirectoryReader
 
         return SimpleDirectoryReader

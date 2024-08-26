@@ -133,9 +133,7 @@ def construct_chat_ui(
                     label="Output file", show_label=True, height=100
                 )
                 export_btn = gr.Button("Export")
-                export_btn.click(
-                    func_export_to_excel, inputs=None, outputs=exported_file
-                )
+                export_btn.click(func_export_to_excel, inputs=[], outputs=exported_file)
 
         with gr.Row():
             with gr.Column():

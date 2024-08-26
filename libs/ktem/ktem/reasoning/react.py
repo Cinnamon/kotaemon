@@ -19,7 +19,10 @@ from kotaemon.agents import (
 from kotaemon.base import BaseComponent, Document, HumanMessage, Node, SystemMessage
 from kotaemon.llms import ChatLLM, PromptTemplate
 
+from ..utils import SUPPORTED_LANGUAGE_MAP
+
 logger = logging.getLogger(__name__)
+DEFAULT_AGENT_STEPS = 4
 
 
 class DocSearchArgs(BaseModel):
@@ -97,7 +100,7 @@ class DocSearchTool(BaseTool):
                     )
 
             print("Retrieved #{}: {}".format(_id, retrieved_content[:100]))
-            print("Score", retrieved_item.metadata.get("relevance_score", None))
+            print("Score", retrieved_item.metadata.get("cohere_reranking_score", None))
 
         # trim context by trim_len
         if evidence:
@@ -190,7 +193,9 @@ class ReactAgentPipeline(BaseReasoning):
             "<b>Action</b>: <em>{tool}[{input}]</em>\n\n<b>Output</b>: {output}"
         ).format(
             tool=step.tool if status == "thinking" else "",
-            input=step.tool_input.replace("\n", "") if status == "thinking" else "",
+            input=step.tool_input.replace("\n", "").replace('"', "")
+            if status == "thinking"
+            else "",
             output=output if status == "thinking" else "Finished",
         )
         return Document(
@@ -261,9 +266,17 @@ class ReactAgentPipeline(BaseReasoning):
         llm_name = settings[f"{prefix}.llm"]
         llm = llms.get(llm_name, llms.get_default())
 
+        max_context_length_setting = settings.get("reasoning.max_context_length", None)
+
         pipeline = ReactAgentPipeline(retrievers=retrievers)
         pipeline.agent.llm = llm
         pipeline.agent.max_iterations = settings[f"{prefix}.max_iterations"]
+
+        if max_context_length_setting:
+            pipeline.agent.max_context_length = (
+                max_context_length_setting // DEFAULT_AGENT_STEPS
+            )
+
         tools = []
         for tool_name in settings[f"reasoning.options.{_id}.tools"]:
             tool = TOOL_REGISTRY[tool_name]
@@ -273,7 +286,7 @@ class ReactAgentPipeline(BaseReasoning):
                 tool.llm = llm
             tools.append(tool)
         pipeline.agent.plugins = tools
-        pipeline.agent.output_lang = {"en": "English", "ja": "Japanese"}.get(
+        pipeline.agent.output_lang = SUPPORTED_LANGUAGE_MAP.get(
             settings["reasoning.lang"], "English"
         )
         pipeline.use_rewrite = states.get("app", {}).get("regen", False)
@@ -298,6 +311,7 @@ class ReactAgentPipeline(BaseReasoning):
                 "value": llm,
                 "component": "dropdown",
                 "choices": llm_choices,
+                "special_type": "llm",
                 "info": (
                     "The language model to use for generating the answer. If None, "
                     "the application default language model will be used."
@@ -325,5 +339,10 @@ class ReactAgentPipeline(BaseReasoning):
         return {
             "id": "ReAct",
             "name": "ReAct Agent",
-            "description": "Implementing ReAct paradigm",
+            "description": (
+                "Implementing ReAct paradigm: https://arxiv.org/abs/2210.03629. "
+                "ReAct agent answers the user's request by iteratively formulating "
+                "plan and executing it. The agent can use multiple tools to gather "
+                "information and generate the final answer."
+            ),
         }

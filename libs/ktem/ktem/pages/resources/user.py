@@ -94,6 +94,28 @@ def validate_password(pwd, pwd_cnf):
     return ""
 
 
+def create_user(usn, pwd) -> bool:
+    with Session(engine) as session:
+        statement = select(User).where(User.username_lower == usn.lower())
+        result = session.exec(statement).all()
+        if result:
+            print(f'User "{usn}" already exists')
+            return False
+
+        else:
+            hashed_password = hashlib.sha256(pwd.encode()).hexdigest()
+            user = User(
+                username=usn,
+                username_lower=usn.lower(),
+                password=hashed_password,
+                admin=True,
+            )
+            session.add(user)
+            session.commit()
+
+            return True
+
+
 class UserManagement(BasePage):
     def __init__(self, app):
         self._app = app
@@ -105,23 +127,9 @@ class UserManagement(BasePage):
             usn = flowsettings.KH_FEATURE_USER_MANAGEMENT_ADMIN
             pwd = flowsettings.KH_FEATURE_USER_MANAGEMENT_PASSWORD
 
-            with Session(engine) as session:
-                statement = select(User).where(User.username_lower == usn.lower())
-                result = session.exec(statement).all()
-                if result:
-                    print(f'User "{usn}" already exists')
-
-                else:
-                    hashed_password = hashlib.sha256(pwd.encode()).hexdigest()
-                    user = User(
-                        username=usn,
-                        username_lower=usn.lower(),
-                        password=hashed_password,
-                        admin=True,
-                    )
-                    session.add(user)
-                    session.commit()
-                    gr.Info(f'User "{usn}" created successfully')
+            is_created = create_user(usn, pwd)
+            if is_created:
+                gr.Info(f'User "{usn}" created successfully')
 
     def on_building_ui(self):
         with gr.Tab(label="User list"):
@@ -224,7 +232,7 @@ class UserManagement(BasePage):
                 gr.update(visible=False),
                 gr.update(visible=False),
             ),
-            inputs=None,
+            inputs=[],
             outputs=[self.btn_delete, self.btn_delete_yes, self.btn_delete_no],
             show_progress="hidden",
         )

@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, TypeVar
 from langchain.schema.messages import AIMessage as LCAIMessage
 from langchain.schema.messages import HumanMessage as LCHumanMessage
 from langchain.schema.messages import SystemMessage as LCSystemMessage
-from llama_index.bridge.pydantic import Field
-from llama_index.schema import Document as BaseDocument
+from llama_index.core.bridge.pydantic import Field
+from llama_index.core.schema import Document as BaseDocument
 
 if TYPE_CHECKING:
     from haystack.schema import Document as HaystackDocument
@@ -38,7 +38,7 @@ class Document(BaseDocument):
 
     content: Any = None
     source: Optional[str] = None
-    channel: Optional[Literal["chat", "info", "index", "debug"]] = None
+    channel: Optional[Literal["chat", "info", "index", "debug", "plot"]] = None
 
     def __init__(self, content: Optional[Any] = None, *args, **kwargs):
         if content is None:
@@ -140,6 +140,7 @@ class LLMInterface(AIMessage):
     total_cost: float = 0
     logits: list[list[float]] = Field(default_factory=list)
     messages: list[AIMessage] = Field(default_factory=list)
+    logprobs: list[float] = []
 
 
 class ExtractorOutput(Document):

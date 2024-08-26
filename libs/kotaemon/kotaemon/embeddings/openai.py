@@ -1,10 +1,38 @@
+from itertools import islice
 from typing import Optional
 
+import numpy as np
+import openai
+import tiktoken
+from tenacity import (
+    retry,
+    retry_if_not_exception_type,
+    stop_after_attempt,
+    wait_random_exponential,
+)
 from theflow.utils.modules import import_dotted_string
 
 from kotaemon.base import Param
 
 from .base import BaseEmbeddings, Document, DocumentWithEmbedding
+
+
+def split_text_by_chunk_size(text: str, chunk_size: int) -> list[list[int]]:
+    """Split the text into chunks of a given size
+
+    Args:
+        text: text to split
+        chunk_size: size of each chunk
+
+    Returns:
+        list of chunks (as tokens)
+    """
+    encoding = tiktoken.get_encoding("cl100k_base")
+    tokens = iter(encoding.encode(text))
+    result = []
+    while chunk := list(islice(tokens, chunk_size)):
+        result.append(chunk)
+    return result
 
 
 class BaseOpenAIEmbeddings(BaseEmbeddings):
@@ -32,6 +60,9 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
             "Only supported in `text-embedding-3` and later models."
         ),
     )
+    context_length: Optional[int] = Param(
+        None, help="The maximum context length of the embedding model"
+    )
 
     @Param.auto(depends_on=["max_retries"])
     def max_retries_(self):
@@ -56,16 +87,42 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
     def invoke(
         self, text: str | list[str] | Document | list[Document], *args, **kwargs
     ) -> list[DocumentWithEmbedding]:
-        input_ = self.prepare_input(text)
+        input_doc = self.prepare_input(text)
         client = self.prepare_client(async_version=False)
-        resp = self.openai_response(
-            client, input=[_.text if _.text else " " for _ in input_], **kwargs
-        ).dict()
-        output_ = sorted(resp["data"], key=lambda x: x["index"])
-        return [
-            DocumentWithEmbedding(embedding=o["embedding"], content=i)
-            for i, o in zip(input_, output_)
-        ]
+
+        input_: list[str | list[int]] = []
+        splitted_indices = {}
+        for idx, text in enumerate(input_doc):
+            if self.context_length:
+                chunks = split_text_by_chunk_size(text.text or " ", self.context_length)
+                splitted_indices[idx] = (len(input_), len(input_) + len(chunks))
+                input_.extend(chunks)
+            else:
+                splitted_indices[idx] = (len(input_), len(input_) + 1)
+                input_.append(text.text)
+
+        resp = self.openai_response(client, input=input_, **kwargs).dict()
+        output_ = list(sorted(resp["data"], key=lambda x: x["index"]))
+
+        output = []
+        for idx, doc in enumerate(input_doc):
+            embs = output_[splitted_indices[idx][0] : splitted_indices[idx][1]]
+            if len(embs) == 1:
+                output.append(
+                    DocumentWithEmbedding(embedding=embs[0]["embedding"], content=doc)
+                )
+                continue
+
+            chunk_lens = [
+                len(_)
+                for _ in input_[splitted_indices[idx][0] : splitted_indices[idx][1]]
+            ]
+            vs: list[list[float]] = [_["embedding"] for _ in embs]
+            emb = np.average(vs, axis=0, weights=chunk_lens)
+            emb = emb / np.linalg.norm(emb)
+            output.append(DocumentWithEmbedding(embedding=emb.tolist(), content=doc))
+
+        return output
 
     async def ainvoke(
         self, text: str | list[str] | Document | list[Document], *args, **kwargs
@@ -118,6 +175,13 @@ class OpenAIEmbeddings(BaseOpenAIEmbeddings):
 
         return OpenAI(**params)
 
+    @retry(
+        retry=retry_if_not_exception_type(
+            (openai.NotFoundError, openai.BadRequestError)
+        ),
+        wait=wait_random_exponential(min=1, max=40),
+        stop=stop_after_attempt(6),
+    )
     def openai_response(self, client, **kwargs):
         """Get the openai response"""
         params: dict = {
@@ -174,6 +238,13 @@ class AzureOpenAIEmbeddings(BaseOpenAIEmbeddings):
 
         return AzureOpenAI(**params)
 
+    @retry(
+        retry=retry_if_not_exception_type(
+            (openai.NotFoundError, openai.BadRequestError)
+        ),
+        wait=wait_random_exponential(min=1, max=40),
+        stop=stop_after_attempt(6),
+    )
     def openai_response(self, client, **kwargs):
         """Get the openai response"""
         params: dict = {

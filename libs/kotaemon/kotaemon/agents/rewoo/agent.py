@@ -39,16 +39,11 @@ class RewooAgent(BaseAgent):
     examples: dict[str, str | list[str]] = Param(
         default_callback=lambda _: {}, help="Examples to be used in the agent."
     )
-    trim_func: TokenSplitter = TokenSplitter.withx(
-        chunk_size=3000,
-        chunk_overlap=0,
-        separator=" ",
-        tokenizer=partial(
-            tiktoken.encoding_for_model("gpt-3.5-turbo").encode,
-            allowed_special=set(),
-            disallowed_special="all",
-        ),
+    max_context_length: int = Param(
+        default=3000,
+        help="Max context length for each tool output.",
     )
+    trim_func: TokenSplitter | None = None
 
     @Node.auto(depends_on=["planner_llm", "plugins", "prompt_template", "examples"])
     def planner(self):
@@ -248,8 +243,22 @@ class RewooAgent(BaseAgent):
                 return p
 
     def _trim_evidence(self, evidence: str):
+        evidence_trim_func = (
+            self.trim_func
+            if self.trim_func
+            else TokenSplitter(
+                chunk_size=self.max_context_length,
+                chunk_overlap=0,
+                separator=" ",
+                tokenizer=partial(
+                    tiktoken.encoding_for_model("gpt-3.5-turbo").encode,
+                    allowed_special=set(),
+                    disallowed_special="all",
+                ),
+            )
+        )
         if evidence:
-            texts = self.trim_func([Document(text=evidence)])
+            texts = evidence_trim_func([Document(text=evidence)])
             evidence = texts[0].text
             logging.info(f"len (trimmed): {len(evidence)}")
             return evidence
@@ -317,6 +326,14 @@ class RewooAgent(BaseAgent):
         )
 
         print("Planner output:", planner_text_output)
+        # output planner to info panel
+        yield AgentOutput(
+            text="",
+            agent_type=self.agent_type,
+            status="thinking",
+            intermediate_steps=[{"planner_log": planner_text_output}],
+        )
+
         # Work
         worker_evidences, plugin_cost, plugin_token = self._get_worker_evidence(
             planner_evidences, evidence_level
@@ -326,7 +343,9 @@ class RewooAgent(BaseAgent):
             worker_log += f"{plan}: {plans[plan]}\n"
             current_progress = f"{plan}: {plans[plan]}\n"
             for e in plan_to_es[plan]:
+                worker_log += f"#Action: {planner_evidences.get(e, None)}\n"
                 worker_log += f"{e}: {worker_evidences[e]}\n"
+                current_progress += f"#Action: {planner_evidences.get(e, None)}\n"
                 current_progress += f"{e}: {worker_evidences[e]}\n"
 
             yield AgentOutput(

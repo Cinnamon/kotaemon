@@ -54,6 +54,7 @@ class BaseFileIndexIndexing(BaseComponent):
     DS = Param(help="The DocStore")
     FSPath = Param(help="The file storage path")
     user_id = Param(help="The user id")
+    private = Param(False, help="Whether this is private index")
 
     def run(
         self, file_paths: str | Path | list[str | Path], *args, **kwargs
@@ -73,7 +74,9 @@ class BaseFileIndexIndexing(BaseComponent):
 
     def stream(
         self, file_paths: str | Path | list[str | Path], *args, **kwargs
-    ) -> Generator[Document, None, tuple[list[str | None], list[str | None]]]:
+    ) -> Generator[
+        Document, None, tuple[list[str | None], list[str | None], list[Document]]
+    ]:
         """Stream the indexing pipeline
 
         Args:
@@ -87,6 +90,7 @@ class BaseFileIndexIndexing(BaseComponent):
                 None if the indexing failed for that file path)
             - the error messages (each error message corresponds to an input file path,
                 or None if the indexing was successful for that file path)
+            - the indexed documents in form of list[Documents]
         """
         raise NotImplementedError
 
@@ -149,3 +153,7 @@ class BaseFileIndexIndexing(BaseComponent):
             msg: the message to log
         """
         print(msg)
+
+    def rebuild_index(self):
+        """Rebuild the index"""
+        raise NotImplementedError

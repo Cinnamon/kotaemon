@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Any, Type
 
-from llama_index.node_parser.interface import NodeParser
+from llama_index.core.node_parser.interface import NodeParser
 
 from kotaemon.base import BaseComponent, Document, RetrievedDocument
 
@@ -32,7 +32,7 @@ class LlamaIndexDocTransformerMixin:
     Example:
         class TokenSplitter(LlamaIndexMixin, BaseSplitter):
             def _get_li_class(self):
-                from llama_index.text_splitter import TokenTextSplitter
+                from llama_index.core.text_splitter import TokenTextSplitter
                 return TokenTextSplitter
 
     To use this mixin, please:

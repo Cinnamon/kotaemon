@@ -147,6 +147,16 @@ mark {
   max-height: 42px;
 }
 
+/* Hide sort buttons at gr.DataFrame */
+.sort-button {
+  display: none !important;
+}
+
+/* Show sort button only in File list*/
+#file_list_view .sort-button {
+  display: block !important;
+}
+
 .scrollable {
   overflow-y: auto;
 }
@@ -157,4 +167,59 @@ mark {
 
 .unset-overflow {
   overflow: unset !important;
+}
+
+/*body {*/
+/*  margin: 0;*/
+/*  font-family: Arial, sans-serif;*/
+/*}*/
+
+pdfjs-viewer-element {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Modal styles */
+
+.modal {
+  display: none;
+  position: relative;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgb(0, 0, 0);
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-header {
+  padding: 0px 10px
+}
+
+.modal-content {
+  background-color: #fefefe;
+  height: 110%;
+  display: flex;
+  flex-direction: column;
+}
+
+.close {
+  color: #aaa;
+  align-self: flex-end;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.modal-body {
+  flex: 1;
+  overflow: auto;
 }
