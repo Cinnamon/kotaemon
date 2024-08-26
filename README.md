@@ -112,6 +112,10 @@ pip install -e "libs/ktem"
 
 - View and edit your environment variables (API keys, end-points) in `.env`.
 
+- (Optional) To enable in-browser PDF_JS viewer, download [PDF_JS_DIST](https://github.com/mozilla/pdf.js/releases/download/v4.0.379/pdfjs-4.0.379-dist.zip) and extract it to `libs/ktem/ktem/assets/prebuilt`
+
+![pdf-setup](docs/images/pdf-viewer-setup.png)
+
 - Start the web server:
 
 ```shell
