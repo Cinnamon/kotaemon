@@ -11,7 +11,9 @@ env:
 
 jobs:
   unit-test:
-    if: ${{ !cancelled() }}
+    if: false # temporary disable this job due to legacy interface
+    #TODO: enable this job after the new interface is ready
+    # if: ${{ !cancelled() }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     defaults:

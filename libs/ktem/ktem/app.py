@@ -165,9 +165,11 @@ class BaseApp:
         """Called when the app is created"""
 
     def make(self):
-        external_js = """
-        <script type="module" src="https://cdn.skypack.dev/pdfjs-viewer-element"></script>
-        """
+        external_js = (
+            "<script type='module' "
+            "src='https://cdn.skypack.dev/pdfjs-viewer-element'>"
+            "</script>"
+        )
 
         with gr.Blocks(
             theme=self._theme,
