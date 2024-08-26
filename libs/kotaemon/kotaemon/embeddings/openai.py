@@ -2,8 +2,14 @@ from itertools import islice
 from typing import Optional
 
 import numpy as np
+import openai
 import tiktoken
-from tenacity import retry, stop_after_attempt, wait_random_exponential
+from tenacity import (
+    retry,
+    retry_if_not_exception_type,
+    stop_after_attempt,
+    wait_random_exponential,
+)
 from theflow.utils.modules import import_dotted_string
 
 from kotaemon.base import Param
@@ -55,7 +61,7 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
         ),
     )
     context_length: Optional[int] = Param(
-        8191, help="The maximum context length of the embedding model"
+        None, help="The maximum context length of the embedding model"
     )
 
     @Param.auto(depends_on=["max_retries"])
@@ -169,7 +175,13 @@ class OpenAIEmbeddings(BaseOpenAIEmbeddings):
 
         return OpenAI(**params)
 
-    @retry(wait=wait_random_exponential(min=1, max=40), stop=stop_after_attempt(6))
+    @retry(
+        retry=retry_if_not_exception_type(
+            (openai.NotFoundError, openai.BadRequestError)
+        ),
+        wait=wait_random_exponential(min=1, max=40),
+        stop=stop_after_attempt(6),
+    )
     def openai_response(self, client, **kwargs):
         """Get the openai response"""
         params: dict = {
@@ -226,7 +238,13 @@ class AzureOpenAIEmbeddings(BaseOpenAIEmbeddings):
 
         return AzureOpenAI(**params)
 
-    @retry(wait=wait_random_exponential(min=1, max=40), stop=stop_after_attempt(6))
+    @retry(
+        retry=retry_if_not_exception_type(
+            (openai.NotFoundError, openai.BadRequestError)
+        ),
+        wait=wait_random_exponential(min=1, max=40),
+        stop=stop_after_attempt(6),
+    )
     def openai_response(self, client, **kwargs):
         """Get the openai response"""
         params: dict = {

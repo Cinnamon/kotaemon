@@ -1,12 +1,12 @@
 # kotaemon
 
-An open-source tool for chatting with your documents. Built with both end users and
+An open-source clean & customizable RAG UI for chatting with your documents. Built with both end users and
 developers in mind.
 
-https://github.com/Cinnamon/kotaemon/assets/25688648/815ecf68-3a02-4914-a0dd-3f8ec7e75cd9
+![Preview](docs/images/preview-graph.png)
 
-[Source Code](https://github.com/Cinnamon/kotaemon) |
-[Live Demo](https://huggingface.co/spaces/lone17/kotaemon-app)
+[Live Demo](https://huggingface.co/spaces/taprosoft/kotaemon) |
+[Source Code](https://github.com/Cinnamon/kotaemon)
 
 [User Guide](https://cinnamon.github.io/kotaemon/) |
 [Developer Guide](https://cinnamon.github.io/kotaemon/development/) |
@@ -14,20 +14,23 @@ https://github.com/Cinnamon/kotaemon/assets/25688648/815ecf68-3a02-4914-a0dd-3f8
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-31013/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+<a href="https://hub.docker.com/r/taprosoft/kotaemon" target="_blank">
+<img src="https://img.shields.io/badge/docker_pull-kotaemon:v1.0-brightgreen" alt="docker pull taprosoft/kotaemon:v1.0"></a>
 [![built with Codeium](https://codeium.com/badges/main)](https://codeium.com)
 
-This project would like to appeal to both end users who want to do QA on their
-documents and developers who want to build their own QA pipeline.
+## Introduction
+
+This project serves as a functional RAG UI for both end users who want to do QA on their
+documents and developers who want to build their own RAG pipeline.
 
 - For end users:
-  - A local Question Answering UI for RAG-based QA.
+  - A clean & minimalistic UI for RAG-based QA.
   - Supports LLM API providers (OpenAI, AzureOpenAI, Cohere, etc) and local LLMs
-    (currently only GGUF format is supported via `llama-cpp-python`).
-  - Easy installation scripts, no environment setup required.
+    (via `ollama` and `llama-cpp-python`).
+  - Easy installation scripts.
 - For developers:
-  - A framework for building your own RAG-based QA pipeline.
-  - See your RAG pipeline in action with the provided UI (built with Gradio).
-  - Share your pipeline so that others can use it.
+  - A framework for building your own RAG-based document QA pipeline.
+  - Customize and see your RAG pipeline in action with the provided UI (built with Gradio).
 
 ```yml
 +----------------------------------------------------------------------------+
@@ -47,26 +50,69 @@ documents and developers who want to build their own QA pipeline.
 This repository is under active development. Feedback, issues, and PRs are highly
 appreciated.
 
+## Key Features
+
+- **Host your own document QA (RAG) web-UI**. Support multi-user login, organize your files in private / public collections, collaborate and share your favorite chat with others.
+
+- **Organize your LLM & Embedding models**. Support both local LLMs & popular API providers (OpenAI, Azure, Ollama, Groq).
+
+- **Hybrid RAG pipeline**. Sane default RAG pipeline with hybrid (full-text & vector) retriever + re-ranking to ensure best retrieval quality.
+
+- **Multi-modal QA support**. Perform Question Answering on multiple documents with figures & tables support. Support multi-modal document parsing (selectable options on UI).
+
+- **Advance citations with document preview**. By default the system will provide detailed citations to ensure the correctness of LLM answers. View your citations (incl. relevant score) directly in the _in-browser PDF viewer_ with highlights. Warning when retrieval pipeline return low relevant articles.
+
+- **Support complex reasoning methods**. Use question decomposition to answer your complex / multi-hop question. Support agent-based reasoning with ReAct, ReWOO and other agents.
+
+- **Configurable settings UI**. You can adjust most important aspects of retrieval & generation process on the UI (incl. prompts).
+
+- **Extensible**. Being built on Gradio, you are free to customize / add any UI elements as you like. Also, we aim to support multiple strategies for document indexing & retrieval. `GraphRAG` indexing pipeline is provided as an example.
+
+![Preview](docs/images/preview.png)
+
 ## Installation
 
 ### For end users
 
 This document is intended for developers. If you just want to install and use the app as
-it, please follow the [User Guide](https://cinnamon.github.io/kotaemon/).
+it is, please follow the non-technical [User Guide](https://cinnamon.github.io/kotaemon/) (WIP).
 
 ### For developers
 
-Install all
+#### With Docker (recommended)
+
+- Use this command to launch the server
+
+```
+docker run \
+-e GRADIO_SERVER_NAME=0.0.0.0 \
+-e GRADIO_SERVER_PORT=7860 \
+-p 7860:7860 -it --rm \
+taprosoft/kotaemon:v1.0
+```
+
+Navigate to `http://localhost:7860/` to access the web UI.
+
+#### Without Docker
+
+- Clone and install required packages on a fresh python environment.
 
 ```shell
-# clone this repo and cd to root directory
+# optional (setup env)
+conda create -n kotaemon python=3.10
+conda activate kotaemon
+
+# clone this repo
+git clone https://github.com/Cinnamon/kotaemon
+cd kotaemon
+
 pip install -e "libs/kotaemon[all]"
 pip install -e "libs/ktem"
 ```
 
-## Start your application
+- View and edit your environment variables (API keys, end-points) in `.env`.
 
-Simply run the following command:
+- Start the web server:
 
 ```shell
 python app.py
@@ -74,37 +120,52 @@ python app.py
 
 The app will be automatically launched in your browser.
 
-![Chat tab](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/chat-tab.png)
+Default username / password are: `admin` / `admin`. You can setup additional users directly on the UI.
 
-Default username / password are: `admin` / `admin`
+![Chat tab](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/chat-tab.png)
 
 ## Customize your application
 
-For your specific use-case, you might need to customize those file:
+By default, all application data are stored in `./ktem_app_data` folder. You can backup or copy this folder to move your installation to a new machine.
+
+For advance users or specific use-cases, you can customize those files:
 
 - `flowsettings.py`
-- `app.py`
-- `.env` (Optional)
+- `.env`
 
 ### `flowsettings.py`
 
 This file contains the configuration of your application. You can use the example
-[here](https://github.com/Cinnamon/kotaemon/blob/main/libs/ktem/flowsettings.py) as the
+[here](flowsettings.py) as the
 starting point.
 
-### `app.py`
+<details>
 
-This file is where you create your Gradio app object. This can be as simple as:
+<summary>Notable settings</summary>
 
-```python
-from ktem.main import App
+```
+# setup your preferred document store (with full-text search capabilities)
+KH_DOCSTORE=(Elasticsearch | LanceDB | SimpleFileDocumentStore)
 
-app = App()
-demo = app.make()
-demo.launch()
+# setup your preferred vectorstore (for vector-based search)
+KH_VECTORSTORE=(ChromaDB | LanceDB
+
+# Enable / disable multimodal QA
+KH_REASONINGS_USE_MULTIMODAL=True
+
+# Setup your new reasoning pipeline or modify existing one.
+KH_REASONINGS = [
+    "ktem.reasoning.simple.FullQAPipeline",
+    "ktem.reasoning.simple.FullDecomposeQAPipeline",
+    "ktem.reasoning.react.ReactAgentPipeline",
+    "ktem.reasoning.rewoo.RewooAgentPipeline",
+]
+)
 ```
 
-### `.env` (Optional)
+</details>
+
+### `.env`
 
 This file provides another way to configure your models and credentials.
 
@@ -147,18 +208,22 @@ AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT=text-embedding-ada-002
 
 #### Local models
 
-- Pros:
-- Privacy. Your documents will be stored and process locally.
-- Choices. There are a wide range of LLMs in terms of size, domain, language to choose
-  from.
-- Cost. It's free.
-- Cons:
-- Quality. Local models are much smaller and thus have lower generative quality than
-  paid APIs.
-- Speed. Local models are deployed using your machine so the processing speed is
-  limited by your hardware.
+##### Using ollama OpenAI compatible server
 
-##### Find and download a LLM
+Install [ollama](https://github.com/ollama/ollama) and start the application.
+
+Pull your model (e.g):
+
+```
+ollama pull llama3.1:8b
+ollama pull nomic-embed-text
+```
+
+Set the model names on web UI and make it as default.
+
+![Models](docs/images/models.png)
+
+##### Using GGUF with llama-cpp-python
 
 You can search and download a LLM to be ran locally from the [Hugging Face
 Hub](https://huggingface.co/models). Currently, these model formats are supported:
@@ -175,16 +240,26 @@ Here are some recommendations and their size in memory:
 - [Qwen1.5-1.8B-Chat-GGUF](https://huggingface.co/Qwen/Qwen1.5-1.8B-Chat-GGUF/resolve/main/qwen1_5-1_8b-chat-q8_0.gguf?download=true):
   around 2 GB
 
-##### Enable local models
+Add a new LlamaCpp model with the provided model name on the web uI.
 
-To add a local model to the model pool, set the `LOCAL_MODEL` variable in the `.env`
-file to the path of the model file.
-
-```shell
-LOCAL_MODEL=<full path to your model file>
-```
-
-Here is how to get the full path of your model file:
-
-- On Windows 11: right click the file and select `Copy as Path`.
 </details>
+
+## Adding your own RAG pipeline
+
+#### Custom reasoning pipeline
+
+First, check the default pipeline implementation in
+[here](libs/ktem/ktem/reasoning/simple.py). You can make quick adjustment to how the default QA pipeline work.
+
+Next, if you feel comfortable adding new pipeline, add new `.py` implementation in `libs/ktem/ktem/reasoning/` and later include it in `flowssettings` to enable it on the UI.
+
+#### Custom indexing pipeline
+
+Check sample implementation in `libs/ktem/ktem/index/file/graph`
+
+(more instruction WIP).
+
+## Developer guide
+
+Please refer to the [Developer Guide](https://cinnamon.github.io/kotaemon/development/)
+for more details.

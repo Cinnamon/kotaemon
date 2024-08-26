@@ -271,8 +271,14 @@ class VectorRetrieval(BaseRetrieval):
                 non_thumbnail_docs.append(doc)
 
         linked_thumbnail_docs = self.doc_store.get(list(thumbnail_doc_ids))
-        print("thumbnail docs", len(linked_thumbnail_docs))
-        print("non-thumbnail docs", len(non_thumbnail_docs))
+        print(
+            "thumbnail docs",
+            len(linked_thumbnail_docs),
+            "non-thumbnail docs",
+            len(non_thumbnail_docs),
+            "raw-thumbnail docs",
+            len(raw_thumbnail_docs),
+        )
         additional_docs = []
 
         for thumbnail_doc in linked_thumbnail_docs:

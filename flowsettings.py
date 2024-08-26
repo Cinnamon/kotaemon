@@ -15,7 +15,7 @@ this_dir = Path(this_file).parent
 # change this if your app use a different name
 KH_PACKAGE_NAME = "kotaemon_app"
 
-KH_APP_VERSION = os.environ.get("KH_APP_VERSION", None)
+KH_APP_VERSION = config("KH_APP_VERSION", "local")
 if not KH_APP_VERSION:
     try:
         # Caution: This might produce the wrong version
@@ -33,7 +33,7 @@ KH_APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
 KH_USER_DATA_DIR = KH_APP_DATA_DIR / "user_data"
 KH_USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# markdowm output directory
+# markdown output directory
 KH_MARKDOWN_OUTPUT_DIR = KH_APP_DATA_DIR / "markdown_cache_dir"
 KH_MARKDOWN_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -58,10 +58,9 @@ os.environ["HF_HUB_CACHE"] = str(KH_APP_DATA_DIR / "huggingface")
 # doc directory
 KH_DOC_DIR = this_dir / "docs"
 
-COHERE_API_KEY = config("COHERE_API_KEY", default="")
 KH_MODE = "dev"
-KH_USER_CAN_SEE_PUBLIC = "public"
 KH_FEATURE_USER_MANAGEMENT = True
+KH_USER_CAN_SEE_PUBLIC = None
 KH_FEATURE_USER_MANAGEMENT_ADMIN = str(
     config("KH_FEATURE_USER_MANAGEMENT_ADMIN", default="admin")
 )
@@ -73,10 +72,13 @@ KH_DATABASE = f"sqlite:///{KH_USER_DATA_DIR / 'sql.db'}"
 KH_FILESTORAGE_PATH = str(KH_USER_DATA_DIR / "files")
 
 KH_DOCSTORE = {
-    "__type__": "kotaemon.storages.SimpleFileDocumentStore",
+    # "__type__": "kotaemon.storages.ElasticsearchDocumentStore",
+    # "__type__": "kotaemon.storages.SimpleFileDocumentStore",
+    "__type__": "kotaemon.storages.LanceDBDocumentStore",
     "path": str(KH_USER_DATA_DIR / "docstore"),
 }
 KH_VECTORSTORE = {
+    # "__type__": "kotaemon.storages.LanceDBVectorStore",
     "__type__": "kotaemon.storages.ChromaVectorStore",
     "path": str(KH_USER_DATA_DIR / "vectorstore"),
 }
@@ -125,7 +127,7 @@ if config("OPENAI_API_KEY", default=""):
             "base_url": config("OPENAI_API_BASE", default="")
             or "https://api.openai.com/v1",
             "api_key": config("OPENAI_API_KEY", default=""),
-            "model": config("OPENAI_CHAT_MODEL", default="") or "gpt-3.5-turbo",
+            "model": config("OPENAI_CHAT_MODEL", default="gpt-3.5-turbo"),
             "timeout": 20,
         },
         "default": True,
@@ -133,42 +135,41 @@ if config("OPENAI_API_KEY", default=""):
     KH_EMBEDDINGS["openai"] = {
         "spec": {
             "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
-            "base_url": config("OPENAI_API_BASE", default="")
-            or "https://api.openai.com/v1",
+            "base_url": config("OPENAI_API_BASE", default="https://api.openai.com/v1"),
             "api_key": config("OPENAI_API_KEY", default=""),
-            "model": config("OPENAI_EMBEDDINGS_MODEL", default="text-embedding-ada-002")
-            or "text-embedding-ada-002",
+            "model": config(
+                "OPENAI_EMBEDDINGS_MODEL", default="text-embedding-ada-002"
+            ),
             "timeout": 10,
+            "context_length": 8191,
         },
         "default": True,
     }
 
 if config("LOCAL_MODEL", default=""):
-    KH_LLMS["local"] = {
+    KH_LLMS["ollama"] = {
         "spec": {
-            "__type__": "kotaemon.llms.EndpointChatLLM",
-            "endpoint_url": "http://localhost:31415/v1/chat/completions",
+            "__type__": "kotaemon.llms.ChatOpenAI",
+            "base_url": "http://localhost:11434/v1/",
+            "model": config("LOCAL_MODEL", default="llama3.1:8b"),
         },
         "default": False,
-        "cost": 0,
     }
-    if len(KH_EMBEDDINGS) < 1:
-        KH_EMBEDDINGS["local"] = {
-            "spec": {
-                "__type__": "kotaemon.embeddings.EndpointEmbeddings",
-                "endpoint_url": "http://localhost:31415/v1/embeddings",
-            },
-            "default": False,
-            "cost": 0,
-        }
+    KH_EMBEDDINGS["ollama"] = {
+        "spec": {
+            "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
+            "base_url": "http://localhost:11434/v1/",
+            "model": config("LOCAL_MODEL_EMBEDDINGS", default="nomic-embed-text"),
+        },
+        "default": False,
+    }
 
-if len(KH_EMBEDDINGS) < 1:
-    KH_EMBEDDINGS["local-bge-base-en-v1.5"] = {
+    KH_EMBEDDINGS["local-bge-en"] = {
         "spec": {
             "__type__": "kotaemon.embeddings.FastEmbedEmbeddings",
             "model_name": "BAAI/bge-base-en-v1.5",
         },
-        "default": True,
+        "default": False,
     }
 
 KH_REASONINGS = [
@@ -177,21 +178,15 @@ KH_REASONINGS = [
     "ktem.reasoning.react.ReactAgentPipeline",
     "ktem.reasoning.rewoo.RewooAgentPipeline",
 ]
+KH_REASONINGS_USE_MULTIMODAL = False
 KH_VLM_ENDPOINT = "{0}/openai/deployments/{1}/chat/completions?api-version={2}".format(
     config("AZURE_OPENAI_ENDPOINT", default=""),
-    config("OPENAI_VISION_DEPLOYMENT_NAME", default="gpt-4-vision"),
+    config("OPENAI_VISION_DEPLOYMENT_NAME", default="gpt-4o"),
     config("OPENAI_API_VERSION", default=""),
 )
 
 
-SETTINGS_APP = {
-    "lang": {
-        "name": "UI Language",
-        "value": "en",
-        "choices": [("English", "en"), ("Japanese", "ja")],
-        "component": "dropdown",
-    }
-}
+SETTINGS_APP: dict[str, dict] = {}
 
 
 SETTINGS_REASONING = {
@@ -204,22 +199,42 @@ SETTINGS_REASONING = {
     "lang": {
         "name": "Language",
         "value": "en",
-        "choices": [("English", "en"), ("Japanese", "ja")],
+        "choices": [("English", "en"), ("Japanese", "ja"), ("Vietnamese", "vi")],
         "component": "dropdown",
+    },
+    "max_context_length": {
+        "name": "Max context length (LLM)",
+        "value": 32000,
+        "component": "number",
     },
 }
 
 
-KH_INDEX_TYPES = ["ktem.index.file.FileIndex"]
+KH_INDEX_TYPES = [
+    "ktem.index.file.FileIndex",
+    "ktem.index.file.graph.GraphRAGIndex",
+]
 KH_INDICES = [
     {
         "name": "File",
         "config": {
             "supported_file_types": (
-                ".pdf, .xls, .xlsx, .doc, .docx, " ".pptx, .csv, .html, .txt"
+                ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
+                ".pptx, .csv, .html, .mhtml, .txt, .zip"
             ),
             "private": False,
         },
         "index_type": "ktem.index.file.FileIndex",
+    },
+    {
+        "name": "GraphRAG",
+        "config": {
+            "supported_file_types": (
+                ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
+                ".pptx, .csv, .html, .mhtml, .txt, .zip"
+            ),
+            "private": False,
+        },
+        "index_type": "ktem.index.file.graph.GraphRAGIndex",
     },
 ]

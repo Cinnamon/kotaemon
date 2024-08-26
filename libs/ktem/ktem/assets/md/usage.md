@@ -136,6 +136,6 @@ Now navigate back to the `Chat` tab. The chat tab is divided into 3 regions:
        files will be considered during chat.
 2. Chat Panel
    - This is where you can chat with the chatbot.
-3. Information panel
+3. Information Panel
    - Supporting information such as the retrieved evidence and reference will be
      displayed here.

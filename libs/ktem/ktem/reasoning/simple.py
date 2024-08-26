@@ -1,7 +1,5 @@
-import asyncio
 import html
 import logging
-import re
 import threading
 from collections import defaultdict
 from difflib import SequenceMatcher
@@ -30,7 +28,6 @@ from kotaemon.base import (
 from kotaemon.indices.qa.citation import CitationPipeline
 from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import ChatLLM, PromptTemplate
-from kotaemon.loaders.utils.gpt4v import generate_gpt4v, stream_gpt4v
 
 from ..utils import SUPPORTED_LANGUAGE_MAP
 from .base import BaseReasoning
@@ -41,6 +38,7 @@ EVIDENCE_MODE_TEXT = 0
 EVIDENCE_MODE_TABLE = 1
 EVIDENCE_MODE_CHATBOT = 2
 EVIDENCE_MODE_FIGURE = 3
+MAX_IMAGES = 10
 
 
 def find_text(search_span, context):
@@ -68,21 +66,29 @@ class PrepareEvidencePipeline(BaseComponent):
             chunk of text into smaller ones. The first one will be retained.
     """
 
-    trim_func: TokenSplitter = TokenSplitter.withx(
-        chunk_size=32000,
-        chunk_overlap=0,
-        separator=" ",
-        tokenizer=partial(
-            tiktoken.encoding_for_model("gpt-3.5-turbo").encode,
-            allowed_special=set(),
-            disallowed_special="all",
-        ),
-    )
+    max_context_length: int = 32000
+    trim_func: TokenSplitter | None = None
 
     def run(self, docs: list[RetrievedDocument]) -> Document:
         evidence = ""
+        images = []
         table_found = 0
         evidence_modes = []
+
+        evidence_trim_func = (
+            self.trim_func
+            if self.trim_func
+            else TokenSplitter(
+                chunk_size=self.max_context_length,
+                chunk_overlap=0,
+                separator=" ",
+                tokenizer=partial(
+                    tiktoken.encoding_for_model("gpt-3.5-turbo").encode,
+                    allowed_special=set(),
+                    disallowed_special="all",
+                ),
+            )
+        )
 
         for _id, retrieved_item in enumerate(docs):
             retrieved_content = ""
@@ -117,10 +123,11 @@ class PrepareEvidencePipeline(BaseComponent):
                 retrieved_caption = html.escape(retrieved_item.get_content())
                 evidence += (
                     f"<br><b>Figure from {source}</b>\n"
-                    + f"<img width='85%' src='{retrieved_content}' "
+                    + "<img width='85%' src='<src>' "
                     + f"alt='{retrieved_caption}'/>"
                     + "\n<br>"
                 )
+                images.append(retrieved_content)
             else:
                 if "window" in retrieved_item.metadata:
                     retrieved_content = retrieved_item.metadata["window"]
@@ -141,15 +148,14 @@ class PrepareEvidencePipeline(BaseComponent):
         elif EVIDENCE_MODE_TABLE in evidence_modes:
             evidence_mode = EVIDENCE_MODE_TABLE
 
-        if evidence_mode != EVIDENCE_MODE_FIGURE:
-            # trim context by trim_len
-            print("len (original)", len(evidence))
-            if evidence:
-                texts = self.trim_func([Document(text=evidence)])
-                evidence = texts[0].text
-                print("len (trimmed)", len(evidence))
+        # trim context by trim_len
+        print("len (original)", len(evidence))
+        if evidence:
+            texts = evidence_trim_func([Document(text=evidence)])
+            evidence = texts[0].text
+            print("len (trimmed)", len(evidence))
 
-        return Document(content=(evidence_mode, evidence))
+        return Document(content=(evidence_mode, evidence, images))
 
 
 DEFAULT_QA_TEXT_PROMPT = (
@@ -223,6 +229,7 @@ class AnswerWithContextPipeline(BaseComponent):
 
     llm: ChatLLM = Node(default_callback=lambda _: llms.get_default())
     vlm_endpoint: str = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
+    use_multimodal: bool = getattr(flowsettings, "KH_REASONINGS_USE_MULTIMODAL", True)
     citation_pipeline: CitationPipeline = Node(
         default_callback=lambda _: CitationPipeline(llm=llms.get_default())
     )
@@ -239,33 +246,25 @@ class AnswerWithContextPipeline(BaseComponent):
 
     def get_prompt(self, question, evidence, evidence_mode: int):
         """Prepare the prompt and other information for LLM"""
-        images = []
-
         if evidence_mode == EVIDENCE_MODE_TEXT:
             prompt_template = PromptTemplate(self.qa_template)
         elif evidence_mode == EVIDENCE_MODE_TABLE:
             prompt_template = PromptTemplate(self.qa_table_template)
         elif evidence_mode == EVIDENCE_MODE_FIGURE:
-            prompt_template = PromptTemplate(self.qa_figure_template)
+            if self.use_multimodal:
+                prompt_template = PromptTemplate(self.qa_figure_template)
+            else:
+                prompt_template = PromptTemplate(self.qa_template)
         else:
             prompt_template = PromptTemplate(self.qa_chatbot_template)
 
-        if evidence_mode == EVIDENCE_MODE_FIGURE:
-            # isolate image from evidence
-            evidence, images = self.extract_evidence_images(evidence)
-            prompt = prompt_template.populate(
-                context=evidence,
-                question=question,
-                lang=self.lang,
-            )
-        else:
-            prompt = prompt_template.populate(
-                context=evidence,
-                question=question,
-                lang=self.lang,
-            )
+        prompt = prompt_template.populate(
+            context=evidence,
+            question=question,
+            lang=self.lang,
+        )
 
-        return prompt, evidence, images
+        return prompt, evidence
 
     def run(
         self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
@@ -273,37 +272,22 @@ class AnswerWithContextPipeline(BaseComponent):
         return self.invoke(question, evidence, evidence_mode, **kwargs)
 
     def invoke(
-        self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
+        self,
+        question: str,
+        evidence: str,
+        evidence_mode: int = 0,
+        images: list[str] = [],
+        **kwargs,
     ) -> Document:
-        history = kwargs.get("history", [])
-        prompt, evidence, images = self.get_prompt(question, evidence, evidence_mode)
-
-        output = ""
-        if evidence_mode == EVIDENCE_MODE_FIGURE:
-            output = generate_gpt4v(self.vlm_endpoint, images, prompt, max_tokens=768)
-        else:
-            messages = []
-            if self.system_prompt:
-                messages.append(SystemMessage(content=self.system_prompt))
-            for human, ai in history[-self.n_last_interactions :]:
-                messages.append(HumanMessage(content=human))
-                messages.append(AIMessage(content=ai))
-            messages.append(HumanMessage(content=prompt))
-            output = self.llm(messages).text
-
-        # retrieve the citation
-        citation = None
-        if evidence and self.enable_citation:
-            citation = self.citation_pipeline.invoke(
-                context=evidence, question=question
-            )
-
-        answer = Document(text=output, metadata={"citation": citation})
-
-        return answer
+        raise NotImplementedError
 
     async def ainvoke(  # type: ignore
-        self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
+        self,
+        question: str,
+        evidence: str,
+        evidence_mode: int = 0,
+        images: list[str] = [],
+        **kwargs,
     ) -> Document:
         """Answer the question based on the evidence
 
@@ -327,67 +311,23 @@ class AnswerWithContextPipeline(BaseComponent):
                 (determined by retrieval pipeline)
             evidence_mode: the mode of evidence, 0 for text, 1 for table, 2 for chatbot
         """
-        history = kwargs.get("history", [])
-        prompt, evidence, images = self.get_prompt(question, evidence, evidence_mode)
-
-        citation_task = None
-        if evidence and self.enable_citation:
-            citation_task = asyncio.create_task(
-                self.citation_pipeline.ainvoke(context=evidence, question=question)
-            )
-            print("Citation task created")
-
-        output = ""
-        if evidence_mode == EVIDENCE_MODE_FIGURE:
-            for text in stream_gpt4v(self.vlm_endpoint, images, prompt, max_tokens=768):
-                output += text
-                self.report_output(Document(channel="chat", content=text))
-                await asyncio.sleep(0)
-        else:
-            messages = []
-            if self.system_prompt:
-                messages.append(SystemMessage(content=self.system_prompt))
-            for human, ai in history[-self.n_last_interactions :]:
-                messages.append(HumanMessage(content=human))
-                messages.append(AIMessage(content=ai))
-            messages.append(HumanMessage(content=prompt))
-
-            try:
-                # try streaming first
-                print("Trying LLM streaming")
-                for text in self.llm.stream(messages):
-                    output += text.text
-                    self.report_output(Document(content=text.text, channel="chat"))
-                    await asyncio.sleep(0)
-            except NotImplementedError:
-                print("Streaming is not supported, falling back to normal processing")
-                output = self.llm(messages).text
-                self.report_output(Document(content=output, channel="chat"))
-
-        # retrieve the citation
-        print("Waiting for citation task")
-        if citation_task is not None:
-            citation = await citation_task
-        else:
-            citation = None
-
-        answer = Document(text=output, metadata={"citation": citation})
-
-        return answer
+        raise NotImplementedError
 
     def stream(  # type: ignore
-        self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
+        self,
+        question: str,
+        evidence: str,
+        evidence_mode: int = 0,
+        images: list[str] = [],
+        **kwargs,
     ) -> Generator[Document, None, Document]:
         history = kwargs.get("history", [])
-
+        print(f"Got {len(images)} images")
         # check if evidence exists, use QA prompt
         if evidence:
-            prompt, evidence, images = self.get_prompt(
-                question, evidence, evidence_mode
-            )
+            prompt, evidence = self.get_prompt(question, evidence, evidence_mode)
         else:
             prompt = question
-            images = []
 
         # retrieve the citation
         citation = None
@@ -405,33 +345,45 @@ class AnswerWithContextPipeline(BaseComponent):
 
         output = ""
         logprobs = []
-        if evidence_mode == EVIDENCE_MODE_FIGURE:
-            for text, _logprobs in stream_gpt4v(
-                self.vlm_endpoint, images, prompt, max_tokens=768
-            ):
-                output += text
-                logprobs += _logprobs
-                yield Document(channel="chat", content=text)
+
+        messages = []
+        if self.system_prompt:
+            messages.append(SystemMessage(content=self.system_prompt))
+        for human, ai in history[-self.n_last_interactions :]:
+            messages.append(HumanMessage(content=human))
+            messages.append(AIMessage(content=ai))
+
+        if self.use_multimodal and evidence_mode == EVIDENCE_MODE_FIGURE:
+            # create image message:
+            messages.append(
+                HumanMessage(
+                    content=[
+                        {"type": "text", "text": prompt},
+                    ]
+                    + [
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": image},
+                        }
+                        for image in images[:MAX_IMAGES]
+                    ],
+                )
+            )
         else:
-            messages = []
-            if self.system_prompt:
-                messages.append(SystemMessage(content=self.system_prompt))
-            for human, ai in history[-self.n_last_interactions :]:
-                messages.append(HumanMessage(content=human))
-                messages.append(AIMessage(content=ai))
+            # append main prompt
             messages.append(HumanMessage(content=prompt))
 
-            try:
-                # try streaming first
-                print("Trying LLM streaming")
-                for out_msg in self.llm.stream(messages):
-                    output += out_msg.text
-                    logprobs += out_msg.logprobs
-                    yield Document(channel="chat", content=out_msg.text)
-            except NotImplementedError:
-                print("Streaming is not supported, falling back to normal processing")
-                output = self.llm(messages).text
-                yield Document(channel="chat", content=output)
+        try:
+            # try streaming first
+            print("Trying LLM streaming")
+            for out_msg in self.llm.stream(messages):
+                output += out_msg.text
+                logprobs += out_msg.logprobs
+                yield Document(channel="chat", content=out_msg.text)
+        except NotImplementedError:
+            print("Streaming is not supported, falling back to normal processing")
+            output = self.llm(messages).text
+            yield Document(channel="chat", content=output)
 
         if logprobs:
             qa_score = np.exp(np.average(logprobs))
@@ -446,14 +398,6 @@ class AnswerWithContextPipeline(BaseComponent):
         )
 
         return answer
-
-    def extract_evidence_images(self, evidence: str):
-        """Util function to extract and isolate images from context/evidence"""
-        image_pattern = r"src='(data:image\/[^;]+;base64[^']+)'"
-        matches = re.findall(image_pattern, evidence)
-        context = re.sub(image_pattern, "", evidence)
-        print(f"Got {len(matches)} images")
-        return context, matches
 
 
 class AddQueryContextPipeline(BaseComponent):
@@ -506,14 +450,16 @@ class FullQAPipeline(BaseReasoning):
     class Config:
         allow_extra = True
 
+    # configuration parameters
+    trigger_context: int = 150
+    use_rewrite: bool = False
+
     retrievers: list[BaseComponent]
 
     evidence_pipeline: PrepareEvidencePipeline = PrepareEvidencePipeline.withx()
     answering_pipeline: AnswerWithContextPipeline = AnswerWithContextPipeline.withx()
     rewrite_pipeline: RewriteQuestionPipeline | None = None
     add_query_context: AddQueryContextPipeline = AddQueryContextPipeline.withx()
-    trigger_context: int = 150
-    use_rewrite: bool = False
 
     def retrieve(
         self, message: str, history: list
@@ -577,6 +523,7 @@ class FullQAPipeline(BaseReasoning):
         """Prepare the citations to show on the UI"""
         with_citation, without_citation = [], []
         spans = defaultdict(list)
+        has_llm_score = any("llm_trulens_score" in doc.metadata for doc in docs)
 
         if answer.metadata["citation"] and answer.metadata["citation"].answer:
             for fact_with_evidence in answer.metadata["citation"].answer:
@@ -642,7 +589,7 @@ class FullQAPipeline(BaseReasoning):
         for id_, _ in sorted_not_detected_items_with_scores:
             doc = id2docs[id_]
             doc_score = doc.metadata.get("llm_trulens_score", 0.0)
-            is_open = (
+            is_open = not has_llm_score or (
                 doc_score > CONTEXT_RELEVANT_WARNING_SCORE and len(with_citation) == 0
             )
             without_citation.append(
@@ -665,11 +612,12 @@ class FullQAPipeline(BaseReasoning):
             max_llm_rerank_score = max(
                 doc.metadata.get("llm_trulens_score", 0.0) for doc in docs
             )
+            has_llm_score = any("llm_trulens_score" in doc.metadata for doc in docs)
             # clear previous info
             yield Document(channel="info", content=None)
 
             # yield warning message
-            if max_llm_rerank_score < CONTEXT_RELEVANT_WARNING_SCORE:
+            if has_llm_score and max_llm_rerank_score < CONTEXT_RELEVANT_WARNING_SCORE:
                 yield Document(
                     channel="info",
                     content=(
@@ -684,10 +632,11 @@ class FullQAPipeline(BaseReasoning):
                 if answer.metadata.get("qa_score")
                 else None
             )
-            yield Document(
-                channel="info",
-                content=f"<h5>Answer confidence: {qa_score}</h5>",
-            )
+            if qa_score:
+                yield Document(
+                    channel="info",
+                    content=f"<h5>Answer confidence: {qa_score}</h5>",
+                )
 
             yield from with_citation
             if without_citation:
@@ -696,40 +645,7 @@ class FullQAPipeline(BaseReasoning):
     async def ainvoke(  # type: ignore
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Document:  # type: ignore
-        if self.use_rewrite and self.rewrite_pipeline:
-            print("Chosen rewrite pipeline", self.rewrite_pipeline)
-            rewrite = await self.rewrite_pipeline(question=message)
-            message = rewrite.text
-
-        docs, infos = self.retrieve(message, history)
-        for _ in infos:
-            self.report_output(_)
-        await asyncio.sleep(0.1)
-
-        evidence_mode, evidence = self.evidence_pipeline(docs).content
-        answer = await self.answering_pipeline(
-            question=message,
-            history=history,
-            evidence=evidence,
-            evidence_mode=evidence_mode,
-            conv_id=conv_id,
-            **kwargs,
-        )
-
-        # show the evidence
-        with_citation, without_citation = self.prepare_citations(answer, docs)
-        if not with_citation and not without_citation:
-            self.report_output(Document(channel="info", content="No evidence found.\n"))
-        else:
-            self.report_output(Document(channel="info", content=None))
-            for _ in with_citation:
-                self.report_output(_)
-            if without_citation:
-                for _ in without_citation:
-                    self.report_output(_)
-
-        self.report_output(None)
-        return answer
+        raise NotImplementedError
 
     def stream(  # type: ignore
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
@@ -745,7 +661,7 @@ class FullQAPipeline(BaseReasoning):
         print(f"Got {len(docs)} retrieved documents")
         yield from infos
 
-        evidence_mode, evidence = self.evidence_pipeline(docs).content
+        evidence_mode, evidence, images = self.evidence_pipeline(docs).content
 
         def generate_relevant_scores():
             nonlocal docs
@@ -763,6 +679,7 @@ class FullQAPipeline(BaseReasoning):
             history=history,
             evidence=evidence,
             evidence_mode=evidence_mode,
+            images=images,
             conv_id=conv_id,
             **kwargs,
         )
@@ -783,14 +700,20 @@ class FullQAPipeline(BaseReasoning):
             settings: the settings for the pipeline
             retrievers: the retrievers to use
         """
-        prefix = f"reasoning.options.{cls.get_info()['id']}"
+        max_context_length_setting = settings.get("reasoning.max_context_length", 32000)
+
         pipeline = cls(
             retrievers=retrievers,
             rewrite_pipeline=RewriteQuestionPipeline(),
         )
 
+        prefix = f"reasoning.options.{cls.get_info()['id']}"
         llm_name = settings.get(f"{prefix}.llm", None)
         llm = llms.get(llm_name, llms.get_default())
+
+        # prepare evidence pipeline configuration
+        evidence_pipeline = pipeline.evidence_pipeline
+        evidence_pipeline.max_context_length = max_context_length_setting
 
         # answering pipeline configuration
         answer_pipeline = pipeline.answering_pipeline
@@ -901,12 +824,13 @@ class FullDecomposeQAPipeline(FullQAPipeline):
 
             yield from infos
 
-            evidence_mode, evidence = self.evidence_pipeline(docs).content
+            evidence_mode, evidence, images = self.evidence_pipeline(docs).content
             answer = yield from self.answering_pipeline.stream(
                 question=message,
                 history=history,
                 evidence=evidence,
                 evidence_mode=evidence_mode,
+                images=images,
                 conv_id=conv_id,
                 **kwargs,
             )
@@ -950,12 +874,13 @@ class FullDecomposeQAPipeline(FullQAPipeline):
         print(f"Got {len(docs)} retrieved documents")
         yield from infos
 
-        evidence_mode, evidence = self.evidence_pipeline(docs).content
+        evidence_mode, evidence, images = self.evidence_pipeline(docs).content
         answer = yield from self.answering_pipeline.stream(
             question=message,
             history=history,
             evidence=evidence + "\n" + sub_question_answer_output,
             evidence_mode=evidence_mode,
+            images=images,
             conv_id=conv_id,
             **kwargs,
         )

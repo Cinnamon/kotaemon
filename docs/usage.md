@@ -137,7 +137,7 @@ Now navigate back to the `Chat` tab. The chat tab is divided into 3 regions:
        files will be considered during chat.
 2. Chat Panel
    - This is where you can chat with the chatbot.
-3. Information panel
+3. Information Panel
 
 ![information panel](https://raw.githubusercontent.com/Cinnamon/kotaemon/develop/docs/images/info-panel-scores.png)
 
@@ -150,8 +150,8 @@ Now navigate back to the `Chat` tab. The chat tab is divided into 3 regions:
   - **Answer confidence**: answer confidence level from the LLM model.
   - **Relevance score**: overall relevant score between evidence and user question.
   - **Vectorstore score**: relevant score from vector embedding similarity calculation (show `full-text search` if retrieved from full-text search DB).
-  - **LLM reranking score**: relevant score from LLM model (which judge relevancy between question and evidence using specific prompt).
-  - **Cohere reranking score**: relevant score from Cohere [reranking model](https://cohere.com/rerank).
+  - **LLM relevant score**: relevant score from LLM model (which judge relevancy between question and evidence using specific prompt).
+  - **Reranking score**: relevant score from Cohere [reranking model](https://cohere.com/rerank).
 
-Generally, the score quality is `LLM reranking score` > `Cohere reranking score` > `Vectorscore`.
-By default, overall relevance score is taken directly from LLM reranking score. Evidences are sorted based on their overall relevance score and whether they have citation or not.
+Generally, the score quality is `LLM relevant score` > `Reranking score` > `Vectorscore`.
+By default, overall relevance score is taken directly from LLM relevant score. Evidences are sorted based on their overall relevance score and whether they have citation or not.

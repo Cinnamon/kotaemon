@@ -6,6 +6,7 @@ import threading
 import time
 import warnings
 from collections import defaultdict
+from copy import deepcopy
 from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
@@ -32,7 +33,12 @@ from theflow.utils.modules import import_dotted_string
 from kotaemon.base import BaseComponent, Document, Node, Param, RetrievedDocument
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.indices import VectorIndexing, VectorRetrieval
-from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
+from kotaemon.indices.ingests.files import (
+    KH_DEFAULT_FILE_EXTRACTORS,
+    adobe_reader,
+    azure_reader,
+    unstructured,
+)
 from kotaemon.indices.rankings import (
     BaseReranking,
     CohereReranking,
@@ -125,15 +131,15 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
         retrieval_kwargs: dict = {}
         with Session(engine) as session:
             stmt = select(self.Index).where(
-                self.Index.relation_type == "vector",
+                self.Index.relation_type == "document",
                 self.Index.source_id.in_(doc_ids),
             )
             results = session.execute(stmt)
-            vs_ids = [r[0].target_id for r in results.all()]
+            chunk_ids = [r[0].target_id for r in results.all()]
 
         # do first round top_k extension
         retrieval_kwargs["do_extend"] = True
-        retrieval_kwargs["scope"] = vs_ids
+        retrieval_kwargs["scope"] = chunk_ids
         retrieval_kwargs["filters"] = MetadataFilters(
             filters=[
                 MetadataFilter(
@@ -215,7 +221,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
 
         return {
             "reranking_llm": {
-                "name": "LLM for reranking",
+                "name": "LLM for relevant scoring",
                 "value": reranking_llm,
                 "component": "dropdown",
                 "choices": reranking_llm_choices,
@@ -245,7 +251,13 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                 "component": "checkbox",
             },
             "use_reranking": {
-                "name": "Use reranking (Cohere)",
+                "name": "Use reranking",
+                "value": True,
+                "choices": [True, False],
+                "component": "checkbox",
+            },
+            "use_llm_reranking": {
+                "name": "Use LLM relevant scoring",
                 "value": True,
                 "choices": [True, False],
                 "component": "checkbox",
@@ -260,6 +272,8 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             settings: the settings of the app
             kwargs: other arguments
         """
+        use_llm_reranking = user_settings.get("use_llm_reranking", False)
+
         retriever = cls(
             get_extra_table=user_settings["prioritize_table"],
             top_k=user_settings["num_retrieval"],
@@ -270,7 +284,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                 )
             ],
             retrieval_mode=user_settings["retrieval_mode"],
-            llm_scorer=LLMTrulensScoring(),
+            llm_scorer=(LLMTrulensScoring() if use_llm_reranking else None),
             rerankers=[CohereReranking()],
         )
         if not user_settings["use_reranking"]:
@@ -591,8 +605,41 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
     decide which pipeline should be used.
     """
 
+    reader_mode: str = Param("default", help="The reader mode")
     embedding: BaseEmbeddings
     run_embedding_in_thread: bool = False
+
+    @Param.auto(depends_on="reader_mode")
+    def readers(self):
+        readers = deepcopy(KH_DEFAULT_FILE_EXTRACTORS)
+        print("reader_mode", self.reader_mode)
+        if self.reader_mode == "adobe":
+            readers[".pdf"] = adobe_reader
+        elif self.reader_mode == "azure-di":
+            readers[".pdf"] = azure_reader
+
+        dev_readers, _, _ = dev_settings()
+        readers.update(dev_readers)
+
+        return readers
+
+    @classmethod
+    def get_user_settings(cls):
+        return {
+            "reader_mode": {
+                "name": "File loader",
+                "value": "default",
+                "choices": [
+                    ("Default (open-source)", "default"),
+                    ("Adobe API (figure+table extraction)", "adobe"),
+                    (
+                        "Azure AI Document Intelligence (figure+table extraction)",
+                        "azure-di",
+                    ),
+                ],
+                "component": "dropdown",
+            },
+        }
 
     @classmethod
     def get_pipeline(cls, user_settings, index_settings) -> BaseFileIndexIndexing:
@@ -605,6 +652,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                 )
             ],
             run_embedding_in_thread=use_quick_index_mode,
+            reader_mode=user_settings.get("reader_mode", "default"),
         )
         return obj
 
@@ -613,16 +661,17 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
 
         Can subclass this method for a more elaborate pipeline routing strategy.
         """
-        readers, chunk_size, chunk_overlap = dev_settings()
+        _, chunk_size, chunk_overlap = dev_settings()
 
-        ext = file_path.suffix
-        reader = readers.get(ext, KH_DEFAULT_FILE_EXTRACTORS.get(ext, None))
+        ext = file_path.suffix.lower()
+        reader = self.readers.get(ext, unstructured)
         if reader is None:
             raise NotImplementedError(
                 f"No supported pipeline to index {file_path.name}. Please specify "
                 "the suitable pipeline for this file type in the settings."
             )
 
+        print("Using reader", reader)
         pipeline: IndexPipeline = IndexPipeline(
             loader=reader,
             splitter=TokenSplitter(

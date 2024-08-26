@@ -167,9 +167,9 @@ class Render:
             content="<b>&emsp;&emsp;Vectorstore score:</b>"
             f" {vectorstore_score}"
             f"{text_search_str}"
-            "<b>&emsp;&emsp;LLM reranking score:</b>"
+            "<b>&emsp;&emsp;LLM relevant score:</b>"
             f" {llm_reranking_score}<br>"
-            "<b>&emsp;&emsp;Cohere reranking score:</b>"
+            "<b>&emsp;&emsp;Reranking score:</b>"
             f" {cohere_reranking_score}<br>",
         )
 

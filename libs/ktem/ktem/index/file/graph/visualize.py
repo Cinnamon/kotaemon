@@ -1,5 +1,6 @@
 import networkx as nx
 import plotly.graph_objects as go
+from plotly.io import to_json
 
 
 def create_knowledge_graph(df):
@@ -97,4 +98,5 @@ def visualize_graph(G):
         ),
     )
     fig.update_layout(autosize=True)
-    return fig
+
+    return to_json(fig)

@@ -1,4 +1,5 @@
 import logging
+import os
 
 import gradio as gr
 from ktem.app import BasePage
@@ -11,6 +12,9 @@ from ...utils.conversation import sync_retrieval_n_message
 from .common import STATE
 
 logger = logging.getLogger(__name__)
+ASSETS_DIR = "assets/icons"
+if not os.path.isdir(ASSETS_DIR):
+    ASSETS_DIR = "libs/ktem/ktem/assets/icons"
 
 
 def is_conv_name_valid(name):
@@ -46,7 +50,7 @@ class ConversationControl(BasePage):
         with gr.Row() as self._new_delete:
             self.btn_new = gr.Button(
                 value="",
-                icon="assets/icons/new.svg",
+                icon=f"{ASSETS_DIR}/new.svg",
                 min_width=2,
                 scale=1,
                 size="sm",
@@ -54,7 +58,7 @@ class ConversationControl(BasePage):
             )
             self.btn_del = gr.Button(
                 value="",
-                icon="assets/icons/delete.svg",
+                icon=f"{ASSETS_DIR}/delete.svg",
                 min_width=2,
                 scale=1,
                 size="sm",
@@ -62,7 +66,7 @@ class ConversationControl(BasePage):
             )
             self.btn_conversation_rn = gr.Button(
                 value="",
-                icon="assets/icons/rename.svg",
+                icon=f"{ASSETS_DIR}/rename.svg",
                 min_width=2,
                 scale=1,
                 size="sm",
@@ -70,7 +74,7 @@ class ConversationControl(BasePage):
             )
             self.btn_info_expand = gr.Button(
                 value="",
-                icon="assets/icons/sidebar.svg",
+                icon=f"{ASSETS_DIR}/sidebar.svg",
                 min_width=2,
                 scale=1,
                 size="sm",
@@ -219,6 +223,7 @@ class ConversationControl(BasePage):
                 retrieval_history: list[str] = result.data_source.get(
                     "retrieval_messages", []
                 )
+                plot_history: list[dict] = result.data_source.get("plot_history", [])
 
                 # On initialization
                 # Ensure len of retrieval and messages are equal
@@ -229,6 +234,7 @@ class ConversationControl(BasePage):
                     if retrieval_history
                     else "<h5><b>No evidence found.</b></h5>"
                 )
+                plot_data = plot_history[-1] if plot_history else None
                 state = result.data_source.get("state", STATE)
 
             except Exception as e:
@@ -238,7 +244,9 @@ class ConversationControl(BasePage):
                 selected = {}
                 chats = []
                 retrieval_history = []
+                plot_history = []
                 info_panel = ""
+                plot_data = None
                 state = STATE
                 is_conv_public = False
 
@@ -258,7 +266,9 @@ class ConversationControl(BasePage):
             name,
             chats,
             info_panel,
+            plot_data,
             retrieval_history,
+            plot_history,
             is_conv_public,
             state,
             *indices,

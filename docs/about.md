@@ -9,3 +9,6 @@ developers in mind.
 [User Guide](https://cinnamon.github.io/kotaemon/) |
 [Developer Guide](https://cinnamon.github.io/kotaemon/development/) |
 [Feedback](https://github.com/Cinnamon/kotaemon/issues)
+
+[Dark Mode](?__theme=dark) |
+[Light Mode](?__theme=light)
