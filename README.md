@@ -249,13 +249,13 @@ Add a new LlamaCpp model with the provided model name on the web uI.
 #### Custom reasoning pipeline
 
 First, check the default pipeline implementation in
-[here](lib/ktem/ktem/reasoning/simple.py). You can make quick adjustment to how the default QA pipeline work.
+[here](libs/ktem/ktem/reasoning/simple.py). You can make quick adjustment to how the default QA pipeline work.
 
-Next, if you feel comfortable adding new pipeline, add new `.py` implementation in `lib/ktem/ktem/reasoning/` and later include it in `flowssettings` to enable it on the UI.
+Next, if you feel comfortable adding new pipeline, add new `.py` implementation in `libs/ktem/ktem/reasoning/` and later include it in `flowssettings` to enable it on the UI.
 
 #### Custom indexing pipeline
 
-Check sample implementation in `lib/ktem/ktem/index/file/graph`
+Check sample implementation in `libs/ktem/ktem/index/file/graph`
 
 (more instruction WIP).
 
