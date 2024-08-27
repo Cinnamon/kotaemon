@@ -19,11 +19,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: true
-          DEFAULT_BUMP: none
+          DEFAULT_BUMP: patch
           MAJOR_STRING_TOKEN: "bump:major"
           MINOR_STRING_TOKEN: "bump:minor"
           PATCH_STRING_TOKEN: "bump:patch"
       - name: Create release for ${{ steps.update-version.outputs.new_tag }}
+        # need to repeat this if statement because Github Action doesn't support early
+        # stopping for steps
+        if: ${{ steps.update-version.outputs.new_tag != steps.update-version.outputs.old_tag }}
         run: |
           echo Create release folder
           mkdir kotaemon-app
@@ -35,6 +38,7 @@ jobs:
           tree kotaemon-app
           zip -r kotaemon-app.zip kotaemon-app
       - name: Release ${{ steps.update-version.outputs.new_tag }}
+        if: ${{ steps.update-version.outputs.new_tag != steps.update-version.outputs.old_tag }}
         uses: softprops/action-gh-release@v2
         with:
           files: kotaemon-app.zip
@@ -44,8 +48,10 @@ jobs:
           tag_name: ${{ steps.update-version.outputs.new_tag }}
           make_latest: true
       - name: Setup latest branch locally without switching current branch
+        if: ${{ steps.update-version.outputs.new_tag != steps.update-version.outputs.old_tag }}
         run: git fetch origin latest:latest
       - name: Update latest branch
+        if: ${{ steps.update-version.outputs.new_tag != steps.update-version.outputs.old_tag }}
         run: |
           git branch -f latest tags/${{ steps.update-version.outputs.new_tag }}
           git checkout latest
