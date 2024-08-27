@@ -29,7 +29,7 @@ nav:
   - API Reference: reference/
   - Changelogs: https://github.com/Cinnamon/kotaemon/releases
   - Issue Tracker: https://github.com/Cinnamon/kotaemon/issues
-  - Live Demo: https://huggingface.co/spaces/cin-model/kotaemon-public
+  - Live Demo: https://huggingface.co/spaces/cin-model/kotaemon-demo
 
 markdown_extensions:
   - admonition
