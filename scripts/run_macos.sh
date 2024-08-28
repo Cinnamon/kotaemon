@@ -87,8 +87,39 @@ function deactivate_conda_env() {
     fi
 }
 
+# Function to check if Homebrew is installed
+check_homebrew_installed() {
+    if command -v brew >/dev/null 2>&1; then
+        echo "Homebrew is already installed."
+    else
+        echo "Homebrew is not installed."
+        read -p "Would you like to install Homebrew? (y/n): " choice
+        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+            install_homebrew
+        else
+            echo "Homebrew installation skipped."
+        fi
+    fi
+}
+
+# Function to install Homebrew
+install_homebrew() {
+    echo "Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    if [ $? -eq 0 ]; then
+        echo "Homebrew installed successfully."
+    else
+        echo "Homebrew installation failed."
+    fi
+}
+
 function install_dependencies() {
     # check if the env is already setup by finding 'kotaemon' in 'pip list'
+
+    echo "Installing system dependencies...."
+    check_homebrew_installed
+    brew install libmagic
+
     if pip list 2>/dev/null | grep -q "kotaemon"; then
         echo "Requirements are already installed"
     else
@@ -109,6 +140,8 @@ function install_dependencies() {
             python -m pip install -e "$ktem_root"
 
             python -m pip install --no-deps -e .
+            # nltk installed as a dependency from above
+            python -m nltk.downloader averaged_perceptron_tagger
         else
             echo "Installing Kotaemon $app_version"
             # Work around for versioning control
@@ -116,6 +149,8 @@ function install_dependencies() {
             python -m pip install "git+https://github.com/Cinnamon/kotaemon.git@$app_version#subdirectory=libs/ktem"
             python -m pip install --no-deps "git+https://github.com/Cinnamon/kotaemon.git@$app_version"
         fi
+
+        
 
         if ! pip list 2>/dev/null | grep -q "kotaemon"; then
             echo "Installation failed. You may need to run the installer again."
@@ -173,12 +208,18 @@ python_version="3.10"
 
 check_path_for_spaces
 
-print_highlight "Setting up Miniconda"
-install_miniconda
+print_highlight "Do you want to install Miniconda (recommended) y/n: "
+read -p "Do you want to install Miniconda (recommended) y/n: " install_conda_choice
+# Convert user input to lowercase
+if [[ "$install_conda_choice" == "y" || "$install_conda_choice" == "Y" ]]; then
+    install_miniconda
+    print_highlight "Creating conda environment"
+    create_conda_env "$python_version"
+    activate_conda_env
+else
+    echo "miniconda installation skipped."
+fi
 
-print_highlight "Creating conda environment"
-create_conda_env "$python_version"
-activate_conda_env
 
 print_highlight "Installing requirements"
 install_dependencies
@@ -189,6 +230,8 @@ setup_local_model
 print_highlight "Launching Kotaemon in your browser, please wait..."
 launch_ui
 
-deactivate_conda_env
+if [[ "$install_conda_choice" == "y" || "$install_conda_choice" == "Y" ]]; then
+    deactivate_conda_env
+fi
 
 read -p "Press enter to continue"

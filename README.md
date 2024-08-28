@@ -79,6 +79,12 @@ it is, please follow the non-technical [User Guide](https://cinnamon.github.io/k
 
 ### For developers
 
+#### System requirements
+
+1. Python 3.10>=
+2. [homebrew](https://brew.sh/)
+3. [Docker](https://www.docker.com/)
+
 #### With Docker (recommended)
 
 - Use this command to launch the server
@@ -108,9 +114,15 @@ cd kotaemon
 
 pip install -e "libs/kotaemon[all]"
 pip install -e "libs/ktem"
+
+# optional system dependencies if not installed
+brew install libmagic
+python -m nltk.downloader averaged_perceptron_tagger averaged_perceptron_tagger_eng
 ```
 
-- View and edit your environment variables (API keys, end-points) in `.env`.
+- Create a .env file in the root of this project. Use .env.example as a template
+
+The .env file is there to serve use cases where users want to pre-config the models before starting up the app (e.g. deploy the app on HF hub). The file will only be used to populate the db once upon the first run, it will no longer be used in consequent runs.
 
 - (Optional) To enable in-browser PDF_JS viewer, download [PDF_JS_DIST](https://github.com/mozilla/pdf.js/releases/download/v4.0.379/pdfjs-4.0.379-dist.zip) and extract it to `libs/ktem/ktem/assets/prebuilt`
 
@@ -127,6 +139,8 @@ The app will be automatically launched in your browser.
 Default username / password are: `admin` / `admin`. You can setup additional users directly on the UI.
 
 ![Chat tab](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/chat-tab.png)
+
+- Check the Resources tab and LLMs and Embeddings and ensure that your `api_key` value is set correctly from your `.env`. file. If it is not set, you can set it here.
 
 ## Customize your application
 
