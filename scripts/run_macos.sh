@@ -208,7 +208,6 @@ python_version="3.10"
 
 check_path_for_spaces
 
-print_highlight "Do you want to install Miniconda (recommended) y/n: "
 read -p "Do you want to install Miniconda (recommended) y/n: " install_conda_choice
 # Convert user input to lowercase
 if [[ "$install_conda_choice" == "y" || "$install_conda_choice" == "Y" ]]; then
