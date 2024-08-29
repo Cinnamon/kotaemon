@@ -229,7 +229,7 @@ class SettingsPage(BasePage):
         self.password_change_btn = gr.Button("Change password", interactive=True)
 
     def change_password(self, user_id, password, password_confirm):
-        from ktem.pages.admin.user import validate_password
+        from ktem.pages.resources.user import validate_password
 
         errors = validate_password(password, password_confirm)
         if errors:
