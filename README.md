@@ -83,7 +83,7 @@ it is, please follow the non-technical [User Guide](https://cinnamon.github.io/k
 
 1. Python 3.10>=
 2. [homebrew](https://brew.sh/)
-3. [Docker](https://www.docker.com/)
+3. (optional) [Docker](https://www.docker.com/)
 
 #### With Docker (recommended)
 

@@ -208,16 +208,11 @@ python_version="3.10"
 
 check_path_for_spaces
 
-read -p "Do you want to install Miniconda (recommended) y/n: " install_conda_choice
-# Convert user input to lowercase
-if [[ "$install_conda_choice" == "y" || "$install_conda_choice" == "Y" ]]; then
-    install_miniconda
-    print_highlight "Creating conda environment"
-    create_conda_env "$python_version"
-    activate_conda_env
-else
-    echo "miniconda installation skipped."
-fi
+install_miniconda
+print_highlight "Creating conda environment"
+create_conda_env "$python_version"
+activate_conda_env
+
 
 
 print_highlight "Installing requirements"
@@ -229,8 +224,6 @@ setup_local_model
 print_highlight "Launching Kotaemon in your browser, please wait..."
 launch_ui
 
-if [[ "$install_conda_choice" == "y" || "$install_conda_choice" == "Y" ]]; then
-    deactivate_conda_env
-fi
+deactivate_conda_env
 
 read -p "Press enter to continue"
