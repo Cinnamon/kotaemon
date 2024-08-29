@@ -267,3 +267,13 @@ Check sample implementation in `libs/ktem/ktem/index/file/graph`
 
 Please refer to the [Developer Guide](https://cinnamon.github.io/kotaemon/development/)
 for more details.
+
+## Star History
+
+<a href="https://star-history.com/#Cinnamon/kotaemon&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Cinnamon/kotaemon&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Cinnamon/kotaemon&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Cinnamon/kotaemon&type=Date" />
+ </picture>
+</a>
