@@ -31,9 +31,9 @@ WORKDIR /app
 FROM base_image as dev
 
 COPY . /app
-RUN --mount=type=ssh pip install --no-cache-dir -e "libs/kotaemon[all]" \
-    && pip install --no-cache-dir -e "libs/ktem" \
-    && pip install --no-cache-dir graphrag future \
-    && pip install --no-cache-dir "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
+RUN --mount=type=ssh pip install -e "libs/kotaemon[all]"
+RUN --mount=type=ssh pip install -e "libs/ktem"
+RUN pip install graphrag==0.3.2 future
+RUN pip install "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
 
 ENTRYPOINT ["gradio", "app.py"]

@@ -149,7 +149,7 @@ if config("OPENAI_API_KEY", default=""):
 if config("LOCAL_MODEL", default=""):
     KH_LLMS["ollama"] = {
         "spec": {
-            "__type__": "kotaemon.llms.EndpointChatLLM",
+            "__type__": "kotaemon.llms.ChatOpenAI",
             "base_url": "http://localhost:11434/v1/",
             "model": config("LOCAL_MODEL", default="llama3.1:8b"),
             "api_key": "ollama",
@@ -158,7 +158,7 @@ if config("LOCAL_MODEL", default=""):
     }
     KH_EMBEDDINGS["ollama"] = {
         "spec": {
-            "__type__": "kotaemon.embeddings.FastEmbedEmbeddings",
+            "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
             "base_url": "http://localhost:11434/v1/",
             "model": config("LOCAL_MODEL_EMBEDDINGS", default="nomic-embed-text"),
             "api_key": "ollama",
