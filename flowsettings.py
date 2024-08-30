@@ -152,6 +152,7 @@ if config("LOCAL_MODEL", default=""):
             "__type__": "kotaemon.llms.ChatOpenAI",
             "base_url": "http://localhost:11434/v1/",
             "model": config("LOCAL_MODEL", default="llama3.1:8b"),
+            "api_key": "ollama",
         },
         "default": False,
     }
@@ -160,6 +161,7 @@ if config("LOCAL_MODEL", default=""):
             "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
             "base_url": "http://localhost:11434/v1/",
             "model": config("LOCAL_MODEL_EMBEDDINGS", default="nomic-embed-text"),
+            "api_key": "ollama",
         },
         "default": False,
     }
