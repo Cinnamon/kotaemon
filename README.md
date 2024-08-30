@@ -5,7 +5,7 @@ developers in mind.
 
 ![Preview](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/preview-graph.png)
 
-[Live Demo](https://huggingface.co/spaces/taprosoft/kotaemon) |
+[Live Demo](https://huggingface.co/spaces/cin-model/kotaemon-demo) |
 [Source Code](https://github.com/Cinnamon/kotaemon)
 
 [User Guide](https://cinnamon.github.io/kotaemon/) |
