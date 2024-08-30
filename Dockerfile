@@ -24,12 +24,12 @@ RUN apt update -qqy \
   gcc g++ \
   poppler-utils \
   libpoppler-dev \
-   tesseract-ocr \
- tesseract-ocr-jpn \
- libsm6 \
- libxext6 \
- ffmpeg \
- libmagic \
+  tesseract-ocr \
+  tesseract-ocr-jpn \
+  libsm6 \
+  libxext6 \
+  ffmpeg \
+  libmagic-dev \
   && \
   apt-get clean && \
   apt-get autoremove
