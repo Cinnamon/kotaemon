@@ -5,8 +5,6 @@ on:
     types:
       - created
 
-  workflow_dispatch:
-
 jobs:
   build:
     name: Build and push container
@@ -31,7 +29,7 @@ jobs:
           fi
           echo $IMAGE_TAG
           echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV
-        
+
           export IMAGE_URL="${{ secrets.DOCKERHUB_USERNAME }}/kotaemon:${IMAGE_TAG}"
           echo "IMAGE_URL=${IMAGE_URL}" >> $GITHUB_ENV
       - name: Login to Docker Hub
