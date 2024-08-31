@@ -472,3 +472,5 @@ doc_env/
 # application data
 ktem_app_data/
 gradio_tmp/
+
+.ktem_app_data/
