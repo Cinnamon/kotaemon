@@ -1,0 +1,11 @@
+services:
+  kotaemon:
+    container_name: kotaemon
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "7860:7860"
+    volumes:
+      - .ktem_app_data:/app/ktem_app_data
+    restart: always
