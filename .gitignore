@@ -458,7 +458,6 @@ logs/
 .gitsecret/keys/random_seed
 !*.secret
 .envrc
-.env
 
 S.gpg-agent*
 .vscode/settings.json

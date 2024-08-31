@@ -93,14 +93,14 @@ taprosoft/kotaemon:v1.0
 
 Navigate to `http://localhost:7860/` to access the web UI.
 
-#### With docker-compose
+#### With docker compose
 
 Clone this repository and run the following command:
 
 ```shell
 git clone git@github.com:Cinnamon/kotaemon.git
 cd kotaemon
-docker-compose up
+docker compose up
 ```
 
 Navigate to `http://localhost:7860/` to access the web UI.
@@ -123,7 +123,11 @@ pip install -e "libs/kotaemon[all]"
 pip install -e "libs/ktem"
 ```
 
-- View and edit your environment variables (API keys, end-points) in `.env`.
+- First, copy the `.env.default` file to `.env`, then view and edit your environment variables (API keys, end-points) in `.env`.
+
+```shell
+cp .env.default .env
+```
 
 - (Optional) To enable in-browser PDF_JS viewer, download [PDF_JS_DIST](https://github.com/mozilla/pdf.js/releases/download/v4.0.379/pdfjs-4.0.379-dist.zip) and extract it to `libs/ktem/ktem/assets/prebuilt`
 
@@ -164,7 +168,7 @@ starting point.
 
 <summary>Notable settings</summary>
 
-```
+```python
 # setup your preferred document store (with full-text search capabilities)
 KH_DOCSTORE=(Elasticsearch | LanceDB | SimpleFileDocumentStore)
 
@@ -181,7 +185,6 @@ KH_REASONINGS = [
     "ktem.reasoning.react.ReactAgentPipeline",
     "ktem.reasoning.rewoo.RewooAgentPipeline",
 ]
-)
 ```
 
 </details>
@@ -267,14 +270,14 @@ Add a new LlamaCpp model with the provided model name on the web uI.
 
 ## Adding your own RAG pipeline
 
-#### Custom reasoning pipeline
+### Custom reasoning pipeline
 
 First, check the default pipeline implementation in
 [here](libs/ktem/ktem/reasoning/simple.py). You can make quick adjustment to how the default QA pipeline work.
 
 Next, if you feel comfortable adding new pipeline, add new `.py` implementation in `libs/ktem/ktem/reasoning/` and later include it in `flowssettings` to enable it on the UI.
 
-#### Custom indexing pipeline
+### Custom indexing pipeline
 
 Check sample implementation in `libs/ktem/ktem/index/file/graph`
 
