@@ -235,7 +235,7 @@ Install [ollama](https://github.com/ollama/ollama) and start the application.
 
 Pull your model (e.g):
 
-```
+```shell
 ollama pull llama3.1:8b
 ollama pull nomic-embed-text
 ```
