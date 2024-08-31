@@ -51,6 +51,16 @@ class LLMManagement(BasePage):
                             lines=10,
                         )
 
+                        with gr.Accordion(
+                            label="Test connection", visible=False, open=False
+                        ) as self._check_connection_panel:
+                            with gr.Row():
+                                with gr.Column(scale=4):
+                                    self.connection_logs = gr.HTML("Logs")
+
+                                with gr.Column(scale=1):
+                                    self.btn_test_connection = gr.Button("Test")
+
                         with gr.Row(visible=False) as self._selected_panel_btn:
                             with gr.Column():
                                 self.btn_edit_save = gr.Button(
@@ -171,9 +181,12 @@ class LLMManagement(BasePage):
                 self.edit_spec,
                 self.edit_spec_desc,
                 self.edit_default,
+                # check connection panel
+                self._check_connection_panel,
             ],
             show_progress="hidden",
-        )
+        ).success(lambda: gr.update(value=""), outputs=[self.connection_logs])
+
         self.btn_delete.click(
             self.on_btn_delete_click,
             inputs=[],
@@ -216,6 +229,12 @@ class LLMManagement(BasePage):
         self.btn_close.click(
             lambda: "",
             outputs=[self.selected_llm_name],
+        )
+
+        self.btn_test_connection.click(
+            self.check_connection,
+            inputs=[self.selected_llm_name],
+            outputs=[self.connection_logs],
         )
 
     def create_llm(self, name, choices, spec, default):
@@ -263,6 +282,7 @@ class LLMManagement(BasePage):
 
     def on_selected_llm_change(self, selected_llm_name):
         if selected_llm_name == "":
+            _check_connection_panel = gr.update(visible=False)
             _selected_panel = gr.update(visible=False)
             _selected_panel_btn = gr.update(visible=False)
             btn_delete = gr.update(visible=True)
@@ -272,6 +292,7 @@ class LLMManagement(BasePage):
             edit_spec_desc = gr.update(value="")
             edit_default = gr.update(value=False)
         else:
+            _check_connection_panel = gr.update(visible=True)
             _selected_panel = gr.update(visible=True)
             _selected_panel_btn = gr.update(visible=True)
             btn_delete = gr.update(visible=True)
@@ -295,6 +316,7 @@ class LLMManagement(BasePage):
             edit_spec,
             edit_spec_desc,
             edit_default,
+            _check_connection_panel,
         )
 
     def on_btn_delete_click(self):
@@ -303,6 +325,38 @@ class LLMManagement(BasePage):
         btn_delete_no = gr.update(visible=True)
 
         return btn_delete, btn_delete_yes, btn_delete_no
+
+    def check_connection(self, selected_llm_name: str):
+        log_content: str = ""
+
+        try:
+            log_content += f"- Testing model: {selected_llm_name}<br>"
+            yield log_content
+
+            llm = llms.get(key=selected_llm_name, default=None)
+
+            if llm is None:
+                raise Exception(f"Can not found model: {selected_llm_name}")
+
+            log_content += "- Sending a message `Hi`<br>"
+            yield log_content
+            respond = llm("Hi")
+
+            log_content += (
+                f"<mark style='background: yellow; color: red'>- Connection success. "
+                f"Got response:\n {respond}</mark><br>"
+            )
+            yield log_content
+
+            gr.Info(f"LLM {selected_llm_name} connect successfully")
+        except Exception as e:
+            log_content += (
+                f"<mark style='color: yellow; background: red'>- Connection failed. "
+                f"Got error:\n {e}</mark>"
+            )
+            yield log_content
+
+        return log_content
 
     def save_llm(self, selected_llm_name, default, spec):
         try:
