@@ -81,9 +81,9 @@ it is, please follow the non-technical [User Guide](https://cinnamon.github.io/k
 
 #### With Docker (recommended)
 
-- Use this command to launch the server
+Use this command to launch the server
 
-```
+```shell
 docker run \
 -e GRADIO_SERVER_NAME=0.0.0.0 \
 -e GRADIO_SERVER_PORT=7860 \
@@ -92,6 +92,19 @@ taprosoft/kotaemon:v1.0
 ```
 
 Navigate to `http://localhost:7860/` to access the web UI.
+
+#### With docker-compose
+
+Clone this repository and run the following command:
+
+```shell
+git clone git@github.com:Cinnamon/kotaemon.git
+cd kotaemon
+docker-compose up
+```
+
+Navigate to `http://localhost:7860/` to access the web UI.
+Your data will be stored in `./ktem_app_data` folder.
 
 #### Without Docker
 
