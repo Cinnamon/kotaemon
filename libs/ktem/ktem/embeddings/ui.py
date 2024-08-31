@@ -352,7 +352,7 @@ class EmbeddingManagement(BasePage):
             )
             yield log_content
 
-            gr.Info(f"LLM {selected_emb_name} connect successfully")
+            gr.Info(f"Embedding {selected_emb_name} connect successfully")
         except Exception as e:
             print(e)
             log_content += (
