@@ -9,15 +9,17 @@ FROM python:3.10-slim as base_image
 # libxext6 \
 # ffmpeg \
 
-RUN apt update -qqy \
-  && apt install -y \
-  ssh git \
-  gcc g++ \
-  poppler-utils \
-  libpoppler-dev \
-  && \
-  apt-get clean && \
-  apt-get autoremove
+RUN apt-get update -qqy && \
+    apt-get install -y --no-install-recommends \
+      ssh \ 
+      git \ 
+      gcc \
+      g++ \
+      poppler-utils \
+      libpoppler-dev \
+    && apt-get clean \
+    && apt-get autoremove \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -29,9 +31,9 @@ WORKDIR /app
 FROM base_image as dev
 
 COPY . /app
-RUN --mount=type=ssh pip install -e "libs/kotaemon[all]"
-RUN --mount=type=ssh pip install -e "libs/ktem"
-RUN pip install graphrag future
-RUN pip install "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
+RUN --mount=type=ssh pip install --no-cache-dir -e "libs/kotaemon[all]" \
+    && pip install --no-cache-dir -e "libs/ktem" \
+    && pip install --no-cache-dir graphrag future \
+    && pip install --no-cache-dir "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
 
 ENTRYPOINT ["gradio", "app.py"]
