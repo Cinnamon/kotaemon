@@ -11,8 +11,8 @@ FROM python:3.10-slim as base_image
 
 RUN apt-get update -qqy && \
     apt-get install -y --no-install-recommends \
-      ssh \ 
-      git \ 
+      ssh \
+      git \
       gcc \
       g++ \
       poppler-utils \
