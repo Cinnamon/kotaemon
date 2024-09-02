@@ -170,7 +170,8 @@ function download_and_unzip() {
 }
 
 function launch_ui() {
-    python $(pwd)/app.py || {
+    local pdfjs_prebuilt_dir=$1
+    PDFJS_PREBUILT_DIR="$pdfjs_prebuilt_dir" python $(pwd)/app.py || {
         echo "" && echo "Will exit now..."
         exit 1
     }
@@ -217,7 +218,7 @@ print_highlight "Setting up a local model"
 setup_local_model
 
 print_highlight "Launching Kotaemon in your browser, please wait..."
-launch_ui
+launch_ui $target_pdf_js_dir
 
 deactivate_conda_env
 
