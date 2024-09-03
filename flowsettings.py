@@ -222,7 +222,7 @@ KH_INDICES = [
         "config": {
             "supported_file_types": (
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
-                ".pptx, .csv, .html, .mhtml, .txt, .zip"
+                ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
             ),
             "private": False,
         },
@@ -233,7 +233,7 @@ KH_INDICES = [
         "config": {
             "supported_file_types": (
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
-                ".pptx, .csv, .html, .mhtml, .txt, .zip"
+                ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
             ),
             "private": False,
         },
