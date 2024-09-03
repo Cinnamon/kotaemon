@@ -80,6 +80,7 @@ KH_DOCSTORE = {
 KH_VECTORSTORE = {
     # "__type__": "kotaemon.storages.LanceDBVectorStore",
     "__type__": "kotaemon.storages.ChromaVectorStore",
+    # "__type__": "kotaemon.storages.MilvusVectorStore",
     "path": str(KH_USER_DATA_DIR / "vectorstore"),
 }
 KH_LLMS = {}
