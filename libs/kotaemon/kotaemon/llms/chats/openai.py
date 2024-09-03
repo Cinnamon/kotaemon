@@ -77,17 +77,6 @@ class BaseChatOpenAI(ChatLLM):
             "model's likelihood of repeating the same text."
         ),
     )
-    tool_choice: Optional[str] = Param(
-        None,
-        help=(
-            "Choice of tool to use for the completion. Available choices are: "
-            "auto, default."
-        ),
-    )
-    tools: Optional[list[str]] = Param(
-        None,
-        help="List of tools to use for the completion.",
-    )
     logprobs: Optional[bool] = Param(
         None,
         help=(
@@ -300,8 +289,6 @@ class ChatOpenAI(BaseChatOpenAI):
             "stop": self.stop,
             "frequency_penalty": self.frequency_penalty,
             "presence_penalty": self.presence_penalty,
-            "tool_choice": self.tool_choice,
-            "tools": self.tools,
             "logprobs": self.logprobs,
             "logit_bias": self.logit_bias,
             "top_logprobs": self.top_logprobs,
@@ -309,6 +296,10 @@ class ChatOpenAI(BaseChatOpenAI):
         }
         params = {k: v for k, v in params_.items() if v is not None}
         params.update(kwargs)
+
+        # Remove 'tools' and 'tool_choice' if they're in kwargs
+        params.pop('tools', None)
+        params.pop('tool_choice', None)
 
         return client.chat.completions.create(**params)
 
@@ -368,8 +359,6 @@ class AzureChatOpenAI(BaseChatOpenAI):
             "stop": self.stop,
             "frequency_penalty": self.frequency_penalty,
             "presence_penalty": self.presence_penalty,
-            "tool_choice": self.tool_choice,
-            "tools": self.tools,
             "logprobs": self.logprobs,
             "logit_bias": self.logit_bias,
             "top_logprobs": self.top_logprobs,
@@ -377,5 +366,9 @@ class AzureChatOpenAI(BaseChatOpenAI):
         }
         params = {k: v for k, v in params_.items() if v is not None}
         params.update(kwargs)
+
+        # Remove 'tools' and 'tool_choice' if they're in kwargs
+        params.pop('tools', None)
+        params.pop('tool_choice', None)
 
         return client.chat.completions.create(**params)

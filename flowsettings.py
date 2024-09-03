@@ -152,8 +152,7 @@ if config("LOCAL_MODEL", default=""):
             "api_key": "fuck_you_sam_altman",
             "__type__": "kotaemon.llms.ChatOpenAI",
             "base_url": "http://localhost:11434/v1/",
-            "model": config("LOCAL_MODEL", default="llama3.1:8b"),
-            "api_key": "ollama",
+            "model": config("LOCAL_MODEL", default="gemma2:2b"),
         },
         "default": True,
     }
