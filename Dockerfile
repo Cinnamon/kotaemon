@@ -5,19 +5,7 @@ FROM python:3.10-slim as base_image
 
 
 
-<<<<<<< HEAD
-RUN apt-get update -qqy && \
-    apt-get install -y --no-install-recommends \
-      ssh \
-      git \
-      gcc \
-      g++ \
-      poppler-utils \
-      libpoppler-dev \
-    && apt-get clean \
-    && apt-get autoremove \
-    && rm -rf /var/lib/apt/lists/*
-=======
+
 RUN apt update -qqy \
   && apt install -y \
   ssh git \
@@ -33,7 +21,7 @@ RUN apt update -qqy \
   && \
   apt-get clean && \
   apt-get autoremove
->>>>>>> 47efa87 (More parsers)
+
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
