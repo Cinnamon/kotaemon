@@ -353,6 +353,9 @@ class FileIndexPage(BasePage):
         return not is_zipped_state, new_button
 
     def download_all_files(self):
+        if self._index.config.get("private", False):
+            raise gr.Error("This feature is not available for private collection.")
+
         zip_files = []
         for file_name in os.listdir(flowsettings.KH_CHUNKS_OUTPUT_DIR):
             zip_files.append(os.path.join(flowsettings.KH_CHUNKS_OUTPUT_DIR, file_name))
