@@ -13,6 +13,8 @@ except ImportError:
 
 from openai.types.chat.chat_completion import ChatCompletion
 
+from .conftest import skip_llama_cpp_not_installed
+
 _openai_chat_completion_response = ChatCompletion.parse_obj(
     {
         "id": "chatcmpl-7qyuw6Q1CFCpcKsMdFkmUPUa7JP2x",
@@ -71,6 +73,7 @@ def test_azureopenai_model(openai_completion):
     openai_completion.assert_called()
 
 
+@skip_llama_cpp_not_installed
 def test_llamacpp_chat():
     from llama_cpp import Llama
 

@@ -13,7 +13,7 @@ except ImportError:
 
 from openai.types.completion import Completion
 
-from .conftest import skip_openai_lc_wrapper_test
+from .conftest import skip_llama_cpp_not_installed, skip_openai_lc_wrapper_test
 
 _openai_completion_response = Completion.parse_obj(
     {
@@ -82,6 +82,7 @@ def test_openai_model(openai_completion):
     ), "Output for single text is not LLMInterface"
 
 
+@skip_llama_cpp_not_installed
 def test_llamacpp_model():
     weight_path = Path(__file__).parent / "resources" / "ggml-vocab-llama.gguf"
 
