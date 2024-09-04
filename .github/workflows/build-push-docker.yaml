@@ -1,49 +1,61 @@
 name: Build and Push Docker Image
 
 on:
+  workflow_dispatch:
+  tags:
+    - 'v*'
   release:
     types:
       - created
+
+
+env:
+  REGISTRY: ghcr.io
+
 
 jobs:
   build:
     name: Build and push container
     runs-on: ubuntu-latest
+    matrix:
+      platform:
+        - linux/amd64
     steps:
+      - name: Set repository and image name
+        run: |
+          echo "IMAGE_NAME=${IMAGE_NAME,,}" >>${GITHUB_ENV}
+          echo "FULL_IMAGE_NAME=ghcr.io/${IMAGE_NAME,,}" >>${GITHUB_ENV}
+        env:
+          IMAGE_NAME: '${{ github.repository }}'
+
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v2
-      - name: Setup tag version
-        id: generate_tag
-        shell: bash
-        run: |
-          if [ "${{ github.ref_type }}" == "tag" ]; then
-            export IMAGE_TAG="${{ github.ref_name }}-$(echo $GITHUB_SHA | cut -c 1-7)"
-            echo "release=true" >> $GITHUB_OUTPUT
-          elif grep -q "main" <<< "${{ github.ref }}"; then
-            export IMAGE_TAG="m-$(echo $GITHUB_SHA | cut -c 1-7)"
-          else
-            export IMAGE_TAG="pr-$(echo $GITHUB_SHA | cut -c 1-7)"
-          fi
-          echo $IMAGE_TAG
-          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV
 
-          export IMAGE_URL="${{ secrets.DOCKERHUB_USERNAME }}/kotaemon:${IMAGE_TAG}"
-          echo "IMAGE_URL=${IMAGE_URL}" >> $GITHUB_ENV
-      - name: Login to Docker Hub
+      - name: Set up Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.FULL_IMAGE_NAME }}
+
+      - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build docker image
         uses: docker/build-push-action@v4
         with:
           file: Dockerfile
           context: .
           push: true
-          tags: "${{ env.IMAGE_URL }}"
+          platforms: ${{ matrix.platform }}
+          tags: "${{ env.FULL_IMAGE_NAME }}"
           cache-from: type=gha
           cache-to: type=gha,mode=max
           load: true
