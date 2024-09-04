@@ -4,12 +4,12 @@ from unittest.mock import patch
 import pytest
 
 from kotaemon.base.schema import AIMessage, HumanMessage, LLMInterface, SystemMessage
-from kotaemon.llms import LCAzureChatOpenAI, LlamaCppChat
+from kotaemon.llms import AzureChatOpenAI, LlamaCppChat
 
 try:
-    from langchain_openai import AzureChatOpenAI as AzureChatOpenAILC
+    pass
 except ImportError:
-    from langchain.chat_models import AzureChatOpenAI as AzureChatOpenAILC
+    pass
 
 from openai.types.chat.chat_completion import ChatCompletion
 
@@ -43,17 +43,12 @@ _openai_chat_completion_response = ChatCompletion.parse_obj(
     side_effect=lambda *args, **kwargs: _openai_chat_completion_response,
 )
 def test_azureopenai_model(openai_completion):
-    model = LCAzureChatOpenAI(
+    model = AzureChatOpenAI(
+        api_key="dummy",
+        api_version="2024-05-01-preview",
+        azure_deployment="gpt-4o",
         azure_endpoint="https://test.openai.azure.com/",
-        openai_api_key="some-key",
-        openai_api_version="2023-03-15-preview",
-        deployment_name="gpt35turbo",
-        temperature=0,
     )
-    assert isinstance(
-        model.to_langchain_format(), AzureChatOpenAILC
-    ), "Agent not wrapped in Langchain's AzureChatOpenAI"
-
     # test for str input - stream mode
     output = model("hello world")
     assert isinstance(

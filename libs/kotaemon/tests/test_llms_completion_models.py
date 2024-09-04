@@ -13,6 +13,8 @@ except ImportError:
 
 from openai.types.completion import Completion
 
+from .conftest import skip_openai_lc_wrapper_test
+
 _openai_completion_response = Completion.parse_obj(
     {
         "id": "cmpl-7qyNoIo6gRSCJR0hi8o3ZKBH4RkJ0",
@@ -33,6 +35,7 @@ _openai_completion_response = Completion.parse_obj(
 )
 
 
+@skip_openai_lc_wrapper_test
 @patch(
     "openai.resources.completions.Completions.create",
     side_effect=lambda *args, **kwargs: _openai_completion_response,

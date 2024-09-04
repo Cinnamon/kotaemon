@@ -13,7 +13,9 @@ from kotaemon.agents import (
     RewooAgent,
     WikipediaTool,
 )
-from kotaemon.llms import LCAzureChatOpenAI
+from kotaemon.llms import AzureChatOpenAI
+
+from .conftest import skip_openai_lc_wrapper_test
 
 FINAL_RESPONSE_TEXT = "Final Answer: Hello Cinnamon AI!"
 REWOO_VALID_PLAN = (
@@ -112,12 +114,11 @@ _openai_chat_completion_responses_react_langchain_tool = [
 
 @pytest.fixture
 def llm():
-    return LCAzureChatOpenAI(
-        azure_endpoint="https://dummy.openai.azure.com/",
-        openai_api_key="dummy",
-        openai_api_version="2023-03-15-preview",
-        deployment_name="dummy-q2",
-        temperature=0,
+    return AzureChatOpenAI(
+        api_key="dummy",
+        api_version="2024-05-01-preview",
+        azure_deployment="gpt-4o",
+        azure_endpoint="https://test.openai.azure.com/",
     )
 
 
@@ -175,6 +176,7 @@ def test_react_agent(openai_completion, llm, mock_google_search):
     assert response.text == FINAL_RESPONSE_TEXT
 
 
+@skip_openai_lc_wrapper_test
 @patch(
     "openai.resources.chat.completions.Completions.create",
     side_effect=_openai_chat_completion_responses_react,
@@ -199,6 +201,7 @@ def test_react_agent_langchain(openai_completion, llm, mock_google_search):
     assert response
 
 
+@skip_openai_lc_wrapper_test
 @patch(
     "openai.resources.chat.completions.Completions.create",
     side_effect=_openai_chat_completion_responses_react,

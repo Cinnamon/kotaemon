@@ -8,10 +8,14 @@ from kotaemon.base import Document
 from kotaemon.embeddings import (
     AzureOpenAIEmbeddings,
     FastEmbedEmbeddings,
-    LCAzureOpenAIEmbeddings,
     LCCohereEmbeddings,
     LCHuggingFaceEmbeddings,
     OpenAIEmbeddings,
+)
+
+from .conftest import (
+    skip_when_fastembed_not_installed,
+    skip_when_sentence_bert_not_installed,
 )
 
 with open(Path(__file__).parent / "resources" / "embedding_openai_batch.json") as f:
@@ -32,12 +36,11 @@ def assert_embedding_result(output):
     "openai.resources.embeddings.Embeddings.create",
     side_effect=lambda *args, **kwargs: openai_embedding,
 )
-def test_lcazureopenai_embeddings_raw(openai_embedding_call):
-    model = LCAzureOpenAIEmbeddings(
-        model="text-embedding-ada-002",
-        deployment="embedding-deployment",
+def test_azureopenai_embeddings_raw(openai_embedding_call):
+    model = AzureOpenAIEmbeddings(
+        azure_deployment="embedding-deployment",
         azure_endpoint="https://test.openai.azure.com/",
-        openai_api_key="some-key",
+        api_key="some-key",
     )
     output = model("Hello world")
     assert_embedding_result(output)
@@ -49,29 +52,12 @@ def test_lcazureopenai_embeddings_raw(openai_embedding_call):
     side_effect=lambda *args, **kwargs: openai_embedding_batch,
 )
 def test_lcazureopenai_embeddings_batch_raw(openai_embedding_call):
-    model = LCAzureOpenAIEmbeddings(
-        model="text-embedding-ada-002",
-        deployment="embedding-deployment",
-        azure_endpoint="https://test.openai.azure.com/",
-        openai_api_key="some-key",
-    )
-    output = model(["Hello world", "Goodbye world"])
-    assert_embedding_result(output)
-    openai_embedding_call.assert_called()
-
-
-@patch(
-    "openai.resources.embeddings.Embeddings.create",
-    side_effect=lambda *args, **kwargs: openai_embedding,
-)
-def test_azureopenai_embeddings_raw(openai_embedding_call):
     model = AzureOpenAIEmbeddings(
+        azure_deployment="embedding-deployment",
         azure_endpoint="https://test.openai.azure.com/",
         api_key="some-key",
-        api_version="version",
-        azure_deployment="text-embedding-ada-002",
     )
-    output = model("Hello world")
+    output = model(["Hello world", "Goodbye world"])
     assert_embedding_result(output)
     openai_embedding_call.assert_called()
 
@@ -120,6 +106,7 @@ def test_openai_embeddings_batch_raw(openai_embedding_call):
     openai_embedding_call.assert_called()
 
 
+@skip_when_sentence_bert_not_installed
 @patch(
     "sentence_transformers.SentenceTransformer",
     side_effect=lambda *args, **kwargs: None,
@@ -149,7 +136,9 @@ def test_lchuggingface_embeddings(
 )
 def test_lccohere_embeddings(langchain_cohere_embedding_call):
     model = LCCohereEmbeddings(
-        model="embed-english-light-v2.0", cohere_api_key="my-api-key"
+        model="embed-english-light-v2.0",
+        cohere_api_key="my-api-key",
+        user_agent="test",
     )
 
     output = model("Hello World")
@@ -157,6 +146,7 @@ def test_lccohere_embeddings(langchain_cohere_embedding_call):
     langchain_cohere_embedding_call.assert_called()
 
 
+@skip_when_fastembed_not_installed
 def test_fastembed_embeddings():
     model = FastEmbedEmbeddings()
     output = model("Hello World")
