@@ -22,10 +22,10 @@ def test_indexing(tmp_path):
     db = ChromaVectorStore(path=str(tmp_path))
     doc_store = InMemoryDocumentStore()
     embedding = AzureOpenAIEmbeddings(
+        azure_deployment="text-embedding-ada-002",
         azure_endpoint="https://test.openai.azure.com/",
         api_key="some-key",
         api_version="version",
-        azure_deployment="text-embedding-ada-002",
     )
 
     pipeline = VectorIndexing(vector_store=db, embedding=embedding, doc_store=doc_store)
@@ -46,10 +46,10 @@ def test_retrieving(tmp_path):
     db = ChromaVectorStore(path=str(tmp_path))
     doc_store = InMemoryDocumentStore()
     embedding = AzureOpenAIEmbeddings(
+        azure_deployment="text-embedding-ada-002",
         azure_endpoint="https://test.openai.azure.com/",
         api_key="some-key",
         api_version="version",
-        azure_deployment="text-embedding-ada-002",
     )
 
     index_pipeline = VectorIndexing(

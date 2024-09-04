@@ -41,6 +41,7 @@ def test_pipeline_tool(tmp_path):
         azure_deployment="embedding-deployment",
         azure_endpoint="https://test.openai.azure.com/",
         api_key="some-key",
+        api_version="version",
     )
 
     index_pipeline = VectorIndexing(

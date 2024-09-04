@@ -51,6 +51,15 @@ def if_unstructured_not_installed():
         return False
 
 
+def if_llama_cpp_not_installed():
+    try:
+        import llama_cpp  # noqa: F401
+    except ImportError:
+        return True
+    else:
+        return False
+
+
 skip_when_haystack_not_installed = pytest.mark.skipif(
     if_haystack_not_installed(), reason="Haystack is not installed"
 )
@@ -69,4 +78,8 @@ skip_when_unstructured_not_installed = pytest.mark.skipif(
 
 skip_openai_lc_wrapper_test = pytest.mark.skipif(
     True, reason="OpenAI LC wrapper test is skipped"
+)
+
+skip_llama_cpp_not_installed = pytest.mark.skipif(
+    if_llama_cpp_not_installed(), reason="llama_cpp is not installed"
 )

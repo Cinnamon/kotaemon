@@ -41,6 +41,7 @@ def test_azureopenai_embeddings_raw(openai_embedding_call):
         azure_deployment="embedding-deployment",
         azure_endpoint="https://test.openai.azure.com/",
         api_key="some-key",
+        api_version="version",
     )
     output = model("Hello world")
     assert_embedding_result(output)
@@ -56,6 +57,7 @@ def test_lcazureopenai_embeddings_batch_raw(openai_embedding_call):
         azure_deployment="embedding-deployment",
         azure_endpoint="https://test.openai.azure.com/",
         api_key="some-key",
+        api_version="version",
     )
     output = model(["Hello world", "Goodbye world"])
     assert_embedding_result(output)
@@ -68,10 +70,10 @@ def test_lcazureopenai_embeddings_batch_raw(openai_embedding_call):
 )
 def test_azureopenai_embeddings_batch_raw(openai_embedding_call):
     model = AzureOpenAIEmbeddings(
+        azure_deployment="text-embedding-ada-002",
         azure_endpoint="https://test.openai.azure.com/",
         api_key="some-key",
         api_version="version",
-        azure_deployment="text-embedding-ada-002",
     )
     output = model(["Hello world", "Goodbye world"])
     assert_embedding_result(output)
