@@ -19,9 +19,10 @@ jobs:
   build:
     name: Build and push container
     runs-on: ubuntu-latest
-    matrix:
-      platform:
-        - linux/amd64
+    strategy: 
+      matrix:
+        platform:
+          - linux/amd64
     steps:
       - name: Set repository and image name
         run: |
