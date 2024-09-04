@@ -19,7 +19,7 @@ jobs:
   build:
     name: Build and push container
     runs-on: ubuntu-latest
-    strategy: 
+    strategy:
       matrix:
         platform:
           - linux/amd64
@@ -58,7 +58,8 @@ jobs:
           context: .
           push: true
           platforms: ${{ matrix.platform }}
-          tags: "${{ env.FULL_IMAGE_NAME }}"
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           load: true
