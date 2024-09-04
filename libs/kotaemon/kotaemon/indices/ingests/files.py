@@ -3,6 +3,7 @@ from typing import Type
 
 from decouple import config
 from llama_index.core.readers.base import BaseReader
+from llama_index.readers.file import PDFReader
 from theflow.settings import settings as flowsettings
 
 from kotaemon.base import BaseComponent, Document, Param
@@ -18,6 +19,7 @@ from kotaemon.loaders import (
     OCRReader,
     PandasExcelReader,
     PDFThumbnailReader,
+    TxtReader,
     UnstructuredReader,
 )
 
@@ -47,6 +49,8 @@ KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
     ".tiff": unstructured,
     ".tif": unstructured,
     ".pdf": PDFThumbnailReader(),
+    ".txt": TxtReader(),
+    ".md": TxtReader(),
 }
 
 
@@ -88,7 +92,7 @@ class DocumentIngestor(BaseComponent):
             file_extractors[ext] = cls()
 
         if self.pdf_mode == "normal":
-            pass  # use default loader of llama-index which is pypdf
+            file_extractors[".pdf"] = PDFReader()
         elif self.pdf_mode == "ocr":
             file_extractors[".pdf"] = OCRReader()
         elif self.pdf_mode == "multimodal":

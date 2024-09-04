@@ -15,14 +15,14 @@ this_dir = Path(this_file).parent
 # change this if your app use a different name
 KH_PACKAGE_NAME = "kotaemon_app"
 
-KH_APP_VERSION = config("KH_APP_VERSION", "local")
+KH_APP_VERSION = config("KH_APP_VERSION", None)
 if not KH_APP_VERSION:
     try:
         # Caution: This might produce the wrong version
         # https://stackoverflow.com/a/59533071
         KH_APP_VERSION = version(KH_PACKAGE_NAME)
-    except Exception as e:
-        print(f"Failed to get app version: {e}")
+    except Exception:
+        KH_APP_VERSION = "local"
 
 # App can be ran from anywhere and it's not trivial to decide where to store app data.
 # So let's use the same directory as the flowsetting.py file.
@@ -80,6 +80,7 @@ KH_DOCSTORE = {
 KH_VECTORSTORE = {
     # "__type__": "kotaemon.storages.LanceDBVectorStore",
     "__type__": "kotaemon.storages.ChromaVectorStore",
+    # "__type__": "kotaemon.storages.MilvusVectorStore",
     "path": str(KH_USER_DATA_DIR / "vectorstore"),
 }
 KH_LLMS = {}
@@ -222,7 +223,7 @@ KH_INDICES = [
         "config": {
             "supported_file_types": (
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
-                ".pptx, .csv, .html, .mhtml, .txt, .zip"
+                ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
             ),
             "private": False,
         },
@@ -233,7 +234,7 @@ KH_INDICES = [
         "config": {
             "supported_file_types": (
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
-                ".pptx, .csv, .html, .mhtml, .txt, .zip"
+                ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
             ),
             "private": False,
         },
