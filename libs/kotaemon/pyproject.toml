@@ -34,6 +34,7 @@ dependencies = [
     "llama-index>=0.10.40,<0.11.0",
     "llama-index-vector-stores-chroma>=0.1.9",
     "llama-index-vector-stores-lancedb",
+    "llama-index-vector-stores-milvus",
     "openai>=1.23.6,<2",
     "openpyxl>=3.1.2,<3.2",
     "pandas>=2.2.2,<2.3",
