@@ -4,16 +4,11 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
-  release:
-    types:
-      - created
 
   workflow_dispatch:
 
-
 env:
   REGISTRY: ghcr.io
-
 
 jobs:
   build:
@@ -29,7 +24,7 @@ jobs:
           echo "IMAGE_NAME=${IMAGE_NAME,,}" >>${GITHUB_ENV}
           echo "FULL_IMAGE_NAME=ghcr.io/${IMAGE_NAME,,}" >>${GITHUB_ENV}
         env:
-          IMAGE_NAME: '${{ github.repository }}'
+          IMAGE_NAME: "${{ github.repository }}"
 
       - name: Checkout
         uses: actions/checkout@v4
