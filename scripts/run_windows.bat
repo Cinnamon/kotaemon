@@ -19,12 +19,15 @@ IF %ERRORLEVEL% EQU 0 (
     GOTO :end
 )
 
-CALL :print_highlight "Setting up git"
+IF NOT EXIST "%install_dir%" ( MKDIR "%install_dir%" )
 
+CALL :print_highlight "Setting up git"
+CALL :download_and_install_git
+:: check if function run fail, then exit the script
+IF ERRORLEVEL 1 GOTO :end
 
 CALL :print_highlight "Setting up Miniconda"
 CALL :download_and_install_miniconda
-:: check if function run fail, then exit the script
 IF ERRORLEVEL 1 GOTO :end
 
 CALL :print_highlight "Creating conda environment"
@@ -64,8 +67,6 @@ IF %ERRORLEVEL% NEQ 0 (
 )
 
 :download_and_install_miniconda
-IF NOT EXIST "%install_dir%" ( MKDIR "%install_dir%" )
-
 :: If conda has been installed at the %conda_root%, don't need to reinstall it
 CALL "%conda_root%\_conda.exe" --version >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
