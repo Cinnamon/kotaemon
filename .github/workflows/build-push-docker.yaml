@@ -1,12 +1,14 @@
 name: Build and Push Docker Image
 
 on:
-  workflow_dispatch
-  tags:
-    - 'v*'
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
   release:
     types:
       - created
+
+  workflow_dispatch:
 
 
 env:
