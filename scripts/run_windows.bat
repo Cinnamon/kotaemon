@@ -10,11 +10,17 @@ SET env_dir=%install_dir%\env
 SET python_version=3.10
 SET miniconda_download_url=https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe
 
+SET git_install_dir=%install_dir%\git
+SET git_download_url=https://github.com/git-for-windows/git/releases/download/v2.46.0.windows.1/Git-2.46.0-64-bit.exe
+
 ECHO %CD%| FINDSTR /C:" " >nul 2>&1
 IF %ERRORLEVEL% EQU 0 (
     ECHO The current workdir has whitespace which can lead to unintended behaviour. Please modify your path and continue later.
     GOTO :end
 )
+
+CALL :print_highlight "Setting up git"
+
 
 CALL :print_highlight "Setting up Miniconda"
 CALL :download_and_install_miniconda
@@ -42,6 +48,20 @@ CALL :launch_ui
 CALL :deactivate_environment
 GOTO :end_success
 
+:download_and_install_git
+:: figure out whether git is installed
+CALL git --version >nul 2>&1 
+IF %ERRORLEVEL% NEQ 0 (
+    :: TODO: Check 32-bit or 64-bit
+    ECHO Downloading Git from %git_download_url%
+    CALL curl -Lk "%git_download_url%" -o "%install_dir%\git_installer.exe" || (
+        ECHO. && ECHO Failed to download Git. Aborting...
+        GOTO :exit_func_with_error
+    )
+    ECHO Installing Git to %git_install_dir%
+    CALL "%install_dir%\git_installer.exe" /VERYSILENT /NORESTART /NOCANCEL /SP- /DIR="%git_install_dir%" /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /NOICONS /COMPONENTS="icons,ext\reg\shellhere,assoc,assoc_sh"
+    DEL "%install_dir%\git_installer.exe"
+)
 
 :download_and_install_miniconda
 IF NOT EXIST "%install_dir%" ( MKDIR "%install_dir%" )
