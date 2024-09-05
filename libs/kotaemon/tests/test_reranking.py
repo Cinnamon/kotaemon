@@ -5,7 +5,7 @@ from openai.types.chat.chat_completion import ChatCompletion
 
 from kotaemon.base import Document
 from kotaemon.indices.rankings import LLMReranking
-from kotaemon.llms import LCAzureChatOpenAI
+from kotaemon.llms import AzureChatOpenAI
 
 _openai_chat_completion_responses = [
     ChatCompletion.parse_obj(
@@ -41,11 +41,11 @@ _openai_chat_completion_responses = [
 
 @pytest.fixture
 def llm():
-    return LCAzureChatOpenAI(
-        azure_endpoint="https://dummy.openai.azure.com/",
-        openai_api_key="dummy",
-        openai_api_version="2023-03-15-preview",
-        temperature=0,
+    return AzureChatOpenAI(
+        api_key="dummy",
+        api_version="2024-05-01-preview",
+        azure_deployment="gpt-4o",
+        azure_endpoint="https://test.openai.azure.com/",
     )
 
 

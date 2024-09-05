@@ -17,6 +17,7 @@ developers in mind.
 <a href="https://hub.docker.com/r/taprosoft/kotaemon" target="_blank">
 <img src="https://img.shields.io/badge/docker_pull-kotaemon:v1.0-brightgreen" alt="docker pull taprosoft/kotaemon:v1.0"></a>
 [![built with Codeium](https://codeium.com/badges/main)](https://codeium.com)
+<a href='https://huggingface.co/spaces/cin-model/kotaemon-demo'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue'></a>
 
 ## Introduction
 
@@ -30,7 +31,7 @@ documents and developers who want to build their own RAG pipeline.
   - Easy installation scripts.
 - For developers:
   - A framework for building your own RAG-based document QA pipeline.
-  - Customize and see your RAG pipeline in action with the provided UI (built with Gradio).
+  - Customize and see your RAG pipeline in action with the provided UI (built with <a href='https://github.com/gradio-app/gradio'>Gradio <img src='https://img.shields.io/github/stars/gradio-app/gradio'></a>).
 
 ```yml
 +----------------------------------------------------------------------------+

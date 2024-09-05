@@ -5,6 +5,8 @@ import pytest
 
 from kotaemon.loaders import MathpixPDFReader, OCRReader, PandasExcelReader
 
+from .conftest import skip_when_unstructured_not_installed
+
 input_file = Path(__file__).parent / "resources" / "table.pdf"
 input_file_excel = Path(__file__).parent / "resources" / "dummy.xlsx"
 
@@ -26,6 +28,7 @@ def mathpix_output():
     return content
 
 
+@skip_when_unstructured_not_installed
 def test_ocr_reader(fullocr_output):
     reader = OCRReader()
     documents = reader.load_data(input_file, response_content=fullocr_output)
