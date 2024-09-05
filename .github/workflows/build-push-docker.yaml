@@ -14,6 +14,11 @@ jobs:
   build:
     name: Build and push container
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
     strategy:
       matrix:
         platform:
@@ -21,8 +26,7 @@ jobs:
     steps:
       - name: Set repository and image name
         run: |
-          echo "IMAGE_NAME=${IMAGE_NAME,,}" >>${GITHUB_ENV}
-          echo "FULL_IMAGE_NAME=ghcr.io/${IMAGE_NAME,,}" >>${GITHUB_ENV}
+          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${IMAGE_NAME,,}" >>${GITHUB_ENV}
         env:
           IMAGE_NAME: "${{ github.repository }}"
 
