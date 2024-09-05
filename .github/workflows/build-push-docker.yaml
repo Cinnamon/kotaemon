@@ -4,7 +4,7 @@ on:
   release:
     types:
       - created
-      
+
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
