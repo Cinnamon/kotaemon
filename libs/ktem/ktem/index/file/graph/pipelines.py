@@ -4,6 +4,8 @@ from pathlib import Path
 from shutil import rmtree
 from typing import Generator
 from uuid import uuid4
+import yaml
+import shutil
 
 import pandas as pd
 import tiktoken
@@ -114,6 +116,47 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
         )
         result = subprocess.run(command, capture_output=True, text=True)
         print(result.stdout)
+
+        # fix settings.yaml using GRAPHRAG_LLM_MODEL, GRAPHRAG_EMBEDDING_MODEL
+        # NOTES: currently, only OpenAI models are supported. Azure OpenAI and Ollama are not supported yet.
+        graphrag_settings_path = Path(input_path) / "settings.yaml"
+        graphrag_llm_model = os.environ.get("GRAPHRAG_LLM_MODEL", None)
+        graphrag_embedding_model = os.environ.get("GRAPHRAG_EMBEDDING_MODEL", None)
+
+        if graphrag_llm_model is not None or graphrag_embedding_model is not None:
+            with open(graphrag_settings_path, 'r+') as f:
+                graphrag_settings = yaml.safe_load(f)
+
+                if graphrag_llm_model is not None:
+                    graphrag_settings["llm"]["model"] = graphrag_llm_model
+                    yield Document(
+                        channel="debug",
+                        text=f"[GraphRAG] GRAPHRAG_LLM_MODEL: {graphrag_llm_model}"
+                    )
+
+                if graphrag_embedding_model is not None:
+                    graphrag_settings["embeddings"]["llm"]["model"] = graphrag_embedding_model
+                    yield Document(
+                        channel="debug",
+                        text=f"[GraphRAG] GRAPHRAG_EMBEDDIING_MODEL: {graphrag_embedding_model}"
+                    )
+
+                backup_path = graphrag_settings_path.parent / f"settings.yaml.back"
+                shutil.copy2(graphrag_settings_path, backup_path)
+                f.seek(0)
+                yaml.safe_dump(graphrag_settings, f, default_flow_style=False, sort_keys=False)
+                f.truncate()
+
+                yield Document(
+                    channel="debug",
+                    text=f"[GraphRAG] settings.yaml changed"
+                )
+        else:
+            yield Document(
+                channel="debug",
+                text=f"[GraphRAG] GRAPHRAG_LLM_MODEL or GRAPHRAG_EMBEDDING_MODEL is not set. Using GraphRAG's default settings."
+            )
+
         command = command[:-1]
 
         # Run the command and stream stdout
