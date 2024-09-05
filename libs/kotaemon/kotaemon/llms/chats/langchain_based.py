@@ -245,3 +245,27 @@ class LCAnthropicChat(LCChatMixin, ChatLLM):  # type: ignore
             raise ImportError("Please install langchain-anthropic")
 
         return ChatAnthropic
+
+
+class LCGeminiChat(LCChatMixin, ChatLLM):  # type: ignore
+    def __init__(
+        self,
+        api_key: str | None = None,
+        model_name: str | None = None,
+        temperature: float = 0.7,
+        **params,
+    ):
+        super().__init__(
+            google_api_key=api_key,
+            model=model_name,
+            temperature=temperature,
+            **params,
+        )
+
+    def _get_lc_class(self):
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+        except ImportError:
+            raise ImportError("Please install langchain-google-genai")
+
+        return ChatGoogleGenerativeAI
