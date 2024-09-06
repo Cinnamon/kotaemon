@@ -14,8 +14,8 @@ developers in mind.
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-31013/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-<a href="https://hub.docker.com/r/taprosoft/kotaemon" target="_blank">
-<img src="https://img.shields.io/badge/docker_pull-kotaemon:v1.0-brightgreen" alt="docker pull taprosoft/kotaemon:v1.0"></a>
+<a href="https://github.com/Cinnamon/kotaemon" target="_blank">
+<img src="https://img.shields.io/badge/docker_pull-kotaemon:latest-brightgreen" alt="docker pull ghcr.io/cinnamon/kotaemon:latest"></a>
 [![built with Codeium](https://codeium.com/badges/main)](https://codeium.com)
 <a href='https://huggingface.co/spaces/cin-model/kotaemon-demo'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue'></a>
 
@@ -95,7 +95,7 @@ docker run \
 -e GRADIO_SERVER_NAME=0.0.0.0 \
 -e GRADIO_SERVER_PORT=7860 \
 -p 7860:7860 -it --rm \
-taprosoft/kotaemon:v1.0
+ghcr.io/cinnamon/kotaemon:latest
 ```
 
 Navigate to `http://localhost:7860/` to access the web UI.
