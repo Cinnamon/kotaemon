@@ -176,22 +176,22 @@ if config("LOCAL_MODEL", default=""):
     }
 
 # additional LLM configurations
-# KH_LLMS["claude"] = {
-#     "spec": {
-#         "__type__": "kotaemon.llms.chats.LCAnthropicChat",
-#         "model_name": "claude-3-5-sonnet-20240620",
-#         "api_key": "your-key",
-#     },
-#     "default": False,
-# }
-# KH_LLMS["gemini"] = {
-#     "spec": {
-#         "__type__": "kotaemon.llms.chats.LCGeminiChat",
-#         "model_name": "gemini-1.5-pro",
-#         "api_key": "your-key",
-#     },
-#     "default": False,
-# }
+KH_LLMS["claude"] = {
+    "spec": {
+        "__type__": "kotaemon.llms.chats.LCAnthropicChat",
+        "model_name": "claude-3-5-sonnet-20240620",
+        "api_key": "your-key",
+    },
+    "default": False,
+}
+KH_LLMS["gemini"] = {
+    "spec": {
+        "__type__": "kotaemon.llms.chats.LCGeminiChat",
+        "model_name": "gemini-1.5-pro",
+        "api_key": "your-key",
+    },
+    "default": False,
+}
 KH_LLMS["groq"] = {
     "spec": {
         "__type__": "kotaemon.llms.ChatOpenAI",
