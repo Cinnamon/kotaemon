@@ -1,14 +1,6 @@
-# syntax=docker/dockerfile:1.0.0-experimental
 FROM python:3.10-slim as base_image
 
-# for additional file parsers
-
-# tesseract-ocr \
-# tesseract-ocr-jpn \
-# libsm6 \
-# libxext6 \
-# ffmpeg \
-
+# Common dependencies
 RUN apt-get update -qqy && \
     apt-get install -y --no-install-recommends \
       ssh \
@@ -29,13 +21,14 @@ ENV PYTHONIOENCODING=UTF-8
 
 WORKDIR /app
 
-FROM base_image as dev
-
 COPY scripts/download_pdfjs.sh /app/scripts/download_pdfjs.sh
 RUN chmod +x /app/scripts/download_pdfjs.sh
 
 ENV PDFJS_PREBUILT_DIR="/app/libs/ktem/ktem/assets/prebuilt/pdfjs-dist"
 RUN bash scripts/download_pdfjs.sh $PDFJS_PREBUILT_DIR
+
+# Lite
+FROM base_image as lite
 
 COPY . /app
 RUN --mount=type=ssh pip install --no-cache-dir -e "libs/kotaemon[all]" \
@@ -44,3 +37,29 @@ RUN --mount=type=ssh pip install --no-cache-dir -e "libs/kotaemon[all]" \
     && pip install --no-cache-dir "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
 
 CMD ["python", "app.py"]
+
+# Full
+FROM base_image as full
+
+# Additional dependencies for full version
+RUN apt-get update -qqy && \
+    apt-get install -y --no-install-recommends \
+      tesseract-ocr \
+      tesseract-ocr-jpn \
+      libsm6 \
+      libxext6 \
+      ffmpeg \
+      libmagic-dev \
+    && apt-get clean \
+    && apt-get autoremove \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY . /app
+RUN --mount=type=ssh pip install --no-cache-dir -e "libs/kotaemon[all]" \
+    && pip install --no-cache-dir -e "libs/ktem" \
+    && pip install --no-cache-dir graphrag future unstructured[all-docs] \
+    && pip install --no-cache-dir "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
+
+CMD ["python", "app.py"]
+
+
