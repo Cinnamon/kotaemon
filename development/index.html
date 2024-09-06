@@ -3306,6 +3306,8 @@
       
         
       
+        
+      
     
     
       
@@ -3420,6 +3422,27 @@
   
   <span class="md-ellipsis">
     Lancedb
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/storages/vectorstores/milvus/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Milvus
   </span>
   
 
@@ -3820,9 +3843,10 @@ developers in mind.</p>
 <a href="https://github.com/Cinnamon/kotaemon/issues">Feedback</a></p>
 <p><a href="https://www.python.org/downloads/release/python-31013/"><img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10+-blue.svg"></a>
 <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
-<a href="https://hub.docker.com/r/taprosoft/kotaemon" target="_blank">
-<img src="https://img.shields.io/badge/docker_pull-kotaemon:v1.0-brightgreen" alt="docker pull taprosoft/kotaemon:v1.0"></a>
-<a href="https://codeium.com"><img alt="built with Codeium" src="https://codeium.com/badges/main"></a></p>
+<a href="https://github.com/Cinnamon/kotaemon" target="_blank">
+<img src="https://img.shields.io/badge/docker_pull-kotaemon:latest-brightgreen" alt="docker pull ghcr.io/cinnamon/kotaemon:latest"></a>
+<a href="https://codeium.com"><img alt="built with Codeium" src="https://codeium.com/badges/main"></a>
+<a href="https://huggingface.co/spaces/cin-model/kotaemon-demo"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue"></a></p>
 <h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">¶</a></h2>
 <p>This project serves as a functional RAG UI for both end users who want to do QA on their
 documents and developers who want to build their own RAG pipeline.</p>
@@ -3836,7 +3860,7 @@ documents and developers who want to build their own RAG pipeline.</p>
 </li>
 <li>For developers:<ul>
 <li>A framework for building your own RAG-based document QA pipeline.</li>
-<li>Customize and see your RAG pipeline in action with the provided UI (built with Gradio).</li>
+<li>Customize and see your RAG pipeline in action with the provided UI (built with <a href="https://github.com/gradio-app/gradio">Gradio <img src="https://img.shields.io/github/stars/gradio-app/gradio"></a>).</li>
 </ul>
 </li>
 </ul>
@@ -3909,7 +3933,7 @@ it is, please follow the non-technical <a href="https://cinnamon.github.io/kotae
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2"></a>-e GRADIO_SERVER_NAME=0.0.0.0 \
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3"></a>-e GRADIO_SERVER_PORT=7860 \
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4"></a>-p 7860:7860 -it --rm \
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5"></a>taprosoft/kotaemon:v1.0
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5"></a>ghcr.io/cinnamon/kotaemon:latest
 </span></code></pre></div></td></tr></table></div>
 <p>Navigate to <code>http://localhost:7860/</code> to access the web UI.</p>
 <h4 id="without-docker">Without Docker<a class="headerlink" href="#without-docker" title="Permanent link">¶</a></h4>
