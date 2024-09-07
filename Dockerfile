@@ -36,7 +36,7 @@ RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
 #    pip install -e "libs/kotaemon[all]" \
 #    && pip install -e "libs/ktem" \
-    pip install graphrag future \
+    pip install graphrag \
     && pip install "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
 
 RUN rm -rf /root/.cache/pip
