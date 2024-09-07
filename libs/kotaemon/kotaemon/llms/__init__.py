@@ -10,6 +10,7 @@ from .chats import (
     LCAnthropicChat,
     LCAzureChatOpenAI,
     LCChatOpenAI,
+    LCGeminiChat,
     LlamaCppChat,
 )
 from .completions import LLM, AzureOpenAI, LlamaCpp, OpenAI
@@ -29,6 +30,7 @@ __all__ = [
     "AzureChatOpenAI",
     "ChatOpenAI",
     "LCAnthropicChat",
+    "LCGeminiChat",
     "LCAzureChatOpenAI",
     "LCChatOpenAI",
     "LlamaCppChat",
