@@ -54,9 +54,9 @@ RUN apt-get update -qqy && \
     && apt-get autoremove \
     && rm -rf /var/lib/apt/lists/*
 
-COPY . /app
-
 RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+COPY . /app
 
 RUN --mount=type=ssh pip install --no-cache-dir -e "libs/kotaemon[all]" \
     && pip install --no-cache-dir -e "libs/ktem" \
@@ -64,5 +64,3 @@ RUN --mount=type=ssh pip install --no-cache-dir -e "libs/kotaemon[all]" \
     && pip install --no-cache-dir "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
 
 CMD ["python", "app.py"]
-
-
