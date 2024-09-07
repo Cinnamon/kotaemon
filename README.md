@@ -295,3 +295,12 @@ for more details.
    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Cinnamon/kotaemon&type=Date" />
  </picture>
 </a>
+
+## Current Status
+| Platform | 3rd-Party Inference API | Ollama LLM | Ollama File | Ollama Embeddings | Ollama RAG Embeddings |
+|----------|-------------------------|------------|-------------|-------------------|-----------------------|
+| Mac      | ✅                      | ❌          | ❌           | ❌                 | ❌                     |
+| Linux    | ✅                      | ❌          | ❌           | ❌                 | ❌                     |
+| Windows  | ✅                      | ❌          | ❌           | ❌                 | ❌                     |
+| Docker   | ✅                      | ❌          | ❌           | ❌                 | ❌                     |
+
