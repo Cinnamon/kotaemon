@@ -28,6 +28,9 @@ jobs:
         platform:
           - linux/amd64
           - linux/arm64
+        target:
+          - lite
+          - full
     steps:
       - name: Set repository and image name
         run: |
@@ -64,6 +67,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          target: ${{ matrix.target }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           load: true
