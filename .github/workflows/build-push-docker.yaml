@@ -32,7 +32,7 @@ jobs:
     steps:
       - name: Set repository and image name
         run: |
-          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${IMAGE_NAME,,}" >>${GITHUB_ENV}
+          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${IMAGE_NAME,,}" >> ${GITHUB_ENV}
         env:
           IMAGE_NAME: "${{ github.repository }}"
 
