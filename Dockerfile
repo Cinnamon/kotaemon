@@ -55,6 +55,9 @@ RUN apt-get update -qqy && \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /app
+
+RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
 RUN --mount=type=ssh pip install --no-cache-dir -e "libs/kotaemon[all]" \
     && pip install --no-cache-dir -e "libs/ktem" \
     && pip install --no-cache-dir graphrag future unstructured[all-docs] \
