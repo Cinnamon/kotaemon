@@ -41,6 +41,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v2
@@ -65,7 +68,8 @@ jobs:
           context: .
           push: true
           platforms: ${{ matrix.platform }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            ${{ steps.meta.outputs.tags }}-${{ matrix.target }}
           labels: ${{ steps.meta.outputs.labels }}
           target: ${{ matrix.target }}
           cache-from: type=gha
