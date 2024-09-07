@@ -42,8 +42,7 @@ jobs:
       - name: Setup docker (missing on MacOS)
         if: runner.os == 'macos'
         run: |
-          brew install docker colima
-          colima start
+          brew install docker
 
       - name: Set up Docker Buildx
         id: buildx
