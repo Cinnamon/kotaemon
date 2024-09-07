@@ -32,10 +32,14 @@ RUN bash scripts/download_pdfjs.sh $PDFJS_PREBUILT_DIR
 FROM base_image as lite
 
 COPY . /app
-RUN --mount=type=ssh pip install --no-cache-dir -e "libs/kotaemon[all]" \
-    && pip install --no-cache-dir -e "libs/ktem" \
-    && pip install --no-cache-dir graphrag future \
-    && pip install --no-cache-dir "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
+RUN --mount=type=ssh  \
+    --mount=type=cache,target=/root/.cache/pip  \
+    pip install -e "libs/kotaemon[all]" \
+    && pip install -e "libs/ktem" \
+    && pip install graphrag future \
+    && pip install "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
+
+RUN rm -rf /root/.cache/pip
 
 CMD ["python", "app.py"]
 
@@ -55,13 +59,19 @@ RUN apt-get update -qqy && \
     && apt-get autoremove \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+RUN --mount=type=ssh  \
+    --mount=type=cache,target=/root/.cache/pip  \
+    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
 COPY . /app
 
-RUN --mount=type=ssh pip install --no-cache-dir -e "libs/kotaemon[all]" \
-    && pip install --no-cache-dir -e "libs/ktem" \
-    && pip install --no-cache-dir graphrag future unstructured[all-docs] \
-    && pip install --no-cache-dir "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
+RUN --mount=type=ssh  \
+    --mount=type=cache,target=/root/.cache/pip  \
+    pip install -e "libs/kotaemon[all]" \
+    && pip install -e "libs/ktem" \
+    && pip install graphrag future unstructured[all-docs] \
+    && pip install "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
+
+RUN rm -rf /root/.cache/pip
 
 CMD ["python", "app.py"]
