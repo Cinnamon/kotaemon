@@ -32,7 +32,7 @@ documents and developers who want to build their own RAG pipeline.
 - For developers:
   - A framework for building your own RAG-based document QA pipeline.
   - Customize and see your RAG pipeline in action with the provided UI (built with <a href='https://github.com/gradio-app/gradio'>Gradio <img src='https://img.shields.io/github/stars/gradio-app/gradio'></a>).
-  - If you use Gradio for developmenet, check out our theme here [kotaemon-gradio-theme](https://github.com/lone17/kotaemon-gradio-theme).
+  - If you use Gradio for development, check out our theme here: [kotaemon-gradio-theme](https://github.com/lone17/kotaemon-gradio-theme).
 
 ```yml
 +----------------------------------------------------------------------------+
