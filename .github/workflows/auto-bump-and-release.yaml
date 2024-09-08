@@ -47,7 +47,7 @@ jobs:
         with:
           files: kotaemon-app.zip
           fail_on_unmatched_files: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.WRITE_GITHUB_TOKEN }}
           generate_release_notes: true
           tag_name: ${{ steps.update-version.outputs.new_tag }}
           make_latest: true
