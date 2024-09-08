@@ -55,6 +55,10 @@ CALL :print_highlight "Setting up a local model"
 CALL :setup_local_model
 IF ERRORLEVEL 1 GOTO :end
 
+CALL :print_highlight "Downloading and extracting PDF.js"
+CALL :download_and_extract_pdf_js
+IF ERRORLEVEL 1 GOTO :end
+
 CALL :print_highlight "Launching Kotaemon in your browser, please wait..."
 CALL :launch_ui
 
@@ -227,11 +231,56 @@ IF %ERRORLEVEL% == 0  (
 )
 GOTO :eof
 
+:download_and_extract_pdf_js
+:: Download and extract a ZIP file from a URL to a destination directory
+
+REM Check if the destination directory exists
+if exist "%dest_dir%" (
+    echo Destination directory %dest_dir% already exists. Skipping download.
+    goto :eof
+)
+
+REM Create the destination directory
+mkdir "%dest_dir%"
+
+REM Define variables
+set "pdf_js_version=4.0.379"
+set "pdf_js_dist_name=pdfjs-%pdf_js_version%-dist"
+set "pdf_js_dist_url=https://github.com/mozilla/pdf.js/releases/download/v%pdf_js_version%/%pdf_js_dist_name%.zip"
+for /f "delims=" %%i in ('cd') do set "current_dir=%%i"
+set "target_pdf_js_dir=%current_dir%\libs\ktem\ktem\assets\prebuilt\%pdf_js_dist_name%"
+
+REM Create the target directory if it does not exist (including parent folders)
+if not exist "%target_pdf_js_dir%" (
+    echo Creating directory %target_pdf_js_dir%
+    mkdir "%target_pdf_js_dir%"
+)
+
+REM Download the ZIP file using PowerShell
+set "zip_file=%temp%\downloaded.zip"
+echo Downloading %url% to %zip_file%
+powershell -Command "Invoke-WebRequest -Uri '%pdf_js_dist_url%' -OutFile '%zip_file%'"
+
+
+REM Extract the ZIP file using PowerShell
+echo Extracting %zip_file% to %dest_dir%
+powershell -Command "Expand-Archive -Path '%zip_file%' -DestinationPath '%target_pdf_js_dir%'"
+
+REM Clean up the downloaded ZIP file
+del "%zip_file%"
+echo Download and extraction completed successfully.
+
+goto :eof
+
 :setup_local_model
 python "%CD%\scripts\serve_local.py"
 GOTO :eof
 
 :launch_ui
+:: Workaround for diskcache path with folder start with .
+SET THEFLOW_TEMP_PATH=flow_tmp
+SET PDFJS_PREBUILT_DIR=%target_pdf_js_dir%
+ECHO Starting Kotaemon UI... (prebuilt PDF.js is at %PDFJS_PREBUILT_DIR%)
 CALL python "%CD%\app.py" || ( ECHO. && ECHO Will exit now... && GOTO :exit_func_with_error )
 GOTO :eof
 
