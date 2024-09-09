@@ -1,6 +1,6 @@
 from typing import Optional
 
-from kotaemon.base import Document, DocumentWithEmbedding
+from kotaemon.base import Document, DocumentWithEmbedding, Param
 
 from .base import BaseEmbeddings
 
@@ -162,6 +162,20 @@ class LCAzureOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
 class LCCohereEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
     """Wrapper around Langchain's Cohere embedding, focusing on key parameters"""
 
+    cohere_api_key: str = Param(
+        help="API key (https://dashboard.cohere.com/api-keys)",
+        default=None,
+        required=True,
+    )
+    model: str = Param(
+        help="Model name to use (https://docs.cohere.com/docs/models)",
+        default=None,
+        required=True,
+    )
+    user_agent: str = Param(
+        help="User agent (leave default)", default="default", required=True
+    )
+
     def __init__(
         self,
         model: str = "embed-english-v2.0",
@@ -189,6 +203,15 @@ class LCCohereEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
 
 class LCHuggingFaceEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
     """Wrapper around Langchain's HuggingFace embedding, focusing on key parameters"""
+
+    model_name: str = Param(
+        help=(
+            "Model name to use (https://huggingface.co/models?"
+            "pipeline_tag=sentence-similarity&sort=trending)"
+        ),
+        default=None,
+        required=True,
+    )
 
     def __init__(
         self,

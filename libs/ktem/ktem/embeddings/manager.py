@@ -50,6 +50,7 @@ class EmbeddingManager:
                 }
                 if item.default:
                     self._default = item.name
+                    self._models["default"] = self._models[item.name]
 
     def load_vendors(self):
         from kotaemon.embeddings import (
