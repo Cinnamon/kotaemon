@@ -69,11 +69,11 @@ jobs:
           file: Dockerfile
           context: .
           push: true
-          platforms: linux/arm64/v8,linux/amd64,linux/arm/v7
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ steps.meta.outputs.tags }}-${{ matrix.target }}
           labels: ${{ steps.meta.outputs.labels }}
           target: ${{ matrix.target }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          load: true
+          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.description'] }}
