@@ -1,4 +1,4 @@
-FROM python:3.10-slim as base_image
+FROM python:3.10-slim AS base_image
 
 # Common dependencies
 RUN apt-get update -qqy && \
@@ -29,7 +29,7 @@ ENV PDFJS_PREBUILT_DIR="/app/libs/ktem/ktem/assets/prebuilt/pdfjs-dist"
 RUN bash scripts/download_pdfjs.sh $PDFJS_PREBUILT_DIR
 
 # Lite
-FROM base_image as lite
+FROM base_image AS lite
 
 COPY . /app
 RUN --mount=type=ssh  \
@@ -44,7 +44,7 @@ RUN rm -rf /root/.cache/pip
 CMD ["python", "app.py"]
 
 # Full
-FROM base_image as full
+FROM base_image AS full
 
 # Additional dependencies for full version
 RUN apt-get update -qqy && \

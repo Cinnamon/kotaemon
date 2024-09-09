@@ -30,6 +30,7 @@ jobs:
           - linux/arm64
         target:
           - lite
+          - full
     steps:
       - name: Set repository and image name
         run: |
