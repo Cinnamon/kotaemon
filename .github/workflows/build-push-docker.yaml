@@ -60,8 +60,12 @@ jobs:
             type=semver,pattern={{version}},suffix=-${{ matrix.target }}
             type=semver,pattern={{major}}.{{minor}},suffix=-${{ matrix.target }}
             # latest tag with suffix for lite/full targets
-            type=raw,value=latest,suffix=-${{ matrix.target }}
-
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') && !contains(github.ref, 'pre') }},suffix=-${{ matrix.target }}
+          flavor: |
+            # This is disabled here so we can use the raw form above
+            latest=false
+            # Suffix is not used here since there's no way to disable it above
+            
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
