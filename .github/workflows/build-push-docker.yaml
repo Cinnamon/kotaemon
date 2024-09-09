@@ -55,6 +55,12 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.FULL_IMAGE_NAME }}
+          tags: |
+            # semver with suffix for lite/full targets
+            type=semver,pattern={{version}},suffix=-${{ matrix.target }}
+            type=semver,pattern={{major}}.{{minor}},suffix=-${{ matrix.target }}
+            # latest tag with suffix for lite/full targets
+            type=raw,value=latest,suffix=-${{ matrix.target }}
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -76,4 +82,4 @@ jobs:
           target: ${{ matrix.target }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.description'] }}
+          
