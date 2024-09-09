@@ -56,6 +56,8 @@ jobs:
         with:
           images: ${{ env.FULL_IMAGE_NAME }}
           tags: |
+            # branch
+            type=ref,event=branch,suffix=-${{ matrix.target }}
             # semver with suffix for lite/full targets
             type=semver,pattern={{version}},suffix=-${{ matrix.target }}
             # latest tag with suffix for lite/full targets
