@@ -344,7 +344,7 @@ class FileIndex(BaseIndex):
     def get_admin_settings(cls):
         from ktem.embeddings.manager import embedding_models_manager
 
-        embedding_default = embedding_models_manager.get_default_name()
+        embedding_default = "default"
         embedding_choices = list(embedding_models_manager.options().keys())
 
         return {
