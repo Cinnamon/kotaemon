@@ -30,6 +30,7 @@ class GraphRAGIndex(FileIndex):
             GraphRAGRetrieverPipeline(
                 file_ids=file_ids,
                 Index=self._resources["Index"],
+                index_settings=self.config,
             )
         ]
 
