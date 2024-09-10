@@ -81,8 +81,6 @@ RUN apt-get autoremove \
     && rm -rf ~/.cache
 
 # Download nltk packages as required for unstructured
-RUN python -c " \
-    from unstructured.nlp.tokenize import _download_nltk_packages_if_not_present;  \
-    _download_nltk_packages_if_not_present()"
+RUN python -c "from unstructured.nlp.tokenize import _download_nltk_packages_if_not_present; _download_nltk_packages_if_not_present()"
 
 CMD ["python", "app.py"]
