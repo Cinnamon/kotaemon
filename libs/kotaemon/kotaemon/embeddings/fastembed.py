@@ -41,7 +41,15 @@ class FastEmbedEmbeddings(BaseEmbeddings):
 
     @Param.auto()
     def client_(self) -> "TextEmbedding":
-        from fastembed import TextEmbedding
+        try:
+            from fastembed import TextEmbedding
+        except ImportError:
+            import subprocess
+            import sys
+
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "fastembed"])
+            # Retry the import after installation
+            from fastembed import TextEmbedding
 
         return TextEmbedding(model_name=self.model_name)
 

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eo pipefail
+
 # Check and capture input argument for PDFJS_VERSION_DIST
 if [ -z "$1" ]; then
     echo "Usage: $0 <pdfjs_version_dist>"
@@ -39,7 +41,7 @@ function download_and_unzip() {
 
 # Main script execution
 
-pdf_js_version="4.0.379"
+pdf_js_version="4.0.3791"
 pdf_js_dist_name="pdfjs-${pdf_js_version}-dist"
 pdf_js_dist_url="https://github.com/mozilla/pdf.js/releases/download/v${pdf_js_version}/${pdf_js_dist_name}.zip"
 
