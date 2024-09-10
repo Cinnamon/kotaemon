@@ -1,4 +1,3 @@
-import os
 import subprocess
 from pathlib import Path
 from shutil import rmtree
@@ -8,14 +7,13 @@ from uuid import uuid4
 import openai
 import pandas as pd
 import tiktoken
-
-from kotaemon.embeddings import OpenAIEmbeddings
 from ktem.db.models import engine
+from ktem.embeddings.manager import embedding_models_manager
 from sqlalchemy.orm import Session
 from theflow.settings import settings
 
 from kotaemon.base import Document, Param, RetrievedDocument
-from ktem.embeddings.manager import embedding_models_manager
+from kotaemon.embeddings import OpenAIEmbeddings
 
 from ..pipelines import BaseFileIndexRetriever, IndexDocumentPipeline, IndexPipeline
 from .visualize import create_knowledge_graph, visualize_graph
@@ -149,7 +147,7 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
 
     Index = Param(help="The SQLAlchemy Index table")
     file_ids: list[str] = []
-    index_settings:dict = {} # why not self.params["index_settings"]?
+    index_settings: dict = {}  # why not self.params["index_settings"]?
 
     @classmethod
     def get_user_settings(cls) -> dict:
@@ -232,8 +230,11 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
         # Read text units
         text_unit_df = pd.read_parquet(f"{INPUT_DIR}/{TEXT_UNIT_TABLE}.parquet")
         text_units = read_indexer_text_units(text_unit_df)
-        kotaemonEmbeddings:OpenAIEmbeddings = embedding_models_manager[
-            self.index_settings.get("embedding", embedding_models_manager.get_default_name())]
+        kotaemonEmbeddings: OpenAIEmbeddings = embedding_models_manager[
+            self.index_settings.get(
+                "embedding", embedding_models_manager.get_default_name()
+            )
+        ]
         # embedding_model = os.getenv("GRAPHRAG_EMBEDDING_MODEL")
         text_embedder = OpenAIEmbedding(
             api_key=kotaemonEmbeddings.api_key,
@@ -241,7 +242,9 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             api_type=OpenaiApiType.OpenAI,
             model=kotaemonEmbeddings.model,
             deployment_name=kotaemonEmbeddings.model,
-            max_retries=kotaemonEmbeddings.max_retries if kotaemonEmbeddings.max_retries is not None else openai.DEFAULT_MAX_RETRIES,
+            max_retries=kotaemonEmbeddings.max_retries
+            if kotaemonEmbeddings.max_retries is not None
+            else openai.DEFAULT_MAX_RETRIES,
         )
         token_encoder = tiktoken.get_encoding("cl100k_base")
 
