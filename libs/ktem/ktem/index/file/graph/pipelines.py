@@ -236,13 +236,13 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             self.index_settings.get("embedding", embedding_models_manager.get_default_name())]
         # embedding_model = os.getenv("GRAPHRAG_EMBEDDING_MODEL")
         text_embedder = OpenAIEmbedding(
-             api_key=kotaemonEmbeddings.api_key,
-             api_base=kotaemonEmbeddings.base_url,
-             api_type=OpenaiApiType.OpenAI,
-             model=kotaemonEmbeddings.model,
-             deployment_name=kotaemonEmbeddings.model,
-             max_retries=kotaemonEmbeddings.max_retries if kotaemonEmbeddings.max_retries is not None else openai.DEFAULT_MAX_RETRIES,
-         )
+            api_key=kotaemonEmbeddings.api_key,
+            api_base=kotaemonEmbeddings.base_url,
+            api_type=OpenaiApiType.OpenAI,
+            model=kotaemonEmbeddings.model,
+            deployment_name=kotaemonEmbeddings.model,
+            max_retries=kotaemonEmbeddings.max_retries if kotaemonEmbeddings.max_retries is not None else openai.DEFAULT_MAX_RETRIES,
+        )
         token_encoder = tiktoken.get_encoding("cl100k_base")
 
         context_builder = LocalSearchMixedContext(
