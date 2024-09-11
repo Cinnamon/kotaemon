@@ -115,7 +115,7 @@ class FileIndex(BaseIndex):
                 "id": Column(Integer, primary_key=True, autoincrement=True),
                 "source_id": Column(String),
                 "target_id": Column(String),
-                "relation_type": Column(Integer),
+                "relation_type": Column(String),
                 "user": Column(Integer, default=1),
             },
         )
