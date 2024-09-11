@@ -8,8 +8,6 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
-    branches:
-      - feat/dockers
 
   workflow_dispatch:
 
