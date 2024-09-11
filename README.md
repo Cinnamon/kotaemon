@@ -19,6 +19,8 @@ developers in mind.
 [![built with Codeium](https://codeium.com/badges/main)](https://codeium.com)
 <a href='https://huggingface.co/spaces/cin-model/kotaemon-demo'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue'></a>
 
+<a href="https://hellogithub.com/repository/d3141471a0244d5798bc654982b263eb" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=d3141471a0244d5798bc654982b263eb&claim_uid=RLiD9UZ1rEHNaMf" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+
 ## Introduction
 
 This project serves as a functional RAG UI for both end users who want to do QA on their
@@ -32,6 +34,7 @@ documents and developers who want to build their own RAG pipeline.
 - For developers:
   - A framework for building your own RAG-based document QA pipeline.
   - Customize and see your RAG pipeline in action with the provided UI (built with <a href='https://github.com/gradio-app/gradio'>Gradio <img src='https://img.shields.io/github/stars/gradio-app/gradio'></a>).
+  - If you use Gradio for development, check out our theme here: [kotaemon-gradio-theme](https://github.com/lone17/kotaemon-gradio-theme).
 
 ```yml
 +----------------------------------------------------------------------------+
@@ -76,7 +79,8 @@ appreciated.
 ### For end users
 
 This document is intended for developers. If you just want to install and use the app as
-it is, please follow the non-technical [User Guide](https://cinnamon.github.io/kotaemon/) (WIP).
+it is, please follow the non-technical [User Guide](https://cinnamon.github.io/kotaemon/).
+Use the most recent release .zip to include latest features and bug-fixes.
 
 ### For developers
 

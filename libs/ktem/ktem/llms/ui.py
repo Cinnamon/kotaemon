@@ -5,6 +5,7 @@ import pandas as pd
 import yaml
 from ktem.app import BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
+from theflow.utils.modules import deserialize
 
 from .manager import llms
 
@@ -59,7 +60,9 @@ class LLMManagement(BasePage):
                                     self.connection_logs = gr.HTML("Logs")
 
                                 with gr.Column(scale=1):
-                                    self.btn_test_connection = gr.Button("Test")
+                                    self.btn_test_connection = gr.Button(
+                                        "Test",
+                                    )
 
                         with gr.Row(visible=False) as self._selected_panel_btn:
                             with gr.Column():
@@ -233,7 +236,7 @@ class LLMManagement(BasePage):
 
         self.btn_test_connection.click(
             self.check_connection,
-            inputs=[self.selected_llm_name],
+            inputs=[self.selected_llm_name, self.edit_spec],
             outputs=[self.connection_logs],
         )
 
@@ -326,14 +329,21 @@ class LLMManagement(BasePage):
 
         return btn_delete, btn_delete_yes, btn_delete_no
 
-    def check_connection(self, selected_llm_name: str):
+    def check_connection(self, selected_llm_name: str, selected_spec):
         log_content: str = ""
 
         try:
             log_content += f"- Testing model: {selected_llm_name}<br>"
             yield log_content
 
-            llm = llms.get(key=selected_llm_name, default=None)
+            # Parse content & init model
+            info = deepcopy(llms.info()[selected_llm_name])
+
+            # Parse content & create dummy embedding
+            spec = yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
+            info["spec"].update(spec)
+
+            llm = deserialize(info["spec"], safe=False)
 
             if llm is None:
                 raise Exception(f"Can not found model: {selected_llm_name}")
