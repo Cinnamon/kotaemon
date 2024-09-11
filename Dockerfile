@@ -19,6 +19,7 @@ RUN apt-get update -qqy && \
       libpoppler-dev \
       unzip \
       curl \
+      cargo \
     && apt-get clean \
     && apt-get autoremove \
     && rm -rf /var/lib/apt/lists/*
