@@ -44,12 +44,7 @@ class FastEmbedEmbeddings(BaseEmbeddings):
         try:
             from fastembed import TextEmbedding
         except ImportError:
-            import subprocess
-            import sys
-
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "fastembed"])
-            # Retry the import after installation
-            from fastembed import TextEmbedding
+            raise ImportError("Please install FastEmbed: `pip install fastembed`")
 
         return TextEmbedding(model_name=self.model_name)
 
