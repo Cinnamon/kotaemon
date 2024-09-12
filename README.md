@@ -99,7 +99,7 @@ docker run \
 ghcr.io/cinnamon/kotaemon:latest-lite
 ```
 
-- To use the `lite` version.
+- To use the `full` version.
 
 ```
 docker run \
