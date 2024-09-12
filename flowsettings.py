@@ -209,6 +209,7 @@ KH_EMBEDDINGS["cohere"] = {
         "__type__": "kotaemon.embeddings.LCCohereEmbeddings",
         "model": "embed-multilingual-v2.0",
         "cohere_api_key": "your-key",
+        "user_agent": "default",
     },
     "default": False,
 }

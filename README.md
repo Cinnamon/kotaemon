@@ -19,6 +19,8 @@ developers in mind.
 [![built with Codeium](https://codeium.com/badges/main)](https://codeium.com)
 <a href='https://huggingface.co/spaces/cin-model/kotaemon-demo'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue'></a>
 
+<a href="https://hellogithub.com/repository/d3141471a0244d5798bc654982b263eb" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=d3141471a0244d5798bc654982b263eb&claim_uid=RLiD9UZ1rEHNaMf" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+
 ## Introduction
 
 This project serves as a functional RAG UI for both end users who want to do QA on their

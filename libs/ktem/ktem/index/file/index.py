@@ -115,7 +115,7 @@ class FileIndex(BaseIndex):
                 "id": Column(Integer, primary_key=True, autoincrement=True),
                 "source_id": Column(String),
                 "target_id": Column(String),
-                "relation_type": Column(Integer),
+                "relation_type": Column(String),
                 "user": Column(Integer, default=1),
             },
         )
@@ -344,7 +344,7 @@ class FileIndex(BaseIndex):
     def get_admin_settings(cls):
         from ktem.embeddings.manager import embedding_models_manager
 
-        embedding_default = embedding_models_manager.get_default_name()
+        embedding_default = "default"
         embedding_choices = list(embedding_models_manager.options().keys())
 
         return {

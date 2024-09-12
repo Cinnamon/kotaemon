@@ -1,6 +1,6 @@
 from typing import Optional
 
-from kotaemon.base import Document, DocumentWithEmbedding
+from kotaemon.base import DocumentWithEmbedding, Param
 
 from .base import BaseEmbeddings
 
@@ -19,25 +19,14 @@ class LCEmbeddingMixin:
         super().__init__()
 
     def run(self, text):
-        input_: list[str] = []
-        if not isinstance(text, list):
-            text = [text]
-
-        for item in text:
-            if isinstance(item, str):
-                input_.append(item)
-            elif isinstance(item, Document):
-                input_.append(item.text)
-            else:
-                raise ValueError(
-                    f"Invalid input type {type(item)}, should be str or Document"
-                )
+        input_docs = self.prepare_input(text)
+        input_ = [doc.text for doc in input_docs]
 
         embeddings = self._obj.embed_documents(input_)
 
         return [
-            DocumentWithEmbedding(text=each_text, embedding=each_embedding)
-            for each_text, each_embedding in zip(input_, embeddings)
+            DocumentWithEmbedding(content=doc, embedding=each_embedding)
+            for doc, each_embedding in zip(input_docs, embeddings)
         ]
 
     def __repr__(self):
@@ -162,6 +151,20 @@ class LCAzureOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
 class LCCohereEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
     """Wrapper around Langchain's Cohere embedding, focusing on key parameters"""
 
+    cohere_api_key: str = Param(
+        help="API key (https://dashboard.cohere.com/api-keys)",
+        default=None,
+        required=True,
+    )
+    model: str = Param(
+        help="Model name to use (https://docs.cohere.com/docs/models)",
+        default=None,
+        required=True,
+    )
+    user_agent: str = Param(
+        help="User agent (leave default)", default="default", required=True
+    )
+
     def __init__(
         self,
         model: str = "embed-english-v2.0",
@@ -189,6 +192,15 @@ class LCCohereEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
 
 class LCHuggingFaceEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
     """Wrapper around Langchain's HuggingFace embedding, focusing on key parameters"""
+
+    model_name: str = Param(
+        help=(
+            "Model name to use (https://huggingface.co/models?"
+            "pipeline_tag=sentence-similarity&sort=trending)"
+        ),
+        default=None,
+        required=True,
+    )
 
     def __init__(
         self,
