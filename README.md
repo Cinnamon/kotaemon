@@ -80,14 +80,14 @@ appreciated.
 
 This document is intended for developers. If you just want to install and use the app as
 it is, please follow the non-technical [User Guide](https://cinnamon.github.io/kotaemon/).
-Use the most recent release .zip to include latest features and bug-fixes.
+Use the most recent release `.zip` to include latest features and bug-fixes.
 
 ### For developers
 
 #### With Docker (recommended)
 
-We support `lite` & `full` version of Dockerfile. With `full`, the extra packages of `unstructured` will be installed as
-well, it can support multiple file types (.doc, .docx, ...) but the cost is larger docker image size
+We support `lite` & `full` version of Docker images. With `full`, the extra packages of `unstructured` will be installed as
+well, it can support additional file types (.doc, .docx, ...) but the cost is larger docker image size. For most users, the `lite` image should work well in most cases.
 
 - To use the `lite` version.
 
@@ -96,7 +96,7 @@ docker run \
 -e GRADIO_SERVER_NAME=0.0.0.0 \
 -e GRADIO_SERVER_PORT=7860 \
 -p 7860:7860 -it --rm \
-ghcr.io/cinnamon/kotaemon:latest-lite
+ghcr.io/cinnamon/kotaemon:main-lite
 ```
 
 - To use the `full` version.
@@ -106,7 +106,7 @@ docker run \
 -e GRADIO_SERVER_NAME=0.0.0.0 \
 -e GRADIO_SERVER_PORT=7860 \
 -p 7860:7860 -it --rm \
-ghcr.io/cinnamon/kotaemon:latest-full
+ghcr.io/cinnamon/kotaemon:main-full
 ```
 
 Currently, two platforms: `linux/amd64` and `linux/arm64` (for newer Mac) are provided & tested. User can specify the platform by passing `--platform` in the docker run command. For example:
@@ -118,7 +118,7 @@ docker run \
 -e GRADIO_SERVER_PORT=7860 \
 -p 7860:7860 -it --rm \
 --platform linux/arm64 \
-ghcr.io/cinnamon/kotaemon:latest-lite
+ghcr.io/cinnamon/kotaemon:main-lite
 ```
 
 If everything is set up fine, navigate to `http://localhost:7860/` to access the web UI.
