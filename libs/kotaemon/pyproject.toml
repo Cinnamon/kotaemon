@@ -70,6 +70,9 @@ adv = [
     "python-docx>=1.1.0,<1.2",
     "tabulate",
     "wikipedia>=1.4.0,<1.5",
+    "sentence-transformers",
+    "llama-cpp-python<0.2.8",
+    "fastembed",
 ]
 dev = [
     "black",

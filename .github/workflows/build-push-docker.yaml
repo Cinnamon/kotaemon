@@ -25,8 +25,9 @@ jobs:
       id-token: write
     strategy:
       matrix:
-        platform:
-          - linux/amd64
+        target:
+          - lite
+          - full
     steps:
       - name: Set repository and image name
         run: |
@@ -37,15 +38,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: arm64,arm
+
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Set up Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.FULL_IMAGE_NAME }}
+          tags: |
+            # branch
+            type=ref,event=branch,suffix=-${{ matrix.target }}
+            # semver with suffix for lite/full targets
+            type=semver,pattern={{version}},suffix=-${{ matrix.target }}
+            # latest tag with suffix for lite/full targets
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') && !contains(github.ref, 'pre') }},suffix=-${{ matrix.target }}
+          flavor: |
+            # This is disabled here so we can use the raw form above
+            latest=false
+            # Suffix is not used here since there's no way to disable it above
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -54,15 +72,32 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # this might remove tools that are actually needed,
+          # if set to "true" but frees about 6 GB
+          tool-cache: false
+
+          # all of these default to true, but feel free to set to
+          # "false" if necessary for your workflow
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
       - name: Build docker image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           file: Dockerfile
           context: .
           push: true
-          platforms: ${{ matrix.platform }}
-          tags: ${{ steps.meta.outputs.tags }}
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          target: ${{ matrix.target }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          load: true
