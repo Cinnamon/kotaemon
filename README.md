@@ -38,7 +38,6 @@ documents and developers who want to build their own RAG pipeline.
   - Allows customization and visualization of your RAG pipeline with the provided UI (built with <a href='https://github.com/gradio-app/gradio'>Gradio <img src='https://img.shields.io/github/stars/gradio-app/gradio'></a>).
   - Includes a theme for those using Gradio for development: [kotaemon-gradio-theme](https://github.com/lone17/kotaemon-gradio-theme).
 
-
 ```yml
 +----------------------------------------------------------------------------+
 | End users: Those who use apps built with `kotaemon`.                       |
@@ -54,8 +53,7 @@ documents and developers who want to build their own RAG pipeline.
 +----------------------------------------------------------------------------+
 ```
 
-
-**This repository is under active development. Feedback, issues, and PRs are highly appreciated.*
+\*_This repository is under active development. Feedback, issues, and PRs are highly appreciated._
 <br>
 
 ## <div align="center">🚀 Key Features</div>
@@ -110,22 +108,23 @@ Use the most recent release `.zip` file to include latest features and bug-fixes
   # optional (setup env)
   conda create -n kotaemon python=3.10
   conda activate kotaemon
-  
+
   # clone this repo
   git clone https://github.com/Cinnamon/kotaemon
   cd kotaemon
-  
+
   pip install -e "libs/kotaemon[all]"
   pip install -e "libs/ktem"
   ```
 
 - View and edit your environment variables (API keys, end-points) in `.env`
 
-- *(Optional)* To enable in-browser PDF_JS viewer:
+- _(Optional)_ To enable in-browser PDF_JS viewer:
+
   - Download [PDF_JS_DIST](https://github.com/mozilla/pdf.js/releases/download/v4.0.379/pdfjs-4.0.379-dist.zip),
-  - Create a folder named `prebuilt` (if yet existed) in `libs/ktem/ktem/assets/` 
+  - Create a folder named `prebuilt` (if yet existed) in `libs/ktem/ktem/assets/`
   - Extract the downloaded files into `libs/ktem/ktem/assets/prebuilt`
-    
+
     <img src="https://github.com/user-attachments/assets/e47e6b02-b026-416f-b63e-6ac565994711" alt="pdf-setup">
 
 - Start the web server:
@@ -140,11 +139,9 @@ Use the most recent release `.zip` file to include latest features and bug-fixes
 
   ![image](https://github.com/user-attachments/assets/ee374d3e-9c99-4880-a928-6b0ead4684a4)
 
-  
 - Voilà!
 
   ![Chat tab](https://github.com/user-attachments/assets/6a64e5f8-1349-4131-9b4d-24808420a28c)
-
 
 <br>
 
@@ -161,23 +158,23 @@ By default, all application data are stored in `./ktem_app_data` folder. You can
 For advanced users or in specific use-cases, you can customize these files: `flowsettings.py`, `.env`
 
 - **`flowsettings.py`**
-  
+
   - This file contains the configuration of your application. You can use the example [here](flowsettings.py) as the starting point.
 
     <details>
-    
+
     <summary>Notable settings</summary>
-    
+
     ```
     # setup your preferred document store (with full-text search capabilities)
     KH_DOCSTORE=(Elasticsearch | LanceDB | SimpleFileDocumentStore)
-    
+
     # setup your preferred vectorstore (for vector-based search)
     KH_VECTORSTORE=(ChromaDB | LanceDB | InMemory)
-    
+
     # Enable / disable multimodal QA
     KH_REASONINGS_USE_MULTIMODAL=True
-    
+
     # Setup your new reasoning pipeline or modify existing one.
     KH_REASONINGS = [
         "ktem.reasoning.simple.FullQAPipeline",
@@ -187,91 +184,93 @@ For advanced users or in specific use-cases, you can customize these files: `flo
     ]
     )
     ```
-  
+
   </details>
 
 - **`.env`**
+
   - This file provides another way to configure your models and credentials.
 
-    <details markdown>
+        <details markdown>
 
-    <summary>Configure model via the .env file</summary>
-    
-    Alternatively, you can configure the models via the `.env` file with the information needed to connect to the LLMs. This file is located in
-    the folder of the application. If you don't see it, you can create one.
-    
-    Currently, the following providers are supported:
-    
-    ### OpenAI
-    
-    In the `.env` file, set the `OPENAI_API_KEY` variable with your OpenAI API key in order
-    to enable access to OpenAI's models. There are other variables that can be modified,
-    please feel free to edit them to fit your case. Otherwise, the default parameter should
-    work for most people.
-    
-    ```shell
-    OPENAI_API_BASE=https://api.openai.com/v1
-    OPENAI_API_KEY=<your OpenAI API key here>
-    OPENAI_CHAT_MODEL=gpt-3.5-turbo
-    OPENAI_EMBEDDINGS_MODEL=text-embedding-ada-002
-    ```
+        <summary>Configure model via the .env file</summary>
 
-    ### Azure OpenAI
+        Alternatively, you can configure the models via the `.env` file with the information needed to connect to the LLMs. This file is located in
+        the folder of the application. If you don't see it, you can create one.
 
-    - For OpenAI models via Azure platform, you need to provide your Azure endpoint and API key. Your might also need to provide your developments' name for the chat model and the embedding model depending on how you set up Azure development.
+        Currently, the following providers are supported:
 
-      ```shell
-      AZURE_OPENAI_ENDPOINT=
-      AZURE_OPENAI_API_KEY=
-      OPENAI_API_VERSION=2024-02-15-preview
-      AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-35-turbo
-      AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT=text-embedding-ada-002
-      ```
+        ### OpenAI
 
-    ### Local models
+        In the `.env` file, set the `OPENAI_API_KEY` variable with your OpenAI API key in order
+        to enable access to OpenAI's models. There are other variables that can be modified,
+        please feel free to edit them to fit your case. Otherwise, the default parameter should
+        work for most people.
 
-    #### Using ollama OpenAI compatible server
+        ```shell
+        OPENAI_API_BASE=https://api.openai.com/v1
+        OPENAI_API_KEY=<your OpenAI API key here>
+        OPENAI_CHAT_MODEL=gpt-3.5-turbo
+        OPENAI_EMBEDDINGS_MODEL=text-embedding-ada-002
+        ```
 
-    - Install [ollama](https://github.com/ollama/ollama) and start the application.
-    
-    - Pull your model (e.g):
-    
-      ```
-      ollama pull llama3.1:8b
-      ollama pull nomic-embed-text
-      ```
-    
-    - Set the model names on web UI and make it as default.
-    
-      ![Models](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/models.png)
-    
-    #### Using GGUF with llama-cpp-python
-    
-    - You can search and download a LLM to be ran locally from the [Hugging Face Hub](https://huggingface.co/models). Currently, these model formats are supported:
-    
-      - GGUF
+        ### Azure OpenAI
 
-    - You should choose a model whose size is less than your device's memory and should leave
-    about 2 GB. For example, if you have 16 GB of RAM in total, of which 12 GB is available,
-    then you should choose a model that takes up at most 10 GB of RAM. Bigger models tend to
-    give better generation but also take more processing time.
-    
-    - Here are some recommendations and their size in memory:
-    
-      - [Qwen1.5-1.8B-Chat-GGUF](https://huggingface.co/Qwen/Qwen1.5-1.8B-Chat-GGUF/resolve/main/qwen1_5-1_8b-chat-q8_0.gguf?download=true):
-      around 2 GB
-    
-      - Add a new LlamaCpp model with the provided model name on the web uI.
-    
-    </details>
-<br>
+        - For OpenAI models via Azure platform, you need to provide your Azure endpoint and API key. Your might also need to provide your developments' name for the chat model and the embedding model depending on how you set up Azure development.
+
+          ```shell
+          AZURE_OPENAI_ENDPOINT=
+          AZURE_OPENAI_API_KEY=
+          OPENAI_API_VERSION=2024-02-15-preview
+          AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-35-turbo
+          AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT=text-embedding-ada-002
+          ```
+
+        ### Local models
+
+        #### Using ollama OpenAI compatible server
+
+        - Install [ollama](https://github.com/ollama/ollama) and start the application.
+
+        - Pull your model (e.g):
+
+          ```
+          ollama pull llama3.1:8b
+          ollama pull nomic-embed-text
+          ```
+
+        - Set the model names on web UI and make it as default.
+
+          ![Models](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/models.png)
+
+        #### Using GGUF with llama-cpp-python
+
+        - You can search and download a LLM to be ran locally from the [Hugging Face Hub](https://huggingface.co/models). Currently, these model formats are supported:
+
+          - GGUF
+
+        - You should choose a model whose size is less than your device's memory and should leave
+        about 2 GB. For example, if you have 16 GB of RAM in total, of which 12 GB is available,
+        then you should choose a model that takes up at most 10 GB of RAM. Bigger models tend to
+        give better generation but also take more processing time.
+
+        - Here are some recommendations and their size in memory:
+
+          - [Qwen1.5-1.8B-Chat-GGUF](https://huggingface.co/Qwen/Qwen1.5-1.8B-Chat-GGUF/resolve/main/qwen1_5-1_8b-chat-q8_0.gguf?download=true):
+          around 2 GB
+
+          - Add a new LlamaCpp model with the provided model name on the web uI.
+
+        </details>
+
+    <br>
 
 ## <div align="center">👤 Adding your own RAG pipeline</div>
 
 #### Custom reasoning pipeline
 
 - First, check the default pipeline implementation in
-[here](libs/ktem/ktem/reasoning/simple.py). You can make quick adjustment to how the default QA pipeline work.
+  [here](libs/ktem/ktem/reasoning/simple.py). You can make quick adjustment to how the default QA pipeline work.
 
 - Next, if you feel comfortable adding new pipeline, add new `.py` implementation in `libs/ktem/ktem/reasoning/` and later include it in `flowssettings` to enable it on the UI.
 
@@ -279,7 +278,7 @@ For advanced users or in specific use-cases, you can customize these files: `flo
 
 - Check sample implementation in `libs/ktem/ktem/index/file/graph`
 
-- *(more instruction WIP).*
+- _(more instruction WIP)._
 
 <br>
 
@@ -288,7 +287,7 @@ For advanced users or in specific use-cases, you can customize these files: `flo
 Please refer to the [Developer Guide](https://cinnamon.github.io/kotaemon/development/)
 for more details.
 
-<br> 
+<br>
 
 ## <div align="center">🫶 Contributors</div>
 
@@ -298,7 +297,7 @@ We truly value your feedback! Our projects, Kotaemon, thrive thanks to the incre
   <img src="https://contrib.rocks/image?repo=Cinnamon/kotaemon" />
 </a>
 
-<br> 
+<br>
 
 ## <div align="center">⭐ Star History</div>
 
