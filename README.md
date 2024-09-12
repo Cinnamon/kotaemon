@@ -89,14 +89,14 @@ Use the most recent release .zip to include latest features and bug-fixes.
 We support `lite` & `full` version of Dockerfile. With `full`, the extra packages of `unstructured` will be installed as
 well, it can support multiple file types (.doc, .docx, ...) but the cost is larger docker image size
 
-- To use the `full` version.
+- To use the `lite` version.
 
 ```
 docker run \
 -e GRADIO_SERVER_NAME=0.0.0.0 \
 -e GRADIO_SERVER_PORT=7860 \
 -p 7860:7860 -it --rm \
-ghcr.io/cinnamon/kotaemon:latest-full
+ghcr.io/cinnamon/kotaemon:latest-lite
 ```
 
 - To use the `lite` version.
@@ -108,8 +108,6 @@ docker run \
 -p 7860:7860 -it --rm \
 ghcr.io/cinnamon/kotaemon:latest-full
 ```
-
-Then, navigate to `http://localhost:7860/` to access the web UI.
 
 Currently, two platforms: `linux/amd64` and `linux/arm64` (for newer Mac) are provided & tested. User can specify the platform by passing `--platform` in the docker run command. For example:
 
@@ -123,7 +121,9 @@ docker run \
 ghcr.io/cinnamon/kotaemon:latest-lite
 ```
 
-For more information, all docker images can be found [here.](https://github.com/Cinnamon/kotaemon/pkgs/container/kotaemon)
+If everything is set up fine, navigate to `http://localhost:7860/` to access the web UI.
+
+We use [GHCR](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) to store docker images, all images can be found [here.](https://github.com/Cinnamon/kotaemon/pkgs/container/kotaemon)
 
 #### Without Docker
 
