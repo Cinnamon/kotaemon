@@ -86,17 +86,44 @@ Use the most recent release .zip to include latest features and bug-fixes.
 
 #### With Docker (recommended)
 
-- Use this command to launch the server
+We support `lite` & `full` version of Dockerfile. With `full`, the extra packages of `unstructured` will be installed as
+well, it can support multiple file types (.doc, .docx, ...) but the cost is larger docker image size
+
+- To use the `full` version.
 
 ```
 docker run \
 -e GRADIO_SERVER_NAME=0.0.0.0 \
 -e GRADIO_SERVER_PORT=7860 \
 -p 7860:7860 -it --rm \
-ghcr.io/cinnamon/kotaemon:latest
+ghcr.io/cinnamon/kotaemon:latest-full
 ```
 
-Navigate to `http://localhost:7860/` to access the web UI.
+- To use the `lite` version.
+
+```
+docker run \
+-e GRADIO_SERVER_NAME=0.0.0.0 \
+-e GRADIO_SERVER_PORT=7860 \
+-p 7860:7860 -it --rm \
+ghcr.io/cinnamon/kotaemon:latest-full
+```
+
+Then, navigate to `http://localhost:7860/` to access the web UI.
+
+Currently, two platforms: `linux/amd64` and `linux/arm64` (for newer Mac) are provided & tested. User can specify the platform by passing `--platform` in the docker run command. For example:
+
+```
+# To run docker with platform linux/arm64
+docker run \
+-e GRADIO_SERVER_NAME=0.0.0.0 \
+-e GRADIO_SERVER_PORT=7860 \
+-p 7860:7860 -it --rm \
+--platform linux/arm64 \
+ghcr.io/cinnamon/kotaemon:latest-lite
+```
+
+For more information, all docker images can be found [here.](https://github.com/Cinnamon/kotaemon/pkgs/container/kotaemon)
 
 #### Without Docker
 
