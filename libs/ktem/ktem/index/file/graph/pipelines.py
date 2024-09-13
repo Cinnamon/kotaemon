@@ -231,7 +231,7 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
         embedding_model = os.getenv("GRAPHRAG_EMBEDDING_MODEL")
         text_embedder = OpenAIEmbedding(
             api_key=os.getenv("OPENAI_API_KEY"),
-            api_base=None,
+            api_base=os.getenv("GRAPHRAG_API_BASE"),
             api_type=OpenaiApiType.OpenAI,
             model=embedding_model,
             deployment_name=embedding_model,
