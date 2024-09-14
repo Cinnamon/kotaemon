@@ -144,6 +144,11 @@ light_mode = dict(
 
 
 class Kotaemon(Soft):
+    """
+    Official theme for Kotaemon.
+    Public version: https://huggingface.co/spaces/lone17/kotaemonone17/kotaemon
+    """
+
     def __init__(
         self,
         *,
