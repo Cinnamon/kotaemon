@@ -241,7 +241,7 @@ class VectorRetrieval(BaseRetrieval):
                 # if reranker is LLMReranking, limit the document with top_k items only
                 if isinstance(reranker, LLMReranking):
                     result = self._filter_docs(result, top_k=top_k)
-                result = reranker(documents=result, query=text)
+                result = reranker.run(documents=result, query=text)
 
         result = self._filter_docs(result, top_k=top_k)
         print(f"Got raw {len(result)} retrieved documents")

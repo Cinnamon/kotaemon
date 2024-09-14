@@ -15,6 +15,7 @@ from typing import Generator, Optional, Sequence
 import tiktoken
 from ktem.db.models import engine
 from ktem.embeddings.manager import embedding_models_manager
+from ktem.rerankings.manager import reranking_models_manager
 from ktem.llms.manager import llms
 from llama_index.core.readers.base import BaseReader
 from llama_index.core.readers.file.base import default_file_metadata_func
@@ -111,11 +112,11 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
         )
 
     def run(
-        self,
-        text: str,
-        doc_ids: Optional[list[str]] = None,
-        *args,
-        **kwargs,
+            self,
+            text: str,
+            doc_ids: Optional[list[str]] = None,
+            *args,
+            **kwargs,
     ) -> list[RetrievedDocument]:
         """Retrieve document excerpts similar to the text
 
@@ -198,7 +199,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
         return docs
 
     def generate_relevant_scores(
-        self, query: str, documents: list[RetrievedDocument]
+            self, query: str, documents: list[RetrievedDocument]
     ) -> list[RetrievedDocument]:
         docs = (
             documents
@@ -285,7 +286,11 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             ],
             retrieval_mode=user_settings["retrieval_mode"],
             llm_scorer=(LLMTrulensScoring() if use_llm_reranking else None),
-            rerankers=[CohereReranking(use_key_from_ktem=True)],
+            rerankers=[
+                reranking_models_manager[
+                    index_settings.get("reranking", reranking_models_manager.get_default_name())
+                ]
+            ]
         )
         if not user_settings["use_reranking"]:
             retriever.rerankers = []  # type: ignore
@@ -368,7 +373,7 @@ class IndexPipeline(BaseComponent):
         n_chunks = 0
         chunk_size = self.chunk_batch_size * 4
         for start_idx in range(0, len(to_index_chunks), chunk_size):
-            chunks = to_index_chunks[start_idx : start_idx + chunk_size]
+            chunks = to_index_chunks[start_idx: start_idx + chunk_size]
             self.handle_chunks_docstore(chunks, file_id)
             n_chunks += len(chunks)
             yield Document(
@@ -381,7 +386,7 @@ class IndexPipeline(BaseComponent):
             n_chunks = 0
             chunk_size = self.chunk_batch_size
             for start_idx in range(0, len(to_index_chunks), chunk_size):
-                chunks = to_index_chunks[start_idx : start_idx + chunk_size]
+                chunks = to_index_chunks[start_idx: start_idx + chunk_size]
                 self.handle_chunks_vectorstore(chunks, file_id)
                 n_chunks += len(chunks)
                 if self.VS:
@@ -552,12 +557,12 @@ class IndexPipeline(BaseComponent):
             self.DS.delete(ds_ids)
 
     def run(
-        self, file_path: str | Path, reindex: bool, **kwargs
+            self, file_path: str | Path, reindex: bool, **kwargs
     ) -> tuple[str, list[Document]]:
         raise NotImplementedError
 
     def stream(
-        self, file_path: str | Path, reindex: bool, **kwargs
+            self, file_path: str | Path, reindex: bool, **kwargs
     ) -> Generator[Document, None, tuple[str, list[Document]]]:
         # check for duplication
         file_path = Path(file_path).resolve()
@@ -694,12 +699,12 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         return pipeline
 
     def run(
-        self, file_paths: str | Path | list[str | Path], *args, **kwargs
+            self, file_paths: str | Path | list[str | Path], *args, **kwargs
     ) -> tuple[list[str | None], list[str | None]]:
         raise NotImplementedError
 
     def stream(
-        self, file_paths: str | Path | list[str | Path], reindex: bool = False, **kwargs
+            self, file_paths: str | Path | list[str | Path], reindex: bool = False, **kwargs
     ) -> Generator[
         Document, None, tuple[list[str | None], list[str | None], list[Document]]
     ]:
@@ -715,7 +720,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         for idx, file_path in enumerate(file_paths):
             file_path = Path(file_path)
             yield Document(
-                content=f"Indexing [{idx+1}/{n_files}]: {file_path.name}",
+                content=f"Indexing [{idx + 1}/{n_files}]: {file_path.name}",
                 channel="debug",
             )
 
