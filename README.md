@@ -16,10 +16,11 @@ developers in mind.
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 <a href="https://github.com/Cinnamon/kotaemon" target="_blank">
 <img src="https://img.shields.io/badge/docker_pull-kotaemon:latest-brightgreen" alt="docker pull ghcr.io/cinnamon/kotaemon:latest"></a>
-[![built with Codeium](https://codeium.com/badges/main)](https://codeium.com)
+![download](https://img.shields.io/github/downloads/Cinnamon/kotaemon/total.svg?label=downloads&color=blue)
 <a href='https://huggingface.co/spaces/cin-model/kotaemon-demo'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue'></a>
+<a href="https://hellogithub.com/en/repository/d3141471a0244d5798bc654982b263eb" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=f3536f6e521043c3b300175d454fd346&claim_uid=RLiD9UZ1rEHNaMf&theme=small" alt="Featured｜HelloGitHub" /></a>
 
-<a href="https://hellogithub.com/repository/d3141471a0244d5798bc654982b263eb" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=d3141471a0244d5798bc654982b263eb&claim_uid=RLiD9UZ1rEHNaMf" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+<a href="https://trendshift.io/repositories/11607" target="_blank"><img src="https://trendshift.io/api/badge/repositories/11607" alt="Cinnamon%2Fkotaemon | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
 ## Introduction
 
@@ -80,23 +81,50 @@ appreciated.
 
 This document is intended for developers. If you just want to install and use the app as
 it is, please follow the non-technical [User Guide](https://cinnamon.github.io/kotaemon/).
-Use the most recent release .zip to include latest features and bug-fixes.
+Use the most recent release `.zip` to include latest features and bug-fixes.
 
 ### For developers
 
 #### With Docker (recommended)
 
-- Use this command to launch the server
+We support `lite` & `full` version of Docker images. With `full`, the extra packages of `unstructured` will be installed as
+well, it can support additional file types (.doc, .docx, ...) but the cost is larger docker image size. For most users, the `lite` image should work well in most cases.
+
+- To use the `lite` version.
 
 ```
 docker run \
 -e GRADIO_SERVER_NAME=0.0.0.0 \
 -e GRADIO_SERVER_PORT=7860 \
 -p 7860:7860 -it --rm \
-ghcr.io/cinnamon/kotaemon:latest
+ghcr.io/cinnamon/kotaemon:main-lite
 ```
 
-Navigate to `http://localhost:7860/` to access the web UI.
+- To use the `full` version.
+
+```
+docker run \
+-e GRADIO_SERVER_NAME=0.0.0.0 \
+-e GRADIO_SERVER_PORT=7860 \
+-p 7860:7860 -it --rm \
+ghcr.io/cinnamon/kotaemon:main-full
+```
+
+Currently, two platforms: `linux/amd64` and `linux/arm64` (for newer Mac) are provided & tested. User can specify the platform by passing `--platform` in the docker run command. For example:
+
+```
+# To run docker with platform linux/arm64
+docker run \
+-e GRADIO_SERVER_NAME=0.0.0.0 \
+-e GRADIO_SERVER_PORT=7860 \
+-p 7860:7860 -it --rm \
+--platform linux/arm64 \
+ghcr.io/cinnamon/kotaemon:main-lite
+```
+
+If everything is set up fine, navigate to `http://localhost:7860/` to access the web UI.
+
+We use [GHCR](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) to store docker images, all images can be found [here.](https://github.com/Cinnamon/kotaemon/pkgs/container/kotaemon)
 
 #### Without Docker
 
