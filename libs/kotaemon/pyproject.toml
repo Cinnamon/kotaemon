@@ -46,8 +46,7 @@ dependencies = [
     "python-dotenv>=1.0.1,<1.1",
     "tenacity>=8.2.3,<8.3",
     "theflow>=0.8.6,<0.9.0",
-    "trogon>=0.5.0,<0.6",
-    "unstructured==0.15.8"
+    "trogon>=0.5.0,<0.6"
 ]
 readme = "README.md"
 authors = [
@@ -74,6 +73,7 @@ adv = [
     "sentence-transformers",
     "llama-cpp-python<0.2.8",
     "fastembed",
+    "unstructured==0.15.8"
 ]
 dev = [
     "black",
