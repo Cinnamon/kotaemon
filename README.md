@@ -88,8 +88,11 @@ Use the most recent release `.zip` to include latest features and bug-fixes.
 #### System requirements
 
 1. Python 3.10>=
-2. [homebrew](https://brew.sh/)
-3. (optional) [Docker](https://www.docker.com/)
+2. (optional) [Docker](https://www.docker.com/)
+
+#### If you would like to process files other than .pdf, .html, .mhtml, and .xlsx documents:
+
+You will need to install the system dependencies of [unstructured](https://docs.unstructured.io/open-source/installation/full-installation#full-installation). The installations vary by operating system, so please go to the link and follow the instructions there.
 
 #### With Docker (recommended)
 
@@ -148,9 +151,6 @@ cd kotaemon
 pip install -e "libs/kotaemon[all]"
 pip install -e "libs/ktem"
 
-# optional system dependencies if not installed
-brew install libmagic
-python -m nltk.downloader averaged_perceptron_tagger averaged_perceptron_tagger_eng
 ```
 
 - Create a .env file in the root of this project. Use .env.example as a template
