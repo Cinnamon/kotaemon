@@ -189,7 +189,7 @@ starting point.
 KH_DOCSTORE=(Elasticsearch | LanceDB | SimpleFileDocumentStore)
 
 # setup your preferred vectorstore (for vector-based search)
-KH_VECTORSTORE=(ChromaDB | LanceDB | InMemory)
+KH_VECTORSTORE=(ChromaDB | LanceDB | InMemory | Qdrant)
 
 # Enable / disable multimodal QA
 KH_REASONINGS_USE_MULTIMODAL=True
