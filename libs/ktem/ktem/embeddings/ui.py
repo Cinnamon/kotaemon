@@ -5,6 +5,7 @@ import pandas as pd
 import yaml
 from ktem.app import BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
+from theflow.utils.modules import deserialize
 
 from .manager import embedding_models_manager
 
@@ -237,7 +238,7 @@ class EmbeddingManagement(BasePage):
 
         self.btn_test_connection.click(
             self.check_connection,
-            inputs=[self.selected_emb_name],
+            inputs=[self.selected_emb_name, self.edit_spec],
             outputs=[self.connection_logs],
         )
 
@@ -330,14 +331,20 @@ class EmbeddingManagement(BasePage):
 
         return btn_delete, btn_delete_yes, btn_delete_no
 
-    def check_connection(self, selected_emb_name):
+    def check_connection(self, selected_emb_name, selected_spec):
         log_content: str = ""
-
         try:
             log_content += f"- Testing model: {selected_emb_name}<br>"
             yield log_content
 
-            emb = embedding_models_manager.get(selected_emb_name)
+            # Parse content & init model
+            info = deepcopy(embedding_models_manager.info()[selected_emb_name])
+
+            # Parse content & create dummy embedding
+            spec = yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
+            info["spec"].update(spec)
+
+            emb = deserialize(info["spec"], safe=False)
 
             if emb is None:
                 raise Exception(f"Can not found model: {selected_emb_name}")

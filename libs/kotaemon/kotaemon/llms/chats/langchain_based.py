@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import AsyncGenerator, Iterator
 
-from kotaemon.base import BaseMessage, HumanMessage, LLMInterface
+from kotaemon.base import BaseMessage, HumanMessage, LLMInterface, Param
 
 from .base import ChatLLM
 
@@ -224,6 +224,17 @@ class LCAzureChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
 
 
 class LCAnthropicChat(LCChatMixin, ChatLLM):  # type: ignore
+    api_key: str = Param(
+        help="API key (https://console.anthropic.com/settings/keys)", required=True
+    )
+    model_name: str = Param(
+        help=(
+            "Model name to use "
+            "(https://docs.anthropic.com/en/docs/about-claude/models)"
+        ),
+        required=True,
+    )
+
     def __init__(
         self,
         api_key: str | None = None,
@@ -248,6 +259,17 @@ class LCAnthropicChat(LCChatMixin, ChatLLM):  # type: ignore
 
 
 class LCGeminiChat(LCChatMixin, ChatLLM):  # type: ignore
+    api_key: str = Param(
+        help="API key (https://aistudio.google.com/app/apikey)", required=True
+    )
+    model_name: str = Param(
+        help=(
+            "Model name to use (https://cloud.google"
+            ".com/vertex-ai/generative-ai/docs/learn/models)"
+        ),
+        required=True,
+    )
+
     def __init__(
         self,
         api_key: str | None = None,

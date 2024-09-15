@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eo pipefail
+
 # Check and capture input argument for PDFJS_VERSION_DIST
 if [ -z "$1" ]; then
     echo "Usage: $0 <pdfjs_version_dist>"
