@@ -1,11 +1,14 @@
 import json
 import os
 
+import pytest
+
 from kotaemon.base import DocumentWithEmbedding
 from kotaemon.storages import (
     ChromaVectorStore,
     InMemoryVectorStore,
     MilvusVectorStore,
+    QdrantVectorStore,
     SimpleFileVectorStore,
 )
 
@@ -248,3 +251,118 @@ class TestMilvusVectorStore:
         # reinit the milvus with the same collection name
         db2 = MilvusVectorStore(path=str(tmp_path), overwrite=False)
         assert db2.count() == 0, "delete collection function does not work correctly"
+
+
+class TestQdrantVectorStore:
+    def test_add(self):
+        from qdrant_client import QdrantClient
+
+        db = QdrantVectorStore(collection_name="test", client=QdrantClient(":memory:"))
+
+        embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
+        metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
+        ids = [
+            "0f0611b3-2d9c-4818-ab69-1f1c4cf66693",
+            "90aba5d3-f4f8-47c6-bad9-5ea457442e07",
+        ]
+
+        output = db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
+        assert output == ids, "Expected output to be the same as ids"
+        assert db.count() == 2, "Expected 2 added entries"
+
+    def test_add_from_docs(self, tmp_path):
+        from qdrant_client import QdrantClient
+
+        db = QdrantVectorStore(collection_name="test", client=QdrantClient(":memory:"))
+
+        embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
+        metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
+        documents = [
+            DocumentWithEmbedding(embedding=embedding, metadata=metadata)
+            for embedding, metadata in zip(embeddings, metadatas)
+        ]
+
+        output = db.add(documents)
+        assert len(output) == 2, "Expected outputting 2 ids"
+        assert db.count() == 2, "Expected 2 added entries"
+
+    def test_delete(self, tmp_path):
+        from qdrant_client import QdrantClient
+
+        db = QdrantVectorStore(collection_name="test", client=QdrantClient(":memory:"))
+
+        embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]]
+        metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 5, "b": 6}]
+        ids = [
+            "0f0611b3-2d9c-4818-ab69-1f1c4cf66693",
+            "90aba5d3-f4f8-47c6-bad9-5ea457442e07",
+            "6bed07c3-d284-47a3-a711-c3f9186755b8",
+        ]
+
+        db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
+        assert db.count() == 3, "Expected 3 added entries"
+        db.delete(
+            ids=[
+                "0f0611b3-2d9c-4818-ab69-1f1c4cf66693",
+                "90aba5d3-f4f8-47c6-bad9-5ea457442e07",
+            ]
+        )
+        assert db.count() == 1, "Expected 1 remaining entry"
+        db.delete(ids=["6bed07c3-d284-47a3-a711-c3f9186755b8"])
+        assert db.count() == 0, "Expected 0 remaining entry"
+
+    def test_query(self, tmp_path):
+        from qdrant_client import QdrantClient
+
+        db = QdrantVectorStore(collection_name="test", client=QdrantClient(":memory:"))
+
+        embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]]
+        metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 5, "b": 6}]
+        ids = [
+            "0f0611b3-2d9c-4818-ab69-1f1c4cf66693",
+            "90aba5d3-f4f8-47c6-bad9-5ea457442e07",
+            "6bed07c3-d284-47a3-a711-c3f9186755b8",
+        ]
+
+        db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
+
+        _, sim, out_ids = db.query(embedding=[0.1, 0.2, 0.3], top_k=1)
+        assert sim[0] - 1.0 < 1e-6
+        assert out_ids == ["0f0611b3-2d9c-4818-ab69-1f1c4cf66693"]
+
+        _, _, out_ids = db.query(embedding=[0.4, 0.5, 0.6], top_k=1)
+        assert out_ids == ["90aba5d3-f4f8-47c6-bad9-5ea457442e07"]
+
+    def test_save_load_delete(self, tmp_path):
+        """Test that save/load func behave correctly."""
+        embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]]
+        metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 5, "b": 6}]
+        ids = [
+            "0f0611b3-2d9c-4818-ab69-1f1c4cf66693",
+            "90aba5d3-f4f8-47c6-bad9-5ea457442e07",
+            "6bed07c3-d284-47a3-a711-c3f9186755b8",
+        ]
+        from qdrant_client import QdrantClient
+
+        db = QdrantVectorStore(
+            collection_name="test", client=QdrantClient(path=tmp_path)
+        )
+        db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
+        del db
+
+        db2 = QdrantVectorStore(
+            collection_name="test", client=QdrantClient(path=tmp_path)
+        )
+        assert db2.count() == 3
+
+        db2.drop()
+        del db2
+
+        db2 = QdrantVectorStore(
+            collection_name="test", client=QdrantClient(path=tmp_path)
+        )
+
+        with pytest.raises(Exception):
+            # Since no docs were added, the collection should not exist yet
+            # and thus the count function should raise an exception
+            db2.count()

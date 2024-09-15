@@ -11,6 +11,7 @@ from .vectorstores import (
     InMemoryVectorStore,
     LanceDBVectorStore,
     MilvusVectorStore,
+    QdrantVectorStore,
     SimpleFileVectorStore,
 )
 
@@ -28,4 +29,5 @@ __all__ = [
     "SimpleFileVectorStore",
     "LanceDBVectorStore",
     "MilvusVectorStore",
+    "QdrantVectorStore",
 ]
