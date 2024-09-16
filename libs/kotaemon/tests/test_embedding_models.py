@@ -14,6 +14,7 @@ from kotaemon.embeddings import (
 )
 
 from .conftest import (
+    skip_when_cohere_not_installed,
     skip_when_fastembed_not_installed,
     skip_when_sentence_bert_not_installed,
 )
@@ -132,6 +133,7 @@ def test_lchuggingface_embeddings(
     langchain_huggingface_embedding_call.assert_called()
 
 
+@skip_when_cohere_not_installed
 @patch(
     "langchain.embeddings.cohere.CohereEmbeddings.embed_documents",
     side_effect=lambda *args, **kwargs: [[1.0, 2.1, 3.2]],

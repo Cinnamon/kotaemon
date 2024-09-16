@@ -22,7 +22,7 @@ requires-python = ">= 3.10"
 description = "Kotaemon core library for AI development."
 dependencies = [
     "click>=8.1.7,<9",
-    "cohere>=5.3.2,<5.4",
+    "cohere>=5.3.2,<6",
     "cookiecutter>=2.6.0,<2.7",
     "fast_langdetect",
     "gradio>=4.31.0,<4.40",
@@ -73,7 +73,9 @@ adv = [
     "sentence-transformers",
     "llama-cpp-python<0.2.8",
     "fastembed",
-    "unstructured==0.15.8"
+    "unstructured==0.15.8",
+    "llama-index-vector-stores-qdrant",
+
 ]
 dev = [
     "black",
