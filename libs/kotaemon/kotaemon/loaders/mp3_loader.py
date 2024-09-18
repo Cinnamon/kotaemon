@@ -1,8 +1,16 @@
-import torch
 from loguru import logger
 from typing import Optional, List
 from kotaemon.base import Document, BaseReader
-from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+
+###--------------------------------------------------------------------------###
+
+try:
+    import torch
+    from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+except ImportError:
+    raise ImportError(
+        "Please install the required packages: 'pip install torch transformers'"
+    )
 
 
 ###--------------------------------------------------------------------------###
