@@ -4,10 +4,10 @@ import pytest
 from openai.types.chat.chat_completion import ChatCompletion
 
 from kotaemon.llms import (
+    AzureChatOpenAI,
     BasePromptComponent,
     GatedBranchingPipeline,
     GatedLinearPipeline,
-    LCAzureChatOpenAI,
     SimpleBranchingPipeline,
     SimpleLinearPipeline,
 )
@@ -40,12 +40,11 @@ _openai_chat_completion_response = ChatCompletion.parse_obj(
 
 @pytest.fixture
 def mock_llm():
-    return LCAzureChatOpenAI(
-        azure_endpoint="OPENAI_API_BASE",
-        openai_api_key="OPENAI_API_KEY",
-        openai_api_version="OPENAI_API_VERSION",
-        deployment_name="dummy-q2-gpt35",
-        temperature=0,
+    return AzureChatOpenAI(
+        api_key="dummy",
+        api_version="2024-05-01-preview",
+        azure_deployment="gpt-4o",
+        azure_endpoint="https://test.openai.azure.com/",
     )
 
 

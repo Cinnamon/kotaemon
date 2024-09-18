@@ -22,7 +22,7 @@ requires-python = ">= 3.10"
 description = "Kotaemon core library for AI development."
 dependencies = [
     "click>=8.1.7,<9",
-    "cohere>=5.3.2,<5.4",
+    "cohere>=5.3.2,<6",
     "cookiecutter>=2.6.0,<2.7",
     "fast_langdetect",
     "gradio>=4.31.0,<4.40",
@@ -30,10 +30,13 @@ dependencies = [
     "langchain>=0.1.16,<0.2.0",
     "langchain-community>=0.0.34,<0.1.0",
     "langchain-openai>=0.1.4,<0.2.0",
+    "langchain-anthropic",
     "llama-hub>=0.0.79,<0.1.0",
     "llama-index>=0.10.40,<0.11.0",
+    "fastapi<=0.112.1",
     "llama-index-vector-stores-chroma>=0.1.9",
     "llama-index-vector-stores-lancedb",
+    "llama-index-vector-stores-milvus",
     "openai>=1.23.6,<2",
     "openpyxl>=3.1.2,<3.2",
     "pandas>=2.2.2,<2.3",
@@ -67,6 +70,10 @@ adv = [
     "python-docx>=1.1.0,<1.2",
     "tabulate",
     "wikipedia>=1.4.0,<1.5",
+    "sentence-transformers",
+    "llama-cpp-python<0.2.8",
+    "fastembed",
+    "llama-index-vector-stores-qdrant",
 ]
 dev = [
     "black",

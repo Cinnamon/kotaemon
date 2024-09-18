@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from openai.types.chat.chat_completion import ChatCompletion
 
-from kotaemon.llms import LCAzureChatOpenAI
+from kotaemon.llms import AzureChatOpenAI
 from kotaemon.llms.cot import ManualSequentialChainOfThought, Thought
 
 _openai_chat_completion_response = [
@@ -38,12 +38,11 @@ _openai_chat_completion_response = [
     side_effect=_openai_chat_completion_response,
 )
 def test_cot_plus_operator(openai_completion):
-    llm = LCAzureChatOpenAI(
-        azure_endpoint="https://dummy.openai.azure.com/",
-        openai_api_key="dummy",
-        openai_api_version="2023-03-15-preview",
-        deployment_name="dummy-q2",
-        temperature=0,
+    llm = AzureChatOpenAI(
+        api_key="dummy",
+        api_version="2024-05-01-preview",
+        azure_deployment="gpt-4o",
+        azure_endpoint="https://test.openai.azure.com/",
     )
     thought1 = Thought(
         prompt="Word {word} in {language} is ",
@@ -70,12 +69,11 @@ def test_cot_plus_operator(openai_completion):
     side_effect=_openai_chat_completion_response,
 )
 def test_cot_manual(openai_completion):
-    llm = LCAzureChatOpenAI(
-        azure_endpoint="https://dummy.openai.azure.com/",
-        openai_api_key="dummy",
-        openai_api_version="2023-03-15-preview",
-        deployment_name="dummy-q2",
-        temperature=0,
+    llm = AzureChatOpenAI(
+        api_key="dummy",
+        api_version="2024-05-01-preview",
+        azure_deployment="gpt-4o",
+        azure_endpoint="https://test.openai.azure.com/",
     )
     thought1 = Thought(
         prompt="Word {word} in {language} is ",
@@ -100,12 +98,11 @@ def test_cot_manual(openai_completion):
     side_effect=_openai_chat_completion_response,
 )
 def test_cot_with_termination_callback(openai_completion):
-    llm = LCAzureChatOpenAI(
-        azure_endpoint="https://dummy.openai.azure.com/",
-        openai_api_key="dummy",
-        openai_api_version="2023-03-15-preview",
-        deployment_name="dummy-q2",
-        temperature=0,
+    llm = AzureChatOpenAI(
+        api_key="dummy",
+        api_version="2024-05-01-preview",
+        azure_deployment="gpt-4o",
+        azure_endpoint="https://test.openai.azure.com/",
     )
     thought1 = Thought(
         prompt="Word {word} in {language} is ",

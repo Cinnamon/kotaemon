@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import AsyncGenerator, Iterator
 
-from kotaemon.base import BaseMessage, HumanMessage, LLMInterface
+from kotaemon.base import BaseMessage, HumanMessage, LLMInterface, Param
 
 from .base import ChatLLM
 
@@ -224,6 +224,17 @@ class LCAzureChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
 
 
 class LCAnthropicChat(LCChatMixin, ChatLLM):  # type: ignore
+    api_key: str = Param(
+        help="API key (https://console.anthropic.com/settings/keys)", required=True
+    )
+    model_name: str = Param(
+        help=(
+            "Model name to use "
+            "(https://docs.anthropic.com/en/docs/about-claude/models)"
+        ),
+        required=True,
+    )
+
     def __init__(
         self,
         api_key: str | None = None,
@@ -245,3 +256,38 @@ class LCAnthropicChat(LCChatMixin, ChatLLM):  # type: ignore
             raise ImportError("Please install langchain-anthropic")
 
         return ChatAnthropic
+
+
+class LCGeminiChat(LCChatMixin, ChatLLM):  # type: ignore
+    api_key: str = Param(
+        help="API key (https://aistudio.google.com/app/apikey)", required=True
+    )
+    model_name: str = Param(
+        help=(
+            "Model name to use (https://cloud.google"
+            ".com/vertex-ai/generative-ai/docs/learn/models)"
+        ),
+        required=True,
+    )
+
+    def __init__(
+        self,
+        api_key: str | None = None,
+        model_name: str | None = None,
+        temperature: float = 0.7,
+        **params,
+    ):
+        super().__init__(
+            google_api_key=api_key,
+            model=model_name,
+            temperature=temperature,
+            **params,
+        )
+
+    def _get_lc_class(self):
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+        except ImportError:
+            raise ImportError("Please install langchain-google-genai")
+
+        return ChatGoogleGenerativeAI

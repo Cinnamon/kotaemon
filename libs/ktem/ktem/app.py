@@ -4,7 +4,7 @@ from typing import Optional
 import gradio as gr
 import pluggy
 from ktem import extension_protocol
-from ktem.assets import PDFJS_PREBUILT_DIR
+from ktem.assets import PDFJS_PREBUILT_DIR, KotaemonTheme
 from ktem.components import reasonings
 from ktem.exceptions import HookAlreadyDeclared, HookNotDeclared
 from ktem.index import IndexManager
@@ -39,7 +39,7 @@ class BaseApp:
         self.app_name = getattr(settings, "KH_APP_NAME", "Kotaemon")
         self.app_version = getattr(settings, "KH_APP_VERSION", "")
         self.f_user_management = getattr(settings, "KH_FEATURE_USER_MANAGEMENT", False)
-        self._theme = gr.Theme.from_hub("lone17/kotaemon")
+        self._theme = KotaemonTheme()
 
         dir_assets = Path(__file__).parent / "assets"
         with (dir_assets / "css" / "main.css").open() as fi:
@@ -49,8 +49,11 @@ class BaseApp:
             self._js = self._js.replace("KH_APP_VERSION", self.app_version)
         with (dir_assets / "js" / "pdf_viewer.js").open() as fi:
             self._pdf_view_js = fi.read()
+            # workaround for Windows path
+            pdf_js_dist_dir = str(PDFJS_PREBUILT_DIR).replace("\\", "\\\\")
             self._pdf_view_js = self._pdf_view_js.replace(
-                "PDFJS_PREBUILT_DIR", str(PDFJS_PREBUILT_DIR)
+                "PDFJS_PREBUILT_DIR",
+                pdf_js_dist_dir,
             )
 
         self._favicon = str(dir_assets / "img" / "favicon.svg")

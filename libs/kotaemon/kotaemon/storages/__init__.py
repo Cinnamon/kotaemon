@@ -10,6 +10,8 @@ from .vectorstores import (
     ChromaVectorStore,
     InMemoryVectorStore,
     LanceDBVectorStore,
+    MilvusVectorStore,
+    QdrantVectorStore,
     SimpleFileVectorStore,
 )
 
@@ -26,4 +28,6 @@ __all__ = [
     "InMemoryVectorStore",
     "SimpleFileVectorStore",
     "LanceDBVectorStore",
+    "MilvusVectorStore",
+    "QdrantVectorStore",
 ]

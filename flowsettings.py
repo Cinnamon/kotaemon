@@ -80,6 +80,8 @@ KH_DOCSTORE = {
 KH_VECTORSTORE = {
     # "__type__": "kotaemon.storages.LanceDBVectorStore",
     "__type__": "kotaemon.storages.ChromaVectorStore",
+    # "__type__": "kotaemon.storages.MilvusVectorStore",
+    # "__type__": "kotaemon.storages.QdrantVectorStore",
     "path": str(KH_USER_DATA_DIR / "vectorstore"),
 }
 KH_LLMS = {}
@@ -166,13 +168,58 @@ if config("LOCAL_MODEL", default=""):
         "default": False,
     }
 
-    KH_EMBEDDINGS["local-bge-en"] = {
+    KH_EMBEDDINGS["fast_embed"] = {
         "spec": {
             "__type__": "kotaemon.embeddings.FastEmbedEmbeddings",
             "model_name": "BAAI/bge-base-en-v1.5",
         },
         "default": False,
     }
+
+# additional LLM configurations
+KH_LLMS["claude"] = {
+    "spec": {
+        "__type__": "kotaemon.llms.chats.LCAnthropicChat",
+        "model_name": "claude-3-5-sonnet-20240620",
+        "api_key": "your-key",
+    },
+    "default": False,
+}
+# KH_LLMS["gemini"] = {
+#     "spec": {
+#         "__type__": "kotaemon.llms.chats.LCGeminiChat",
+#         "model_name": "gemini-1.5-pro",
+#         "api_key": "your-key",
+#     },
+#     "default": False,
+# }
+KH_LLMS["groq"] = {
+    "spec": {
+        "__type__": "kotaemon.llms.ChatOpenAI",
+        "base_url": "https://api.groq.com/openai/v1",
+        "model": "llama-3.1-8b-instant",
+        "api_key": "your-key",
+    },
+    "default": False,
+}
+
+# additional embeddings configurations
+KH_EMBEDDINGS["cohere"] = {
+    "spec": {
+        "__type__": "kotaemon.embeddings.LCCohereEmbeddings",
+        "model": "embed-multilingual-v2.0",
+        "cohere_api_key": "your-key",
+        "user_agent": "default",
+    },
+    "default": False,
+}
+# KH_EMBEDDINGS["huggingface"] = {
+#     "spec": {
+#         "__type__": "kotaemon.embeddings.LCHuggingFaceEmbeddings",
+#         "model_name": "sentence-transformers/all-mpnet-base-v2",
+#     },
+#     "default": False,
+# }
 
 KH_REASONINGS = [
     "ktem.reasoning.simple.FullQAPipeline",
@@ -222,7 +269,7 @@ KH_INDICES = [
         "config": {
             "supported_file_types": (
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
-                ".pptx, .csv, .html, .mhtml, .txt, .zip"
+                ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
             ),
             "private": False,
         },
@@ -233,7 +280,7 @@ KH_INDICES = [
         "config": {
             "supported_file_types": (
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
-                ".pptx, .csv, .html, .mhtml, .txt, .zip"
+                ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
             ),
             "private": False,
         },
