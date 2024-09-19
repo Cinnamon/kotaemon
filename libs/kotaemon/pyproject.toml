@@ -36,7 +36,6 @@ dependencies = [
     "fastapi<=0.112.1",
     "llama-index-vector-stores-chroma>=0.1.9",
     "llama-index-vector-stores-lancedb",
-    "llama-index-vector-stores-milvus",
     "openai>=1.23.6,<2",
     "openpyxl>=3.1.2,<3.2",
     "pandas>=2.2.2,<2.3",
@@ -74,6 +73,7 @@ adv = [
     "llama-cpp-python<0.2.8",
     "fastembed",
     "llama-index-vector-stores-qdrant",
+    "llama-index-vector-stores-milvus",
 ]
 dev = [
     "black",

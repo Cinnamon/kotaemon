@@ -73,13 +73,19 @@ class BaseVectorStore(ABC):
 
 
 class LlamaIndexVectorStore(BaseVectorStore):
+    """Mixin for LlamaIndex based vectorstores"""
+
     _li_class: type[LIVectorStore | BasePydanticVectorStore]
 
+    def _get_li_class(self):
+        raise NotImplementedError(
+            "Please return the relevant LlamaIndex class in in _get_li_class"
+        )
+
     def __init__(self, *args, **kwargs):
-        if self._li_class is None:
-            raise AttributeError(
-                "Require `_li_class` to set a VectorStore class from LlamarIndex"
-            )
+        # get li_class from the method if not set
+        if not self._li_class:
+            self._li_class = self._get_li_class()
 
         from dataclasses import fields
 
