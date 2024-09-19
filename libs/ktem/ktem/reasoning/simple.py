@@ -39,10 +39,13 @@ EVIDENCE_MODE_TABLE = 1
 EVIDENCE_MODE_CHATBOT = 2
 EVIDENCE_MODE_FIGURE = 3
 MAX_IMAGES = 10
+CITATION_TIMEOUT = 5.0
 
 
 def find_text(search_span, context):
     sentence_list = search_span.split("\n")
+    context = context.replace("\n", " ")
+
     matches = []
     # don't search for small text
     if len(search_span) > 5:
@@ -50,7 +53,7 @@ def find_text(search_span, context):
             match = SequenceMatcher(
                 None, sentence, context, autojunk=False
             ).find_longest_match()
-            if match.size > len(sentence) * 0.35:
+            if match.size > max(len(sentence) * 0.35, 5):
                 matches.append((match.b, match.b + match.size))
 
     return matches
@@ -391,7 +394,8 @@ class AnswerWithContextPipeline(BaseComponent):
             qa_score = None
 
         if citation_thread:
-            citation_thread.join()
+            citation_thread.join(timeout=CITATION_TIMEOUT)
+
         answer = Document(
             text=output,
             metadata={"citation": citation, "qa_score": qa_score},
@@ -525,24 +529,24 @@ class FullQAPipeline(BaseReasoning):
         spans = defaultdict(list)
         has_llm_score = any("llm_trulens_score" in doc.metadata for doc in docs)
 
-        if answer.metadata["citation"] and answer.metadata["citation"].answer:
-            for fact_with_evidence in answer.metadata["citation"].answer:
-                for quote in fact_with_evidence.substring_quote:
-                    matched_excerpts = []
-                    for doc in docs:
-                        matches = find_text(quote, doc.text)
+        if answer.metadata["citation"]:
+            evidences = answer.metadata["citation"].evidences
+            for quote in evidences:
+                matched_excerpts = []
+                for doc in docs:
+                    matches = find_text(quote, doc.text)
 
-                        for start, end in matches:
-                            if "|" not in doc.text[start:end]:
-                                spans[doc.doc_id].append(
-                                    {
-                                        "start": start,
-                                        "end": end,
-                                    }
-                                )
-                                matched_excerpts.append(doc.text[start:end])
+                    for start, end in matches:
+                        if "|" not in doc.text[start:end]:
+                            spans[doc.doc_id].append(
+                                {
+                                    "start": start,
+                                    "end": end,
+                                }
+                            )
+                            matched_excerpts.append(doc.text[start:end])
 
-                    print("Matched citation:", quote, matched_excerpts),
+                print("Matched citation:", quote, matched_excerpts),
 
         id2docs = {doc.doc_id: doc for doc in docs}
         not_detected = set(id2docs.keys()) - set(spans.keys())
