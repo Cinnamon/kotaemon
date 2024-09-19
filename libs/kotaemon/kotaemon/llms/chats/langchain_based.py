@@ -56,9 +56,7 @@ class LCChatMixin:
                 total_tokens = pred.llm_output["token_usage"]["total_tokens"]
                 prompt_tokens = pred.llm_output["token_usage"]["prompt_tokens"]
         except Exception:
-            logger.warning(
-                f"Cannot get token usage from LLM output for {self._lc_class.__name__}"
-            )
+            pass
 
         return LLMInterface(
             text=all_text[0] if len(all_text) > 0 else "",
@@ -83,8 +81,23 @@ class LCChatMixin:
             LLMInterface: generated response
         """
         input_ = self.prepare_message(messages)
-        pred = self._obj.generate(messages=[input_], **kwargs)
-        return self.prepare_response(pred)
+
+        if "tools_pydantic" in kwargs:
+            tools = kwargs.pop(
+                "tools_pydantic",
+            )
+            lc_tool_call = self._obj.bind_tools(tools)
+            pred = lc_tool_call.invoke(input_)
+            tool_calls = pred.additional_kwargs.get("tool_calls", [])
+            output = LLMInterface(
+                content="",
+                additional_kwargs={"tool_calls": tool_calls},
+            )
+        else:
+            pred = self._obj.generate(messages=[input_], **kwargs)
+            output = self.prepare_response(pred)
+
+        return output
 
     async def ainvoke(
         self, messages: str | BaseMessage | list[BaseMessage], **kwargs
@@ -291,3 +304,35 @@ class LCGeminiChat(LCChatMixin, ChatLLM):  # type: ignore
             raise ImportError("Please install langchain-google-genai")
 
         return ChatGoogleGenerativeAI
+
+
+class LCCohereChat(LCChatMixin, ChatLLM):  # type: ignore
+    api_key: str = Param(
+        help="API key (https://dashboard.cohere.com/api-keys)", required=True
+    )
+    model_name: str = Param(
+        help=("Model name to use (https://dashboard.cohere.com/playground/chat)"),
+        required=True,
+    )
+
+    def __init__(
+        self,
+        api_key: str | None = None,
+        model_name: str | None = None,
+        temperature: float = 0.7,
+        **params,
+    ):
+        super().__init__(
+            cohere_api_key=api_key,
+            model_name=model_name,
+            temperature=temperature,
+            **params,
+        )
+
+    def _get_lc_class(self):
+        try:
+            from langchain_cohere import ChatCohere
+        except ImportError:
+            raise ImportError("Please install langchain-cohere")
+
+        return ChatCohere
