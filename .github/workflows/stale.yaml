@@ -1,0 +1,26 @@
+name: Close stale issues
+on:
+  schedule:
+    - cron: "0 0 * * *" # Runs at 00:00 UTC every day
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+          stale-issue-message: |
+            'This issue is stale because it has not received any activities recently.'
+          stale-pr-message: |
+            'This issue is stale because it has not received any activities recently.'
+          close-issue-message: |
+            'This issue was closed because it has been stalled with no activity.'
+
+          days-before-issue-stale: 1
+          days-before-issue-close: 0
+          days-before-pr-stale: 90
+          days-before-pr-close: -1
+          exempt-issue-labels: "documentation,tutorial,TODO"
+          operations-per-run: 300 # The maximum number of operations per run, used to control rate limiting.
