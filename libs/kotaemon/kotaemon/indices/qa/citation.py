@@ -37,7 +37,7 @@ class CitationPipeline(BaseComponent):
         }
         llm_kwargs = {
             "tools": [{"type": "function", "function": function}],
-            "tool_choice": "auto",
+            "tool_choice": "required",
             "tools_pydantic": [CiteEvidence],
         }
         messages = [
@@ -72,10 +72,22 @@ class CitationPipeline(BaseComponent):
             print("CitationPipeline: finish invoking LLM")
             if not llm_output.additional_kwargs.get("tool_calls"):
                 return None
-            function_output = llm_output.additional_kwargs["tool_calls"][0]["function"][
-                "arguments"
-            ]
-            output = CiteEvidence.parse_raw(function_output)
+
+            first_func = llm_output.additional_kwargs["tool_calls"][0]
+
+            if "function" in first_func:
+                # openai and cohere format
+                function_output = first_func["function"]["arguments"]
+            else:
+                # anthropic format
+                function_output = first_func["args"]
+
+            print("CitationPipeline:", function_output)
+
+            if isinstance(function_output, str):
+                output = CiteEvidence.parse_raw(function_output)
+            else:
+                output = CiteEvidence.parse_obj(function_output)
         except Exception as e:
             print(e)
             return None

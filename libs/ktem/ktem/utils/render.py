@@ -164,8 +164,15 @@ class Render:
         if item_type_prefix:
             item_type_prefix += " from "
 
+        if llm_reranking_score > 0:
+            relevant_score = llm_reranking_score
+        elif cohere_reranking_score > 0:
+            relevant_score = cohere_reranking_score
+        else:
+            relevant_score = 0.0
+
         rendered_score = Render.collapsible(
-            header=f"<b>&emsp;Relevance score</b>: {llm_reranking_score}",
+            header=f"<b>&emsp;Relevance score</b>: {relevant_score:.1f}",
             content="<b>&emsp;&emsp;Vectorstore score:</b>"
             f" {vectorstore_score}"
             f"{text_search_str}"

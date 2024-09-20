@@ -546,7 +546,7 @@ class FullQAPipeline(BaseReasoning):
                             )
                             matched_excerpts.append(doc.text[start:end])
 
-                print("Matched citation:", quote, matched_excerpts),
+                # print("Matched citation:", quote, matched_excerpts),
 
         id2docs = {doc.doc_id: doc for doc in docs}
         not_detected = set(id2docs.keys()) - set(spans.keys())

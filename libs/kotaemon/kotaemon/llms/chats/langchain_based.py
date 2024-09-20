@@ -18,6 +18,9 @@ class LCChatMixin:
             "Please return the relevant Langchain class in in _get_lc_class"
         )
 
+    def _get_tool_call_kwargs(self):
+        return {}
+
     def __init__(self, stream: bool = False, **params):
         self._lc_class = self._get_lc_class()
         self._obj = self._lc_class(**params)
@@ -87,8 +90,15 @@ class LCChatMixin:
                 "tools_pydantic",
             )
             lc_tool_call = self._obj.bind_tools(tools)
-            pred = lc_tool_call.invoke(input_)
-            tool_calls = pred.additional_kwargs.get("tool_calls", [])
+            pred = lc_tool_call.invoke(
+                input_,
+                **self._get_tool_call_kwargs(),
+            )
+            if pred.tool_calls:
+                tool_calls = pred.tool_calls
+            else:
+                tool_calls = pred.additional_kwargs.get("tool_calls", [])
+
             output = LLMInterface(
                 content="",
                 additional_kwargs={"tool_calls": tool_calls},
@@ -247,6 +257,9 @@ class LCAnthropicChat(LCChatMixin, ChatLLM):  # type: ignore
         ),
         required=True,
     )
+
+    def _get_tool_call_kwargs(self):
+        return {"tool_choice": {"type": "any"}}
 
     def __init__(
         self,
