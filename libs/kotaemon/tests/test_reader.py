@@ -14,7 +14,7 @@ from kotaemon.loaders import (
     UnstructuredReader,
 )
 
-from .conftest import skip_when_unstructured_not_installed
+from .conftest import skip_when_unstructured_pdf_not_installed
 
 
 def test_docx_reader():
@@ -54,7 +54,7 @@ def test_pdf_reader():
     assert len(nodes) > 0
 
 
-@skip_when_unstructured_not_installed
+@skip_when_unstructured_pdf_not_installed
 def test_unstructured_pdf_reader():
     reader = UnstructuredReader()
     dirpath = Path(__file__).parent
