@@ -202,6 +202,14 @@ KH_LLMS["groq"] = {
     },
     "default": False,
 }
+KH_LLMS["cohere"] = {
+    "spec": {
+        "__type__": "kotaemon.llms.chats.LCCohereChat",
+        "model_name": "command-r-plus-08-2024",
+        "api_key": "your-key",
+    },
+    "default": False,
+}
 
 # additional embeddings configurations
 KH_EMBEDDINGS["cohere"] = {
