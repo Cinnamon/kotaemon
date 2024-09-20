@@ -203,15 +203,6 @@ DEFAULT_QA_FIGURE_PROMPT = (
     "Answer: "
 )  # noqa
 
-DEFAULT_REWRITE_PROMPT = (
-    "Given the following question, rephrase and expand it "
-    "to help you do better answering. Maintain all information "
-    "in the original question. Keep the question as concise as possible. "
-    "Give answer in {lang}\n"
-    "Original question: {question}\n"
-    "Rephrased question: "
-)  # noqa
-
 CONTEXT_RELEVANT_WARNING_SCORE = 0.7
 
 
