@@ -30,9 +30,11 @@ class CohereReranking(BaseReranking):
                 )
 
                 cohere_model = embeddings.get("cohere")
-                self.cohere_api_key = cohere_model._kwargs.get(  # type: ignore
+                ktem_cohere_api_key = cohere_model._kwargs.get(  # type: ignore
                     "cohere_api_key"
                 )
+                if ktem_cohere_api_key != "your-key":
+                    self.cohere_api_key = ktem_cohere_api_key
             except Exception as e:
                 print("Cannot get Cohere API key from `ktem`", e)
 
