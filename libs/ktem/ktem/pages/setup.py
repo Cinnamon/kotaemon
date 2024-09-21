@@ -121,6 +121,11 @@ class SetupPage(BasePage):
             outputs=[self.radio_model],
         )
 
+        onFirstSetupComplete = onFirstSetupComplete.success(
+            fn=self.update_default_settings,
+            inputs=[self.radio_model, self._app.settings_state],
+            outputs=self._app.settings_state,
+        )
         for event in self._app.get_event("onFirstSetupComplete"):
             onFirstSetupComplete = onFirstSetupComplete.success(**event)
 
@@ -134,7 +139,12 @@ class SetupPage(BasePage):
             outputs=[self.cohere_option, self.openai_option, self.ollama_option],
         )
 
-    def update_model(self, cohere_api_key, openai_api_key, radio_model_value):
+    def update_model(
+        self,
+        cohere_api_key,
+        openai_api_key,
+        radio_model_value,
+    ):
         log_content = ""
         if not radio_model_value:
             gr.Info("Skip setup models.")
@@ -300,6 +310,15 @@ class SetupPage(BasePage):
             raise gr.Error(
                 "Setup models failed. Please verify your connection and API key."
             )
+
+    def update_default_settings(self, radio_model_value, default_settings):
+        # revise default settings
+        # reranking llm
+        default_settings["index.options.1.reranking_llm"] = radio_model_value
+        if radio_model_value == "ollama":
+            default_settings["index.options.1.use_llm_reranking"] = False
+
+        return default_settings
 
     def switch_options_view(self, radio_model_value):
         components_visible = [gr.update(visible=False) for _ in range(3)]
