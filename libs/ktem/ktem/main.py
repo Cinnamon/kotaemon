@@ -8,6 +8,7 @@ from ktem.pages.settings import SettingsPage
 from ktem.pages.setup import SetupPage
 from theflow.settings import settings as flowsettings
 
+KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 KH_ENABLE_FIRST_SETUP = getattr(flowsettings, "KH_ENABLE_FIRST_SETUP", False)
 KH_APP_DATA_EXISTS = getattr(flowsettings, "KH_APP_DATA_EXISTS", True)
 
@@ -18,7 +19,7 @@ if config("KH_FIRST_SETUP", default=False):
 
 def toggle_first_setup_visibility():
     global KH_APP_DATA_EXISTS
-    is_first_setup = not KH_APP_DATA_EXISTS
+    is_first_setup = KH_DEMO_MODE or not KH_APP_DATA_EXISTS
     KH_APP_DATA_EXISTS = True
     return gr.update(visible=is_first_setup), gr.update(visible=not is_first_setup)
 

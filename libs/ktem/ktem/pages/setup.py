@@ -8,7 +8,7 @@ from ktem.llms.manager import llms
 from theflow.settings import settings as flowsettings
 
 KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
-DEFAULT_OLLAMNA_URL = "http://localhost:11434/api"
+DEFAULT_OLLAMA_URL = "http://localhost:11434/api"
 
 
 DEMO_MESSAGE = (
@@ -23,7 +23,7 @@ def pull_model(name: str, stream: bool = True):
     headers = {"Content-Type": "application/json"}
 
     response = requests.post(
-        DEFAULT_OLLAMNA_URL + "/pull", json=payload, headers=headers, stream=stream
+        DEFAULT_OLLAMA_URL + "/pull", json=payload, headers=headers, stream=stream
     )
 
     # Check if the request was successful
