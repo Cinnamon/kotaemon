@@ -7,6 +7,8 @@ from .base import LlamaIndexVectorStore
 
 
 class MilvusVectorStore(LlamaIndexVectorStore):
+    _li_class = None
+
     def _get_li_class(self):
         try:
             from llama_index.vector_stores.milvus import (

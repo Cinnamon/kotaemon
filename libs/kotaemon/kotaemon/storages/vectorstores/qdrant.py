@@ -4,6 +4,8 @@ from .base import LlamaIndexVectorStore
 
 
 class QdrantVectorStore(LlamaIndexVectorStore):
+    _li_class = None
+
     def _get_li_class(self):
         try:
             from llama_index.vector_stores.qdrant import (

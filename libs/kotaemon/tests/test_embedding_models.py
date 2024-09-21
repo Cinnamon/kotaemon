@@ -135,7 +135,7 @@ def test_lchuggingface_embeddings(
 
 @skip_when_cohere_not_installed
 @patch(
-    "langchain.embeddings.cohere.CohereEmbeddings.embed_documents",
+    "langchain_cohere.CohereEmbeddings.embed_documents",
     side_effect=lambda *args, **kwargs: [[1.0, 2.1, 3.2]],
 )
 def test_lccohere_embeddings(langchain_cohere_embedding_call):
