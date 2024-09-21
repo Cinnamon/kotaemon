@@ -74,6 +74,7 @@ adv = [
     "llama-cpp-python<0.2.8",
     "sentence-transformers",
     "wikipedia>=1.4.0,<1.5",
+    "llama-index>=0.10.40,<0.11.0",
     "llama-index-vector-stores-milvus",
     "llama-index-vector-stores-qdrant",
 ]
