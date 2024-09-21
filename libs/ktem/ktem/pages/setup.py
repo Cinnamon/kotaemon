@@ -5,8 +5,17 @@ import requests
 from ktem.app import BasePage
 from ktem.embeddings.manager import embedding_models_manager as embeddings
 from ktem.llms.manager import llms
+from theflow.settings import settings as flowsettings
 
+KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 DEFAULT_OLLAMNA_URL = "http://localhost:11434/api"
+
+
+DEMO_MESSAGE = (
+    "This is a public space. Please use the "
+    '"Duplicate Space" function on the top right '
+    "corner to setup your own space."
+)
 
 
 def pull_model(name: str, stream: bool = True):
@@ -113,13 +122,17 @@ class SetupPage(BasePage):
             outputs=[self.setup_log],
             show_progress="hidden",
         )
-        onSkipSetup = gr.on(
-            triggers=[self.btn_skip.click],
-            fn=lambda: None,
-            inputs=[],
-            show_progress="hidden",
-            outputs=[self.radio_model],
-        )
+        if not KH_DEMO_MODE:
+            onSkipSetup = gr.on(
+                triggers=[self.btn_skip.click],
+                fn=lambda: None,
+                inputs=[],
+                show_progress="hidden",
+                outputs=[self.radio_model],
+            )
+
+            for event in self._app.get_event("onFirstSetupComplete"):
+                onSkipSetup = onSkipSetup.success(**event)
 
         onFirstSetupComplete = onFirstSetupComplete.success(
             fn=self.update_default_settings,
@@ -128,9 +141,6 @@ class SetupPage(BasePage):
         )
         for event in self._app.get_event("onFirstSetupComplete"):
             onFirstSetupComplete = onFirstSetupComplete.success(**event)
-
-        for event in self._app.get_event("onFirstSetupComplete"):
-            onSkipSetup = onSkipSetup.success(**event)
 
         self.radio_model.change(
             fn=self.switch_options_view,
@@ -145,6 +155,10 @@ class SetupPage(BasePage):
         openai_api_key,
         radio_model_value,
     ):
+        # skip if KH_DEMO_MODE
+        if KH_DEMO_MODE:
+            raise gr.Error(DEMO_MESSAGE)
+
         log_content = ""
         if not radio_model_value:
             gr.Info("Skip setup models.")
