@@ -87,7 +87,7 @@ Use the most recent release `.zip` to include latest features and bug-fixes.
 
 #### System requirements
 
-1. Python 3.10>=
+1. Python >=3.10
 2. (optional) [Docker](https://www.docker.com/)
 
 #### If you would like to process files other than .pdf, .html, .mhtml, and .xlsx documents:
