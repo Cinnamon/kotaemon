@@ -13,7 +13,7 @@ KH_ENABLE_FIRST_SETUP = getattr(flowsettings, "KH_ENABLE_FIRST_SETUP", False)
 KH_APP_DATA_EXISTS = getattr(flowsettings, "KH_APP_DATA_EXISTS", True)
 
 # override first setup setting
-if config("KH_FIRST_SETUP", default=False):
+if config("KH_FIRST_SETUP", default=False, cast=bool):
     KH_APP_DATA_EXISTS = False
 
 
