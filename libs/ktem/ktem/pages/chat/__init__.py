@@ -883,7 +883,8 @@ class ChatPage(BasePage):
 
         # check if this is a newly created conversation
         if len(chat_history) == 1:
-            suggested_name = suggest_pipeline(chat_history).text[:40]
+            suggested_name = suggest_pipeline(chat_history).text
+            suggested_name = suggested_name.replace('"', "").replace("'", "")[:40]
             new_name = gr.update(value=suggested_name)
             renamed = True
 

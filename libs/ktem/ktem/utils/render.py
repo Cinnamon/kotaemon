@@ -75,7 +75,6 @@ class Render:
         if not highlight_text:
             try:
                 lang = detect(text.replace("\n", " "))["lang"]
-                print("lang", lang)
                 if lang not in ["ja", "cn"]:
                     highlight_words = [
                         t[:-1] if t.endswith("-") else t for t in text.split("\n")
@@ -83,10 +82,13 @@ class Render:
                     highlight_text = highlight_words[0]
                     phrase = "true"
                 else:
-                    highlight_text = text.replace("\n", "")
                     phrase = "false"
 
-                print("highlight_text", highlight_text, phrase)
+                highlight_text = (
+                    text.replace("\n", "").replace('"', "").replace("'", "")
+                )
+
+                # print("highlight_text", highlight_text, phrase, lang)
             except Exception as e:
                 print(e)
                 highlight_text = text
@@ -162,8 +164,15 @@ class Render:
         if item_type_prefix:
             item_type_prefix += " from "
 
+        if llm_reranking_score > 0:
+            relevant_score = llm_reranking_score
+        elif cohere_reranking_score > 0:
+            relevant_score = cohere_reranking_score
+        else:
+            relevant_score = 0.0
+
         rendered_score = Render.collapsible(
-            header=f"<b>&emsp;Relevance score</b>: {llm_reranking_score}",
+            header=f"<b>&emsp;Relevance score</b>: {relevant_score:.1f}",
             content="<b>&emsp;&emsp;Vectorstore score:</b>"
             f" {vectorstore_score}"
             f"{text_search_str}"

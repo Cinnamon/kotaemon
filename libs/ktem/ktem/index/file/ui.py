@@ -828,7 +828,6 @@ class FileIndexPage(BasePage):
                 ]
             )
 
-        print(f"{len(results)=}, {len(file_list)=}")
         return results, file_list
 
     def interact_file_list(self, list_files, ev: gr.SelectData):

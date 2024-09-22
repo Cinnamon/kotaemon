@@ -354,7 +354,7 @@ class EmbeddingManagement(BasePage):
             _ = emb("Hi")
 
             log_content += (
-                "<mark style='background: yellow; color: red'>- Connection success. "
+                "<mark style='background: green; color: white'>- Connection success. "
                 "</mark><br>"
             )
             yield log_content

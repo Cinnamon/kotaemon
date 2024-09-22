@@ -183,7 +183,7 @@ class LCCohereEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
 
     def _get_lc_class(self):
         try:
-            from langchain_community.embeddings import CohereEmbeddings
+            from langchain_cohere import CohereEmbeddings
         except ImportError:
             from langchain.embeddings import CohereEmbeddings
 

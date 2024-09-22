@@ -353,7 +353,7 @@ class LLMManagement(BasePage):
             respond = llm("Hi")
 
             log_content += (
-                f"<mark style='background: yellow; color: red'>- Connection success. "
+                f"<mark style='background: green; color: white'>- Connection success. "
                 f"Got response:\n {respond}</mark><br>"
             )
             yield log_content
