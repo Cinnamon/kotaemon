@@ -3308,6 +3308,8 @@
       
         
       
+        
+      
     
     
       
@@ -3443,6 +3445,27 @@
   
   <span class="md-ellipsis">
     Milvus
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/storages/vectorstores/qdrant/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Qdrant
   </span>
   
 
@@ -3845,8 +3868,10 @@ developers in mind.</p>
 <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 <a href="https://github.com/Cinnamon/kotaemon" target="_blank">
 <img src="https://img.shields.io/badge/docker_pull-kotaemon:latest-brightgreen" alt="docker pull ghcr.io/cinnamon/kotaemon:latest"></a>
-<a href="https://codeium.com"><img alt="built with Codeium" src="https://codeium.com/badges/main"></a>
-<a href="https://huggingface.co/spaces/cin-model/kotaemon-demo"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue"></a></p>
+<img alt="download" src="https://img.shields.io/github/downloads/Cinnamon/kotaemon/total.svg?label=downloads&amp;color=blue">
+<a href="https://huggingface.co/spaces/cin-model/kotaemon-demo"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue"></a>
+<a href="https://hellogithub.com/en/repository/d3141471a0244d5798bc654982b263eb" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=d3141471a0244d5798bc654982b263eb&amp;claim_uid=RLiD9UZ1rEHNaMf&amp;theme=small" alt="Featured｜HelloGitHub"></a></p>
+<p><a href="https://trendshift.io/repositories/11607" target="_blank"><img src="https://trendshift.io/api/badge/repositories/11607" alt="Cinnamon%2Fkotaemon | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"></a></p>
 <h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">¶</a></h2>
 <p>This project serves as a functional RAG UI for both end users who want to do QA on their
 documents and developers who want to build their own RAG pipeline.</p>
@@ -3921,11 +3946,13 @@ appreciated.</p>
 <h3 id="for-end-users">For end users<a class="headerlink" href="#for-end-users" title="Permanent link">¶</a></h3>
 <p>This document is intended for developers. If you just want to install and use the app as
 it is, please follow the non-technical <a href="https://cinnamon.github.io/kotaemon/">User Guide</a>.
-Use the most recent release .zip to include latest features and bug-fixes.</p>
+Use the most recent release <code>.zip</code> to include latest features and bug-fixes.</p>
 <h3 id="for-developers">For developers<a class="headerlink" href="#for-developers" title="Permanent link">¶</a></h3>
 <h4 id="with-docker-recommended">With Docker (recommended)<a class="headerlink" href="#with-docker-recommended" title="Permanent link">¶</a></h4>
+<p>We support <code>lite</code> &amp; <code>full</code> version of Docker images. With <code>full</code>, the extra packages of <code>unstructured</code> will be installed as
+well, it can support additional file types (.doc, .docx, ...) but the cost is larger docker image size. For most users, the <code>lite</code> image should work well in most cases.</p>
 <ul>
-<li>Use this command to launch the server</li>
+<li>To use the <code>lite</code> version.</li>
 </ul>
 <div class="language-text highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-1-1">1</a></span>
 <span class="normal"><a href="#__codelineno-1-2">2</a></span>
@@ -3935,32 +3962,61 @@ Use the most recent release .zip to include latest features and bug-fixes.</p>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2"></a>-e GRADIO_SERVER_NAME=0.0.0.0 \
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3"></a>-e GRADIO_SERVER_PORT=7860 \
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4"></a>-p 7860:7860 -it --rm \
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5"></a>ghcr.io/cinnamon/kotaemon:latest
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5"></a>ghcr.io/cinnamon/kotaemon:main-lite
 </span></code></pre></div></td></tr></table></div>
-<p>Navigate to <code>http://localhost:7860/</code> to access the web UI.</p>
+<ul>
+<li>To use the <code>full</code> version.</li>
+</ul>
+<div class="language-text highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-2-1">1</a></span>
+<span class="normal"><a href="#__codelineno-2-2">2</a></span>
+<span class="normal"><a href="#__codelineno-2-3">3</a></span>
+<span class="normal"><a href="#__codelineno-2-4">4</a></span>
+<span class="normal"><a href="#__codelineno-2-5">5</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1"></a>docker run \
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2"></a>-e GRADIO_SERVER_NAME=0.0.0.0 \
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3"></a>-e GRADIO_SERVER_PORT=7860 \
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4"></a>-p 7860:7860 -it --rm \
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5"></a>ghcr.io/cinnamon/kotaemon:main-full
+</span></code></pre></div></td></tr></table></div>
+<p>Currently, two platforms: <code>linux/amd64</code> and <code>linux/arm64</code> (for newer Mac) are provided &amp; tested. User can specify the platform by passing <code>--platform</code> in the docker run command. For example:</p>
+<div class="language-text highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-3-1">1</a></span>
+<span class="normal"><a href="#__codelineno-3-2">2</a></span>
+<span class="normal"><a href="#__codelineno-3-3">3</a></span>
+<span class="normal"><a href="#__codelineno-3-4">4</a></span>
+<span class="normal"><a href="#__codelineno-3-5">5</a></span>
+<span class="normal"><a href="#__codelineno-3-6">6</a></span>
+<span class="normal"><a href="#__codelineno-3-7">7</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1"></a># To run docker with platform linux/arm64
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2"></a>docker run \
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3"></a>-e GRADIO_SERVER_NAME=0.0.0.0 \
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4"></a>-e GRADIO_SERVER_PORT=7860 \
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5"></a>-p 7860:7860 -it --rm \
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6"></a>--platform linux/arm64 \
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7"></a>ghcr.io/cinnamon/kotaemon:main-lite
+</span></code></pre></div></td></tr></table></div>
+<p>If everything is set up fine, navigate to <code>http://localhost:7860/</code> to access the web UI.</p>
+<p>We use <a href="https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry">GHCR</a> to store docker images, all images can be found <a href="https://github.com/Cinnamon/kotaemon/pkgs/container/kotaemon">here.</a></p>
 <h4 id="without-docker">Without Docker<a class="headerlink" href="#without-docker" title="Permanent link">¶</a></h4>
 <ul>
 <li>Clone and install required packages on a fresh python environment.</li>
 </ul>
-<div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-2-1"> 1</a></span>
-<span class="normal"><a href="#__codelineno-2-2"> 2</a></span>
-<span class="normal"><a href="#__codelineno-2-3"> 3</a></span>
-<span class="normal"><a href="#__codelineno-2-4"> 4</a></span>
-<span class="normal"><a href="#__codelineno-2-5"> 5</a></span>
-<span class="normal"><a href="#__codelineno-2-6"> 6</a></span>
-<span class="normal"><a href="#__codelineno-2-7"> 7</a></span>
-<span class="normal"><a href="#__codelineno-2-8"> 8</a></span>
-<span class="normal"><a href="#__codelineno-2-9"> 9</a></span>
-<span class="normal"><a href="#__codelineno-2-10">10</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="c1"># optional (setup env)</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2"></a>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>kotaemon<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.10
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3"></a>conda<span class="w"> </span>activate<span class="w"> </span>kotaemon
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4"></a>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5"></a><span class="c1"># clone this repo</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/Cinnamon/kotaemon
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7"></a><span class="nb">cd</span><span class="w"> </span>kotaemon
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8"></a>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">"libs/kotaemon[all]"</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">"libs/ktem"</span>
+<div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-4-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-4-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-4-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-4-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-4-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-4-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-4-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-4-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-4-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-4-10">10</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1"></a><span class="c1"># optional (setup env)</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2"></a>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>kotaemon<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.10
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3"></a>conda<span class="w"> </span>activate<span class="w"> </span>kotaemon
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4"></a>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5"></a><span class="c1"># clone this repo</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/Cinnamon/kotaemon
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7"></a><span class="nb">cd</span><span class="w"> </span>kotaemon
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8"></a>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">"libs/kotaemon[all]"</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">"libs/ktem"</span>
 </span></code></pre></div></td></tr></table></div>
 <ul>
 <li>View and edit your environment variables (API keys, end-points) in <code>.env</code>.</li>
@@ -3972,7 +4028,7 @@ Use the most recent release .zip to include latest features and bug-fixes.</p>
 <ul>
 <li>Start the web server:</li>
 </ul>
-<div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-3-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1"></a>python<span class="w"> </span>app.py
+<div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-5-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1"></a>python<span class="w"> </span>app.py
 </span></code></pre></div></td></tr></table></div>
 <p>The app will be automatically launched in your browser.</p>
 <p>Default username / password are: <code>admin</code> / <code>admin</code>. You can setup additional users directly on the UI.</p>
@@ -3994,39 +4050,39 @@ starting point.</p>
 
 <summary>Notable settings</summary>
 
-<div class="language-text highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-4-1"> 1</a></span>
-<span class="normal"><a href="#__codelineno-4-2"> 2</a></span>
-<span class="normal"><a href="#__codelineno-4-3"> 3</a></span>
-<span class="normal"><a href="#__codelineno-4-4"> 4</a></span>
-<span class="normal"><a href="#__codelineno-4-5"> 5</a></span>
-<span class="normal"><a href="#__codelineno-4-6"> 6</a></span>
-<span class="normal"><a href="#__codelineno-4-7"> 7</a></span>
-<span class="normal"><a href="#__codelineno-4-8"> 8</a></span>
-<span class="normal"><a href="#__codelineno-4-9"> 9</a></span>
-<span class="normal"><a href="#__codelineno-4-10">10</a></span>
-<span class="normal"><a href="#__codelineno-4-11">11</a></span>
-<span class="normal"><a href="#__codelineno-4-12">12</a></span>
-<span class="normal"><a href="#__codelineno-4-13">13</a></span>
-<span class="normal"><a href="#__codelineno-4-14">14</a></span>
-<span class="normal"><a href="#__codelineno-4-15">15</a></span>
-<span class="normal"><a href="#__codelineno-4-16">16</a></span>
-<span class="normal"><a href="#__codelineno-4-17">17</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1"></a># setup your preferred document store (with full-text search capabilities)
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2"></a>KH_DOCSTORE=(Elasticsearch | LanceDB | SimpleFileDocumentStore)
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3"></a>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4"></a># setup your preferred vectorstore (for vector-based search)
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5"></a>KH_VECTORSTORE=(ChromaDB | LanceDB | InMemory)
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6"></a>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7"></a># Enable / disable multimodal QA
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8"></a>KH_REASONINGS_USE_MULTIMODAL=True
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9"></a>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10"></a># Setup your new reasoning pipeline or modify existing one.
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11"></a>KH_REASONINGS = [
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12"></a>    "ktem.reasoning.simple.FullQAPipeline",
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13"></a>    "ktem.reasoning.simple.FullDecomposeQAPipeline",
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14"></a>    "ktem.reasoning.react.ReactAgentPipeline",
-</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15"></a>    "ktem.reasoning.rewoo.RewooAgentPipeline",
-</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16"></a>]
-</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17"></a>)
+<div class="language-text highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-6-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-6-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-6-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-6-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-6-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-6-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-6-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-6-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-6-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-6-10">10</a></span>
+<span class="normal"><a href="#__codelineno-6-11">11</a></span>
+<span class="normal"><a href="#__codelineno-6-12">12</a></span>
+<span class="normal"><a href="#__codelineno-6-13">13</a></span>
+<span class="normal"><a href="#__codelineno-6-14">14</a></span>
+<span class="normal"><a href="#__codelineno-6-15">15</a></span>
+<span class="normal"><a href="#__codelineno-6-16">16</a></span>
+<span class="normal"><a href="#__codelineno-6-17">17</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1"></a># setup your preferred document store (with full-text search capabilities)
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2"></a>KH_DOCSTORE=(Elasticsearch | LanceDB | SimpleFileDocumentStore)
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4"></a># setup your preferred vectorstore (for vector-based search)
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5"></a>KH_VECTORSTORE=(ChromaDB | LanceDB | InMemory | Qdrant)
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6"></a>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7"></a># Enable / disable multimodal QA
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8"></a>KH_REASONINGS_USE_MULTIMODAL=True
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9"></a>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10"></a># Setup your new reasoning pipeline or modify existing one.
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11"></a>KH_REASONINGS = [
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12"></a>    "ktem.reasoning.simple.FullQAPipeline",
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13"></a>    "ktem.reasoning.simple.FullDecomposeQAPipeline",
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14"></a>    "ktem.reasoning.react.ReactAgentPipeline",
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15"></a>    "ktem.reasoning.rewoo.RewooAgentPipeline",
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16"></a>]
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17"></a>)
 </span></code></pre></div></td></tr></table></div>
 
 </details>
@@ -4043,35 +4099,35 @@ the folder of the application. If you don't see it, you can create one.</p>
 to enable access to OpenAI's models. There are other variables that can be modified,
 please feel free to edit them to fit your case. Otherwise, the default parameter should
 work for most people.</p>
-<div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-5-1">1</a></span>
-<span class="normal"><a href="#__codelineno-5-2">2</a></span>
-<span class="normal"><a href="#__codelineno-5-3">3</a></span>
-<span class="normal"><a href="#__codelineno-5-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1"></a><span class="nv">OPENAI_API_BASE</span><span class="o">=</span>https://api.openai.com/v1
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2"></a><span class="nv">OPENAI_API_KEY</span><span class="o">=</span>&lt;your<span class="w"> </span>OpenAI<span class="w"> </span>API<span class="w"> </span>key<span class="w"> </span>here&gt;
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3"></a><span class="nv">OPENAI_CHAT_MODEL</span><span class="o">=</span>gpt-3.5-turbo
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4"></a><span class="nv">OPENAI_EMBEDDINGS_MODEL</span><span class="o">=</span>text-embedding-ada-002
+<div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-7-1">1</a></span>
+<span class="normal"><a href="#__codelineno-7-2">2</a></span>
+<span class="normal"><a href="#__codelineno-7-3">3</a></span>
+<span class="normal"><a href="#__codelineno-7-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1"></a><span class="nv">OPENAI_API_BASE</span><span class="o">=</span>https://api.openai.com/v1
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2"></a><span class="nv">OPENAI_API_KEY</span><span class="o">=</span>&lt;your<span class="w"> </span>OpenAI<span class="w"> </span>API<span class="w"> </span>key<span class="w"> </span>here&gt;
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3"></a><span class="nv">OPENAI_CHAT_MODEL</span><span class="o">=</span>gpt-3.5-turbo
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4"></a><span class="nv">OPENAI_EMBEDDINGS_MODEL</span><span class="o">=</span>text-embedding-ada-002
 </span></code></pre></div></td></tr></table></div>
 <h4 id="azure-openai">Azure OpenAI<a class="headerlink" href="#azure-openai" title="Permanent link">¶</a></h4>
 <p>For OpenAI models via Azure platform, you need to provide your Azure endpoint and API
 key. Your might also need to provide your developments' name for the chat model and the
 embedding model depending on how you set up Azure development.</p>
-<div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-6-1">1</a></span>
-<span class="normal"><a href="#__codelineno-6-2">2</a></span>
-<span class="normal"><a href="#__codelineno-6-3">3</a></span>
-<span class="normal"><a href="#__codelineno-6-4">4</a></span>
-<span class="normal"><a href="#__codelineno-6-5">5</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1"></a><span class="nv">AZURE_OPENAI_ENDPOINT</span><span class="o">=</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2"></a><span class="nv">AZURE_OPENAI_API_KEY</span><span class="o">=</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3"></a><span class="nv">OPENAI_API_VERSION</span><span class="o">=</span><span class="m">2024</span>-02-15-preview
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4"></a><span class="nv">AZURE_OPENAI_CHAT_DEPLOYMENT</span><span class="o">=</span>gpt-35-turbo
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5"></a><span class="nv">AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT</span><span class="o">=</span>text-embedding-ada-002
+<div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-8-1">1</a></span>
+<span class="normal"><a href="#__codelineno-8-2">2</a></span>
+<span class="normal"><a href="#__codelineno-8-3">3</a></span>
+<span class="normal"><a href="#__codelineno-8-4">4</a></span>
+<span class="normal"><a href="#__codelineno-8-5">5</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1"></a><span class="nv">AZURE_OPENAI_ENDPOINT</span><span class="o">=</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2"></a><span class="nv">AZURE_OPENAI_API_KEY</span><span class="o">=</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3"></a><span class="nv">OPENAI_API_VERSION</span><span class="o">=</span><span class="m">2024</span>-02-15-preview
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4"></a><span class="nv">AZURE_OPENAI_CHAT_DEPLOYMENT</span><span class="o">=</span>gpt-35-turbo
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5"></a><span class="nv">AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT</span><span class="o">=</span>text-embedding-ada-002
 </span></code></pre></div></td></tr></table></div>
 <h4 id="local-models">Local models<a class="headerlink" href="#local-models" title="Permanent link">¶</a></h4>
 <h5 id="using-ollama-openai-compatible-server">Using ollama OpenAI compatible server<a class="headerlink" href="#using-ollama-openai-compatible-server" title="Permanent link">¶</a></h5>
 <p>Install <a href="https://github.com/ollama/ollama">ollama</a> and start the application.</p>
 <p>Pull your model (e.g):</p>
-<div class="language-text highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-7-1">1</a></span>
-<span class="normal"><a href="#__codelineno-7-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1"></a>ollama pull llama3.1:8b
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2"></a>ollama pull nomic-embed-text
+<div class="language-text highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-9-1">1</a></span>
+<span class="normal"><a href="#__codelineno-9-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1"></a>ollama pull llama3.1:8b
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2"></a>ollama pull nomic-embed-text
 </span></code></pre></div></td></tr></table></div>
 <p>Set the model names on web UI and make it as default.</p>
 <p><img alt="Models" src="https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/models.png"></p>

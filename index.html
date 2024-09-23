@@ -3306,6 +3306,8 @@
       
         
       
+        
+      
     
     
       
@@ -3457,6 +3459,27 @@
   
   
     <li class="md-nav__item">
+      <a href="reference/storages/vectorstores/qdrant/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Qdrant
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="reference/storages/vectorstores/simple_file/" class="md-nav__link">
         
   
@@ -3583,6 +3606,25 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#installation-online-huggingface-space" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation (Online HuggingFace Space)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation-offline" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation (Offline)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Installation (Offline)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#download" class="md-nav__link">
     <span class="md-ellipsis">
       Download
@@ -3590,13 +3632,18 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#run-setup-script" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation
+      Run setup script
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -3654,9 +3701,39 @@
 <p><div class="video-container"><iframe src="https://github.com/Cinnamon/kotaemon/assets/25688648/815ecf68-3a02-4914-a0dd-3f8ec7e75cd9" style="position:relative;width:100%;height:22.172vw" frameborder="0" allowfullscreen alt="type:video"></iframe></div></p>
 <p>This page is intended for <strong>end users</strong> who want to use the <code>kotaemon</code> tool for Question
 Answering on local documents. If you are a <strong>developer</strong> who wants contribute to the project, please visit the <a href="development/">development</a> page.</p>
-<h2 id="download">Download<a class="headerlink" href="#download" title="Permanent link">¶</a></h2>
+<h2 id="installation-online-huggingface-space">Installation (Online HuggingFace Space)<a class="headerlink" href="#installation-online-huggingface-space" title="Permanent link">¶</a></h2>
+<details>
+
+<summary>View instruction</summary>
+
+1. Go to [kotaemon_template](https://huggingface.co/spaces/cin-model/kotaemon_template)
+
+2. Use Duplicate function to create your own space
+
+![Duplicate space](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/duplicate_space.png)
+
+![Change space params](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/change_space_params.png)
+
+3. Wait for the build to complete and start up (apprx 10 mins).
+
+![Wait space build](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/space_build.png)
+
+![Close space build](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/close_logs_space.png)
+
+4. Follow the first setup instructions (and register for Cohere API key if needed)
+
+![Cohere API](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/cohere_api_key.png)
+
+5. Complete the setup and use your own private space!
+
+![App Startup](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/initial_startup.png)
+
+</details>
+
+<h2 id="installation-offline">Installation (Offline)<a class="headerlink" href="#installation-offline" title="Permanent link">¶</a></h2>
+<h3 id="download">Download<a class="headerlink" href="#download" title="Permanent link">¶</a></h3>
 <p>Download the <code>kotaemon-app.zip</code> file from the <a href="https://github.com/Cinnamon/kotaemon/releases/latest/">latest release</a>.</p>
-<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">¶</a></h2>
+<h3 id="run-setup-script">Run setup script<a class="headerlink" href="#run-setup-script" title="Permanent link">¶</a></h3>
 <ol>
 <li>Unzip the downloaded file.</li>
 <li>Navigate to the <code>scripts</code> folder and start an installer that matches your OS:<ul>
@@ -3705,7 +3782,7 @@ you within the application.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-05-16T07:27:51+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-05-16</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-09-23T14:52:36+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-09-23</span>
   </span>
 
     
