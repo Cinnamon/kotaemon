@@ -33,6 +33,7 @@ dependencies = [
     "langchain>=0.1.16,<0.2.16",
     "langchain-community>=0.0.34,<=0.2.11",
     "langchain-openai>=0.1.4,<0.2.0",
+    "langchain-google-genai>=1.0.3,<2.0.0",
     "langchain-anthropic",
     "langchain-cohere>=0.2.4,<0.3.0",
     "llama-hub>=0.0.79,<0.1.0",
