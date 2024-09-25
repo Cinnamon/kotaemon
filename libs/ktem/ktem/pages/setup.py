@@ -180,7 +180,7 @@ class SetupPage(BasePage):
                     name="cohere",
                     spec={
                         "__type__": "kotaemon.embeddings.LCCohereEmbeddings",
-                        "model": "embed-multilingual-v2.0",
+                        "model": "embed-multilingual-v3.0",
                         "cohere_api_key": cohere_api_key,
                         "user_agent": "default",
                     },

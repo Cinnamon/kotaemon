@@ -221,7 +221,7 @@ KH_LLMS["cohere"] = {
 KH_EMBEDDINGS["cohere"] = {
     "spec": {
         "__type__": "kotaemon.embeddings.LCCohereEmbeddings",
-        "model": "embed-multilingual-v2.0",
+        "model": "embed-multilingual-v3.0",
         "cohere_api_key": "your-key",
         "user_agent": "default",
     },
