@@ -10,12 +10,12 @@ from tenacity import after_log, retry, stop_after_attempt, wait_exponential
 
 from kotaemon.base import Document
 
-from .utils.pdf_ocr import parse_ocr_output, read_pdf_unstructured
-from .utils.table import strip_special_chars_markdown
+# from .utils.pdf_ocr import parse_ocr_output, read_pdf_unstructured
+# from .utils.table import strip_special_chars_markdown
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_OCR_ENDPOINT = "http://127.0.0.1:8000/v2/ai/infer/"
+DEFAULT_OCR_ENDPOINT = "http://localhost:8881/ai/infer/"
 
 
 @retry(
@@ -25,8 +25,8 @@ DEFAULT_OCR_ENDPOINT = "http://127.0.0.1:8000/v2/ai/infer/"
 )
 def tenacious_api_post(url, file_path, table_only, **kwargs):
     with file_path.open("rb") as content:
-        files = {"input": content}
-        data = {"job_id": uuid4(), "table_only": table_only}
+        files = {"file": content}
+        data = {"ocr_type": "ocr"}
         resp = requests.post(url=url, files=files, data=data, **kwargs)
         resp.raise_for_status()
     return resp
@@ -178,16 +178,26 @@ class ImageReader(BaseReader):
             resp = tenacious_api_post(
                 url=self.ocr_endpoint, file_path=file_path, table_only=False
             )
-            ocr_results = resp.json()["result"]
+            ocr_results = [resp.json()["result"]]
 
         extra_info = extra_info or {}
         result = []
         for ocr_result in ocr_results:
             result.append(
                 Document(
-                    content=ocr_result["csv_string"],
+                    content=ocr_result,
                     metadata=extra_info,
                 )
             )
 
         return result
+
+if __name__ == '__main__':
+    file_path = "/home/kan/projects/nlp/kotaemon/00167_Mizuho.png"
+
+    with open(file_path, "rb") as content:
+        files = {"file": content}
+        data = {"ocr_type": "ocr"}
+        resp = requests.post(url="http://127.0.0.1:8881/ai/infer/", files=files, data=data,)
+        resp.raise_for_status()
+
