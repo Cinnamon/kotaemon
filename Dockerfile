@@ -34,7 +34,7 @@ COPY . /app
 # Install pip packages
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
-    pip install -e "libs/kotaemon[all]" \
+    pip install -e "libs/kotaemon" \
     && pip install -e "libs/ktem" \
     && pip install graphrag future \
     && pip install "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
@@ -72,7 +72,8 @@ COPY . /app
 # Install additional pip packages
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
-    pip install unstructured[all-docs]
+    pip install -e "libs/kotaemon[adv]" \
+    && pip install unstructured[all-docs]
 
 # Clean up
 RUN apt-get autoremove \

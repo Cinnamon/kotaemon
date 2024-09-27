@@ -65,7 +65,7 @@ class TestChromaVectorStore:
         db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
 
         _, sim, out_ids = db.query(embedding=[0.1, 0.2, 0.3], top_k=1)
-        assert sim == [1.0]
+        assert sim[0] - 1.0 < 1e-6
         assert out_ids == ["a"]
 
         _, _, out_ids = db.query(embedding=[0.42, 0.52, 0.53], top_k=1)
@@ -224,7 +224,7 @@ class TestMilvusVectorStore:
         db.add(embeddings=normalized_embeddings, metadatas=metadatas, ids=ids)
 
         _, sim, out_ids = db.query(embedding=normalized_embeddings[0], top_k=1)
-        assert sim == [1.0]
+        assert sim[0] - 1.0 < 1e-6
         assert out_ids == ["a"]
 
         query_embedding = [

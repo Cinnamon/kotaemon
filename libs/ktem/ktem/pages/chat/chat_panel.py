@@ -11,8 +11,8 @@ class ChatPanel(BasePage):
         self.chatbot = gr.Chatbot(
             label=self._app.app_name,
             placeholder=(
-                "This is the beginning of a new conversation.\nMake sure to have added"
-                " a LLM by following the instructions in the Help tab."
+                "This is the beginning of a new conversation.\nIf you are new, "
+                "visit the Help tab for quick instructions."
             ),
             show_label=False,
             elem_id="main-chat-bot",

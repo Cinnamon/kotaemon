@@ -1,9 +1,27 @@
 import gradio as gr
+from decouple import config
 from ktem.app import BaseApp
 from ktem.pages.chat import ChatPage
 from ktem.pages.help import HelpPage
 from ktem.pages.resources import ResourcesTab
 from ktem.pages.settings import SettingsPage
+from ktem.pages.setup import SetupPage
+from theflow.settings import settings as flowsettings
+
+KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
+KH_ENABLE_FIRST_SETUP = getattr(flowsettings, "KH_ENABLE_FIRST_SETUP", False)
+KH_APP_DATA_EXISTS = getattr(flowsettings, "KH_APP_DATA_EXISTS", True)
+
+# override first setup setting
+if config("KH_FIRST_SETUP", default=False, cast=bool):
+    KH_APP_DATA_EXISTS = False
+
+
+def toggle_first_setup_visibility():
+    global KH_APP_DATA_EXISTS
+    is_first_setup = KH_DEMO_MODE or not KH_APP_DATA_EXISTS
+    KH_APP_DATA_EXISTS = True
+    return gr.update(visible=is_first_setup), gr.update(visible=not is_first_setup)
 
 
 class App(BaseApp):
@@ -99,13 +117,17 @@ class App(BaseApp):
             ) as self._tabs["help-tab"]:
                 self.help_page = HelpPage(self)
 
+        if KH_ENABLE_FIRST_SETUP:
+            with gr.Column(visible=False) as self.setup_page_wrapper:
+                self.setup_page = SetupPage(self)
+
     def on_subscribe_public_events(self):
         if self.f_user_management:
             from ktem.db.engine import engine
             from ktem.db.models import User
             from sqlmodel import Session, select
 
-            def signed_in_out(user_id):
+            def toggle_login_visibility(user_id):
                 if not user_id:
                     return list(
                         (
@@ -146,7 +168,7 @@ class App(BaseApp):
             self.subscribe_event(
                 name="onSignIn",
                 definition={
-                    "fn": signed_in_out,
+                    "fn": toggle_login_visibility,
                     "inputs": [self.user_id],
                     "outputs": list(self._tabs.values()) + [self.tabs],
                     "show_progress": "hidden",
@@ -156,9 +178,30 @@ class App(BaseApp):
             self.subscribe_event(
                 name="onSignOut",
                 definition={
-                    "fn": signed_in_out,
+                    "fn": toggle_login_visibility,
                     "inputs": [self.user_id],
                     "outputs": list(self._tabs.values()) + [self.tabs],
                     "show_progress": "hidden",
                 },
+            )
+
+        if KH_ENABLE_FIRST_SETUP:
+            self.subscribe_event(
+                name="onFirstSetupComplete",
+                definition={
+                    "fn": toggle_first_setup_visibility,
+                    "inputs": [],
+                    "outputs": [self.setup_page_wrapper, self.tabs],
+                    "show_progress": "hidden",
+                },
+            )
+
+    def _on_app_created(self):
+        """Called when the app is created"""
+
+        if KH_ENABLE_FIRST_SETUP:
+            self.app.load(
+                toggle_first_setup_visibility,
+                inputs=[],
+                outputs=[self.setup_page_wrapper, self.tabs],
             )

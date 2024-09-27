@@ -5,11 +5,17 @@
 This page is intended for **end users** who want to use the `kotaemon` tool for Question
 Answering on local documents. If you are a **developer** who wants contribute to the project, please visit the [development](development/index.md) page.
 
-## Download
+## Installation (Online HuggingFace Space) - easy (10 mins)
+
+Visit this [guide](online_install.md).
+
+## Installation (Offline) - intermediate (20 mins)
+
+### Download
 
 Download the `kotaemon-app.zip` file from the [latest release](https://github.com/Cinnamon/kotaemon/releases/latest/).
 
-## Installation
+### Run setup script
 
 0. Unzip the downloaded file.
 1. Navigate to the `scripts` folder and start an installer that matches your OS:

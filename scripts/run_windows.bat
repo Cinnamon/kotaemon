@@ -234,15 +234,6 @@ GOTO :eof
 :download_and_extract_pdf_js
 :: Download and extract a ZIP file from a URL to a destination directory
 
-REM Check if the destination directory exists
-if exist "%dest_dir%" (
-    echo Destination directory %dest_dir% already exists. Skipping download.
-    goto :eof
-)
-
-REM Create the destination directory
-mkdir "%dest_dir%"
-
 REM Define variables
 set "pdf_js_version=4.0.379"
 set "pdf_js_dist_name=pdfjs-%pdf_js_version%-dist"
@@ -254,6 +245,9 @@ REM Create the target directory if it does not exist (including parent folders)
 if not exist "%target_pdf_js_dir%" (
     echo Creating directory %target_pdf_js_dir%
     mkdir "%target_pdf_js_dir%"
+) else (
+    echo Directory already exists: %target_pdf_js_dir%
+    GOTO :eof
 )
 
 REM Download the ZIP file using PowerShell
