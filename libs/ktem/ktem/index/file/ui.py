@@ -198,13 +198,10 @@ class FileIndexPage(BasePage):
                             visible=True,
                         )
                         self.delete_all_button_confirm = gr.Button(
-                            "Confirm delete",
-                            variant="stop", 
-                            visible=False
+                            "Confirm delete", variant="stop", visible=False
                         )
                         self.delete_all_button_cancel = gr.Button(
-                            "Cancel", 
-                            visible=False
+                            "Cancel", visible=False
                         )
 
                     self.download_single_button = gr.DownloadButton(
@@ -392,11 +389,21 @@ class FileIndexPage(BasePage):
 
     def show_delete_all_confirm(self, file_list):
         # when the list of files is empty it shows a single line with id equal to -
-        if len(file_list) == 0 or (len(file_list)== 1 and file_list.id.values[0] == "-"):
+        if len(file_list) == 0 or (
+            len(file_list) == 1 and file_list.id.values[0] == "-"
+        ):
             gr.Info("No file to delete")
-            return [gr.update(visible=True), gr.update(visible=False), gr.update(visible=False)]
+            return [
+                gr.update(visible=True),
+                gr.update(visible=False),
+                gr.update(visible=False),
+            ]
         else:
-            return [gr.update(visible=False), gr.update(visible=True), gr.update(visible=True)]
+            return [
+                gr.update(visible=False),
+                gr.update(visible=True),
+                gr.update(visible=True),
+            ]
 
     def on_register_events(self):
         """Register all events to the app"""
@@ -457,18 +464,28 @@ class FileIndexPage(BasePage):
         )
 
         self.delete_all_button.click(
-            self.show_delete_all_confirm, 
-            [self.file_list], 
-            [self.delete_all_button, self.delete_all_button_confirm, self.delete_all_button_cancel]
-            
+            self.show_delete_all_confirm,
+            [self.file_list],
+            [
+                self.delete_all_button,
+                self.delete_all_button_confirm,
+                self.delete_all_button_cancel,
+            ],
         )
         self.delete_all_button_cancel.click(
-            lambda :[gr.update(visible=True), gr.update(visible=False), gr.update(visible=False)], 
-            None, 
-            [self.delete_all_button, self.delete_all_button_confirm, self.delete_all_button_cancel]
-            
+            lambda: [
+                gr.update(visible=True),
+                gr.update(visible=False),
+                gr.update(visible=False),
+            ],
+            None,
+            [
+                self.delete_all_button,
+                self.delete_all_button_confirm,
+                self.delete_all_button_cancel,
+            ],
         )
-        
+
         self.delete_all_button_confirm.click(
             fn=self.delete_all_files,
             inputs=[self.file_list],
@@ -479,10 +496,17 @@ class FileIndexPage(BasePage):
             inputs=[self._app.user_id, self.filter],
             outputs=[self.file_list_state, self.file_list],
         ).then(
-            lambda :[gr.update(visible=True), gr.update(visible=False), gr.update(visible=False)], 
-            None, 
-            [self.delete_all_button, self.delete_all_button_confirm, self.delete_all_button_cancel]
-            
+            lambda: [
+                gr.update(visible=True),
+                gr.update(visible=False),
+                gr.update(visible=False),
+            ],
+            None,
+            [
+                self.delete_all_button,
+                self.delete_all_button_confirm,
+                self.delete_all_button_cancel,
+            ],
         )
 
         self.download_single_button.click(
