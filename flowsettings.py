@@ -191,14 +191,14 @@ KH_LLMS["claude"] = {
     },
     "default": False,
 }
-# KH_LLMS["gemini"] = {
-#     "spec": {
-#         "__type__": "kotaemon.llms.chats.LCGeminiChat",
-#         "model_name": "gemini-1.5-pro",
-#         "api_key": "your-key",
-#     },
-#     "default": False,
-# }
+KH_LLMS["gemini"] = {
+    "spec": {
+        "__type__": "kotaemon.llms.chats.LCGeminiChat",
+        "model_name": "gemini-1.5-pro",
+        "api_key": "your-key",
+    },
+    "default": False,
+}
 KH_LLMS["groq"] = {
     "spec": {
         "__type__": "kotaemon.llms.ChatOpenAI",
@@ -221,7 +221,7 @@ KH_LLMS["cohere"] = {
 KH_EMBEDDINGS["cohere"] = {
     "spec": {
         "__type__": "kotaemon.embeddings.LCCohereEmbeddings",
-        "model": "embed-multilingual-v2.0",
+        "model": "embed-multilingual-v3.0",
         "cohere_api_key": "your-key",
         "user_agent": "default",
     },
