@@ -76,7 +76,6 @@ adv = [
     "llama-index>=0.10.40,<0.11.0",
     "llama-index-vector-stores-milvus",
     "llama-index-vector-stores-qdrant",
-    "python-docx>=1.1.0,<1.2",
     "sentence-transformers",
     "tabulate",
     "unstructured>=0.15.8,<0.16",
