@@ -187,10 +187,23 @@ class FileIndexPage(BasePage):
                     )
                 with gr.Row():
                     self.is_zipped_state = gr.State(value=False)
-                    self.download_all_button = gr.DownloadButton(
-                        "Download all files",
-                        visible=True,
-                    )
+                    with gr.Row():
+                        self.download_all_button = gr.DownloadButton(
+                            "Download all files",
+                            visible=True,
+                        )
+                        self.delete_all_button = gr.Button(
+                            "Delete all files",
+                            variant="stop",
+                            visible=True,
+                        )
+                        self.delete_all_button_confirm = gr.Button(
+                            "Confirm delete", variant="stop", visible=False
+                        )
+                        self.delete_all_button_cancel = gr.Button(
+                            "Cancel", visible=False
+                        )
+
                     self.download_single_button = gr.DownloadButton(
                         "Download file",
                         visible=False,
@@ -370,6 +383,28 @@ class FileIndexPage(BasePage):
                 zipMe.write(file, arcname=arcname.name)
         return gr.DownloadButton(label=DOWNLOAD_MESSAGE, value=f"{zip_file_path}.zip")
 
+    def delete_all_files(self, file_list):
+        for file_id in file_list.id.values:
+            self.delete_event(file_id)
+
+    def show_delete_all_confirm(self, file_list):
+        # when the list of files is empty it shows a single line with id equal to -
+        if len(file_list) == 0 or (
+            len(file_list) == 1 and file_list.id.values[0] == "-"
+        ):
+            gr.Info("No file to delete")
+            return [
+                gr.update(visible=True),
+                gr.update(visible=False),
+                gr.update(visible=False),
+            ]
+        else:
+            return [
+                gr.update(visible=False),
+                gr.update(visible=True),
+                gr.update(visible=True),
+            ]
+
     def on_register_events(self):
         """Register all events to the app"""
         onDeleted = (
@@ -426,6 +461,52 @@ class FileIndexPage(BasePage):
             inputs=[],
             outputs=self.download_all_button,
             show_progress="hidden",
+        )
+
+        self.delete_all_button.click(
+            self.show_delete_all_confirm,
+            [self.file_list],
+            [
+                self.delete_all_button,
+                self.delete_all_button_confirm,
+                self.delete_all_button_cancel,
+            ],
+        )
+        self.delete_all_button_cancel.click(
+            lambda: [
+                gr.update(visible=True),
+                gr.update(visible=False),
+                gr.update(visible=False),
+            ],
+            None,
+            [
+                self.delete_all_button,
+                self.delete_all_button_confirm,
+                self.delete_all_button_cancel,
+            ],
+        )
+
+        self.delete_all_button_confirm.click(
+            fn=self.delete_all_files,
+            inputs=[self.file_list],
+            outputs=[],
+            show_progress="hidden",
+        ).then(
+            fn=self.list_file,
+            inputs=[self._app.user_id, self.filter],
+            outputs=[self.file_list_state, self.file_list],
+        ).then(
+            lambda: [
+                gr.update(visible=True),
+                gr.update(visible=False),
+                gr.update(visible=False),
+            ],
+            None,
+            [
+                self.delete_all_button,
+                self.delete_all_button_confirm,
+                self.delete_all_button_cancel,
+            ],
         )
 
         self.download_single_button.click(
