@@ -7,6 +7,7 @@ DEFAULT_REWRITE_PROMPT = (
     "Given the following question, rephrase and expand it "
     "to help you do better answering. Maintain all information "
     "in the original question. Keep the question as concise as possible. "
+    "Only output the rephrased question without additional information. "
     "Give answer in {lang}\n"
     "Original question: {question}\n"
     "Rephrased question: "

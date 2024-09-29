@@ -42,9 +42,19 @@ def if_sentence_fastembed_not_installed():
         return False
 
 
-def if_unstructured_not_installed():
+def if_unstructured_pdf_not_installed():
     try:
         import unstructured  # noqa: F401
+        from unstructured.partition.pdf import partition_pdf  # noqa: F401
+    except ImportError:
+        return True
+    else:
+        return False
+
+
+def if_cohere_not_installed():
+    try:
+        import cohere  # noqa: F401
     except ImportError:
         return True
     else:
@@ -72,8 +82,12 @@ skip_when_fastembed_not_installed = pytest.mark.skipif(
     if_sentence_fastembed_not_installed(), reason="fastembed is not installed"
 )
 
-skip_when_unstructured_not_installed = pytest.mark.skipif(
-    if_unstructured_not_installed(), reason="unstructured is not installed"
+skip_when_unstructured_pdf_not_installed = pytest.mark.skipif(
+    if_unstructured_pdf_not_installed(), reason="unstructured is not installed"
+)
+
+skip_when_cohere_not_installed = pytest.mark.skipif(
+    if_cohere_not_installed(), reason="cohere is not installed"
 )
 
 skip_openai_lc_wrapper_test = pytest.mark.skipif(

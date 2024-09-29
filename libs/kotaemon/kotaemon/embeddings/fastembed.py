@@ -41,7 +41,10 @@ class FastEmbedEmbeddings(BaseEmbeddings):
 
     @Param.auto()
     def client_(self) -> "TextEmbedding":
-        from fastembed import TextEmbedding
+        try:
+            from fastembed import TextEmbedding
+        except ImportError:
+            raise ImportError("Please install FastEmbed: `pip install fastembed`")
 
         return TextEmbedding(model_name=self.model_name)
 

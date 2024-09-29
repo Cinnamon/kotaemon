@@ -16,8 +16,11 @@ developers in mind.
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 <a href="https://github.com/Cinnamon/kotaemon" target="_blank">
 <img src="https://img.shields.io/badge/docker_pull-kotaemon:latest-brightgreen" alt="docker pull ghcr.io/cinnamon/kotaemon:latest"></a>
-[![built with Codeium](https://codeium.com/badges/main)](https://codeium.com)
+![download](https://img.shields.io/github/downloads/Cinnamon/kotaemon/total.svg?label=downloads&color=blue)
 <a href='https://huggingface.co/spaces/cin-model/kotaemon-demo'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue'></a>
+<a href="https://hellogithub.com/en/repository/d3141471a0244d5798bc654982b263eb" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=d3141471a0244d5798bc654982b263eb&claim_uid=RLiD9UZ1rEHNaMf&theme=small" alt="Featured｜HelloGitHub" /></a>
+
+<a href="https://trendshift.io/repositories/11607" target="_blank"><img src="https://trendshift.io/api/badge/repositories/11607" alt="Cinnamon%2Fkotaemon | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
 ## Introduction
 
@@ -32,6 +35,7 @@ documents and developers who want to build their own RAG pipeline.
 - For developers:
   - A framework for building your own RAG-based document QA pipeline.
   - Customize and see your RAG pipeline in action with the provided UI (built with <a href='https://github.com/gradio-app/gradio'>Gradio <img src='https://img.shields.io/github/stars/gradio-app/gradio'></a>).
+  - If you use Gradio for development, check out our theme here: [kotaemon-gradio-theme](https://github.com/lone17/kotaemon-gradio-theme).
 
 ```yml
 +----------------------------------------------------------------------------+
@@ -76,23 +80,60 @@ appreciated.
 ### For end users
 
 This document is intended for developers. If you just want to install and use the app as
-it is, please follow the non-technical [User Guide](https://cinnamon.github.io/kotaemon/) (WIP).
+it is, please follow the non-technical [User Guide](https://cinnamon.github.io/kotaemon/).
+Use the most recent release `.zip` to include latest features and bug-fixes.
 
 ### For developers
 
+#### System requirements
+
+1. Python >=3.10
+2. (optional) [Docker](https://www.docker.com/)
+
+#### If you would like to process files other than .pdf, .html, .mhtml, and .xlsx documents:
+
+You will need to install the system dependencies of [unstructured](https://docs.unstructured.io/open-source/installation/full-installation#full-installation). The installations vary by operating system, so please go to the link and follow the instructions there.
+
 #### With Docker (recommended)
 
-- Use this command to launch the server
+We support `lite` & `full` version of Docker images. With `full`, the extra packages of `unstructured` will be installed as
+well, it can support additional file types (.doc, .docx, ...) but the cost is larger docker image size. For most users, the `lite` image should work well in most cases.
+
+- To use the `lite` version.
 
 ```
 docker run \
 -e GRADIO_SERVER_NAME=0.0.0.0 \
 -e GRADIO_SERVER_PORT=7860 \
 -p 7860:7860 -it --rm \
-ghcr.io/cinnamon/kotaemon:latest
+ghcr.io/cinnamon/kotaemon:main-lite
 ```
 
-Navigate to `http://localhost:7860/` to access the web UI.
+- To use the `full` version.
+
+```
+docker run \
+-e GRADIO_SERVER_NAME=0.0.0.0 \
+-e GRADIO_SERVER_PORT=7860 \
+-p 7860:7860 -it --rm \
+ghcr.io/cinnamon/kotaemon:main-full
+```
+
+Currently, two platforms: `linux/amd64` and `linux/arm64` (for newer Mac) are provided & tested. User can specify the platform by passing `--platform` in the docker run command. For example:
+
+```
+# To run docker with platform linux/arm64
+docker run \
+-e GRADIO_SERVER_NAME=0.0.0.0 \
+-e GRADIO_SERVER_PORT=7860 \
+-p 7860:7860 -it --rm \
+--platform linux/arm64 \
+ghcr.io/cinnamon/kotaemon:main-lite
+```
+
+If everything is set up fine, navigate to `http://localhost:7860/` to access the web UI.
+
+We use [GHCR](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) to store docker images, all images can be found [here.](https://github.com/Cinnamon/kotaemon/pkgs/container/kotaemon)
 
 #### Without Docker
 
@@ -109,9 +150,12 @@ cd kotaemon
 
 pip install -e "libs/kotaemon[all]"
 pip install -e "libs/ktem"
+
 ```
 
-- View and edit your environment variables (API keys, end-points) in `.env`.
+- Create a .env file in the root of this project. Use .env.example as a template
+
+The .env file is there to serve use cases where users want to pre-config the models before starting up the app (e.g. deploy the app on HF hub). The file will only be used to populate the db once upon the first run, it will no longer be used in consequent runs.
 
 - (Optional) To enable in-browser PDF_JS viewer, download [PDF_JS_DIST](https://github.com/mozilla/pdf.js/releases/download/v4.0.379/pdfjs-4.0.379-dist.zip) and extract it to `libs/ktem/ktem/assets/prebuilt`
 
@@ -128,6 +172,8 @@ The app will be automatically launched in your browser.
 Default username / password are: `admin` / `admin`. You can setup additional users directly on the UI.
 
 ![Chat tab](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/chat-tab.png)
+
+- Check the Resources tab and LLMs and Embeddings and ensure that your `api_key` value is set correctly from your `.env`. file. If it is not set, you can set it here.
 
 ## Setup local models (for local / private RAG)
 
@@ -157,7 +203,7 @@ starting point.
 KH_DOCSTORE=(Elasticsearch | LanceDB | SimpleFileDocumentStore)
 
 # setup your preferred vectorstore (for vector-based search)
-KH_VECTORSTORE=(ChromaDB | LanceDB | InMemory)
+KH_VECTORSTORE=(ChromaDB | LanceDB | InMemory | Qdrant)
 
 # Enable / disable multimodal QA
 KH_REASONINGS_USE_MULTIMODAL=True

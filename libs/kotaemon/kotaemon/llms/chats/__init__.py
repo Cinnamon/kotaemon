@@ -5,6 +5,7 @@ from .langchain_based import (
     LCAzureChatOpenAI,
     LCChatMixin,
     LCChatOpenAI,
+    LCCohereChat,
     LCGeminiChat,
 )
 from .llamacpp import LlamaCppChat
@@ -18,6 +19,7 @@ __all__ = [
     "ChatOpenAI",
     "LCAnthropicChat",
     "LCGeminiChat",
+    "LCCohereChat",
     "LCChatOpenAI",
     "LCAzureChatOpenAI",
     "LCChatMixin",

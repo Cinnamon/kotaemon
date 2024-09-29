@@ -292,6 +292,9 @@ class ChatOpenAI(BaseChatOpenAI):
 
     def openai_response(self, client, **kwargs):
         """Get the openai response"""
+        if "tools_pydantic" in kwargs:
+            kwargs.pop("tools_pydantic")
+
         params_ = {
             "model": self.model,
             "temperature": self.temperature,
@@ -360,6 +363,9 @@ class AzureChatOpenAI(BaseChatOpenAI):
 
     def openai_response(self, client, **kwargs):
         """Get the openai response"""
+        if "tools_pydantic" in kwargs:
+            kwargs.pop("tools_pydantic")
+
         params_ = {
             "model": self.azure_deployment,
             "temperature": self.temperature,

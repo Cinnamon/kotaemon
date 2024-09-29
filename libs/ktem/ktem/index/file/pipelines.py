@@ -285,7 +285,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             ],
             retrieval_mode=user_settings["retrieval_mode"],
             llm_scorer=(LLMTrulensScoring() if use_llm_reranking else None),
-            rerankers=[CohereReranking()],
+            rerankers=[CohereReranking(use_key_from_ktem=True)],
         )
         if not user_settings["use_reranking"]:
             retriever.rerankers = []  # type: ignore

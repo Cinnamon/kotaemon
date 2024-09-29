@@ -1,7 +1,5 @@
 import os
-from typing import Any, Optional, Type, cast
-
-from llama_index.vector_stores.milvus import MilvusVectorStore as LIMilvusVectorStore
+from typing import Any, Optional, cast
 
 from kotaemon.base import DocumentWithEmbedding
 
@@ -9,7 +7,20 @@ from .base import LlamaIndexVectorStore
 
 
 class MilvusVectorStore(LlamaIndexVectorStore):
-    _li_class: Type[LIMilvusVectorStore] = LIMilvusVectorStore
+    _li_class = None
+
+    def _get_li_class(self):
+        try:
+            from llama_index.vector_stores.milvus import (
+                MilvusVectorStore as LIMilvusVectorStore,
+            )
+        except ImportError:
+            raise ImportError(
+                "Please install missing package: "
+                "'pip install llama-index-vector-stores-milvus'"
+            )
+
+        return LIMilvusVectorStore
 
     def __init__(
         self,
@@ -46,6 +57,10 @@ class MilvusVectorStore(LlamaIndexVectorStore):
                 dim=dim,
                 **self._kwargs,
             )
+            from llama_index.vector_stores.milvus import (
+                MilvusVectorStore as LIMilvusVectorStore,
+            )
+
             self._client = cast(LIMilvusVectorStore, self._client)
         self._inited = True
 
