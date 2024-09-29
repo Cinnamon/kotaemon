@@ -34,7 +34,7 @@ class BaseConversation(SQLModel):
 
     is_public: bool = Field(default=False)
 
-    # contains messages + current files
+    # contains messages + current files + chat_suggestions
     data_source: dict = Field(default={}, sa_column=Column(JSON))
 
     date_created: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
