@@ -39,7 +39,7 @@ class CohereReranking(BaseReranking):
                 print("Cannot get Cohere API key from `ktem`", e)
 
         if not self.cohere_api_key:
-            print("Cohere API key not found. Skipping reranking.")
+            print("Cohere API key not found. Skipping rerankings.")
             return documents
 
         cohere_client = cohere.Client(self.cohere_api_key)
@@ -52,10 +52,9 @@ class CohereReranking(BaseReranking):
         response = cohere_client.rerank(
             model=self.model_name, query=query, documents=_docs
         )
-        # print("Cohere score", [r.relevance_score for r in response.results])
         for r in response.results:
             doc = documents[r.index]
-            doc.metadata["cohere_reranking_score"] = r.relevance_score
+            doc.metadata["reranking_score"] = r.relevance_score
             compressed_docs.append(doc)
 
         return compressed_docs

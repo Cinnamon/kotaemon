@@ -92,6 +92,7 @@ KH_VECTORSTORE = {
 }
 KH_LLMS = {}
 KH_EMBEDDINGS = {}
+KH_RERANKINGS = {}
 
 # populate options from config
 if config("AZURE_OPENAI_API_KEY", default="") and config(
@@ -212,7 +213,7 @@ KH_LLMS["cohere"] = {
     "spec": {
         "__type__": "kotaemon.llms.chats.LCCohereChat",
         "model_name": "command-r-plus-08-2024",
-        "api_key": "your-key",
+        "api_key": config("COHERE_API_KEY", default="your-key"),
     },
     "default": False,
 }
@@ -222,7 +223,7 @@ KH_EMBEDDINGS["cohere"] = {
     "spec": {
         "__type__": "kotaemon.embeddings.LCCohereEmbeddings",
         "model": "embed-multilingual-v3.0",
-        "cohere_api_key": "your-key",
+        "cohere_api_key": config("COHERE_API_KEY", default="your-key"),
         "user_agent": "default",
     },
     "default": False,
@@ -234,6 +235,16 @@ KH_EMBEDDINGS["cohere"] = {
 #     },
 #     "default": False,
 # }
+
+# default reranking models
+KH_RERANKINGS["cohere"] = {
+    "spec": {
+        "__type__": "kotaemon.rerankings.CohereReranking",
+        "model_name": "rerank-multilingual-v2.0",
+        "cohere_api_key": config("COHERE_API_KEY", default="your-key"),
+    },
+    "default": True,
+}
 
 KH_REASONINGS = [
     "ktem.reasoning.simple.FullQAPipeline",

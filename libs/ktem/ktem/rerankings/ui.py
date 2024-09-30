@@ -1,5 +1,3 @@
-import traceback
-
 from copy import deepcopy
 
 import gradio as gr
@@ -56,7 +54,7 @@ class RerankingManagement(BasePage):
                         )
 
                         with gr.Accordion(
-                                label="Test connection", visible=False, open=False
+                            label="Test connection", visible=False, open=False
                         ) as self._check_connection_panel:
                             with gr.Row():
                                 with gr.Column(scale=4):
@@ -111,7 +109,7 @@ class RerankingManagement(BasePage):
                     )
                     self.spec = gr.Textbox(
                         label="Specification",
-                        info="Specification of the Embedding model in YAML format."
+                        info="Specification of the Embedding model in YAML format.",
                     )
                     self.default = gr.Checkbox(
                         label="Set default",
@@ -233,10 +231,7 @@ class RerankingManagement(BasePage):
             inputs=[],
             outputs=[self.rerank_list],
         )
-        self.btn_close.click(
-            lambda: "",
-            outputs=[self.selected_rerank_name]
-        )
+        self.btn_close.click(lambda: "", outputs=[self.selected_rerank_name])
 
         self.btn_test_connection.click(
             self.check_connection,
@@ -248,9 +243,9 @@ class RerankingManagement(BasePage):
         try:
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
             spec["__type__"] = (
-                    reranking_models_manager.vendors()[choices].__module__
-                    + "."
-                    + reranking_models_manager.vendors()[choices].__qualname__
+                reranking_models_manager.vendors()[choices].__module__
+                + "."
+                + reranking_models_manager.vendors()[choices].__qualname__
             )
 
             reranking_models_manager.add(name, spec=spec, default=default)
@@ -356,7 +351,7 @@ class RerankingManagement(BasePage):
             _ = rerank(["Hello"], "Hi")
 
             log_content += (
-                "<mark style='background: yellow; color: red'>- Connection success. "
+                "<mark style='background: green; color: white'>- Connection success. "
                 "</mark><br>"
             )
             yield log_content

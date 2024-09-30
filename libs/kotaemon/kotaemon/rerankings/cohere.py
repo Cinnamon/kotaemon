@@ -2,14 +2,27 @@ from __future__ import annotations
 
 from decouple import config
 
-from kotaemon.base import Document
+from kotaemon.base import Document, Param
 
-from .base import BaseRerankings
+from .base import BaseReranking
 
 
-class CohereReranking(BaseRerankings):
-    model_name: str = "rerank-multilingual-v2.0"
-    cohere_api_key: str = config("COHERE_API_KEY", "")
+class CohereReranking(BaseReranking):
+    """Cohere Reranking model"""
+
+    model_name: str = Param(
+        "rerank-multilingual-v2.0",
+        help=(
+            "ID of the model to use. You can go to [Supported Models]"
+            "(https://docs.cohere.com/docs/rerank-2) to see the supported models"
+        ),
+        required=True,
+    )
+    cohere_api_key: str = Param(
+        config("COHERE_API_KEY", ""),
+        help="Cohere API key",
+        required=True,
+    )
 
     def run(self, documents: list[Document], query: str) -> list[Document]:
         """Use Cohere Reranker model to re-order documents
@@ -31,12 +44,10 @@ class CohereReranking(BaseRerankings):
         if not documents:  # to avoid empty api call
             return compressed_docs
 
-        documents = self.prepare_input(documents)
         _docs = [d.content for d in documents]
         response = cohere_client.rerank(
             model=self.model_name, query=query, documents=_docs
         )
-        print("Cohere score {}".format([r.relevance_score for r in response.results]))
         for r in response.results:
             doc = documents[r.index]
             doc.metadata["reranking_score"] = r.relevance_score

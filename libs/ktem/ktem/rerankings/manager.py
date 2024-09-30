@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
 from theflow.utils.modules import deserialize
 
-from kotaemon.rerankings.base import BaseRerankings
+from kotaemon.rerankings.base import BaseReranking
 
 from .db import RerankingTable, engine
 
@@ -14,7 +14,7 @@ class RerankingManager:
     """Represent a pool of rerankings models"""
 
     def __init__(self):
-        self._models: dict[str, BaseRerankings] = {}
+        self._models: dict[str, BaseReranking] = {}
         self._info: dict[str, dict] = {}
         self._default: str = ""
         self._vendors: list[Type] = []
@@ -52,17 +52,11 @@ class RerankingManager:
                     self._default = item.name
 
     def load_vendors(self):
-        from kotaemon.rerankings import (
-            TeiFastReranking,
-            CohereReranking,
-        )
+        from kotaemon.rerankings import CohereReranking, TeiFastReranking
 
-        self._vendors = [
-            TeiFastReranking,
-            CohereReranking
-        ]
+        self._vendors = [TeiFastReranking, CohereReranking]
 
-    def __getitem__(self, key: str) -> BaseRerankings:
+    def __getitem__(self, key: str) -> BaseReranking:
         """Get model by name"""
         return self._models[key]
 
@@ -71,8 +65,8 @@ class RerankingManager:
         return key in self._models
 
     def get(
-        self, key: str, default: Optional[BaseRerankings] = None
-    ) -> Optional[BaseRerankings]:
+        self, key: str, default: Optional[BaseReranking] = None
+    ) -> Optional[BaseReranking]:
         """Get model by name with default value"""
         return self._models.get(key, default)
 
@@ -118,18 +112,18 @@ class RerankingManager:
 
         return self._default
 
-    def get_random(self) -> BaseRerankings:
+    def get_random(self) -> BaseReranking:
         """Get random model"""
         return self._models[self.get_random_name()]
 
-    def get_default(self) -> BaseRerankings:
+    def get_default(self) -> BaseReranking:
         """Get default model
 
         In case there is no default model, choose random model from pool. In
         case there are multiple default models, choose random from them.
 
         Returns:
-            BaseRerankings: model
+            BaseReranking: model
         """
         return self._models[self.get_default_name()]
 
