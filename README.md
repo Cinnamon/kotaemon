@@ -85,6 +85,15 @@ Use the most recent release `.zip` to include latest features and bug-fixes.
 
 ### For developers
 
+#### System requirements
+
+1. Python >=3.10
+2. (optional) [Docker](https://www.docker.com/)
+
+#### If you would like to process files other than .pdf, .html, .mhtml, and .xlsx documents:
+
+You will need to install the system dependencies of [unstructured](https://docs.unstructured.io/open-source/installation/full-installation#full-installation). The installations vary by operating system, so please go to the link and follow the instructions there.
+
 #### With Docker (recommended)
 
 We support `lite` & `full` version of Docker images. With `full`, the extra packages of `unstructured` will be installed as
@@ -141,9 +150,12 @@ cd kotaemon
 
 pip install -e "libs/kotaemon[all]"
 pip install -e "libs/ktem"
+
 ```
 
-- View and edit your environment variables (API keys, end-points) in `.env`.
+- Create a .env file in the root of this project. Use .env.example as a template
+
+The .env file is there to serve use cases where users want to pre-config the models before starting up the app (e.g. deploy the app on HF hub). The file will only be used to populate the db once upon the first run, it will no longer be used in consequent runs.
 
 - (Optional) To enable in-browser PDF_JS viewer, download [PDF_JS_DIST](https://github.com/mozilla/pdf.js/releases/download/v4.0.379/pdfjs-4.0.379-dist.zip) and extract it to `libs/ktem/ktem/assets/prebuilt`
 
@@ -160,6 +172,8 @@ The app will be automatically launched in your browser.
 Default username / password are: `admin` / `admin`. You can setup additional users directly on the UI.
 
 ![Chat tab](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/chat-tab.png)
+
+- Check the Resources tab and LLMs and Embeddings and ensure that your `api_key` value is set correctly from your `.env`. file. If it is not set, you can set it here.
 
 ## Setup local models (for local / private RAG)
 
