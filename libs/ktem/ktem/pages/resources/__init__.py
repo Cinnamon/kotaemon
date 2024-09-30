@@ -2,9 +2,9 @@ import gradio as gr
 from ktem.app import BasePage
 from ktem.db.models import User, engine
 from ktem.embeddings.ui import EmbeddingManagement
-from ktem.rerankings.ui import RerankingManagement
 from ktem.index.ui import IndexManagement
 from ktem.llms.ui import LLMManagement
+from ktem.rerankings.ui import RerankingManagement
 from sqlmodel import Session, select
 
 from .user import UserManagement

@@ -59,7 +59,7 @@ class EmbeddingManager:
             LCCohereEmbeddings,
             LCHuggingFaceEmbeddings,
             OpenAIEmbeddings,
-            TeiEndpointEmbeddings
+            TeiEndpointEmbeddings,
         )
 
         self._vendors = [
@@ -68,7 +68,7 @@ class EmbeddingManager:
             FastEmbedEmbeddings,
             LCCohereEmbeddings,
             LCHuggingFaceEmbeddings,
-            TeiEndpointEmbeddings
+            TeiEndpointEmbeddings,
         ]
 
     def __getitem__(self, key: str) -> BaseEmbeddings:
