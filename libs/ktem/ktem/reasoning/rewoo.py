@@ -138,7 +138,7 @@ class DocSearchTool(BaseTool):
                     )
 
             print("Retrieved #{}: {}".format(_id, retrieved_content))
-            print("Score", retrieved_item.metadata.get("cohere_reranking_score", None))
+            print("Score", retrieved_item.metadata.get("reranking_score", None))
 
         # trim context by trim_len
         if evidence:

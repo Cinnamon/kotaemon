@@ -5,6 +5,7 @@ import requests
 from ktem.app import BasePage
 from ktem.embeddings.manager import embedding_models_manager as embeddings
 from ktem.llms.manager import llms
+from ktem.rerankings.manager import reranking_models_manager as rerankers
 from theflow.settings import settings as flowsettings
 
 KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
@@ -183,6 +184,15 @@ class SetupPage(BasePage):
                         "model": "embed-multilingual-v3.0",
                         "cohere_api_key": cohere_api_key,
                         "user_agent": "default",
+                    },
+                    default=True,
+                )
+                rerankers.update(
+                    name="cohere",
+                    spec={
+                        "__type__": "kotaemon.rerankings.CohereReranking",
+                        "model_name": "rerank-multilingual-v2.0",
+                        "cohere_api_key": cohere_api_key,
                     },
                     default=True,
                 )

@@ -16,6 +16,7 @@ import tiktoken
 from ktem.db.models import engine
 from ktem.embeddings.manager import embedding_models_manager
 from ktem.llms.manager import llms
+from ktem.rerankings.manager import reranking_models_manager
 from llama_index.core.readers.base import BaseReader
 from llama_index.core.readers.file.base import default_file_metadata_func
 from llama_index.core.vector_stores import (
@@ -39,12 +40,7 @@ from kotaemon.indices.ingests.files import (
     azure_reader,
     unstructured,
 )
-from kotaemon.indices.rankings import (
-    BaseReranking,
-    CohereReranking,
-    LLMReranking,
-    LLMTrulensScoring,
-)
+from kotaemon.indices.rankings import BaseReranking, LLMReranking, LLMTrulensScoring
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 
 from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
@@ -285,7 +281,13 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             ],
             retrieval_mode=user_settings["retrieval_mode"],
             llm_scorer=(LLMTrulensScoring() if use_llm_reranking else None),
-            rerankers=[CohereReranking(use_key_from_ktem=True)],
+            rerankers=[
+                reranking_models_manager[
+                    index_settings.get(
+                        "reranking", reranking_models_manager.get_default_name()
+                    )
+                ]
+            ],
         )
         if not user_settings["use_reranking"]:
             retriever.rerankers = []  # type: ignore
@@ -715,7 +717,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         for idx, file_path in enumerate(file_paths):
             file_path = Path(file_path)
             yield Document(
-                content=f"Indexing [{idx+1}/{n_files}]: {file_path.name}",
+                content=f"Indexing [{idx + 1}/{n_files}]: {file_path.name}",
                 channel="debug",
             )
 

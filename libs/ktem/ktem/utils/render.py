@@ -154,9 +154,9 @@ class Render:
             if doc.metadata.get("llm_trulens_score") is not None
             else 0.0
         )
-        cohere_reranking_score = (
-            round(doc.metadata["cohere_reranking_score"], 2)
-            if doc.metadata.get("cohere_reranking_score") is not None
+        reranking_score = (
+            round(doc.metadata["reranking_score"], 2)
+            if doc.metadata.get("reranking_score") is not None
             else 0.0
         )
         item_type_prefix = doc.metadata.get("type", "")
@@ -166,8 +166,8 @@ class Render:
 
         if llm_reranking_score > 0:
             relevant_score = llm_reranking_score
-        elif cohere_reranking_score > 0:
-            relevant_score = cohere_reranking_score
+        elif reranking_score > 0:
+            relevant_score = reranking_score
         else:
             relevant_score = 0.0
 
@@ -179,7 +179,7 @@ class Render:
             "<b>&emsp;&emsp;LLM relevant score:</b>"
             f" {llm_reranking_score}<br>"
             "<b>&emsp;&emsp;Reranking score:</b>"
-            f" {cohere_reranking_score}<br>",
+            f" {reranking_score}<br>",
         )
 
         text = doc.text if not override_text else override_text
