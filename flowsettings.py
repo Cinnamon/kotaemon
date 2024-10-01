@@ -241,7 +241,7 @@ KH_RERANKINGS["cohere"] = {
     "spec": {
         "__type__": "kotaemon.rerankings.CohereReranking",
         "model_name": "rerank-multilingual-v2.0",
-        "cohere_api_key": config("COHERE_API_KEY", default="your-key"),
+        "cohere_api_key": config("COHERE_API_KEY", default=""),
     },
     "default": True,
 }
