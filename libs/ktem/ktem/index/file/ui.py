@@ -187,6 +187,20 @@ class FileIndexPage(BasePage):
                     )
                 with gr.Row():
                     self.is_zipped_state = gr.State(value=False)
+
+                    self.download_single_button = gr.DownloadButton(
+                        "Download file",
+                        visible=False,
+                    )
+
+                with gr.Row() as self.selection_info:
+                    self.selected_file_id = gr.State(value=None)
+                    with gr.Column(scale=2):
+                        self.selected_panel = gr.Markdown(self.selected_panel_false)
+
+                self.chunks = gr.HTML(visible=False)
+
+                with gr.Accordion("Advance Options", open=False):
                     with gr.Row():
                         self.download_all_button = gr.DownloadButton(
                             "Download all files",
@@ -203,18 +217,6 @@ class FileIndexPage(BasePage):
                         self.delete_all_button_cancel = gr.Button(
                             "Cancel", visible=False
                         )
-
-                    self.download_single_button = gr.DownloadButton(
-                        "Download file",
-                        visible=False,
-                    )
-
-                with gr.Row() as self.selection_info:
-                    self.selected_file_id = gr.State(value=None)
-                    with gr.Column(scale=2):
-                        self.selected_panel = gr.Markdown(self.selected_panel_false)
-
-                self.chunks = gr.HTML(visible=False)
 
     def on_subscribe_public_events(self):
         """Subscribe to the declared public event of the app"""
