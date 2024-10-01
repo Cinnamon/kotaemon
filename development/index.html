@@ -3813,14 +3813,20 @@
     </span>
   </a>
   
-</li>
+    <nav class="md-nav" aria-label="System requirements">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#if-you-would-like-to-process-files-other-than-pdf-html-mhtml-and-xlsx-documents" class="md-nav__link">
     <span class="md-ellipsis">
-      If you would like to process files other than .pdf, .html, .mhtml, and .xlsx documents:
+      If you would like to process files other than .pdf, .html, .mhtml, and .xlsx documents
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -4036,7 +4042,7 @@ developers in mind.</p>
 <a href="https://github.com/Cinnamon/kotaemon/issues">Feedback</a></p>
 <p><a href="https://www.python.org/downloads/release/python-31013/"><img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10+-blue.svg"></a>
 <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
-<a href="https://github.com/Cinnamon/kotaemon" target="_blank">
+<a href="https://github.com/Cinnamon/kotaemon/pkgs/container/kotaemon" target="_blank">
 <img src="https://img.shields.io/badge/docker_pull-kotaemon:latest-brightgreen" alt="docker pull ghcr.io/cinnamon/kotaemon:latest"></a>
 <img alt="download" src="https://img.shields.io/github/downloads/Cinnamon/kotaemon/total.svg?label=downloads&amp;color=blue">
 <a href="https://huggingface.co/spaces/cin-model/kotaemon-demo"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue"></a>
@@ -4123,10 +4129,10 @@ Use the most recent release <code>.zip</code> to include latest features and bug
 <li>Python &gt;=3.10</li>
 <li>(optional) <a href="https://www.docker.com/">Docker</a></li>
 </ol>
-<h4 id="if-you-would-like-to-process-files-other-than-pdf-html-mhtml-and-xlsx-documents">If you would like to process files other than .pdf, .html, .mhtml, and .xlsx documents:<a class="headerlink" href="#if-you-would-like-to-process-files-other-than-pdf-html-mhtml-and-xlsx-documents" title="Permanent link">¶</a></h4>
+<h5 id="if-you-would-like-to-process-files-other-than-pdf-html-mhtml-and-xlsx-documents">If you would like to process files other than .pdf, .html, .mhtml, and .xlsx documents<a class="headerlink" href="#if-you-would-like-to-process-files-other-than-pdf-html-mhtml-and-xlsx-documents" title="Permanent link">¶</a></h5>
 <p>You will need to install the system dependencies of <a href="https://docs.unstructured.io/open-source/installation/full-installation#full-installation">unstructured</a>. The installations vary by operating system, so please go to the link and follow the instructions there.</p>
 <h4 id="with-docker-recommended">With Docker (recommended)<a class="headerlink" href="#with-docker-recommended" title="Permanent link">¶</a></h4>
-<p>We support <code>lite</code> &amp; <code>full</code> version of Docker images. With <code>full</code>, the extra packages of <code>unstructured</code> will be installed as
+<p>We support both <code>lite</code> &amp; <code>full</code> version of Docker images. With <code>full</code>, the extra packages of <code>unstructured</code> will be installed as
 well, it can support additional file types (.doc, .docx, ...) but the cost is larger docker image size. For most users, the <code>lite</code> image should work well in most cases.</p>
 <ul>
 <li>To use the <code>lite</code> version.</li>
