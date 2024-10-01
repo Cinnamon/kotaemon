@@ -68,6 +68,7 @@ RUN --mount=type=ssh  \
 
 # Copy contents
 COPY . /app
+COPY .env.example /app/.env
 
 # Install additional pip packages
 RUN --mount=type=ssh  \

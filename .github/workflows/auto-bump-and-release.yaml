@@ -34,6 +34,7 @@ jobs:
           cp LICENSE.txt kotaemon-app/
           cp flowsettings.py kotaemon-app/
           cp app.py kotaemon-app/
+          cp .env.example kotaemon-app/.env
           cp -r scripts kotaemon-app/
           mkdir -p kotaemon-app/libs/ktem/ktem/
           cp -r libs/ktem/ktem/assets kotaemon-app/libs/ktem/ktem/

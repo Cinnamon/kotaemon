@@ -200,7 +200,7 @@ class FileIndexPage(BasePage):
 
                 self.chunks = gr.HTML(visible=False)
 
-                with gr.Accordion("Advance Options", open=False):
+                with gr.Accordion("Advance options", open=False):
                     with gr.Row():
                         self.download_all_button = gr.DownloadButton(
                             "Download all files",
