@@ -7,6 +7,8 @@ from ktem.app import BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
 from theflow.utils.modules import deserialize
 
+from kotaemon.base import Document
+
 from .manager import reranking_models_manager
 
 
@@ -348,7 +350,7 @@ class RerankingManagement(BasePage):
 
             log_content += "- Sending a message ([`Hello`], `Hi`)<br>"
             yield log_content
-            _ = rerank(["Hello"], "Hi")
+            _ = rerank([Document(content="Hello")], "Hi")
 
             log_content += (
                 "<mark style='background: green; color: white'>- Connection success. "
