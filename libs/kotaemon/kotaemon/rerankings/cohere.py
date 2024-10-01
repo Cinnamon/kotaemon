@@ -34,7 +34,7 @@ class CohereReranking(BaseReranking):
                 "Please install Cohere " "`pip install cohere` to use Cohere Reranking"
             )
 
-        if not self.cohere_api_key:
+        if not self.cohere_api_key or "COHERE_API_KEY" in self.cohere_api_key:
             print("Cohere API key not found. Skipping rerankings.")
             return documents
 
