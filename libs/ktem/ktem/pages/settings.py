@@ -383,6 +383,8 @@ class SettingsPage(BasePage):
             if result:
                 settings = result[0].setting
 
+        extension_manager.load(settings)
+
         output = [settings]
         output += tuple(settings[name] for name in self.component_names())
         return output
@@ -431,10 +433,6 @@ class SettingsPage(BasePage):
                 inputs=self._user_id,
                 outputs=[self._settings_state] + self.components(),
                 show_progress="hidden",
-            ).then(
-                fn=lambda state: extension_manager.load(state),
-                inputs=[self._settings_state],
-                outputs=None
             )
 
         def update_llms():

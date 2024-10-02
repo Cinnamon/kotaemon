@@ -26,6 +26,7 @@ from kotaemon.loaders import (
     UnstructuredReader, 
     ImageReader,
 )
+from libs.kotaemon.kotaemon.indices.ingests.extension_manager import extension_manager
 
 web_reader = WebReader()
 unstructured = UnstructuredReader()
@@ -41,23 +42,23 @@ adobe_reader.vlm_endpoint = (
 ) = docling_reader.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
 
 
-KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
-    ".xlsx": PandasExcelReader(),
-    ".docx": unstructured,
-    ".pptx": unstructured,
-    ".xls": unstructured,
-    ".doc": unstructured,
-    ".html": HtmlReader(),
-    ".mhtml": MhtmlReader(),
-    ".png": ImageReader(),
-    ".jpeg": ImageReader(),
-    ".jpg": ImageReader(),
-    ".tiff": unstructured,
-    ".tif": unstructured,
-    ".pdf": PDFThumbnailReader(),
-    ".txt": TxtReader(),
-    ".md": TxtReader(),
-}
+# KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
+#     ".xlsx": PandasExcelReader(),
+#     ".docx": unstructured,
+#     ".pptx": unstructured,
+#     ".xls": unstructured,
+#     ".doc": unstructured,
+#     ".html": HtmlReader(),
+#     ".mhtml": MhtmlReader(),
+#     ".png": ImageReader(),
+#     ".jpeg": ImageReader(),
+#     ".jpg": ImageReader(),
+#     ".tiff": unstructured,
+#     ".tif": unstructured,
+#     ".pdf": PDFThumbnailReader(),
+#     ".txt": TxtReader(),
+#     ".md": TxtReader(),
+# }
 
 
 class DocumentIngestor(BaseComponent):
@@ -92,7 +93,7 @@ class DocumentIngestor(BaseComponent):
     def _get_reader(self, input_files: list[str | Path]):
         """Get appropriate readers for the input files based on file extension"""
         file_extractors: dict[str, BaseReader] = {
-            ext: reader for ext, reader in KH_DEFAULT_FILE_EXTRACTORS.items()
+            ext: reader for ext, reader in extension_manager.get_current_loader().items()
         }
         for ext, cls in self.override_file_extractors.items():
             file_extractors[ext] = cls()
