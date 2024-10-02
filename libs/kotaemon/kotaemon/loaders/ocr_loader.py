@@ -250,10 +250,14 @@ class GOCR2ImageReader(BaseReader):
         extra_info = extra_info or {}
         result = []
         for ocr_result in ocr_results:
+            metadata = {"file_name": file_path.name, "page_label": 1}
+            if extra_info is not None:
+                metadata.update(extra_info)
+
             result.append(
                 Document(
                     content=ocr_result,
-                    metadata=extra_info,
+                    metadata=metadata,
                 )
             )
 
