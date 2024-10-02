@@ -91,6 +91,9 @@ class KnetRetrievalPipeline(BaseFileIndexRetriever):
             chunks = yaml.safe_load(response.content)
             for chunk in chunks:
                 metadata = chunk["node"]["metadata"]
+                metadata["page_label"] = metadata.get(
+                    "pageIdx", metadata.get("parentPageIdx", "")
+                )
                 metadata["type"] = metadata_translation.get(
                     metadata.pop("content_type", ""), ""
                 )
