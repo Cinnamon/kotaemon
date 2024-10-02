@@ -12,14 +12,13 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
           stale-issue-message: |
-            'This issue is stale because it has not received any activities recently.'
-          stale-pr-message: |
-            'This issue is stale because it has not received any activities recently.'
-          close-issue-message: |
-            'This issue was closed because it has been stalled with no activity.'
+            Hi folk 😊, it looks like this issue has been inactive for a while. Is there any update or further action
+            needed? If not, we might consider closing it soon to keep our board clean and focused.
 
-          days-before-issue-stale: 1
-          days-before-issue-close: 0
+            But don't worry, you can reopen it anytime when needed.Thank you for your contributions to Kotaemon🪴
+
+          days-before-issue-stale: 30
+          days-before-issue-close: 3
           days-before-pr-stale: 90
           days-before-pr-close: -1
           exempt-issue-labels: "documentation,tutorial,TODO"
