@@ -227,7 +227,7 @@ class GOCR2ImageReader(BaseReader):
             after=after_log(logger, logging.WARNING),
         )
         def _tenacious_api_post(
-            url: str, file_path: str, ocr_type: str = "ocr", **kwargs
+            url: str, file_path: Path, ocr_type: str = "ocr", **kwargs
         ):
             with file_path.open("rb") as content:
                 files = {"file": content}

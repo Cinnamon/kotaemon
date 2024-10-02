@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any
 
 from decouple import config
 from llama_index.core.readers.base import BaseReader
@@ -9,7 +10,6 @@ from kotaemon.loaders import (
     AzureAIDocumentIntelligenceLoader,
     GOCR2ImageReader,
     HtmlReader,
-    ImageReader,
     MhtmlReader,
     PandasExcelReader,
     PDFThumbnailReader,
@@ -27,24 +27,6 @@ azure_reader = AzureAIDocumentIntelligenceLoader(
 adobe_reader.vlm_endpoint = azure_reader.vlm_endpoint = getattr(
     flowsettings, "KH_VLM_ENDPOINT", ""
 )
-
-KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
-    ".xlsx": PandasExcelReader(),
-    ".docx": unstructured,
-    ".pptx": unstructured,
-    ".xls": unstructured,
-    ".doc": unstructured,
-    ".html": HtmlReader(),
-    ".mhtml": MhtmlReader(),
-    ".png": ImageReader(),
-    ".jpeg": ImageReader(),
-    ".jpg": ImageReader(),
-    ".tiff": unstructured,
-    ".tif": unstructured,
-    ".pdf": PDFThumbnailReader(),
-    ".txt": TxtReader(),
-    ".md": TxtReader(),
-}
 
 
 class ExtensionManager:
@@ -131,7 +113,7 @@ class ExtensionManager:
 
         raise Exception(f"can not find the selected loader for extension: {extension}")
 
-    def generate_gradio_settings(self) -> dict[str, dict]:
+    def generate_gradio_settings(self) -> dict[str, Any]:
         """Generates the settings dictionary for use in Gradio."""
         settings = {}
 

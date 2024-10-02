@@ -8,6 +8,7 @@ from theflow.settings import settings as flowsettings
 
 from kotaemon.base import BaseComponent, Document, Param
 from kotaemon.indices.extractors import BaseDocParser
+from kotaemon.indices.ingests.extensions import extension_manager
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 from kotaemon.loaders import (
     AdobeReader,
@@ -25,7 +26,6 @@ from kotaemon.loaders import (
     UnstructuredReader, 
     ImageReader,
 )
-from libs.kotaemon.kotaemon.indices.ingests.extensions import extension_manager
 
 web_reader = WebReader()
 unstructured = UnstructuredReader()
@@ -39,25 +39,6 @@ docling_reader = DoclingReader()
 adobe_reader.vlm_endpoint = (
     azure_reader.vlm_endpoint
 ) = docling_reader.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
-
-
-# KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
-#     ".xlsx": PandasExcelReader(),
-#     ".docx": unstructured,
-#     ".pptx": unstructured,
-#     ".xls": unstructured,
-#     ".doc": unstructured,
-#     ".html": HtmlReader(),
-#     ".mhtml": MhtmlReader(),
-#     ".png": ImageReader(),
-#     ".jpeg": ImageReader(),
-#     ".jpg": ImageReader(),
-#     ".tiff": unstructured,
-#     ".tif": unstructured,
-#     ".pdf": PDFThumbnailReader(),
-#     ".txt": TxtReader(),
-#     ".md": TxtReader(),
-# }
 
 
 class DocumentIngestor(BaseComponent):
