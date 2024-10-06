@@ -1,6 +1,6 @@
 name: "Feature Request"
 description: Brainstorm and propose new features for the project
-title: "[REQUEST] - <title>"
+title: "[REQUEST] "
 labels: ["enhancement"]
 body:
   - type: markdown
