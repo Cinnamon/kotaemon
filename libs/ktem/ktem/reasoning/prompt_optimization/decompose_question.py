@@ -52,6 +52,7 @@ class DecomposeQuestionPipeline(RewriteQuestionPipeline):
         llm_kwargs = {
             "tools": [{"type": "function", "function": function}],
             "tool_choice": "auto",
+            "tools_pydantic": [SubQuery],
         }
 
         messages = [

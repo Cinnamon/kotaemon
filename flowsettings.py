@@ -24,9 +24,13 @@ if not KH_APP_VERSION:
     except Exception:
         KH_APP_VERSION = "local"
 
+KH_ENABLE_FIRST_SETUP = True
+KH_DEMO_MODE = config("KH_DEMO_MODE", default=False, cast=bool)
+
 # App can be ran from anywhere and it's not trivial to decide where to store app data.
 # So let's use the same directory as the flowsetting.py file.
 KH_APP_DATA_DIR = this_dir / "ktem_app_data"
+KH_APP_DATA_EXISTS = KH_APP_DATA_DIR.exists()
 KH_APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # User data directory
@@ -59,7 +63,9 @@ os.environ["HF_HUB_CACHE"] = str(KH_APP_DATA_DIR / "huggingface")
 KH_DOC_DIR = this_dir / "docs"
 
 KH_MODE = "dev"
-KH_FEATURE_USER_MANAGEMENT = True
+KH_FEATURE_USER_MANAGEMENT = config(
+    "KH_FEATURE_USER_MANAGEMENT", default=True, cast=bool
+)
 KH_USER_CAN_SEE_PUBLIC = None
 KH_FEATURE_USER_MANAGEMENT_ADMIN = str(
     config("KH_FEATURE_USER_MANAGEMENT_ADMIN", default="admin")
@@ -86,6 +92,7 @@ KH_VECTORSTORE = {
 }
 KH_LLMS = {}
 KH_EMBEDDINGS = {}
+KH_RERANKINGS = {}
 
 # populate options from config
 if config("AZURE_OPENAI_API_KEY", default="") and config(
@@ -185,14 +192,14 @@ KH_LLMS["claude"] = {
     },
     "default": False,
 }
-# KH_LLMS["gemini"] = {
-#     "spec": {
-#         "__type__": "kotaemon.llms.chats.LCGeminiChat",
-#         "model_name": "gemini-1.5-pro",
-#         "api_key": "your-key",
-#     },
-#     "default": False,
-# }
+KH_LLMS["gemini"] = {
+    "spec": {
+        "__type__": "kotaemon.llms.chats.LCGeminiChat",
+        "model_name": "gemini-1.5-pro",
+        "api_key": "your-key",
+    },
+    "default": False,
+}
 KH_LLMS["groq"] = {
     "spec": {
         "__type__": "kotaemon.llms.ChatOpenAI",
@@ -202,13 +209,21 @@ KH_LLMS["groq"] = {
     },
     "default": False,
 }
+KH_LLMS["cohere"] = {
+    "spec": {
+        "__type__": "kotaemon.llms.chats.LCCohereChat",
+        "model_name": "command-r-plus-08-2024",
+        "api_key": config("COHERE_API_KEY", default="your-key"),
+    },
+    "default": False,
+}
 
 # additional embeddings configurations
 KH_EMBEDDINGS["cohere"] = {
     "spec": {
         "__type__": "kotaemon.embeddings.LCCohereEmbeddings",
-        "model": "embed-multilingual-v2.0",
-        "cohere_api_key": "your-key",
+        "model": "embed-multilingual-v3.0",
+        "cohere_api_key": config("COHERE_API_KEY", default="your-key"),
         "user_agent": "default",
     },
     "default": False,
@@ -220,6 +235,16 @@ KH_EMBEDDINGS["cohere"] = {
 #     },
 #     "default": False,
 # }
+
+# default reranking models
+KH_RERANKINGS["cohere"] = {
+    "spec": {
+        "__type__": "kotaemon.rerankings.CohereReranking",
+        "model_name": "rerank-multilingual-v2.0",
+        "cohere_api_key": config("COHERE_API_KEY", default=""),
+    },
+    "default": True,
+}
 
 KH_REASONINGS = [
     "ktem.reasoning.simple.FullQAPipeline",

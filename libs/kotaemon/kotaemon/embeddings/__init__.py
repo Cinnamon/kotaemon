@@ -8,10 +8,12 @@ from .langchain_based import (
     LCOpenAIEmbeddings,
 )
 from .openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
+from .tei_endpoint_embed import TeiEndpointEmbeddings
 
 __all__ = [
     "BaseEmbeddings",
     "EndpointEmbeddings",
+    "TeiEndpointEmbeddings",
     "LCOpenAIEmbeddings",
     "LCAzureOpenAIEmbeddings",
     "LCCohereEmbeddings",

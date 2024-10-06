@@ -7,7 +7,9 @@ from ktem.app import BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
 from theflow.utils.modules import deserialize
 
-from .manager import embedding_models_manager
+from kotaemon.base import Document
+
+from .manager import reranking_models_manager
 
 
 def format_description(cls):
@@ -20,7 +22,7 @@ def format_description(cls):
     return f"{cls.__doc__}\n\n" + "\n".join(params_lines)
 
 
-class EmbeddingManagement(BasePage):
+class RerankingManagement(BasePage):
     def __init__(self, app):
         self._app = app
         self.spec_desc_default = (
@@ -30,21 +32,21 @@ class EmbeddingManagement(BasePage):
 
     def on_building_ui(self):
         with gr.Tab(label="View"):
-            self.emb_list = gr.DataFrame(
+            self.rerank_list = gr.DataFrame(
                 headers=["name", "vendor", "default"],
                 interactive=False,
             )
 
             with gr.Column(visible=False) as self._selected_panel:
-                self.selected_emb_name = gr.Textbox(value="", visible=False)
+                self.selected_rerank_name = gr.Textbox(value="", visible=False)
                 with gr.Row():
                     with gr.Column():
                         self.edit_default = gr.Checkbox(
                             label="Set default",
                             info=(
-                                "Set this Embedding model as default. This default "
-                                "Embedding will be used by other components by default "
-                                "if no Embedding is specified for such components."
+                                "Set this Reranking model as default. This default "
+                                "Reranking will be used by other components by default "
+                                "if no Reranking is specified for such components."
                             ),
                         )
                         self.edit_spec = gr.Textbox(
@@ -97,13 +99,13 @@ class EmbeddingManagement(BasePage):
                         label="Name",
                         info=(
                             "Must be unique and non-empty. "
-                            "The name will be used to identify the embedding model."
+                            "The name will be used to identify the reranking model."
                         ),
                     )
-                    self.emb_choices = gr.Dropdown(
+                    self.rerank_choices = gr.Dropdown(
                         label="Vendors",
                         info=(
-                            "Choose the vendor of the Embedding model. Each vendor "
+                            "Choose the vendor of the Reranking model. Each vendor "
                             "has different specification."
                         ),
                     )
@@ -114,9 +116,9 @@ class EmbeddingManagement(BasePage):
                     self.default = gr.Checkbox(
                         label="Set default",
                         info=(
-                            "Set this Embedding model as default. This default "
-                            "Embedding will be used by other components by default "
-                            "if no Embedding is specified for such components."
+                            "Set this Reranking model as default. This default "
+                            "Reranking will be used by other components by default "
+                            "if no Reranking is specified for such components."
                         ),
                     )
                     self.btn_new = gr.Button("Add", variant="primary")
@@ -127,17 +129,17 @@ class EmbeddingManagement(BasePage):
     def _on_app_created(self):
         """Called when the app is created"""
         self._app.app.load(
-            self.list_embeddings,
+            self.list_rerankings,
             inputs=[],
-            outputs=[self.emb_list],
+            outputs=[self.rerank_list],
         )
         self._app.app.load(
-            lambda: gr.update(choices=list(embedding_models_manager.vendors().keys())),
-            outputs=[self.emb_choices],
+            lambda: gr.update(choices=list(reranking_models_manager.vendors().keys())),
+            outputs=[self.rerank_choices],
         )
 
-    def on_emb_vendor_change(self, vendor):
-        vendor = embedding_models_manager.vendors()[vendor]
+    def on_rerank_vendor_change(self, vendor):
+        vendor = reranking_models_manager.vendors()[vendor]
 
         required: dict = {}
         desc = vendor.describe()
@@ -145,37 +147,37 @@ class EmbeddingManagement(BasePage):
             if value.get("required", False):
                 required[key] = value.get("default", None)
 
-        return yaml.dump(required), format_description(vendor)
+            return yaml.dump(required), format_description(vendor)
 
     def on_register_events(self):
-        self.emb_choices.select(
-            self.on_emb_vendor_change,
-            inputs=[self.emb_choices],
+        self.rerank_choices.select(
+            self.on_rerank_vendor_change,
+            inputs=[self.rerank_choices],
             outputs=[self.spec, self.spec_desc],
         )
         self.btn_new.click(
-            self.create_emb,
-            inputs=[self.name, self.emb_choices, self.spec, self.default],
+            self.create_rerank,
+            inputs=[self.name, self.rerank_choices, self.spec, self.default],
             outputs=None,
-        ).success(self.list_embeddings, inputs=[], outputs=[self.emb_list]).success(
+        ).success(self.list_rerankings, inputs=[], outputs=[self.rerank_list]).success(
             lambda: ("", None, "", False, self.spec_desc_default),
             outputs=[
                 self.name,
-                self.emb_choices,
+                self.rerank_choices,
                 self.spec,
                 self.default,
                 self.spec_desc,
             ],
         )
-        self.emb_list.select(
-            self.select_emb,
-            inputs=self.emb_list,
-            outputs=[self.selected_emb_name],
+        self.rerank_list.select(
+            self.select_rerank,
+            inputs=self.rerank_list,
+            outputs=[self.selected_rerank_name],
             show_progress="hidden",
         )
-        self.selected_emb_name.change(
-            self.on_selected_emb_change,
-            inputs=[self.selected_emb_name],
+        self.selected_rerank_name.change(
+            self.on_selected_rerank_change,
+            inputs=[self.selected_rerank_name],
             outputs=[
                 self._selected_panel,
                 self._selected_panel_btn,
@@ -199,14 +201,14 @@ class EmbeddingManagement(BasePage):
             show_progress="hidden",
         )
         self.btn_delete_yes.click(
-            self.delete_emb,
-            inputs=[self.selected_emb_name],
-            outputs=[self.selected_emb_name],
+            self.delete_rerank,
+            inputs=[self.selected_rerank_name],
+            outputs=[self.selected_rerank_name],
             show_progress="hidden",
         ).then(
-            self.list_embeddings,
+            self.list_rerankings,
             inputs=[],
-            outputs=[self.emb_list],
+            outputs=[self.rerank_list],
         )
         self.btn_delete_no.click(
             lambda: (
@@ -219,47 +221,44 @@ class EmbeddingManagement(BasePage):
             show_progress="hidden",
         )
         self.btn_edit_save.click(
-            self.save_emb,
+            self.save_rerank,
             inputs=[
-                self.selected_emb_name,
+                self.selected_rerank_name,
                 self.edit_default,
                 self.edit_spec,
             ],
             show_progress="hidden",
         ).then(
-            self.list_embeddings,
+            self.list_rerankings,
             inputs=[],
-            outputs=[self.emb_list],
+            outputs=[self.rerank_list],
         )
-        self.btn_close.click(
-            lambda: "",
-            outputs=[self.selected_emb_name],
-        )
+        self.btn_close.click(lambda: "", outputs=[self.selected_rerank_name])
 
         self.btn_test_connection.click(
             self.check_connection,
-            inputs=[self.selected_emb_name, self.edit_spec],
+            inputs=[self.selected_rerank_name, self.edit_spec],
             outputs=[self.connection_logs],
         )
 
-    def create_emb(self, name, choices, spec, default):
+    def create_rerank(self, name, choices, spec, default):
         try:
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
             spec["__type__"] = (
-                embedding_models_manager.vendors()[choices].__module__
+                reranking_models_manager.vendors()[choices].__module__
                 + "."
-                + embedding_models_manager.vendors()[choices].__qualname__
+                + reranking_models_manager.vendors()[choices].__qualname__
             )
 
-            embedding_models_manager.add(name, spec=spec, default=default)
-            gr.Info(f'Create Embedding model "{name}" successfully')
+            reranking_models_manager.add(name, spec=spec, default=default)
+            gr.Info(f'Create Reranking model "{name}" successfully')
         except Exception as e:
-            raise gr.Error(f"Failed to create Embedding model {name}: {e}")
+            raise gr.Error(f"Failed to create Reranking model {name}: {e}")
 
-    def list_embeddings(self):
-        """List the Embedding models"""
+    def list_rerankings(self):
+        """List the Reranking models"""
         items = []
-        for item in embedding_models_manager.info().values():
+        for item in reranking_models_manager.info().values():
             record = {}
             record["name"] = item["name"]
             record["vendor"] = item["spec"].get("__type__", "-").split(".")[-1]
@@ -267,26 +266,26 @@ class EmbeddingManagement(BasePage):
             items.append(record)
 
         if items:
-            emb_list = pd.DataFrame.from_records(items)
+            rerank_list = pd.DataFrame.from_records(items)
         else:
-            emb_list = pd.DataFrame.from_records(
+            rerank_list = pd.DataFrame.from_records(
                 [{"name": "-", "vendor": "-", "default": "-"}]
             )
 
-        return emb_list
+        return rerank_list
 
-    def select_emb(self, emb_list, ev: gr.SelectData):
+    def select_rerank(self, rerank_list, ev: gr.SelectData):
         if ev.value == "-" and ev.index[0] == 0:
-            gr.Info("No embedding model is loaded. Please add first")
+            gr.Info("No reranking model is loaded. Please add first")
             return ""
 
         if not ev.selected:
             return ""
 
-        return emb_list["name"][ev.index[0]]
+        return rerank_list["name"][ev.index[0]]
 
-    def on_selected_emb_change(self, selected_emb_name):
-        if selected_emb_name == "":
+    def on_selected_rerank_change(self, selected_rerank_name):
+        if selected_rerank_name == "":
             _check_connection_panel = gr.update(visible=False)
             _selected_panel = gr.update(visible=False)
             _selected_panel_btn = gr.update(visible=False)
@@ -304,9 +303,9 @@ class EmbeddingManagement(BasePage):
             btn_delete_yes = gr.update(visible=False)
             btn_delete_no = gr.update(visible=False)
 
-            info = deepcopy(embedding_models_manager.info()[selected_emb_name])
+            info = deepcopy(reranking_models_manager.info()[selected_rerank_name])
             vendor_str = info["spec"].pop("__type__", "-").split(".")[-1]
-            vendor = embedding_models_manager.vendors()[vendor_str]
+            vendor = reranking_models_manager.vendors()[vendor_str]
 
             edit_spec = yaml.dump(info["spec"])
             edit_spec_desc = format_description(vendor)
@@ -331,27 +330,27 @@ class EmbeddingManagement(BasePage):
 
         return btn_delete, btn_delete_yes, btn_delete_no
 
-    def check_connection(self, selected_emb_name, selected_spec):
+    def check_connection(self, selected_rerank_name, selected_spec):
         log_content: str = ""
         try:
-            log_content += f"- Testing model: {selected_emb_name}<br>"
+            log_content += f"- Testing model: {selected_rerank_name}<br>"
             yield log_content
 
             # Parse content & init model
-            info = deepcopy(embedding_models_manager.info()[selected_emb_name])
+            info = deepcopy(reranking_models_manager.info()[selected_rerank_name])
 
-            # Parse content & create dummy embedding
+            # Parse content & create dummy response
             spec = yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
             info["spec"].update(spec)
 
-            emb = deserialize(info["spec"], safe=False)
+            rerank = deserialize(info["spec"], safe=False)
 
-            if emb is None:
-                raise Exception(f"Can not found model: {selected_emb_name}")
+            if rerank is None:
+                raise Exception(f"Can not found model: {selected_rerank_name}")
 
-            log_content += "- Sending a message `Hi`<br>"
+            log_content += "- Sending a message ([`Hello`], `Hi`)<br>"
             yield log_content
-            _ = emb("Hi")
+            _ = rerank([Document(content="Hello")], "Hi")
 
             log_content += (
                 "<mark style='background: green; color: white'>- Connection success. "
@@ -359,7 +358,7 @@ class EmbeddingManagement(BasePage):
             )
             yield log_content
 
-            gr.Info(f"Embedding {selected_emb_name} connect successfully")
+            gr.Info(f"Embedding {selected_rerank_name} connect successfully")
         except Exception as e:
             print(e)
             log_content += (
@@ -370,24 +369,24 @@ class EmbeddingManagement(BasePage):
 
         return log_content
 
-    def save_emb(self, selected_emb_name, default, spec):
+    def save_rerank(self, selected_rerank_name, default, spec):
         try:
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
-            spec["__type__"] = embedding_models_manager.info()[selected_emb_name][
+            spec["__type__"] = reranking_models_manager.info()[selected_rerank_name][
                 "spec"
             ]["__type__"]
-            embedding_models_manager.update(
-                selected_emb_name, spec=spec, default=default
+            reranking_models_manager.update(
+                selected_rerank_name, spec=spec, default=default
             )
-            gr.Info(f'Save Embedding model "{selected_emb_name}" successfully')
+            gr.Info(f'Save Reranking model "{selected_rerank_name}" successfully')
         except Exception as e:
-            gr.Error(f'Failed to save Embedding model "{selected_emb_name}": {e}')
+            gr.Error(f'Failed to save Embedding model "{selected_rerank_name}": {e}')
 
-    def delete_emb(self, selected_emb_name):
+    def delete_rerank(self, selected_rerank_name):
         try:
-            embedding_models_manager.delete(selected_emb_name)
+            reranking_models_manager.delete(selected_rerank_name)
         except Exception as e:
-            gr.Error(f'Failed to delete Embedding model "{selected_emb_name}": {e}')
-            return selected_emb_name
+            gr.Error(f'Failed to delete Reranking model "{selected_rerank_name}": {e}')
+            return selected_rerank_name
 
         return ""

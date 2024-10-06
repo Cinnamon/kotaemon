@@ -1,12 +1,23 @@
-from typing import Any, List, Optional, Type, cast
-
-from llama_index.vector_stores.qdrant import QdrantVectorStore as LIQdrantVectorStore
+from typing import Any, List, Optional, cast
 
 from .base import LlamaIndexVectorStore
 
 
 class QdrantVectorStore(LlamaIndexVectorStore):
-    _li_class: Type[LIQdrantVectorStore] = LIQdrantVectorStore
+    _li_class = None
+
+    def _get_li_class(self):
+        try:
+            from llama_index.vector_stores.qdrant import (
+                QdrantVectorStore as LIQdrantVectorStore,
+            )
+        except ImportError:
+            raise ImportError(
+                "Please install missing package: "
+                "'pip install llama-index-vector-stores-qdrant'"
+            )
+
+        return LIQdrantVectorStore
 
     def __init__(
         self,
@@ -29,6 +40,10 @@ class QdrantVectorStore(LlamaIndexVectorStore):
             client_kwargs=client_kwargs,
             **kwargs,
         )
+        from llama_index.vector_stores.qdrant import (
+            QdrantVectorStore as LIQdrantVectorStore,
+        )
+
         self._client = cast(LIQdrantVectorStore, self._client)
 
     def delete(self, ids: List[str], **kwargs):
