@@ -16,6 +16,11 @@ from kotaemon.base import Document, Param, RetrievedDocument
 from ..pipelines import BaseFileIndexRetriever, IndexDocumentPipeline, IndexPipeline
 from .visualize import create_knowledge_graph, visualize_graph
 
+from dotenv import load_dotenv
+load_dotenv()
+
+import yaml
+
 try:
     from graphrag.query.context_builder.entity_extraction import EntityVectorStoreKey
     from graphrag.query.indexer_adapters import (
@@ -96,6 +101,45 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
 
     def call_graphrag_index(self, input_path: str):
         # Construct the command
+
+        # generate project structure only
+        command = ["python",
+                   "-m",
+                   "graphrag.index",
+                   "--root",
+                   input_path,
+                   "--init"]
+        result = subprocess.run(command, capture_output=True, text=True)
+        print(result.stdout)
+        
+        graphrag_use_private_model = os.getenv("GRAPHRAG_USE_PRIVATE_MODE")
+        
+        if graphrag_use_private_model in ['True', 'true']:
+        
+            file_path = input_path+"/settings.yaml"  # Path to setting.yaml
+            # Read the YAML file
+            with open(input_path+'/settings.yaml', 'r') as file:
+                data = yaml.safe_load(file)
+
+            # Update the values
+            data['llm']['api_key'] = os.getenv("GRAPHRAG_LLM_API_KEY")
+            data['llm']['type'] = os.getenv("GRAPHRAG_LLM_TYPE")
+            data['llm']['api_base'] = os.getenv("GRAPHRAG_LLM_API_BASE")
+            data['llm']['model'] = os.getenv("GRAPHRAG_LLM_MODEL")
+
+            data['embeddings']['llm']['api_key'] = os.getenv(
+                "GRAPHRAG_EMBEDDING_API_KEY")
+            data['embeddings']['llm']['type'] = os.getenv(
+                "GRAPHRAG_EMBEDDING_TYPE")
+            data['embeddings']['llm']['api_base'] = os.getenv(
+                "GRAPHRAG_EMBEDDING_API_BASE")
+            data['embeddings']['llm']['model'] = os.getenv(
+                "GRAPHRAG_EMBEDDING_MODEL")
+
+            # Write the updated YAML back to the file
+            with open(input_path+'/settings.yaml', 'w') as file:
+                yaml.dump(data, file)
+
         command = [
             "python",
             "-m",
@@ -104,7 +148,7 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
             input_path,
             "--reporter",
             "rich",
-            "--init",
+            # "--init",
         ]
 
         # Run the command
@@ -112,9 +156,9 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
             channel="debug",
             text="[GraphRAG] Creating index... This can take a long time.",
         )
-        result = subprocess.run(command, capture_output=True, text=True)
-        print(result.stdout)
-        command = command[:-1]
+        # result = subprocess.run(command, capture_output=True, text=True)
+        # print(result.stdout)
+        # command = command[:-1]
 
         # Run the command and stream stdout
         with subprocess.Popen(command, stdout=subprocess.PIPE, text=True) as process:
@@ -177,15 +221,15 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
 
         root_path, _ = prepare_graph_index_path(graph_id)
         output_path = root_path / "output"
-        child_paths = sorted(
-            list(output_path.iterdir()), key=lambda x: x.stem, reverse=True
-        )
+        # child_paths = sorted(
+        #     list(output_path.iterdir()), key=lambda x: x.stem, reverse=True
+        # )
 
-        # get the latest child path
-        assert child_paths, "GraphRAG index output not found"
-        latest_child_path = Path(child_paths[0]) / "artifacts"
+        # # get the latest child path
+        # assert child_paths, "GraphRAG index output not found"
+        # latest_child_path = Path(child_paths[0]) / "artifacts"
 
-        INPUT_DIR = latest_child_path
+        INPUT_DIR = output_path
         LANCEDB_URI = str(INPUT_DIR / "lancedb")
         COMMUNITY_REPORT_TABLE = "create_final_community_reports"
         ENTITY_TABLE = "create_final_nodes"
@@ -237,6 +281,19 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             deployment_name=embedding_model,
             max_retries=20,
         )
+
+        graphrag_use_private_model = os.getenv("GRAPHRAG_USE_PRIVATE_MODE")
+        
+        if graphrag_use_private_model in ['True', 'true']:
+            text_embedder = OpenAIEmbedding(
+                api_key=os.getenv("GRAPHRAG_EMBEDDING_API_KEY"),
+                api_base=os.getenv("GRAPHRAG_EMBEDDING_API_BASE"),
+                api_type=os.getenv("GRAPHRAG_EMBEDDING_TYPE"),
+                model=os.getenv("GRAPHRAG_EMBEDDING_MODEL"),
+                # deployment_name=embedding_model,
+                max_retries=20,
+            )
+
         token_encoder = tiktoken.get_encoding("cl100k_base")
 
         context_builder = LocalSearchMixedContext(
