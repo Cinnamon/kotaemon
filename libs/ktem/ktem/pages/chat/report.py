@@ -1,4 +1,3 @@
-import json
 import os
 from typing import Optional
 
@@ -95,13 +94,12 @@ class ReportIssue(BasePage):
         # forward feedback to KNet service
         try:
             data = {
-                "feedback": json.dumps(issue_dict),
+                "issues": issue_dict,
                 "conv_id": conv_id,
             }
             print(data)
-            response = requests.post(self.knet_endpoint, data=data)
+            response = requests.post(self.knet_endpoint, json=data)
             response.raise_for_status()
-            print(response.text)
         except Exception as e:
             print("Error submitting Knet feedback:", e)
 
