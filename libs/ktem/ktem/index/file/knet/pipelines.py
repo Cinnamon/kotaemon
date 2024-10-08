@@ -70,6 +70,8 @@ class KnetRetrievalPipeline(BaseFileIndexRetriever):
             doc_ids: list of document ids to constraint the retrieval
         """
         print("searching in doc_ids", doc_ids)
+        conv_id = kwargs.get("conv_id", "")
+
         if not doc_ids:
             return []
 
@@ -78,6 +80,7 @@ class KnetRetrievalPipeline(BaseFileIndexRetriever):
             "query": text,
             "collection": self.collection_name,
             "meta_filters": {"doc_name": doc_ids},
+            "conv_id": conv_id,
         }
         params["meta_filters"] = json.dumps(params["meta_filters"])
         response = requests.get(self.DEFAULT_KNET_ENDPOINT, params=params)

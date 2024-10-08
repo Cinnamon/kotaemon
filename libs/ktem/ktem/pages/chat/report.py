@@ -1,6 +1,9 @@
+import json
+import os
 from typing import Optional
 
 import gradio as gr
+import requests
 from ktem.app import BasePage
 from ktem.db.models import IssueReport, engine
 from sqlmodel import Session
@@ -8,6 +11,10 @@ from sqlmodel import Session
 
 class ReportIssue(BasePage):
     def __init__(self, app):
+        self.knet_endpoint = (
+            os.environ.get("KN_ENDPOINT", "http://127.0.0.1:8081") + "/feedback"
+        )
+
         self._app = app
         self.on_building_ui()
 
@@ -64,13 +71,14 @@ class ReportIssue(BasePage):
                 else:
                     print(f"Unknown selector type: {index.selector}")
 
+        issue_dict = {
+            "correctness": correctness,
+            "issues": issues,
+            "more_detail": more_detail,
+        }
         with Session(engine) as session:
             issue = IssueReport(
-                issues={
-                    "correctness": correctness,
-                    "issues": issues,
-                    "more_detail": more_detail,
-                },
+                issues=issue_dict,
                 chat={
                     "conv_id": conv_id,
                     "chat_history": chat_history,
@@ -83,4 +91,18 @@ class ReportIssue(BasePage):
             )
             session.add(issue)
             session.commit()
+
+        # forward feedback to KNet service
+        try:
+            data = {
+                "feedback": json.dumps(issue_dict),
+                "conv_id": conv_id,
+            }
+            print(data)
+            response = requests.post(self.knet_endpoint, data=data)
+            response.raise_for_status()
+            print(response.text)
+        except Exception as e:
+            print("Error submitting Knet feedback:", e)
+
         gr.Info("Thank you for your feedback")

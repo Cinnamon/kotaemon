@@ -516,7 +516,10 @@ class FullQAPipeline(BaseReasoning):
     use_rewrite: bool = False
 
     def retrieve(
-        self, message: str, history: list
+        self,
+        message: str,
+        history: list,
+        conv_id: str | None = None,
     ) -> tuple[list[RetrievedDocument], list[Document]]:
         """Retrieve the documents based on the message"""
         # if len(message) < self.trigger_context:
@@ -539,7 +542,7 @@ class FullQAPipeline(BaseReasoning):
 
         for idx, retriever in enumerate(self.retrievers):
             retriever_node = self._prepare_child(retriever, f"retriever_{idx}")
-            retriever_docs = retriever_node(text=query)
+            retriever_docs = retriever_node(text=query, conv_id=conv_id)
 
             retriever_docs_text = []
             retriever_docs_plot = []
@@ -701,7 +704,7 @@ class FullQAPipeline(BaseReasoning):
             rewrite = await self.rewrite_pipeline(question=message)
             message = rewrite.text
 
-        docs, infos = self.retrieve(message, history)
+        docs, infos = self.retrieve(message, history, conv_id=conv_id)
         for _ in infos:
             self.report_output(_)
         await asyncio.sleep(0.1)
@@ -741,7 +744,7 @@ class FullQAPipeline(BaseReasoning):
 
         print(f"Retrievers {self.retrievers}")
         # should populate the context
-        docs, infos = self.retrieve(message, history)
+        docs, infos = self.retrieve(message, history, conv_id=conv_id)
         print(f"Got {len(docs)} retrieved documents")
         yield from infos
 
@@ -896,7 +899,7 @@ class FullDecomposeQAPipeline(FullQAPipeline):
                 f"<br>{message}<br><b>Answer</b><br>",
             )
             # should populate the context
-            docs, infos = self.retrieve(message, history)
+            docs, infos = self.retrieve(message, history, conv_id=conv_id)
             print(f"Got {len(docs)} retrieved documents")
 
             yield from infos
@@ -946,7 +949,7 @@ class FullDecomposeQAPipeline(FullQAPipeline):
         )
 
         # should populate the context
-        docs, infos = self.retrieve(message, history)
+        docs, infos = self.retrieve(message, history, conv_id=conv_id)
         print(f"Got {len(docs)} retrieved documents")
         yield from infos
 

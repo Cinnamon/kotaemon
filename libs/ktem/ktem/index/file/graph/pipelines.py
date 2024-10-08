@@ -315,6 +315,8 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
     def run(
         self,
         text: str,
+        *args,
+        **kwargs,
     ) -> list[RetrievedDocument]:
         if not self.file_ids:
             return []
