@@ -14,10 +14,14 @@ RUN apt-get update -qqy && \
       curl \
       cargo
 
+# Setup args
+ARG ENABLE_GRAPHRAG=true
+
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONIOENCODING=UTF-8
+ENV ENABLE_GRAPHRAG=${ENABLE_GRAPHRAG}
 
 # Create working directory
 WORKDIR /app
@@ -30,14 +34,18 @@ RUN bash scripts/download_pdfjs.sh $PDFJS_PREBUILT_DIR
 
 # Copy contents
 COPY . /app
+COPY .env.example /app/.env
 
 # Install pip packages
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
     pip install -e "libs/kotaemon" \
     && pip install -e "libs/ktem" \
-    && pip install graphrag future \
     && pip install "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
+
+RUN --mount=type=ssh  \
+    --mount=type=cache,target=/root/.cache/pip  \
+    if [ "$ENABLE_GRAPHRAG" = "true" ]; then pip install graphrag future; fi
 
 # Clean up
 RUN apt-get autoremove \
@@ -65,10 +73,6 @@ RUN apt-get update -qqy && \
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-
-# Copy contents
-COPY . /app
-COPY .env.example /app/.env
 
 # Install additional pip packages
 RUN --mount=type=ssh  \

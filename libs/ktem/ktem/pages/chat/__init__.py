@@ -1,14 +1,10 @@
 import asyncio
-import csv
 import json
 import re
 from copy import deepcopy
-from datetime import datetime
-from pathlib import Path
 from typing import Optional
 
 import gradio as gr
-from filelock import FileLock
 from ktem.app import BasePage
 from ktem.components import reasonings
 from ktem.db.models import Conversation, engine
@@ -269,10 +265,6 @@ class ChatPage(BasePage):
                     self._suggestion_updated,
                     self._app.user_id,
                 ],
-                outputs=[
-                    self.chat_control.conversation,
-                    self.chat_control.conversation,
-                ],
                 show_progress="hidden",
             )
 
@@ -371,10 +363,6 @@ class ChatPage(BasePage):
                     self.state_follow_up,
                     self._suggestion_updated,
                     self._app.user_id,
-                ],
-                outputs=[
-                    self.chat_control.conversation,
-                    self.chat_control.conversation,
                 ],
                 show_progress="hidden",
             )
@@ -995,96 +983,3 @@ class ChatPage(BasePage):
                     pass
 
         return suggested_ques, updated
-
-    def backup_original_info(
-        self, chat_history, settings, info_pannel, original_chat_history
-    ):
-        original_chat_history.append(chat_history[-1])
-        return original_chat_history, settings, info_pannel
-
-    def save_log(
-        self,
-        conversation_id,
-        chat_history,
-        settings,
-        info_panel,
-        original_chat_history,
-        original_settings,
-        original_info_panel,
-        log_dir,
-    ):
-        if not Path(log_dir).exists():
-            Path(log_dir).mkdir(parents=True)
-
-        lock = FileLock(Path(log_dir) / ".lock")
-        # get current date
-        today = datetime.now()
-        formatted_date = today.strftime("%d%m%Y_%H")
-
-        with Session(engine) as session:
-            statement = select(Conversation).where(Conversation.id == conversation_id)
-            result = session.exec(statement).one()
-
-            data_source = deepcopy(result.data_source)
-            likes = data_source.get("likes", [])
-            if not likes:
-                return
-
-        feedback = likes[-1][-1]
-        message_index = likes[-1][0]
-
-        current_message = chat_history[message_index[0]]
-        original_message = original_chat_history[message_index[0]]
-        is_original = all(
-            [
-                current_item == original_item
-                for current_item, original_item in zip(
-                    current_message, original_message
-                )
-            ]
-        )
-
-        dataframe = [
-            [
-                conversation_id,
-                message_index,
-                current_message[0],
-                current_message[1],
-                chat_history,
-                settings,
-                info_panel,
-                feedback,
-                is_original,
-                original_message[1],
-                original_chat_history,
-                original_settings,
-                original_info_panel,
-            ]
-        ]
-
-        with lock:
-            log_file = Path(log_dir) / f"{formatted_date}_log.csv"
-            is_log_file_exist = log_file.is_file()
-            with open(log_file, "a") as f:
-                writer = csv.writer(f)
-                # write headers
-                if not is_log_file_exist:
-                    writer.writerow(
-                        [
-                            "Conversation ID",
-                            "Message ID",
-                            "Question",
-                            "Answer",
-                            "Chat History",
-                            "Settings",
-                            "Evidences",
-                            "Feedback",
-                            "Original/ Rewritten",
-                            "Original Answer",
-                            "Original Chat History",
-                            "Original Settings",
-                            "Original Evidences",
-                        ]
-                    )
-
-                writer.writerows(dataframe)
