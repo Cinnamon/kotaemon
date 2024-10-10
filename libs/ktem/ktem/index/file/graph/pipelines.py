@@ -177,15 +177,8 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
 
         root_path, _ = prepare_graph_index_path(graph_id)
         output_path = root_path / "output"
-        child_paths = sorted(
-            list(output_path.iterdir()), key=lambda x: x.stem, reverse=True
-        )
 
-        # get the latest child path
-        assert child_paths, "GraphRAG index output not found"
-        latest_child_path = Path(child_paths[0]) / "artifacts"
-
-        INPUT_DIR = latest_child_path
+        INPUT_DIR = output_path
         LANCEDB_URI = str(INPUT_DIR / "lancedb")
         COMMUNITY_REPORT_TABLE = "create_final_community_reports"
         ENTITY_TABLE = "create_final_nodes"
