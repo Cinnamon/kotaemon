@@ -34,6 +34,7 @@ RUN bash scripts/download_pdfjs.sh $PDFJS_PREBUILT_DIR
 
 # Copy contents
 COPY . /app
+COPY .env.example /app/.env
 
 # Install pip packages
 RUN --mount=type=ssh  \
@@ -72,10 +73,6 @@ RUN apt-get update -qqy && \
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-
-# Copy contents
-COPY . /app
-COPY .env.example /app/.env
 
 # Install additional pip packages
 RUN --mount=type=ssh  \

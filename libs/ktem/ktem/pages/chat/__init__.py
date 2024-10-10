@@ -269,10 +269,6 @@ class ChatPage(BasePage):
                     self._suggestion_updated,
                     self._app.user_id,
                 ],
-                outputs=[
-                    self.chat_control.conversation,
-                    self.chat_control.conversation,
-                ],
                 show_progress="hidden",
             )
 
@@ -371,10 +367,6 @@ class ChatPage(BasePage):
                     self.state_follow_up,
                     self._suggestion_updated,
                     self._app.user_id,
-                ],
-                outputs=[
-                    self.chat_control.conversation,
-                    self.chat_control.conversation,
                 ],
                 show_progress="hidden",
             )

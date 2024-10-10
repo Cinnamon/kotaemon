@@ -326,11 +326,7 @@ class ConversationControl(BasePage):
     ):
         """Update the conversation's chat suggestions"""
         if not is_updated:
-            return (
-                gr.update(),
-                conversation_id,
-                gr.update(visible=False),
-            )
+            return
 
         if user_id is None:
             gr.Warning("Please sign in first (Settings → User Settings)")
@@ -353,13 +349,7 @@ class ConversationControl(BasePage):
             session.add(result)
             session.commit()
 
-        history = self.load_chat_history(user_id)
         gr.Info("Chat suggestions updated.")
-        return (
-            gr.update(choices=history),
-            conversation_id,
-            gr.update(visible=False),
-        )
 
     def _on_app_created(self):
         """Reload the conversation once the app is created"""
