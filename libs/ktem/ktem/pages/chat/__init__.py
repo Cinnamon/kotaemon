@@ -1,6 +1,6 @@
-import ast
 import asyncio
 import csv
+import json
 import re
 from copy import deepcopy
 from datetime import datetime
@@ -169,102 +169,115 @@ class ChatPage(BasePage):
         else:
             self.state_follow_up = self.chat_control.followup_suggestions
 
-        gr.on(
-            triggers=[
-                self.chat_panel.text_input.submit,
-                self.chat_panel.submit_btn.click,
-            ],
-            fn=self.submit_msg,
-            inputs=[
-                self.chat_panel.text_input,
-                self.chat_panel.chatbot,
-                self._app.user_id,
-                self.chat_control.conversation_id,
-                self.chat_control.conversation_rn,
-                self.state_follow_up,
-            ],
-            outputs=[
-                self.chat_panel.text_input,
-                self.chat_panel.chatbot,
-                self.chat_control.conversation_id,
-                self.chat_control.conversation,
-                self.chat_control.conversation_rn,
-                self.state_follow_up,
-            ],
-            concurrency_limit=20,
-            show_progress="hidden",
-        ).success(
-            fn=self.chat_fn,
-            inputs=[
-                self.chat_control.conversation_id,
-                self.chat_panel.chatbot,
-                self._app.settings_state,
-                self._reasoning_type,
-                self._llm_type,
-                self.state_chat,
-                self._app.user_id,
-            ]
-            + self._indices_input,
-            outputs=[
-                self.chat_panel.chatbot,
-                self.info_panel,
-                self.plot_panel,
-                self.state_plot_panel,
-                self.state_chat,
-            ],
-            concurrency_limit=20,
-            show_progress="minimal",
-        ).then(
-            fn=lambda: True,
-            inputs=None,
-            outputs=[self._preview_links],
-            js=pdfview_js,
-        ).success(
-            fn=self.check_and_suggest_name_conv,
-            inputs=self.chat_panel.chatbot,
-            outputs=[
-                self.chat_control.conversation_rn,
-                self._conversation_renamed,
-            ],
-        ).success(
-            self.chat_control.rename_conv,
-            inputs=[
-                self.chat_control.conversation_id,
-                self.chat_control.conversation_rn,
-                self._conversation_renamed,
-                self._app.user_id,
-            ],
-            outputs=[
-                self.chat_control.conversation,
-                self.chat_control.conversation,
-                self.chat_control.conversation_rn,
-            ],
-            show_progress="hidden",
-        ).then(
-            fn=self.suggest_chat_conv,
-            inputs=[
-                self._app.settings_state,
-                self.chat_panel.chatbot,
-            ],
-            outputs=[
-                self.state_follow_up,
-                self._suggestion_updated,
-            ],
-            show_progress="hidden",
-        ).success(
-            self.chat_control.update_chat_suggestions,
-            inputs=[
-                self.chat_control.conversation_id,
-                self.state_follow_up,
-                self._suggestion_updated,
-                self._app.user_id,
-            ],
-            outputs=[
-                self.chat_control.conversation,
-                self.chat_control.conversation,
-            ],
-            show_progress="hidden",
-        ).then(
+        chat_event = (
+            gr.on(
+                triggers=[
+                    self.chat_panel.text_input.submit,
+                    self.chat_panel.submit_btn.click,
+                ],
+                fn=self.submit_msg,
+                inputs=[
+                    self.chat_panel.text_input,
+                    self.chat_panel.chatbot,
+                    self._app.user_id,
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation_rn,
+                    self.state_follow_up,
+                ],
+                outputs=[
+                    self.chat_panel.text_input,
+                    self.chat_panel.chatbot,
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation,
+                    self.chat_control.conversation_rn,
+                    self.state_follow_up,
+                ],
+                concurrency_limit=20,
+                show_progress="hidden",
+            )
+            .success(
+                fn=self.chat_fn,
+                inputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_panel.chatbot,
+                    self._app.settings_state,
+                    self._reasoning_type,
+                    self._llm_type,
+                    self.state_chat,
+                    self._app.user_id,
+                ]
+                + self._indices_input,
+                outputs=[
+                    self.chat_panel.chatbot,
+                    self.info_panel,
+                    self.plot_panel,
+                    self.state_plot_panel,
+                    self.state_chat,
+                ],
+                concurrency_limit=20,
+                show_progress="minimal",
+            )
+            .then(
+                fn=lambda: True,
+                inputs=None,
+                outputs=[self._preview_links],
+                js=pdfview_js,
+            )
+            .success(
+                fn=self.check_and_suggest_name_conv,
+                inputs=self.chat_panel.chatbot,
+                outputs=[
+                    self.chat_control.conversation_rn,
+                    self._conversation_renamed,
+                ],
+            )
+            .success(
+                self.chat_control.rename_conv,
+                inputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation_rn,
+                    self._conversation_renamed,
+                    self._app.user_id,
+                ],
+                outputs=[
+                    self.chat_control.conversation,
+                    self.chat_control.conversation,
+                    self.chat_control.conversation_rn,
+                ],
+                show_progress="hidden",
+            )
+        )
+
+        # chat suggestion toggle
+        if getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False):
+            chat_event = chat_event.success(
+                fn=self.suggest_chat_conv,
+                inputs=[
+                    self._app.settings_state,
+                    self.chat_panel.chatbot,
+                ],
+                outputs=[
+                    self.state_follow_up,
+                    self._suggestion_updated,
+                ],
+                show_progress="hidden",
+            ).success(
+                self.chat_control.persist_chat_suggestions,
+                inputs=[
+                    self.chat_control.conversation_id,
+                    self.state_follow_up,
+                    self._suggestion_updated,
+                    self._app.user_id,
+                ],
+                outputs=[
+                    self.chat_control.conversation,
+                    self.chat_control.conversation,
+                ],
+                show_progress="hidden",
+            )
+
+        # final data persist
+        chat_event = chat_event.then(
             fn=self.persist_data_source,
             inputs=[
                 self.chat_control.conversation_id,
@@ -284,78 +297,90 @@ class ChatPage(BasePage):
             concurrency_limit=20,
         )
 
-        self.chat_panel.regen_btn.click(
-            fn=self.regen_fn,
-            inputs=[
-                self.chat_control.conversation_id,
-                self.chat_panel.chatbot,
-                self._app.settings_state,
-                self._reasoning_type,
-                self._llm_type,
-                self.state_chat,
-                self._app.user_id,
-            ]
-            + self._indices_input,
-            outputs=[
-                self.chat_panel.chatbot,
-                self.info_panel,
-                self.plot_panel,
-                self.state_plot_panel,
-                self.state_chat,
-            ],
-            concurrency_limit=20,
-            show_progress="minimal",
-        ).then(
-            fn=lambda: True,
-            inputs=None,
-            outputs=[self._preview_links],
-            js=pdfview_js,
-        ).success(
-            fn=self.check_and_suggest_name_conv,
-            inputs=self.chat_panel.chatbot,
-            outputs=[
-                self.chat_control.conversation_rn,
-                self._conversation_renamed,
-            ],
-        ).success(
-            self.chat_control.rename_conv,
-            inputs=[
-                self.chat_control.conversation_id,
-                self.chat_control.conversation_rn,
-                self._conversation_renamed,
-                self._app.user_id,
-            ],
-            outputs=[
-                self.chat_control.conversation,
-                self.chat_control.conversation,
-                self.chat_control.conversation_rn,
-            ],
-            show_progress="hidden",
-        ).then(
-            fn=self.suggest_chat_conv,
-            inputs=[
-                self._app.settings_state,
-                self.chat_panel.chatbot,
-            ],
-            outputs=[
-                self.state_follow_up,
-                self._suggestion_updated,
-            ],
-            show_progress="hidden",
-        ).success(
-            self.chat_control.update_chat_suggestions,
-            inputs=[
-                self.chat_control.conversation_id,
-                self.state_follow_up,
-                self._suggestion_updated,
-                self._app.user_id,
-            ],
-            outputs=[
-                self.chat_control.conversation,
-                self.chat_control.conversation,
-            ],
-            show_progress="hidden",
-        ).then(
+        regen_event = (
+            self.chat_panel.regen_btn.click(
+                fn=self.regen_fn,
+                inputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_panel.chatbot,
+                    self._app.settings_state,
+                    self._reasoning_type,
+                    self._llm_type,
+                    self.state_chat,
+                    self._app.user_id,
+                ]
+                + self._indices_input,
+                outputs=[
+                    self.chat_panel.chatbot,
+                    self.info_panel,
+                    self.plot_panel,
+                    self.state_plot_panel,
+                    self.state_chat,
+                ],
+                concurrency_limit=20,
+                show_progress="minimal",
+            )
+            .then(
+                fn=lambda: True,
+                inputs=None,
+                outputs=[self._preview_links],
+                js=pdfview_js,
+            )
+            .success(
+                fn=self.check_and_suggest_name_conv,
+                inputs=self.chat_panel.chatbot,
+                outputs=[
+                    self.chat_control.conversation_rn,
+                    self._conversation_renamed,
+                ],
+            )
+            .success(
+                self.chat_control.rename_conv,
+                inputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation_rn,
+                    self._conversation_renamed,
+                    self._app.user_id,
+                ],
+                outputs=[
+                    self.chat_control.conversation,
+                    self.chat_control.conversation,
+                    self.chat_control.conversation_rn,
+                ],
+                show_progress="hidden",
+            )
+        )
+
+        # chat suggestion toggle
+        if getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False):
+            regen_event = regen_event.success(
+                fn=self.suggest_chat_conv,
+                inputs=[
+                    self._app.settings_state,
+                    self.chat_panel.chatbot,
+                ],
+                outputs=[
+                    self.state_follow_up,
+                    self._suggestion_updated,
+                ],
+                show_progress="hidden",
+            ).success(
+                self.chat_control.persist_chat_suggestions,
+                inputs=[
+                    self.chat_control.conversation_id,
+                    self.state_follow_up,
+                    self._suggestion_updated,
+                    self._app.user_id,
+                ],
+                outputs=[
+                    self.chat_control.conversation,
+                    self.chat_control.conversation,
+                ],
+                show_progress="hidden",
+            )
+
+        # final data persist
+        regen_event = regen_event.then(
             fn=self.persist_data_source,
             inputs=[
                 self.chat_control.conversation_id,
@@ -963,7 +988,7 @@ class ChatPage(BasePage):
             if ques_res := re.search(r"\[(.*?)\]", re.sub("\n", "", suggested_resp)):
                 ques_res_str = ques_res.group()
                 try:
-                    suggested_ques = ast.literal_eval(ques_res_str)
+                    suggested_ques = json.loads(ques_res_str)
                     suggested_ques = [[x] for x in suggested_ques]
                     updated = True
                 except Exception:

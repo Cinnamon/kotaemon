@@ -321,7 +321,7 @@ class ConversationControl(BasePage):
             gr.update(visible=False),
         )
 
-    def update_chat_suggestions(
+    def persist_chat_suggestions(
         self, conversation_id, new_suggestions, is_updated, user_id
     ):
         """Update the conversation's chat suggestions"""
