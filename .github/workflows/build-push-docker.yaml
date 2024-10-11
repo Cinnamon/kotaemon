@@ -88,7 +88,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build docker image (amd64)
+      - name: Build docker image
         uses: docker/build-push-action@v6
         with:
           file: Dockerfile
