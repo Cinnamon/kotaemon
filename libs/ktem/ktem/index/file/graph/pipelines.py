@@ -221,9 +221,11 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
         text_unit_df = pd.read_parquet(f"{INPUT_DIR}/{TEXT_UNIT_TABLE}.parquet")
         text_units = read_indexer_text_units(text_unit_df)
 
-        embedding_model = os.getenv("GRAPHRAG_EMBEDDING_MODEL")
+        embedding_model = os.getenv(
+            "GRAPHRAG_EMBEDDING_MODEL", "text-embedding-3-small"
+        )
         text_embedder = OpenAIEmbedding(
-            api_key=os.getenv("OPENAI_API_KEY"),
+            api_key=os.getenv("GRAPHRAG_API_KEY"),
             api_base=None,
             api_type=OpenaiApiType.OpenAI,
             model=embedding_model,
