@@ -88,34 +88,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build docker image (amd64)
+      - name: Build docker image
         uses: docker/build-push-action@v6
         with:
           file: Dockerfile
           context: .
           push: true
-          platforms: linux/amd64
+          platforms: linux/amd64, linux/arm64
           tags: |
             ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           target: ${{ matrix.target }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args: |
-            ENABLE_GRAPHRAG=true
-
-      - name: Build docker image (arm64)
-        uses: docker/build-push-action@v6
-        with:
-          file: Dockerfile
-          context: .
-          push: true
-          platforms: linux/arm64
-          tags: |
-            ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          target: ${{ matrix.target }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            ENABLE_GRAPHRAG=false
