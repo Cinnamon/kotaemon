@@ -15,13 +15,13 @@ RUN apt-get update -qqy && \
       cargo
 
 # Setup args
-ARG ENABLE_GRAPHRAG=true
+ARG BUILDPLATFORM="linux/amd64"
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONIOENCODING=UTF-8
-ENV ENABLE_GRAPHRAG=${ENABLE_GRAPHRAG}
+ENV BUILDPLATFORM=${BUILDPLATFORM}
 
 # Create working directory
 WORKDIR /app
@@ -45,7 +45,7 @@ RUN --mount=type=ssh  \
 
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
-    if [ "$ENABLE_GRAPHRAG" = "true" ]; then pip install graphrag future; fi
+    if [ "$BUILDPLATFORM" = "linux/amd64" ]; then pip install graphrag future; fi
 
 # Clean up
 RUN apt-get autoremove \
