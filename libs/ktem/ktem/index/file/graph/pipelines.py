@@ -16,6 +16,9 @@ from kotaemon.base import Document, Param, RetrievedDocument
 from ..pipelines import BaseFileIndexRetriever, IndexDocumentPipeline, IndexPipeline
 from .visualize import create_knowledge_graph, visualize_graph
 
+import dotenv
+import shutil
+
 try:
     from graphrag.query.context_builder.entity_extraction import EntityVectorStoreKey
     from graphrag.query.indexer_adapters import (
@@ -115,6 +118,17 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
         result = subprocess.run(command, capture_output=True, text=True)
         print(result.stdout)
         command = command[:-1]
+
+        # copy customized GraphRAG config file if it exists
+        setting = dotenv.dotenv_values(".env")
+        if setting.get("USE_CUSTOMIZED_GRAPHRAG_SETTING") in ["true", "True"]:
+            setting_file_path = os.path.join(os.getcwd(), "settings.yaml.example")
+            destination_file_path = os.path.join(input_path, "settings.yaml")
+            try:
+                shutil.copy(setting_file_path, destination_file_path)
+            except shutil.Error:
+                # Handle the error if the file copy fails
+                print("failed to copy custimized GraphRAG config file. ")
 
         # Run the command and stream stdout
         with subprocess.Popen(command, stdout=subprocess.PIPE, text=True) as process:
