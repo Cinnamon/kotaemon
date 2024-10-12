@@ -1,10 +1,12 @@
 import os
+import shutil
 import subprocess
 from pathlib import Path
 from shutil import rmtree
 from typing import Generator
 from uuid import uuid4
 
+import dotenv
 import pandas as pd
 import tiktoken
 from ktem.db.models import engine
@@ -15,9 +17,6 @@ from kotaemon.base import Document, Param, RetrievedDocument
 
 from ..pipelines import BaseFileIndexRetriever, IndexDocumentPipeline, IndexPipeline
 from .visualize import create_knowledge_graph, visualize_graph
-
-import dotenv
-import shutil
 
 try:
     from graphrag.query.context_builder.entity_extraction import EntityVectorStoreKey
