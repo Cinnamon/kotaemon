@@ -127,7 +127,7 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
                 shutil.copy(setting_file_path, destination_file_path)
             except shutil.Error:
                 # Handle the error if the file copy fails
-                print("failed to copy custimized GraphRAG config file. ")
+                print("failed to copy customized GraphRAG config file. ")
 
         # Run the command and stream stdout
         with subprocess.Popen(command, stdout=subprocess.PIPE, text=True) as process:
