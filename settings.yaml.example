@@ -1,5 +1,5 @@
 # This is a sample GraphRAG settings.yaml file that allows users to run the GraphRAG index process with their customized parameters.
-# The parameters in this file will only take effect when the USE_CUSTOMIZED_GRAPHRAG_SETTING is true.
+# The parameters in this file will only take effect when the USE_CUSTOMIZED_GRAPHRAG_SETTING is true in .env file.
 # For a comprehensive understanding of GraphRAG parameters, please refer to: https://microsoft.github.io/graphrag/config/json_yaml/.
 
 encoding_model: cl100k_base
