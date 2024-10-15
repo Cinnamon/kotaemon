@@ -32,7 +32,7 @@ class KnetIndexingPipeline(IndexDocumentPipeline):
             },
         }
 
-    def route(self, file_path: Path) -> IndexPipeline:
+    def route(self, file_path: str | Path) -> IndexPipeline:
         """Simply disable the splitter (chunking) for this pipeline"""
         pipeline = super().route(file_path)
         pipeline.splitter = None

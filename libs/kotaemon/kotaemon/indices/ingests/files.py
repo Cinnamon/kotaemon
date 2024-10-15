@@ -21,8 +21,10 @@ from kotaemon.loaders import (
     PDFThumbnailReader,
     TxtReader,
     UnstructuredReader,
+    WebReader,
 )
 
+web_reader = WebReader()
 unstructured = UnstructuredReader()
 adobe_reader = AdobeReader()
 azure_reader = AzureAIDocumentIntelligenceLoader(

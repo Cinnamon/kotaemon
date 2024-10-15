@@ -57,7 +57,7 @@ def prepare_graph_index_path(graph_id: str):
 class GraphRAGIndexingPipeline(IndexDocumentPipeline):
     """GraphRAG specific indexing pipeline"""
 
-    def route(self, file_path: Path) -> IndexPipeline:
+    def route(self, file_path: str | Path) -> IndexPipeline:
         """Simply disable the splitter (chunking) for this pipeline"""
         pipeline = super().route(file_path)
         pipeline.splitter = None
