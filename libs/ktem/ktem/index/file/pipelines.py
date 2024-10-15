@@ -6,7 +6,6 @@ import threading
 import time
 import warnings
 from collections import defaultdict
-from copy import deepcopy
 from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
@@ -34,8 +33,8 @@ from theflow.utils.modules import import_dotted_string
 from kotaemon.base import BaseComponent, Document, Node, Param, RetrievedDocument
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.indices import VectorIndexing, VectorRetrieval
-from kotaemon.indices.ingests.files import (
-    KH_DEFAULT_FILE_EXTRACTORS,
+from kotaemon.indices.ingests.extensions import extension_manager
+from kotaemon.indices.ingests.files import (  # KH_DEFAULT_FILE_EXTRACTORS,
     adobe_reader,
     azure_reader,
     unstructured,
@@ -613,7 +612,8 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
 
     @Param.auto(depends_on="reader_mode")
     def readers(self):
-        readers = deepcopy(KH_DEFAULT_FILE_EXTRACTORS)
+        # readers = deepcopy(KH_DEFAULT_FILE_EXTRACTORS)
+        readers: dict[str, BaseReader] = extension_manager.get_current_loader()
         print("reader_mode", self.reader_mode)
         if self.reader_mode == "adobe":
             readers[".pdf"] = adobe_reader

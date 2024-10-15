@@ -6,6 +6,8 @@ from ktem.components import reasonings
 from ktem.db.models import Settings, User, engine
 from sqlmodel import Session, select
 
+from kotaemon.indices.ingests.extensions import extension_manager
+
 signout_js = """
 function(u, c, pw, pwc) {
     removeFromStorage('username');
@@ -113,6 +115,7 @@ class SettingsPage(BasePage):
         self.app_tab()
         self.index_tab()
         self.reasoning_tab()
+        self.extension_tab()
 
         self.setting_save_btn = gr.Button(
             "Save changes", variant="primary", scale=1, elem_classes=["right-button"]
@@ -177,7 +180,12 @@ class SettingsPage(BasePage):
             self.save_setting,
             inputs=[self._user_id] + self.components(),
             outputs=self._settings_state,
+        ).then(
+            fn=lambda state: extension_manager.load(state),
+            inputs=[self._settings_state],
+            outputs=None,
         )
+
         self._components["reasoning.use"].change(
             self.change_reasoning_mode,
             inputs=[self._components["reasoning.use"]],
@@ -282,6 +290,41 @@ class SettingsPage(BasePage):
                         if si.special_type == "embedding":
                             self._embeddings.append(obj)
 
+    def extension_tab(self):
+        extensions: list[str] = list(self._default_settings.extension.settings.keys())
+
+        lefts = extensions[::2]
+        rights = extensions[1::2]
+
+        if len(lefts) > len(rights):
+            rights += [""]
+
+        assert len(lefts) == len(rights)
+
+        with gr.Tab("Extension settings"):
+            for left, right in zip(lefts, rights):
+                left_setting = self._default_settings.extension.settings.get(left, None)
+                right_setting = self._default_settings.extension.settings.get(
+                    right, None
+                )
+
+                with gr.Row():
+                    with gr.Column(1):
+                        if left_setting:
+                            left_gradio_obj = render_setting_item(
+                                left_setting, left_setting.value
+                            )
+                            self._components[f"extension.{left}"] = left_gradio_obj
+
+                    with gr.Column(1):
+                        if right_setting:
+                            right_gradio_obj = render_setting_item(
+                                right_setting, right_setting.value
+                            )
+                            self._components[f"extension.{right}"] = right_gradio_obj
+                        else:
+                            gr.TextArea(value="", visible=False)
+
     def reasoning_tab(self):
         with gr.Tab("Reasoning settings", visible=self._render_reasoning_tab):
             with gr.Group():
@@ -338,6 +381,8 @@ class SettingsPage(BasePage):
             result = session.exec(statement).all()
             if result:
                 settings = result[0].setting
+
+        extension_manager.load(settings)
 
         output = [settings]
         output += tuple(settings[name] for name in self.component_names())
@@ -416,6 +461,7 @@ class SettingsPage(BasePage):
                 outputs=[llm],
                 show_progress="hidden",
             )
+
         for emb in self._embeddings:
             self._app.app.load(
                 update_embeddings,

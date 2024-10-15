@@ -124,6 +124,7 @@ class SettingGroup(BaseModel):
     application: BaseSettingGroup = Field(default_factory=BaseSettingGroup)
     index: SettingIndexGroup = Field(default_factory=SettingIndexGroup)
     reasoning: SettingReasoningGroup = Field(default_factory=SettingReasoningGroup)
+    extension: BaseSettingGroup = Field(default_factory=BaseSettingGroup)
 
     def flatten(self) -> dict:
         """Render the setting group into value"""
@@ -136,6 +137,9 @@ class SettingGroup(BaseModel):
 
         for key, value in self.reasoning.flatten().items():
             output[f"reasoning.{key}"] = value
+
+        for key, value in self.extension.flatten().items():
+            output[f"extension.{key}"] = value
 
         return output
 

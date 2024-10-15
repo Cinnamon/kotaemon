@@ -12,6 +12,8 @@ from ktem.settings import BaseSettingGroup, SettingGroup, SettingReasoningGroup
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
 
+from kotaemon.indices.ingests.extensions import extension_manager
+
 
 class BaseApp:
     """The main app of Kotaemon
@@ -61,6 +63,9 @@ class BaseApp:
         self.default_settings = SettingGroup(
             application=BaseSettingGroup(settings=settings.SETTINGS_APP),
             reasoning=SettingReasoningGroup(settings=settings.SETTINGS_REASONING),
+            extension=BaseSettingGroup(
+                settings=extension_manager.generate_gradio_settings()
+            ),
         )
 
         self._callbacks: dict[str, list] = {}

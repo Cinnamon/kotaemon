@@ -8,18 +8,14 @@ from theflow.settings import settings as flowsettings
 
 from kotaemon.base import BaseComponent, Document, Param
 from kotaemon.indices.extractors import BaseDocParser
+from kotaemon.indices.ingests.extensions import extension_manager
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 from kotaemon.loaders import (
     AdobeReader,
     AzureAIDocumentIntelligenceLoader,
     DirectoryReader,
-    HtmlReader,
     MathpixPDFReader,
-    MhtmlReader,
     OCRReader,
-    PandasExcelReader,
-    PDFThumbnailReader,
-    TxtReader,
     UnstructuredReader,
 )
 
@@ -33,25 +29,6 @@ azure_reader = AzureAIDocumentIntelligenceLoader(
 adobe_reader.vlm_endpoint = azure_reader.vlm_endpoint = getattr(
     flowsettings, "KH_VLM_ENDPOINT", ""
 )
-
-
-KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
-    ".xlsx": PandasExcelReader(),
-    ".docx": unstructured,
-    ".pptx": unstructured,
-    ".xls": unstructured,
-    ".doc": unstructured,
-    ".html": HtmlReader(),
-    ".mhtml": MhtmlReader(),
-    ".png": unstructured,
-    ".jpeg": unstructured,
-    ".jpg": unstructured,
-    ".tiff": unstructured,
-    ".tif": unstructured,
-    ".pdf": PDFThumbnailReader(),
-    ".txt": TxtReader(),
-    ".md": TxtReader(),
-}
 
 
 class DocumentIngestor(BaseComponent):
@@ -86,7 +63,8 @@ class DocumentIngestor(BaseComponent):
     def _get_reader(self, input_files: list[str | Path]):
         """Get appropriate readers for the input files based on file extension"""
         file_extractors: dict[str, BaseReader] = {
-            ext: reader for ext, reader in KH_DEFAULT_FILE_EXTRACTORS.items()
+            ext: reader
+            for ext, reader in extension_manager.get_current_loader().items()
         }
         for ext, cls in self.override_file_extractors.items():
             file_extractors[ext] = cls()
