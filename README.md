@@ -182,7 +182,7 @@ Default username / password are: `admin` / `admin`. You can setup additional use
 
 - [*If you are not using Docker installation*], install GraphRAG with `pip install graphrag future`
 - To use GraphRAG retriever feature, make sure to set `GRAPHRAG_API_KEY` environment variables (or in the `.env` file).
-- To use GraphRAG with local models (Ollama), set `USE_CUSTOMIZED_GRAPHRAG_SETTING=true` and tweak your settings in `settings.yaml.example`.
+- To use GraphRAG with local models (Ollama), or setup custom default LLM / other configurations, set `USE_CUSTOMIZED_GRAPHRAG_SETTING=true` and tweak your GraphRAG settings in `settings.yaml.example`.
 
 ## Setup local models (for local / private RAG)
 
