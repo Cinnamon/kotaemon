@@ -111,18 +111,25 @@ class FileIndexPage(BasePage):
         """Build the UI of the app"""
         with gr.Row():
             with gr.Column(scale=1):
-                gr.Markdown("## File Upload")
                 with gr.Column() as self.upload:
-                    self.files = File(
-                        file_types=self._supported_file_types,
-                        file_count="multiple",
-                        container=True,
-                        show_label=False,
-                    )
+                    with gr.Tab("Upload Files"):
+                        self.files = File(
+                            file_types=self._supported_file_types,
+                            file_count="multiple",
+                            container=True,
+                            show_label=False,
+                        )
 
-                    msg = self.upload_instruction()
-                    if msg:
-                        gr.Markdown(msg)
+                        msg = self.upload_instruction()
+                        if msg:
+                            gr.Markdown(msg)
+
+                    with gr.Tab("Use Web Links"):
+                        self.urls = gr.Textbox(
+                            label="Input web URLs",
+                            lines=8,
+                        )
+                        gr.Markdown("(separated by new line)")
 
                     with gr.Accordion("Advanced indexing options", open=True):
                         with gr.Row():
@@ -525,6 +532,7 @@ class FileIndexPage(BasePage):
             fn=self.index_fn,
             inputs=[
                 self.files,
+                self.urls,
                 self.reindex,
                 self._app.settings_state,
                 self._app.user_id,
@@ -670,28 +678,33 @@ class FileIndexPage(BasePage):
         return remaining_files
 
     def index_fn(
-        self, files, reindex: bool, settings, user_id
+        self, files, urls, reindex: bool, settings, user_id
     ) -> Generator[tuple[str, str], None, None]:
         """Upload and index the files
 
         Args:
             files: the list of files to be uploaded
+            urls: list of web URLs to be indexed
             reindex: whether to reindex the files
             selected_files: the list of files already selected
             settings: the settings of the app
         """
-        if not files:
-            gr.Info("No uploaded file")
-            yield "", ""
-            return
+        if urls:
+            files = [it.strip() for it in urls.split("\n")]
+            errors = []
+        else:
+            if not files:
+                gr.Info("No uploaded file")
+                yield "", ""
+                return
 
-        files = self._may_extract_zip(files, flowsettings.KH_ZIP_INPUT_DIR)
+            files = self._may_extract_zip(files, flowsettings.KH_ZIP_INPUT_DIR)
 
-        errors = self.validate(files)
-        if errors:
-            gr.Warning(", ".join(errors))
-            yield "", ""
-            return
+            errors = self.validate(files)
+            if errors:
+                gr.Warning(", ".join(errors))
+                yield "", ""
+                return
 
         gr.Info(f"Start indexing {len(files)} files...")
 
@@ -708,10 +721,10 @@ class FileIndexPage(BasePage):
                     continue
                 if response.channel == "index":
                     if response.content["status"] == "success":
-                        outputs.append(f"\u2705 | {response.content['file_path'].name}")
+                        outputs.append(f"\u2705 | {response.content['file_name']}")
                     elif response.content["status"] == "failed":
                         outputs.append(
-                            f"\u274c | {response.content['file_path'].name}: "
+                            f"\u274c | {response.content['file_name']}: "
                             f"{response.content['message']}"
                         )
                 elif response.channel == "debug":
@@ -764,7 +777,7 @@ class FileIndexPage(BasePage):
         settings[f"index.options.{self._index.id}.reader_mode"] = "default"
         settings[f"index.options.{self._index.id}.quick_index_mode"] = True
         if to_process_files:
-            _iter = self.index_fn(to_process_files, reindex, settings, user_id)
+            _iter = self.index_fn(to_process_files, [], reindex, settings, user_id)
             try:
                 while next(_iter):
                     pass
@@ -844,7 +857,7 @@ class FileIndexPage(BasePage):
             for p in exclude_patterns:
                 files = [f for f in files if not fnmatch.fnmatch(name=f, pat=p)]
 
-        yield from self.index_fn(files, reindex, settings, user_id)
+        yield from self.index_fn(files, [], reindex, settings, user_id)
 
     def format_size_human_readable(self, num: float | str, suffix="B"):
         try:

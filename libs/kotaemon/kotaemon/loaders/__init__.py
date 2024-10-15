@@ -10,6 +10,7 @@ from .ocr_loader import ImageReader, OCRReader
 from .pdf_loader import PDFThumbnailReader
 from .txt_loader import TxtReader
 from .unstructured_loader import UnstructuredReader
+from .web_loader import WebReader
 
 __all__ = [
     "AutoReader",
@@ -28,4 +29,5 @@ __all__ = [
     "AdobeReader",
     "TxtReader",
     "PDFThumbnailReader",
+    "WebReader",
 ]
