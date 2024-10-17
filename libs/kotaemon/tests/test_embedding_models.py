@@ -11,12 +11,14 @@ from kotaemon.embeddings import (
     LCCohereEmbeddings,
     LCHuggingFaceEmbeddings,
     OpenAIEmbeddings,
+    VoyageAIEmbeddings,
 )
 
 from .conftest import (
     skip_when_cohere_not_installed,
     skip_when_fastembed_not_installed,
     skip_when_sentence_bert_not_installed,
+    skip_when_voyageai_not_installed,
 )
 
 with open(Path(__file__).parent / "resources" / "embedding_openai_batch.json") as f:
@@ -154,4 +156,11 @@ def test_lccohere_embeddings(langchain_cohere_embedding_call):
 def test_fastembed_embeddings():
     model = FastEmbedEmbeddings()
     output = model("Hello World")
+    assert_embedding_result(output)
+
+
+@skip_when_voyageai_not_installed
+def test_voyageai_embeddings():
+    model = VoyageAIEmbeddings()
+    output = model("Hello, world!")
     assert_embedding_result(output)
