@@ -10,9 +10,11 @@ import numpy as np
 import tiktoken
 from ktem.llms.manager import llms
 from ktem.reasoning.prompt_optimization import (
+    CreateMindmapPipeline,
     DecomposeQuestionPipeline,
     RewriteQuestionPipeline,
 )
+from ktem.utils.plantuml import PlantUML
 from ktem.utils.render import Render
 from theflow.settings import settings as flowsettings
 
@@ -227,6 +229,9 @@ class AnswerWithContextPipeline(BaseComponent):
     citation_pipeline: CitationPipeline = Node(
         default_callback=lambda _: CitationPipeline(llm=llms.get_default())
     )
+    create_mindmap_pipeline: CreateMindmapPipeline = Node(
+        default_callback=lambda _: CreateMindmapPipeline(llm=llms.get_default())
+    )
 
     qa_template: str = DEFAULT_QA_TEXT_PROMPT
     qa_table_template: str = DEFAULT_QA_TABLE_PROMPT
@@ -234,6 +239,8 @@ class AnswerWithContextPipeline(BaseComponent):
     qa_figure_template: str = DEFAULT_QA_FIGURE_PROMPT
 
     enable_citation: bool = False
+    enable_mindmap: bool = False
+
     system_prompt: str = ""
     lang: str = "English"  # support English and Japanese
     n_last_interactions: int = 5
@@ -325,17 +332,28 @@ class AnswerWithContextPipeline(BaseComponent):
 
         # retrieve the citation
         citation = None
+        mindmap = None
 
         def citation_call():
             nonlocal citation
             citation = self.citation_pipeline(context=evidence, question=question)
 
-        if evidence and self.enable_citation:
-            # execute function call in thread
-            citation_thread = threading.Thread(target=citation_call)
-            citation_thread.start()
-        else:
-            citation_thread = None
+        def mindmap_call():
+            nonlocal mindmap
+            mindmap = self.create_mindmap_pipeline(context=evidence, question=question)
+
+        citation_thread = None
+        mindmap_thread = None
+
+        # execute function call in thread
+        if evidence:
+            if self.enable_citation:
+                citation_thread = threading.Thread(target=citation_call)
+                citation_thread.start()
+
+            if self.enable_mindmap:
+                mindmap_thread = threading.Thread(target=mindmap_call)
+                mindmap_thread.start()
 
         output = ""
         logprobs = []
@@ -386,10 +404,12 @@ class AnswerWithContextPipeline(BaseComponent):
 
         if citation_thread:
             citation_thread.join(timeout=CITATION_TIMEOUT)
+        if mindmap_thread:
+            mindmap_thread.join(timeout=CITATION_TIMEOUT)
 
         answer = Document(
             text=output,
-            metadata={"citation": citation, "qa_score": qa_score},
+            metadata={"mindmap": mindmap, "citation": citation, "qa_score": qa_score},
         )
 
         return answer
@@ -597,9 +617,35 @@ class FullQAPipeline(BaseReasoning):
             )
         return with_citation, without_citation
 
-    def show_citations(self, answer, docs):
+    def prepare_mindmap(self, answer) -> Document | None:
+        mindmap = answer.metadata["mindmap"]
+        if mindmap:
+            mindmap_text = mindmap.text
+            uml_renderer = PlantUML()
+            mindmap_svg = uml_renderer.process(mindmap_text)
+
+            mindmap_content = Document(
+                channel="info",
+                content=Render.collapsible(
+                    header="""
+                    <i>Mindmap</i>
+                    <a href="#" id='mindmap-toggle'">
+                        [Expand]
+                    </a>""",
+                    content=mindmap_svg,
+                    open=True,
+                ),
+            )
+        else:
+            mindmap_content = None
+
+        return mindmap_content
+
+    def show_citations_and_addons(self, answer, docs):
         # show the evidence
         with_citation, without_citation = self.prepare_citations(answer, docs)
+        mindmap_output = self.prepare_mindmap(answer)
+
         if not with_citation and not without_citation:
             yield Document(channel="info", content="<h5><b>No evidence found.</b></h5>")
         else:
@@ -610,6 +656,10 @@ class FullQAPipeline(BaseReasoning):
             has_llm_score = any("llm_trulens_score" in doc.metadata for doc in docs)
             # clear previous info
             yield Document(channel="info", content=None)
+
+            # yield mindmap output
+            if mindmap_output:
+                yield mindmap_output
 
             # yield warning message
             if has_llm_score and max_llm_rerank_score < CONTEXT_RELEVANT_WARNING_SCORE:
@@ -683,7 +733,7 @@ class FullQAPipeline(BaseReasoning):
         if scoring_thread:
             scoring_thread.join()
 
-        yield from self.show_citations(answer, docs)
+        yield from self.show_citations_and_addons(answer, docs)
 
         return answer
 
@@ -716,6 +766,7 @@ class FullQAPipeline(BaseReasoning):
         answer_pipeline.citation_pipeline.llm = llm
         answer_pipeline.n_last_interactions = settings[f"{prefix}.n_last_interactions"]
         answer_pipeline.enable_citation = settings[f"{prefix}.highlight_citation"]
+        answer_pipeline.enable_mindmap = settings[f"{prefix}.create_mindmap"]
         answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
         answer_pipeline.qa_template = settings[f"{prefix}.qa_prompt"]
         answer_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
@@ -762,6 +813,11 @@ class FullQAPipeline(BaseReasoning):
             "highlight_citation": {
                 "name": "Highlight Citation",
                 "value": True,
+                "component": "checkbox",
+            },
+            "create_mindmap": {
+                "name": "Create Mindmap",
+                "value": False,
                 "component": "checkbox",
             },
             "system_prompt": {
