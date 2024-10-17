@@ -9,7 +9,8 @@ developers in mind.
 
 <a href="https://trendshift.io/repositories/11607" target="_blank"><img src="https://trendshift.io/api/badge/repositories/11607" alt="Cinnamon%2Fkotaemon | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-[Template](https://huggingface.co/spaces/cin-model/kotaemon-demo) |
+[Live Demo](https://huggingface.co/spaces/cin-model/kotaemon-demo) |
+[App Template](https://huggingface.co/spaces/cin-model/kotaemon-template) |
 [User Guide](https://cinnamon.github.io/kotaemon/) |
 [Developer Guide](https://cinnamon.github.io/kotaemon/development/) |
 [Feedback](https://github.com/Cinnamon/kotaemon/issues) |
@@ -177,7 +178,7 @@ documents and developers who want to build their own RAG pipeline.
   pip install graphrag future
   ```
 
-- **Setting Up the Retriever Feature**: To use the GraphRAG retriever feature, ensure you set the `GRAPHRAG_API_KEY` environment variable. You can do this directly in your environment or by adding it to a `.env` file.
+- **Setting Up API KEY**: To use the GraphRAG retriever feature, ensure you set the `GRAPHRAG_API_KEY` environment variable. You can do this directly in your environment or by adding it to a `.env` file.
 - **Using Local Models and Custom Settings**: If you want to use GraphRAG with local models (like `Ollama`) or customize the default LLM and other configurations, set the `USE_CUSTOMIZED_GRAPHRAG_SETTING` environment variable to true. Then, adjust your settings in the `settings.yaml.example` file.
 
 ### Setup Local Models (for local/private RAG)
