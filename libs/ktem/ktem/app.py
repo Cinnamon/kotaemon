@@ -55,6 +55,8 @@ class BaseApp:
                 "PDFJS_PREBUILT_DIR",
                 pdf_js_dist_dir,
             )
+        with (dir_assets / "js" / "svg-pan-zoom.min.js").open() as fi:
+            self._svg_js = fi.read()
 
         self._favicon = str(dir_assets / "img" / "favicon.svg")
 
@@ -171,6 +173,9 @@ class BaseApp:
         external_js = (
             "<script type='module' "
             "src='https://cdn.skypack.dev/pdfjs-viewer-element'>"
+            "</script>"
+            "<script>"
+            f"{self._svg_js}"
             "</script>"
         )
 

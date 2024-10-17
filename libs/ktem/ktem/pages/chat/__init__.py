@@ -39,6 +39,29 @@ function() {
     for (var i = 0; i < links.length; i++) {
         links[i].onclick = openModal;
     }
+
+    var mindmap_el = document.getElementById('mindmap');
+    if (mindmap_el) {
+        var output = svgPanZoom(mindmap_el);
+    }
+
+    var link = document.getElementById("mindmap-toggle");
+    if (link) {
+        link.onclick = function(event) {
+            event.preventDefault(); // Prevent the default link behavior
+            var div = document.getElementById("mindmap-wrapper");
+            if (div) {
+                var currentHeight = div.style.height;
+                if (currentHeight === '400px') {
+                    var contentHeight = div.scrollHeight;
+                    div.style.height = contentHeight + 'px';
+                } else {
+                    div.style.height = '400px'
+                }
+            }
+        };
+    }
+
     return [links.length]
 }
 """
