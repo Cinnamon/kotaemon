@@ -10,7 +10,7 @@ developers in mind.
 <a href="https://trendshift.io/repositories/11607" target="_blank"><img src="https://trendshift.io/api/badge/repositories/11607" alt="Cinnamon%2Fkotaemon | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
 [Live Demo](https://huggingface.co/spaces/cin-model/kotaemon-demo) |
-[App Template](https://huggingface.co/spaces/cin-model/kotaemon-template) |
+[Online Install](https://cinnamon.github.io/kotaemon/online_install/) |
 [User Guide](https://cinnamon.github.io/kotaemon/) |
 [Developer Guide](https://cinnamon.github.io/kotaemon/development/) |
 [Feedback](https://github.com/Cinnamon/kotaemon/issues) |
