@@ -114,15 +114,15 @@ documents and developers who want to build their own RAG pipeline.
 
 2. We currently support and test two platforms: `linux/amd64` and `linux/arm64` (for newer Mac). You can specify the platform by passing `--platform` in the `docker run` command. For example:
 
-    ```bash
-    # To run docker with platform linux/arm64
-    docker run \
-    -e GRADIO_SERVER_NAME=0.0.0.0 \
-    -e GRADIO_SERVER_PORT=7860 \
-    -p 7860:7860 -it --rm \
-    --platform linux/arm64 \
-    ghcr.io/cinnamon/kotaemon:main-lite
-    ```
+   ```bash
+   # To run docker with platform linux/arm64
+   docker run \
+   -e GRADIO_SERVER_NAME=0.0.0.0 \
+   -e GRADIO_SERVER_PORT=7860 \
+   -p 7860:7860 -it --rm \
+   --platform linux/arm64 \
+   ghcr.io/cinnamon/kotaemon:main-lite
+   ```
 
 3. Once everything is set up correctly, you can go to `http://localhost:7860/` to access the WebUI.
 
@@ -131,38 +131,38 @@ documents and developers who want to build their own RAG pipeline.
 ### Without Docker
 
 1. Clone and install required packages on a fresh python environment.
-  
-    ```shell
-    # optional (setup env)
-    conda create -n kotaemon python=3.10
-    conda activate kotaemon
 
-    # clone this repo
-    git clone https://github.com/Cinnamon/kotaemon
-    cd kotaemon
+   ```shell
+   # optional (setup env)
+   conda create -n kotaemon python=3.10
+   conda activate kotaemon
 
-    pip install -e "libs/kotaemon[all]"
-    pip install -e "libs/ktem"
-    ```
+   # clone this repo
+   git clone https://github.com/Cinnamon/kotaemon
+   cd kotaemon
+
+   pip install -e "libs/kotaemon[all]"
+   pip install -e "libs/ktem"
+   ```
 
 2. Create a `.env` file in the root of this project. Use `.env.example` as a template
 
-    The `.env` file is there to serve use cases where users want to pre-config the models before starting up the app (e.g. deploy the app on HF hub). The file will only be used to populate the db once upon the first run, it will no longer be used in consequent runs.
+   The `.env` file is there to serve use cases where users want to pre-config the models before starting up the app (e.g. deploy the app on HF hub). The file will only be used to populate the db once upon the first run, it will no longer be used in consequent runs.
 
 3. (Optional) To enable in-browser `PDF_JS` viewer, download [PDF_JS_DIST](https://github.com/mozilla/pdf.js/releases/download/v4.0.379/pdfjs-4.0.379-dist.zip) then extract it to `libs/ktem/ktem/assets/prebuilt`
 
-    <img src="https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/pdf-viewer-setup.png" alt="pdf-setup" width="300">
+<img src="https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/pdf-viewer-setup.png" alt="pdf-setup" width="300">
 
 4. Start the web server:
 
-    ```shell
-    python app.py
-    ```
+   ```shell
+   python app.py
+   ```
 
-    - The app will be automatically launched in your browser.
-    - Default username and password are both `admin`. You can set up additional users directly through the UI.
+   - The app will be automatically launched in your browser.
+   - Default username and password are both `admin`. You can set up additional users directly through the UI.
 
-    ![Chat tab](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/chat-tab.png)
+   ![Chat tab](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/chat-tab.png)
 
 5. Check the `Resources` tab and `LLMs and Embeddings` and ensure that your `api_key` value is set correctly from your `.env` file. If it is not set, you can set it there.
 
@@ -266,9 +266,9 @@ This file provides another way to configure your models and credentials.
   - **Local Models**
 
     - Using `ollama` OpenAI compatible server:
-  
+
       - Install [ollama](https://github.com/ollama/ollama) and start the application.
-  
+
       - Pull your model, for example:
 
         ```shell
@@ -286,12 +286,12 @@ This file provides another way to configure your models and credentials.
 
       - GGUF
 
-          You should choose a model whose size is less than your device's memory and should leave
-          about 2 GB. For example, if you have 16 GB of RAM in total, of which 12 GB is available,
-          then you should choose a model that takes up at most 10 GB of RAM. Bigger models tend to
-          give better generation but also take more processing time.
+        You should choose a model whose size is less than your device's memory and should leave
+        about 2 GB. For example, if you have 16 GB of RAM in total, of which 12 GB is available,
+        then you should choose a model that takes up at most 10 GB of RAM. Bigger models tend to
+        give better generation but also take more processing time.
 
-          Here are some recommendations and their size in memory:
+        Here are some recommendations and their size in memory:
 
       - [Qwen1.5-1.8B-Chat-GGUF](https://huggingface.co/Qwen/Qwen1.5-1.8B-Chat-GGUF/resolve/main/qwen1_5-1_8b-chat-q8_0.gguf?download=true): around 2 GB
 
