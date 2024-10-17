@@ -59,13 +59,13 @@ class VoyageAIEmbeddings(BaseEmbeddings):
         self, text: str | list[str] | Document | list[Document], *args, **kwargs
     ) -> list[DocumentWithEmbedding]:
         texts = [t.content for t in self.prepare_input(text)]
-        embeddings = self._client.embed()
+        embeddings = self._client.embed(texts, model=self.model_name).embeddings
         return _format_output(texts, embeddings)
 
     async def ainvoke(
         self, text: str | list[str] | Document | list[Document], *args, **kwargs
     ) -> list[DocumentWithEmbedding]:
         texts = [t.content for t in self.prepare_input(text)]
-        embeddings = await self._aclient.embed(texts)
+        embeddings = await self._aclient.embed(texts, model=self.model_name).embeddings
         return _format_output(texts, embeddings)
 
