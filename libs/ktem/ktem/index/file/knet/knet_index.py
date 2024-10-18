@@ -6,7 +6,7 @@ from ktem.index.file import FileIndex
 from ..base import BaseFileIndexIndexing, BaseFileIndexRetriever
 from .pipelines import KnetIndexingPipeline, KnetRetrievalPipeline
 
-DEFAULT_RAG_PIPELINE = os.environ.get("KNET_RAG_PIPELINE", "Direct_Query")
+DEFAULT_RAG_PIPELINE = os.environ.get("KNET_RAG_PIPELINE", None)
 
 
 class KnowledgeNetworkFileIndex(FileIndex):

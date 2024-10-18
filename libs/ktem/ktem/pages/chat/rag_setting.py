@@ -27,7 +27,12 @@ class RAGSetting(BasePage):
             response = requests.get(KNET_ENDPOINT + "/query_type", timeout=5)
             if response.status_code == 200:
                 output = response.json()
-                return [item["name"] for item in output["pipelines"]]
+                results = {}
+                for item in output["pipelines"]:
+                    results[item["name"]] = item["description"]
+
+                results[None] = "Automatically set the pipeline based on user query"
+                return results
             else:
                 raise IOError(f"{response.status_code}: {response.text}")
         except Exception as e:
@@ -35,14 +40,19 @@ class RAGSetting(BasePage):
             return []
 
     def on_building_ui(self):
-        pipline_options = self.get_pipelines()
+        self.pipline_options = self.get_pipelines()
+        pipeline_options_gradio = [
+            (key if key else value, key) for key, value in self.pipline_options.items()
+        ]
+
         self.pipeline_select = gr.Dropdown(
             label="Pipeline",
-            choices=pipline_options,
-            value=pipline_options[0] if pipline_options else None,
+            choices=pipeline_options_gradio,
+            value=None,
             container=False,
             interactive=True,
         )
+        self.pipeline_description = gr.Markdown()
         self.retrieval_expansion = gr.Checkbox(
             label="Enable retrieval expansion",
             value=False,
@@ -53,7 +63,7 @@ class RAGSetting(BasePage):
         return {
             "pipeline": pipeline,
             "retrieval_expansion": retrieval_expansion,
-        }
+        }, self.pipline_options.get(pipeline, "")
 
     def on_register_events(self):
         gr.on(
@@ -66,5 +76,8 @@ class RAGSetting(BasePage):
                 self.pipeline_select,
                 self.retrieval_expansion,
             ],
-            outputs=self.setting_state,
+            outputs=[
+                self.setting_state,
+                self.pipeline_description,
+            ],
         )
