@@ -24,6 +24,7 @@ from .chat_panel import ChatPanel
 from .chat_suggestion import ChatSuggestion
 from .common import STATE
 from .control import ConversationControl
+from .rag_setting import RAGSetting
 from .report import ReportIssue
 
 DEFAULT_SETTING = "(default)"
@@ -95,8 +96,11 @@ class ChatPage(BasePage):
                                 self._indices_input.append(gr_index)
                         setattr(self, f"_index_{index.id}", index_ui)
 
+                with gr.Accordion(label="Retrieval Settings") as _:
+                    self.retrieval_settings = RAGSetting(self._app)
+
                 if len(self._app.index_manager.indices) > 0:
-                    with gr.Accordion(label="Quick Upload") as _:
+                    with gr.Accordion(label="Quick Upload", open=False) as _:
                         self.quick_file_upload = File(
                             file_types=list(KH_DEFAULT_FILE_EXTRACTORS.keys()),
                             file_count="multiple",
@@ -180,6 +184,7 @@ class ChatPage(BasePage):
                 self._reasoning_type,
                 self._llm_type,
                 self.chat_state,
+                self.retrieval_settings.setting_state,
                 self._app.user_id,
             ]
             + self._indices_input,
@@ -251,6 +256,7 @@ class ChatPage(BasePage):
                 self._reasoning_type,
                 self._llm_type,
                 self.chat_state,
+                self.retrieval_settings.setting_state,
                 self._app.user_id,
             ]
             + self._indices_input,
@@ -648,6 +654,7 @@ class ChatPage(BasePage):
         session_reasoning_type: str,
         session_llm: str,
         state: dict,
+        rag_state: dict,
         user_id: int,
         *selecteds,
     ):
@@ -665,6 +672,8 @@ class ChatPage(BasePage):
         # override reasoning_mode by temporary chat page state
         print("Session reasoning type", session_reasoning_type)
         print("Session LLM", session_llm)
+        print("RAG settings", rag_state)
+
         reasoning_mode = (
             settings["reasoning.use"]
             if session_reasoning_type in (DEFAULT_SETTING, None)
@@ -675,6 +684,8 @@ class ChatPage(BasePage):
         reasoning_id = reasoning_cls.get_info()["id"]
 
         settings = deepcopy(settings)
+        settings["rag_settings"] = rag_state
+
         llm_setting_key = f"reasoning.options.{reasoning_id}.llm"
         if llm_setting_key in settings and session_llm not in (DEFAULT_SETTING, None):
             settings[llm_setting_key] = session_llm
@@ -711,6 +722,7 @@ class ChatPage(BasePage):
         reasoning_type,
         llm_type,
         state,
+        rag_state,
         user_id,
         *selecteds,
     ):
@@ -722,7 +734,7 @@ class ChatPage(BasePage):
 
         # construct the pipeline
         pipeline, reasoning_state = self.create_pipeline(
-            settings, reasoning_type, llm_type, state, user_id, *selecteds
+            settings, reasoning_type, llm_type, state, rag_state, user_id, *selecteds
         )
         print("Reasoning state", reasoning_state)
         pipeline.set_output_queue(queue)
@@ -785,6 +797,7 @@ class ChatPage(BasePage):
         reasoning_type,
         llm_type,
         state,
+        rag_state,
         user_id,
         *selecteds,
     ):
@@ -802,6 +815,7 @@ class ChatPage(BasePage):
             reasoning_type,
             llm_type,
             state,
+            rag_state,
             user_id,
             *selecteds,
         ):

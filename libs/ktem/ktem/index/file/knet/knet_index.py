@@ -1,9 +1,12 @@
+import os
 from typing import Any
 
 from ktem.index.file import FileIndex
 
 from ..base import BaseFileIndexIndexing, BaseFileIndexRetriever
 from .pipelines import KnetIndexingPipeline, KnetRetrievalPipeline
+
+DEFAULT_RAG_PIPELINE = os.environ.get("KNET_RAG_PIPELINE", "Direct_Query")
 
 
 class KnowledgeNetworkFileIndex(FileIndex):
@@ -43,5 +46,11 @@ class KnowledgeNetworkFileIndex(FileIndex):
             # also set the collection_name for API call
             obj.VS = None
             obj.collection_name = f"kh_index_{self.id}"
+            obj.retrieval_expansion = settings.get("rag_settings", {}).get(
+                "retrieval_expansion", False
+            )
+            obj.pipeline_name = settings.get("rag_settings", {}).get(
+                "pipeline", DEFAULT_RAG_PIPELINE
+            )
 
         return retrievers

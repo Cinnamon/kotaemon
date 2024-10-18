@@ -213,3 +213,8 @@ pdfjs-viewer-element {
   flex: 1;
   overflow: auto;
 }
+
+#chat-input {
+  resize: vertical;
+  max-height: 200px;
+}

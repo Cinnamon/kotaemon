@@ -26,6 +26,7 @@ class ChatPanel(BasePage):
                 scale=15,
                 container=False,
                 max_lines=10,
+                elem_id="chat-input",
             )
             self.submit_btn = gr.Button(
                 value="Send",

@@ -47,6 +47,8 @@ class KnetRetrievalPipeline(BaseFileIndexRetriever):
 
     collection_name: str = "default"
     rerankers: Sequence[BaseReranking] = [LLMReranking.withx()]
+    retrieval_expansion: bool = False
+    pipeline_name: str | None = None
 
     def encode_image_base64(self, image_path: str | Path) -> bytes | str:
         """Convert image to base64"""
@@ -81,7 +83,10 @@ class KnetRetrievalPipeline(BaseFileIndexRetriever):
             "collection": self.collection_name,
             "meta_filters": {"doc_name": doc_ids},
             "conv_id": conv_id,
+            "assert_query_type": self.pipeline_name,
+            "retrieval_expansion": self.retrieval_expansion,
         }
+        print(params)
         params["meta_filters"] = json.dumps(params["meta_filters"])
         response = requests.get(self.DEFAULT_KNET_ENDPOINT, params=params)
         metadata_translation = {
