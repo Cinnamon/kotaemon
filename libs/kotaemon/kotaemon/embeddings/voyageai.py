@@ -2,15 +2,11 @@
 """
 
 import importlib
-from typing import TYPE_CHECKING
 
 from kotaemon.base import Document, DocumentWithEmbedding, Param
 
 from .base import BaseEmbeddings
 
-if TYPE_CHECKING:
-    from voyageai import Client
-    from voyageai import AsyncClient
 
 vo = None
 
@@ -36,8 +32,7 @@ def _format_output(texts: list[str], embeddings: list[list]):
 
 
 class VoyageAIEmbeddings(BaseEmbeddings):
-    """Voyage AI provides best-in-class embedding models and rerankers.
-    """
+    """Voyage AI provides best-in-class embedding models and rerankers."""
 
     api_key: str = Param(None, help="Voyage API key", required=False)
     model_name: str = Param(
@@ -68,4 +63,3 @@ class VoyageAIEmbeddings(BaseEmbeddings):
         texts = [t.content for t in self.prepare_input(text)]
         embeddings = await self._aclient.embed(texts, model=self.model_name).embeddings
         return _format_output(texts, embeddings)
-

@@ -160,6 +160,14 @@ def test_fastembed_embeddings():
 
 
 @skip_when_voyageai_not_installed
+@patch(
+    "voyageai.Client.embed",
+    side_effect=lambda *args, **kwargs: [[1.0, 2.1, 3.2]],
+)
+@patch(
+    "voyageai.AsyncClient.embed",
+    side_effect=lambda *args, **kwargs: [[1.0, 2.1, 3.2]],
+)
 def test_voyageai_embeddings():
     model = VoyageAIEmbeddings()
     output = model("Hello, world!")
