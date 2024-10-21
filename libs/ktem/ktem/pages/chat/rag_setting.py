@@ -37,12 +37,12 @@ class RAGSetting(BasePage):
                 raise IOError(f"{response.status_code}: {response.text}")
         except Exception as e:
             logger.error(f"Failed to retrieve KNet pipelines: {e}")
-            return []
+            return {}
 
     def on_building_ui(self):
         self.pipline_options = self.get_pipelines()
         pipeline_options_gradio = [
-            (key if key else value, key) for key, value in self.pipline_options.items()
+            (key if key else "(Auto)", key) for key, _ in self.pipline_options.items()
         ]
 
         self.pipeline_select = gr.Dropdown(

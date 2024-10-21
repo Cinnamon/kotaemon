@@ -52,5 +52,6 @@ class KnowledgeNetworkFileIndex(FileIndex):
             obj.pipeline_name = settings.get("rag_settings", {}).get(
                 "pipeline", DEFAULT_RAG_PIPELINE
             )
+            obj.user_id = str(user_id)
 
         return retrievers
