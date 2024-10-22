@@ -38,7 +38,25 @@ class ConversationControl(BasePage):
         self.on_building_ui()
 
     def on_building_ui(self):
-        gr.Markdown("## Conversations")
+        with gr.Row():
+            gr.Markdown("## Conversations")
+            self.btn_toggle_dark_mode = gr.Button(
+                value="",
+                icon=f"{ASSETS_DIR}/dark_mode.svg",
+                scale=1,
+                size="sm",
+                elem_classes=["no-background", "body-text-color"],
+                elem_id="toggle-dark-button",
+            )
+            self.btn_toggle_dark_mode.click(
+                None,
+                js="""
+                () => {
+                    document.body.classList.toggle('dark');
+                }
+                """,
+            )
+
         self.conversation_id = gr.State(value="")
         self.conversation = gr.Dropdown(
             label="Chat sessions",
