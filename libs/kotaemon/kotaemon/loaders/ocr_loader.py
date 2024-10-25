@@ -269,3 +269,4 @@ class GOCR2ImageReader(BaseReader):
             )
 
         return result
+    
