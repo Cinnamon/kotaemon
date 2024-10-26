@@ -1,0 +1,9 @@
+services:
+  kotaemon:
+    volumes:
+      - "./ktem_app_data:/app/ktem_app_data"
+      - "./libs/kotaemon:/app/kotaemon"
+      - "./libs/ktem:/app/ktem"
+      - "./flowsettings.py:/app/flowsettings.py"
+    ports:
+      - "7860:7860"
