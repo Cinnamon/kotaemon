@@ -18,13 +18,8 @@ from kotaemon.loaders import (
     HtmlReader,
     MathpixPDFReader,
     OCRReader,
-    PandasExcelReader,
-    PDFThumbnailReader,
-    TxtReader,
     UnstructuredReader,
     WebReader,
-    UnstructuredReader, 
-    ImageReader,
 )
 
 web_reader = WebReader()

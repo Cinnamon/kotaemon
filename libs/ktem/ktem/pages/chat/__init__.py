@@ -5,7 +5,6 @@ from copy import deepcopy
 from typing import Optional
 
 import gradio as gr
-from filelock import FileLock
 from ktem.app import BasePage
 from ktem.components import reasonings
 from ktem.db.models import Conversation, engine

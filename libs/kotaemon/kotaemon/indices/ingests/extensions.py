@@ -45,6 +45,8 @@ class ExtensionManager:
 
     @staticmethod
     def _init_supported() -> tuple[dict[str, list[BaseReader]], dict[str, str]]:
+        gocr = GOCR2ImageReader()
+
         supported: dict[str, list[BaseReader]] = {
             ".xlsx": [PandasExcelReader()],
             ".docx": [unstructured],
@@ -53,12 +55,12 @@ class ExtensionManager:
             ".doc": [unstructured],
             ".html": [HtmlReader()],
             ".mhtml": [MhtmlReader()],
-            ".png": [unstructured, GOCR2ImageReader()],
-            ".jpeg": [unstructured, GOCR2ImageReader()],
-            ".jpg": [unstructured, GOCR2ImageReader()],
+            ".png": [unstructured, gocr],
+            ".jpeg": [unstructured, gocr],
+            ".jpg": [unstructured, gocr],
             ".tiff": [unstructured],
             ".tif": [unstructured],
-            ".pdf": [PDFThumbnailReader()],
+            ".pdf": [PDFThumbnailReader(), adobe_reader, azure_reader],
             ".txt": [TxtReader()],
             ".md": [TxtReader()],
         }
