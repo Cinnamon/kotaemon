@@ -72,7 +72,7 @@ def extract_csv_output(context):
             # csv_content_processed = csv_content
             # Now read the CSV using ',' as the delimiter
             try:
-                df = pd.read_csv(StringIO(csv_content_processed), engine='python')
+                df = pd.read_csv(StringIO(csv_content_processed), engine='python') #, sep=',', quotechar='"')
                 dataframes[section_name] = df
             except Exception as e:
                 print(f"Error parsing CSV for section {section_name}: {e}")
@@ -82,7 +82,7 @@ def extract_csv_output(context):
 
     # Access the DataFrames
     reports = dataframes.get('Reports', [])
-    entities = dataframes.get('Entities', [])
+    entities = dataframes.get('Entities', pd.DataFrame({"entity": [""], "description": [""]})) #[]
     relationships = dataframes.get('Relationships', [])
     sources = dataframes.get('Sources', [])
 
@@ -239,9 +239,9 @@ class NaNoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
 
         context: str = ""
 
-        header = "<b>Entities</b>\n"
-        context = entities[["entity", "description"]].to_markdown(index=False)
-        docs.append(self._to_document(header, context))
+        # header = "<b>Entities</b>\n"
+        # context = entities[["entity", "description"]].to_markdown(index=False)
+        # docs.append(self._to_document(header, context)) # entities current parsing error
 
         header = "\n<b>Relationships</b>\n"
         context = relationships[["source", "target", "description"]].to_markdown(
