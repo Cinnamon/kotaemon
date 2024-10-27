@@ -288,6 +288,7 @@ SETTINGS_REASONING = {
 KH_INDEX_TYPES = [
     "ktem.index.file.FileIndex",
     "ktem.index.file.graph.GraphRAGIndex",
+    "ktem.index.file.graph.NaNoGraphRAGIndex",
 ]
 KH_INDICES = [
     {
@@ -311,5 +312,16 @@ KH_INDICES = [
             "private": False,
         },
         "index_type": "ktem.index.file.graph.GraphRAGIndex",
+    },
+    {
+        "name": "NaNoGraphRAG",
+        "config": {
+            "supported_file_types": (
+                ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
+                ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
+            ),
+            "private": False,
+        },
+        "index_type": "ktem.index.file.graph.NaNoGraphRAGIndex",
     },
 ]
