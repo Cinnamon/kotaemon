@@ -1,7 +1,6 @@
 from typing import cast
 
 from sqlalchemy import Column, Integer, String
-from typing_extensions import Self
 
 from .base import BaseSchema
 
@@ -16,6 +15,6 @@ class Index(BaseSchema):
     user = Column(Integer, default=1)
 
     @classmethod
-    def from_index(cls, idx: int) -> Self:
+    def from_index(cls, idx: int) -> type["Index"]:
         cls.__tablename__ = f"index__{idx}__index"
-        return cast(Self, cls.from_dict("Index", dict(vars(cls))))
+        return cast(type["Index"], cls.from_dict("Index", dict(vars(cls))))

@@ -2,7 +2,6 @@ from typing import cast
 
 from sqlalchemy import JSON, Column, DateTime, Integer, String, func
 from sqlalchemy.ext.mutable import MutableDict
-from typing_extensions import Self
 
 from .base import BaseSchema
 
@@ -17,6 +16,6 @@ class FileGroup(BaseSchema):
     data = Column(MutableDict.as_mutable(JSON), default={"files": []})  # type: ignore
 
     @classmethod
-    def from_index(cls, idx: int) -> Self:
+    def from_index(cls, idx: int) -> type["FileGroup"]:
         cls.__tablename__ = f"index__{idx}__group"
-        return cast(Self, cls.from_dict("FileGroup", dict(vars(cls))))
+        return cast(type["FileGroup"], cls.from_dict("FileGroup", dict(vars(cls))))

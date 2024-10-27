@@ -1,7 +1,7 @@
 from enum import Enum
 from functools import cached_property, lru_cache
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Sequence, TypeAlias
 
 from ktem.index.file.base import BaseFileIndexIndexing, BaseFileIndexRetriever
 from ktem.index.file.pipelines import DocumentRetrievalPipeline, IndexDocumentPipeline
@@ -18,6 +18,8 @@ from kotaemon.schemas.file import FileGroup, Index, Source
 from ..storages.docstores import BaseDocumentStore, LanceDBDocumentStore
 from ..storages.vectorstores import BaseVectorStore, ChromaVectorStore
 from .registry import Dependency, Registry
+
+SourceRecords: TypeAlias = Sequence[Row[tuple[Source]]]
 
 
 @lru_cache(1)
@@ -58,19 +60,19 @@ class FileSchemaFactory:
         self.private = private
 
     @cached_property
-    def source(self) -> Source:
+    def source(self) -> type[Source]:
         source = Source.from_index(self.collection_idx, self.private)
         source.metadata.create_all(self.engine)
         return source
 
     @cached_property
-    def index(self) -> Index:
+    def index(self) -> type[Index]:
         index = Index.from_index(self.collection_idx)
         index.metadata.create_all(self.engine)
         return index
 
     @cached_property
-    def filegroup(self) -> FileGroup:
+    def filegroup(self) -> type[FileGroup]:
         filegroup = FileGroup.from_index(self.collection_idx)
         filegroup.metadata.create_all(self.engine)
         return filegroup
@@ -87,11 +89,12 @@ class FileSchemaFactory:
 class FileCRUD:
     engine = get_engine()
 
+    def __init__(self, source: type[Source]):
+        self.source = source
+
     def list_docids(self) -> list[str]:
         with Session(self.engine) as session:
-            records: Sequence[Row[tuple[Source]]] = session.execute(
-                select(Source)
-            ).all()
+            records: SourceRecords = session.execute(select(self.source)).all()
             return [record[0].id for record in records]
 
 
@@ -179,7 +182,7 @@ class Container:
     user_idx: int = 1
     private: bool = False
     fileschema: FileSchemaFactory = FileSchemaFactory(collection_idx, private)
-    crud: FileCRUD = FileCRUD()
+    crud: FileCRUD = FileCRUD(fileschema.source)
 
     vectorstores: Registry[BaseVectorStore] = Registry(
         {"chroma": Dependency(VectorstoreFactory.chroma)}

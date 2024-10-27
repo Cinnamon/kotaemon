@@ -3,7 +3,6 @@ from typing import cast
 
 from sqlalchemy import JSON, Column, DateTime, Integer, String, UniqueConstraint, func
 from sqlalchemy.ext.mutable import MutableDict
-from typing_extensions import Self
 
 from .base import BaseSchema
 
@@ -22,7 +21,7 @@ class Source(BaseSchema):
     note = Column(MutableDict.as_mutable(JSON), default={})  # type: ignore
 
     @classmethod
-    def from_index(cls, idx: int, private: bool = False) -> Self:
+    def from_index(cls, idx: int, private: bool = False) -> type["Source"]:
         cls.__tablename__ = f"index__{idx}__source"
         if private:
             cls.__table_args__ = (
@@ -32,4 +31,4 @@ class Source(BaseSchema):
         else:
             cls.name = Column(String, unique=True)
 
-        return cast(Self, cls.from_dict("Source", dict(vars(cls))))
+        return cast(type["Source"], cls.from_dict("Source", dict(vars(cls))))
