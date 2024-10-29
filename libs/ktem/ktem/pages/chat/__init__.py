@@ -24,6 +24,7 @@ from .chat_panel import ChatPanel
 from .chat_suggestion import ChatSuggestion
 from .common import STATE
 from .control import ConversationControl
+from .memory import MemoryPage
 from .rag_setting import RAGSetting
 from .report import ReportIssue
 
@@ -99,6 +100,9 @@ class ChatPage(BasePage):
                 with gr.Accordion(label="Retrieval Settings") as _:
                     self.retrieval_settings = RAGSetting(self._app)
 
+                # long-term memory page
+                self.long_term_memory_btn = gr.Button("Long-term Memory")
+
                 if len(self._app.index_manager.indices) > 0:
                     with gr.Accordion(label="Quick Upload", open=False) as _:
                         self.quick_file_upload = File(
@@ -147,6 +151,11 @@ class ChatPage(BasePage):
             with gr.Column(
                 scale=INFO_PANEL_SCALES[False], elem_id="chat-info-panel"
             ) as self.info_column:
+                with gr.Accordion(
+                    label="Long-term Memory", open=True, visible=False
+                ) as self.memory_accordion:
+                    self.memory_page = MemoryPage(self._app)
+
                 with gr.Accordion(label="Information panel", open=True):
                     self.modal = gr.HTML("<div id='pdf-modal'></div>")
                     self.plot_panel = gr.Plot(visible=False)
@@ -431,6 +440,26 @@ class ChatPage(BasePage):
             outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
         ).then(
             fn=None, inputs=None, outputs=None, js=pdfview_js
+        )
+
+        # long-term memory page toggle
+        self.long_term_memory_btn.click(
+            lambda: (gr.update(visible=True), gr.update(scale=INFO_PANEL_SCALES[True])),
+            outputs=[
+                self.memory_accordion,
+                self.info_column,
+            ],
+        ).then(
+            self.memory_page.list_memories,
+            inputs=[self._app.user_id],
+            outputs=[self.memory_page.memories],
+        )
+        self.memory_page.close_button.click(
+            lambda: (
+                gr.update(visible=False),
+                gr.update(visible=False),
+            ),
+            outputs=[self.memory_accordion, self.memory_page.memory_detail_panel],
         )
 
         # evidence display on message selection
