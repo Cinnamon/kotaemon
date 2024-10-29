@@ -19,12 +19,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from kotaemon.base import Document, Param, RetrievedDocument
-
 from ..pipelines import BaseFileIndexRetriever, IndexDocumentPipeline, IndexPipeline
 from .visualize import create_knowledge_graph, visualize_graph
+from .pipelines import GraphRAGIndexingPipeline 
 
 try:
     from nano_graphrag import GraphRAG, QueryParam
+    from nano_graphrag.base import BaseKVStorage
+    from nano_graphrag._utils import compute_args_hash, wrap_embedding_func_with_attrs
+
 except ImportError:
     print(
         (
@@ -32,6 +35,20 @@ except ImportError:
             "Nao-GraphRAG retriever pipeline will not work properly."
         )
     )
+
+import logging
+
+try:
+    import ollama
+except ImportError:
+    print("""Ollama dependencies not installed. Try pip install ollama
+            Try setup ollama and local embedding and local llm model following the link: https://github.com/Cinnamon/kotaemon/blob/main/docs/local_model.md#note
+            """
+    )
+
+import numpy as np
+logging.basicConfig(level=logging.WARNING)
+logging.getLogger("nano-graphrag").setLevel(logging.INFO)
 
 
 filestorage_path = Path(settings.KH_FILESTORAGE_PATH) / "nano_graphrag"
@@ -88,49 +105,95 @@ def extract_csv_output(context):
 
     return reports, entities, relationships, sources
 
+##ref: https://github.com/gusye1234/nano-graphrag/blob/main/examples/using_ollama_as_llm_and_embedding.py
 
-class NaNoGraphRAGIndexingPipeline(IndexDocumentPipeline):
+# Assumed embedding model settings
+EMBEDDING_MODEL = os.getenv("LOCAL_MODEL_EMBEDDINGS", "nomic-embed-text") # "nomic-embed-text"
+EMBEDDING_MODEL_DIM = os.getenv("LOCAL_MODEL_EMBEDDINGS_DIM", 768)
+EMBEDDING_MODEL_MAX_TOKENS = os.getenv("LOCAL_MODEL_EMBEDDINGS_MAX_TOKENS", 512)
+
+LOCAL_MODEL = os.getenv("LOCAL_MODEL", "llama3.1:8b")
+
+def remove_if_exist(file):
+    if os.path.exists(file):
+        os.remove(file)
+
+
+async def ollama_model_if_cache(
+    prompt, system_prompt=None, history_messages=[], **kwargs
+) -> str:
+    # remove kwargs that are not supported by ollama
+    kwargs.pop("max_tokens", None)
+    kwargs.pop("response_format", None)
+
+    ollama_client = ollama.AsyncClient()
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+
+    # Get the cached response if having-------------------
+    hashing_kv: BaseKVStorage = kwargs.pop("hashing_kv", None)
+    messages.extend(history_messages)
+    messages.append({"role": "user", "content": prompt})
+    if hashing_kv is not None:
+        args_hash = compute_args_hash(LOCAL_MODEL, messages)
+        if_cache_return = await hashing_kv.get_by_id(args_hash)
+        if if_cache_return is not None:
+            return if_cache_return["return"]
+    # -----------------------------------------------------
+    response = await ollama_client.chat(model=LOCAL_MODEL, messages=messages, **kwargs)
+
+    result = response["message"]["content"]
+    # Cache the response if having-------------------
+    if hashing_kv is not None:
+        await hashing_kv.upsert({args_hash: {"return": result, "model": LOCAL_MODEL}})
+    # -----------------------------------------------------
+    return result
+
+# We're using Ollama to generate embeddings for the BGE model
+@wrap_embedding_func_with_attrs(
+    embedding_dim=EMBEDDING_MODEL_DIM,
+    max_token_size=EMBEDDING_MODEL_MAX_TOKENS,
+)
+async def ollama_embedding(texts: list[str]) -> np.ndarray:
+    embed_text = []
+    for text in texts:
+        data = ollama.embeddings(model=EMBEDDING_MODEL, prompt=text)
+        embed_text.append(data["embedding"])
+
+    return embed_text
+
+def build_graphrag(working_dir):
+
+    if os.getenv("USE_CUSTOMIZED_GRAPHRAG_SETTING") == "true":
+
+        try:
+
+            print("Using customized NaNoGraphRAG setting with local llm and embedding model from ollama !!")
+            graphrag_func = GraphRAG(
+                working_dir=working_dir,
+                best_model_func=ollama_model_if_cache,
+                cheap_model_func=ollama_model_if_cache,
+                embedding_func=ollama_embedding,
+            )
+        except:
+            print("You need check ollama local model and embedding model.Using default NaNoGraphRAG setting, you need OPENAI_API_KEY in .env file")
+            graphrag_func = GraphRAG(working_dir=working_dir, 
+                                 #enable_naive_rag=True,
+                                embedding_func_max_async=4)
+
+    else:
+        print("Using default NaNoGraphRAG setting, you need OPENAI_API_KEY in .env file")
+        graphrag_func = GraphRAG(working_dir=working_dir, 
+                                 #enable_naive_rag=True,
+                                embedding_func_max_async=4)
+        
+    return graphrag_func
+
+
+class NaNoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
     """GraphRAG specific indexing pipeline"""
 
-    def route(self, file_path: str | Path) -> IndexPipeline:
-        """Simply disable the splitter (chunking) for this pipeline"""
-        pipeline = super().route(file_path)
-        pipeline.splitter = None
-
-        return pipeline
-
-    def store_file_id_with_graph_id(self, file_ids: list[str | None]):
-        # create new graph_id and assign them to doc_id in self.Index
-        # record in the index
-        graph_id = str(uuid4())
-        with Session(engine) as session:
-            nodes = []
-            for file_id in file_ids:
-                if not file_id:
-                    continue
-                nodes.append(
-                    self.Index(
-                        source_id=file_id,
-                        target_id=graph_id,
-                        relation_type="graph",
-                    )
-                )
-
-            session.add_all(nodes)
-            session.commit()
-
-        return graph_id
-
-    def write_docs_to_files(self, graph_id: str, docs: list[Document]):
-        root_path, input_path = prepare_graph_index_path(graph_id)
-        input_path.mkdir(parents=True, exist_ok=True)
-
-        for doc in docs:
-            if doc.metadata.get("type", "text") == "text":
-                with open(input_path / f"{doc.doc_id}.txt", "w") as f:
-                    f.write(doc.text)
-
-        return root_path
     
     def graph_indexing(self, graph_id: str, docs: list[Document]):
         root_path, input_path = prepare_graph_index_path(graph_id)
@@ -141,12 +204,19 @@ class NaNoGraphRAGIndexingPipeline(IndexDocumentPipeline):
         print(f"Indexing {len(all_docs)} documents...")
         print(all_docs)
 
+
+        ###remove cache
+        remove_if_exist(f"{input_path}/vdb_entities.json")
+        remove_if_exist(f"{input_path}/kv_store_full_docs.json")
+        remove_if_exist(f"{input_path}/kv_store_text_chunks.json")
+        remove_if_exist(f"{input_path}/kv_store_community_reports.json")
+        remove_if_exist(f"{input_path}/graph_chunk_entity_relation.graphml")
+
         ## indexing 
-        graphrag_func = GraphRAG(working_dir=input_path, enable_naive_rag=True,
-                         embedding_func_max_async=4)
+        graphrag_func = build_graphrag(input_path)
         
-        graphrag_func.insert(all_docs)
         ## output must be contain: Loaded graph from ..input/graph_chunk_entity_relation.graphml with xxx nodes, xxx edges
+        graphrag_func.insert(all_docs)
 
     def stream(
         self, file_paths: str | Path | list[str | Path], reindex: bool = False, **kwargs
@@ -177,17 +247,6 @@ class NaNoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
     Index = Param(help="The SQLAlchemy Index table")
     file_ids: list[str] = []
 
-    @classmethod
-    def get_user_settings(cls) -> dict:
-        return {
-            "search_type": {
-                "name": "Search type",
-                "value": "local",
-                "choices": ["local", "global", "naive"],
-                "component": "dropdown",
-                "info": "Whether to use naive or local or global search in the graph.",
-            }
-        }
 
     def _build_graph_search(self):
         assert (
@@ -206,29 +265,15 @@ class NaNoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             graph_id = graph_id[0] if graph_id else None
             assert graph_id, f"GraphRAG index not found for file_id: {file_id}"
 
-         ## indexing 
-
         root_path, input_path = prepare_graph_index_path(graph_id)
         input_path.mkdir(parents=True, exist_ok=True)
 
-        graphrag_func = GraphRAG(working_dir=input_path, enable_naive_rag=True,
-                         embedding_func_max_async=4)
+        graphrag_func = build_graphrag(input_path)
 
         query_params = QueryParam(mode='local', only_need_context=True)
 
 
-        return graphrag_func, query_params #context_builder
-
-    def _to_document(self, header: str, context_text: str) -> RetrievedDocument:
-        return RetrievedDocument(
-            text=context_text,
-            metadata={
-                "file_name": header,
-                "type": "table",
-                "llm_trulens_score": 1.0,
-            },
-            score=1.0,
-        )
+        return graphrag_func, query_params
 
     def format_context_records(self, context_records) -> list[RetrievedDocument]:
 
@@ -272,9 +317,6 @@ class NaNoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
         G = create_knowledge_graph(relationships)
         plot = visualize_graph(G)
         return plot
-
-    def generate_relevant_scores(self, text, documents: list[RetrievedDocument]):
-        return documents
 
     def run(
         self,
