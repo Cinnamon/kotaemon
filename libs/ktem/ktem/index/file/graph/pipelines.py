@@ -97,7 +97,11 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
 
         return root_path
 
-    def call_graphrag_index(self, input_path: str):
+    def call_graphrag_index(self, graph_id: str, all_docs: list[Document]):
+        # call GraphRAG index with docs and graph_id
+        input_path = self.write_docs_to_files(graph_id, all_docs)
+        input_path = str(input_path.absolute())
+
         # Construct the command
         command = [
             "python",
@@ -147,8 +151,7 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
         # assign graph_id to file_ids
         graph_id = self.store_file_id_with_graph_id(file_ids)
         # call GraphRAG index with docs and graph_id
-        graph_index_path = self.write_docs_to_files(graph_id, all_docs)
-        yield from self.call_graphrag_index(str(graph_index_path.absolute()))
+        yield from self.call_graphrag_index(graph_id, all_docs)
 
         return file_ids, errors, all_docs
 

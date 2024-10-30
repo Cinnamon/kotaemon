@@ -1,58 +1,107 @@
+import asyncio
+import glob
+import logging
 import os
-import shutil
-import subprocess
+import re
 from pathlib import Path
-from shutil import rmtree
 from typing import Generator
-from uuid import uuid4
 
+import numpy as np
 import pandas as pd
-import tiktoken
-import yaml
-from decouple import config
 from ktem.db.models import engine
+from ktem.embeddings.manager import embedding_models_manager as embeddings
+from ktem.llms.manager import llms
 from sqlalchemy.orm import Session
 from theflow.settings import settings
-import re
-from io import StringIO
-from dotenv import load_dotenv
-load_dotenv()
 
 from kotaemon.base import Document, Param, RetrievedDocument
-from ..pipelines import BaseFileIndexRetriever, IndexDocumentPipeline, IndexPipeline
+from kotaemon.base.schema import AIMessage, HumanMessage, SystemMessage
+
+from ..pipelines import BaseFileIndexRetriever
+from .pipelines import GraphRAGIndexingPipeline
 from .visualize import create_knowledge_graph, visualize_graph
-from .pipelines import GraphRAGIndexingPipeline 
 
 try:
     from nano_graphrag import GraphRAG, QueryParam
-    from nano_graphrag.base import BaseKVStorage
-    from nano_graphrag._utils import compute_args_hash, wrap_embedding_func_with_attrs
+    from nano_graphrag._op import (
+        _find_most_related_community_from_entities,
+        _find_most_related_edges_from_entities,
+        _find_most_related_text_unit_from_entities,
+    )
+    from nano_graphrag._utils import EmbeddingFunc
+    from nano_graphrag.base import (
+        BaseGraphStorage,
+        BaseKVStorage,
+        BaseVectorStorage,
+        CommunitySchema,
+        TextChunkSchema,
+    )
 
 except ImportError:
     print(
         (
             "Nano-GraphRAG dependencies not installed. Try pip install nano-graphrag"
-            "Nao-GraphRAG retriever pipeline will not work properly."
+            "Nano-GraphRAG retriever pipeline will not work properly."
         )
     )
 
-import logging
 
-try:
-    import ollama
-except ImportError:
-    print("""Ollama dependencies not installed. Try pip install ollama
-            Try setup ollama and local embedding and local llm model following the link: https://github.com/Cinnamon/kotaemon/blob/main/docs/local_model.md#note
-            """
-    )
-
-import numpy as np
-logging.basicConfig(level=logging.WARNING)
 logging.getLogger("nano-graphrag").setLevel(logging.INFO)
 
 
 filestorage_path = Path(settings.KH_FILESTORAGE_PATH) / "nano_graphrag"
 filestorage_path.mkdir(parents=True, exist_ok=True)
+
+
+def get_llm_func(model):
+    async def llm_func(
+        prompt, system_prompt=None, history_messages=[], **kwargs
+    ) -> str:
+        input_messages = [SystemMessage(text=system_prompt)] if system_prompt else []
+
+        if history_messages:
+            for msg in history_messages:
+                if msg.get("role") == "user":
+                    input_messages.append(HumanMessage(text=msg["content"]))
+                else:
+                    input_messages.append(AIMessage(text=msg["content"]))
+
+        input_messages.append(HumanMessage(text=prompt))
+        output = model(input_messages).text
+
+        print("-" * 50)
+        print(output, "\n", "-" * 50)
+
+        return output
+
+    return llm_func
+
+
+def get_embedding_func(model):
+    async def embedding_func(texts: list[str]) -> np.ndarray:
+        outputs = model(texts)
+        embedding_outputs = np.array([doc.embedding for doc in outputs])
+
+        return embedding_outputs
+
+    return embedding_func
+
+
+def get_default_models_wrapper():
+    # setup model functions
+    default_embedding = embeddings.get_default()
+    default_embedding_dim = len(default_embedding(["Hi"])[0].embedding)
+    embedding_func = EmbeddingFunc(
+        embedding_dim=default_embedding_dim,
+        max_token_size=8192,
+        func=get_embedding_func(default_embedding),
+    )
+    print("GraphRAG embedding dim", default_embedding_dim)
+
+    default_llm = llms.get_default()
+    llm_func = get_llm_func(default_llm)
+
+    return llm_func, embedding_func, default_llm, default_embedding
 
 
 def prepare_graph_index_path(graph_id: str):
@@ -61,162 +110,149 @@ def prepare_graph_index_path(graph_id: str):
 
     return root_path, input_path
 
-# Function to extract CSV content from a section
-def extract_csv_content(section_content):
-    matches = re.findall(r'```csv(.*?)```', section_content, re.DOTALL)
-    if matches:
-        csv_content = matches[0].strip()
-        return csv_content
-    else:
-        return None
-    
-def extract_csv_output(context):
-    sections = re.split(r'-----([A-Za-z]+)-----', context)
-    section_dict = {}
-    for i in range(1, len(sections), 2):
-        section_name = sections[i].strip()
-        section_content = sections[i+1].strip()
-        section_dict[section_name] = section_content
-        
-    # Read CSV content into DataFrames
-    dataframes = {}
-    for section_name, section_content in section_dict.items():
-        csv_content = extract_csv_content(section_content)
-        if csv_content:
-            # Preprocess the CSV content to handle the delimiter
-            # Replace ',\t' with ','
-            csv_content_processed = csv_content.replace(',\t', ',')
-            # csv_content_processed = csv_content
-            # Now read the CSV using ',' as the delimiter
-            try:
-                df = pd.read_csv(StringIO(csv_content_processed), engine='python') #, sep=',', quotechar='"')
-                dataframes[section_name] = df
-            except Exception as e:
-                print(f"Error parsing CSV for section {section_name}: {e}")
-                dataframes[section_name] = None
-        else:
-            dataframes[section_name] = None
 
-    # Access the DataFrames
-    reports = dataframes.get('Reports', [])
-    entities = dataframes.get('Entities', pd.DataFrame({"entity": [""], "description": [""]})) #[]
-    relationships = dataframes.get('Relationships', [])
-    sources = dataframes.get('Sources', [])
-
-    return reports, entities, relationships, sources
-
-##ref: https://github.com/gusye1234/nano-graphrag/blob/main/examples/using_ollama_as_llm_and_embedding.py
-
-# Assumed embedding model settings
-EMBEDDING_MODEL = os.getenv("LOCAL_MODEL_EMBEDDINGS", "nomic-embed-text") # "nomic-embed-text"
-EMBEDDING_MODEL_DIM = os.getenv("LOCAL_MODEL_EMBEDDINGS_DIM", 768)
-EMBEDDING_MODEL_MAX_TOKENS = os.getenv("LOCAL_MODEL_EMBEDDINGS_MAX_TOKENS", 512)
-
-LOCAL_MODEL = os.getenv("LOCAL_MODEL", "llama3.1:8b")
-
-def remove_if_exist(file):
-    if os.path.exists(file):
-        os.remove(file)
+def list_of_list_to_df(data: list[list]) -> pd.DataFrame:
+    df = pd.DataFrame(data[1:], columns=data[0])
+    return df
 
 
-async def ollama_model_if_cache(
-    prompt, system_prompt=None, history_messages=[], **kwargs
-) -> str:
-    # remove kwargs that are not supported by ollama
-    kwargs.pop("max_tokens", None)
-    kwargs.pop("response_format", None)
+def clean_quote(input: str) -> str:
+    return re.sub(r"[\"']", "", input)
 
-    ollama_client = ollama.AsyncClient()
-    messages = []
-    if system_prompt:
-        messages.append({"role": "system", "content": system_prompt})
 
-    # Get the cached response if having-------------------
-    hashing_kv: BaseKVStorage = kwargs.pop("hashing_kv", None)
-    messages.extend(history_messages)
-    messages.append({"role": "user", "content": prompt})
-    if hashing_kv is not None:
-        args_hash = compute_args_hash(LOCAL_MODEL, messages)
-        if_cache_return = await hashing_kv.get_by_id(args_hash)
-        if if_cache_return is not None:
-            return if_cache_return["return"]
-    # -----------------------------------------------------
-    response = await ollama_client.chat(model=LOCAL_MODEL, messages=messages, **kwargs)
+async def nano_graph_rag_build_local_query_context(
+    graph_func,
+    query,
+    query_param: QueryParam,
+):
+    knowledge_graph_inst: BaseGraphStorage = graph_func.chunk_entity_relation_graph
+    entities_vdb: BaseVectorStorage = graph_func.entities_vdb
+    community_reports: BaseKVStorage[CommunitySchema] = graph_func.community_reports
+    text_chunks_db: BaseKVStorage[TextChunkSchema] = graph_func.text_chunks
 
-    result = response["message"]["content"]
-    # Cache the response if having-------------------
-    if hashing_kv is not None:
-        await hashing_kv.upsert({args_hash: {"return": result, "model": LOCAL_MODEL}})
-    # -----------------------------------------------------
-    return result
+    results = await entities_vdb.query(query, top_k=query_param.top_k)
+    if not len(results):
+        raise ValueError("No results found")
 
-# We're using Ollama to generate embeddings for the BGE model
-@wrap_embedding_func_with_attrs(
-    embedding_dim=EMBEDDING_MODEL_DIM,
-    max_token_size=EMBEDDING_MODEL_MAX_TOKENS,
-)
-async def ollama_embedding(texts: list[str]) -> np.ndarray:
-    embed_text = []
-    for text in texts:
-        data = ollama.embeddings(model=EMBEDDING_MODEL, prompt=text)
-        embed_text.append(data["embedding"])
+    node_datas = await asyncio.gather(
+        *[knowledge_graph_inst.get_node(r["entity_name"]) for r in results]
+    )
+    node_degrees = await asyncio.gather(
+        *[knowledge_graph_inst.node_degree(r["entity_name"]) for r in results]
+    )
+    node_datas = [
+        {**n, "entity_name": k["entity_name"], "rank": d}
+        for k, n, d in zip(results, node_datas, node_degrees)
+        if n is not None
+    ]
+    use_communities = await _find_most_related_community_from_entities(
+        node_datas, query_param, community_reports
+    )
+    use_text_units = await _find_most_related_text_unit_from_entities(
+        node_datas, query_param, text_chunks_db, knowledge_graph_inst
+    )
+    use_relations = await _find_most_related_edges_from_entities(
+        node_datas, query_param, knowledge_graph_inst
+    )
+    entites_section_list = [["id", "entity", "type", "description", "rank"]]
+    for i, n in enumerate(node_datas):
+        entites_section_list.append(
+            [
+                str(i),
+                clean_quote(n["entity_name"]),
+                n.get("entity_type", "UNKNOWN"),
+                clean_quote(n.get("description", "UNKNOWN")),
+                n["rank"],
+            ]
+        )
+    entities_df = list_of_list_to_df(entites_section_list)
 
-    return embed_text
+    relations_section_list = [
+        ["id", "source", "target", "description", "weight", "rank"]
+    ]
+    for i, e in enumerate(use_relations):
+        relations_section_list.append(
+            [
+                str(i),
+                clean_quote(e["src_tgt"][0]),
+                clean_quote(e["src_tgt"][1]),
+                clean_quote(e["description"]),
+                e["weight"],
+                e["rank"],
+            ]
+        )
+    relations_df = list_of_list_to_df(relations_section_list)
 
-def build_graphrag(working_dir):
+    communities_section_list = [["id", "content"]]
+    for i, c in enumerate(use_communities):
+        communities_section_list.append([str(i), c["report_string"]])
+    communities_df = list_of_list_to_df(communities_section_list)
 
-    if os.getenv("USE_CUSTOMIZED_GRAPHRAG_SETTING") == "true":
+    text_units_section_list = [["id", "content"]]
+    for i, t in enumerate(use_text_units):
+        text_units_section_list.append([str(i), t["content"]])
+    sources_df = list_of_list_to_df(text_units_section_list)
 
-        try:
+    return entities_df, relations_df, communities_df, sources_df
 
-            print("Using customized NaNoGraphRAG setting with local llm and embedding model from ollama !!")
-            graphrag_func = GraphRAG(
-                working_dir=working_dir,
-                best_model_func=ollama_model_if_cache,
-                cheap_model_func=ollama_model_if_cache,
-                embedding_func=ollama_embedding,
-            )
-        except:
-            print("You need check ollama local model and embedding model.Using default NaNoGraphRAG setting, you need OPENAI_API_KEY in .env file")
-            graphrag_func = GraphRAG(working_dir=working_dir, 
-                                 #enable_naive_rag=True,
-                                embedding_func_max_async=4)
 
-    else:
-        print("Using default NaNoGraphRAG setting, you need OPENAI_API_KEY in .env file")
-        graphrag_func = GraphRAG(working_dir=working_dir, 
-                                 #enable_naive_rag=True,
-                                embedding_func_max_async=4)
-        
+def build_graphrag(working_dir, llm_func, embedding_func):
+    graphrag_func = GraphRAG(
+        working_dir=working_dir,
+        best_model_func=llm_func,
+        cheap_model_func=llm_func,
+        embedding_func=embedding_func,
+        embedding_func_max_async=4,
+    )
     return graphrag_func
 
 
-class NaNoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
+class NanoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
     """GraphRAG specific indexing pipeline"""
 
-    
-    def graph_indexing(self, graph_id: str, docs: list[Document]):
-        root_path, input_path = prepare_graph_index_path(graph_id)
+    def call_graphrag_index(self, graph_id: str, docs: list[Document]):
+        _, input_path = prepare_graph_index_path(graph_id)
         input_path.mkdir(parents=True, exist_ok=True)
-        
-        all_docs = [doc.text for doc in docs if doc.metadata.get("type", "text") == "text"]
 
-        print(f"Indexing {len(all_docs)} documents...")
-        print(all_docs)
+        (
+            llm_func,
+            embedding_func,
+            default_llm,
+            default_embedding,
+        ) = get_default_models_wrapper()
+        print(
+            f"Indexing GraphRAG with LLM {default_llm} "
+            f"and Embedding {default_embedding}..."
+        )
 
+        all_docs = [
+            doc.text for doc in docs if doc.metadata.get("type", "text") == "text"
+        ]
 
-        ###remove cache
-        remove_if_exist(f"{input_path}/vdb_entities.json")
-        remove_if_exist(f"{input_path}/kv_store_full_docs.json")
-        remove_if_exist(f"{input_path}/kv_store_text_chunks.json")
-        remove_if_exist(f"{input_path}/kv_store_community_reports.json")
-        remove_if_exist(f"{input_path}/graph_chunk_entity_relation.graphml")
+        yield Document(
+            channel="debug",
+            text="[GraphRAG] Creating index... This can take a long time.",
+        )
 
-        ## indexing 
-        graphrag_func = build_graphrag(input_path)
-        
-        ## output must be contain: Loaded graph from ..input/graph_chunk_entity_relation.graphml with xxx nodes, xxx edges
+        # remove all .json files in the input_path directory (previous cache)
+        json_files = glob.glob(f"{input_path}/*.json")
+        for json_file in json_files:
+            os.remove(json_file)
+
+        # indexing
+        graphrag_func = build_graphrag(
+            input_path,
+            llm_func=llm_func,
+            embedding_func=embedding_func,
+        )
+        # output must be contain: Loaded graph from
+        # ..input/graph_chunk_entity_relation.graphml with xxx nodes, xxx edges
         graphrag_func.insert(all_docs)
+
+        yield Document(
+            channel="debug",
+            text="[GraphRAG] Indexing finished.",
+        )
 
     def stream(
         self, file_paths: str | Path | list[str | Path], reindex: bool = False, **kwargs
@@ -226,34 +262,19 @@ class NaNoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
         file_ids, errors, all_docs = yield from super().stream(
             file_paths, reindex=reindex, **kwargs
         )
-        
-        yield Document(
-            channel="debug",
-            text="[GraphRAG] Creating index... This can take a long time.",
-        )
-        
-        # assign graph_id to file_ids
-        graph_id = self.store_file_id_with_graph_id(file_ids)
-        # call GraphRAG index with docs and graph_id
-
-        yield from self.graph_indexing(graph_id, all_docs)
 
         return file_ids, errors, all_docs
 
 
-class NaNoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
+class NanoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
     """GraphRAG specific retriever pipeline"""
 
     Index = Param(help="The SQLAlchemy Index table")
     file_ids: list[str] = []
 
-
     def _build_graph_search(self):
-        assert (
-            len(self.file_ids) <= 1
-        ), "GraphRAG retriever only supports one file_id at a time"
-
         file_id = self.file_ids[0]
+
         # retrieve the graph_id from the index
         with Session(engine) as session:
             graph_id = (
@@ -265,28 +286,40 @@ class NaNoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             graph_id = graph_id[0] if graph_id else None
             assert graph_id, f"GraphRAG index not found for file_id: {file_id}"
 
-        root_path, input_path = prepare_graph_index_path(graph_id)
+        _, input_path = prepare_graph_index_path(graph_id)
         input_path.mkdir(parents=True, exist_ok=True)
 
-        graphrag_func = build_graphrag(input_path)
-
-        query_params = QueryParam(mode='local', only_need_context=True)
-
+        llm_func, embedding_func, _, _ = get_default_models_wrapper()
+        graphrag_func = build_graphrag(
+            input_path,
+            llm_func=llm_func,
+            embedding_func=embedding_func,
+        )
+        query_params = QueryParam(mode="local", only_need_context=True)
 
         return graphrag_func, query_params
 
-    def format_context_records(self, context_records) -> list[RetrievedDocument]:
+    def _to_document(self, header: str, context_text: str) -> RetrievedDocument:
+        return RetrievedDocument(
+            text=context_text,
+            metadata={
+                "file_name": header,
+                "type": "table",
+                "llm_trulens_score": 1.0,
+            },
+            score=1.0,
+        )
 
-        ## Extract CSV content from the context
-        reports, entities, relationships, sources = extract_csv_output(context_records)
-
+    def format_context_records(
+        self, entities, relationships, reports, sources
+    ) -> list[RetrievedDocument]:
         docs = []
-
         context: str = ""
 
-        # header = "<b>Entities</b>\n"
-        # context = entities[["entity", "description"]].to_markdown(index=False)
-        # docs.append(self._to_document(header, context)) # entities current parsing error
+        # entities current parsing error
+        header = "<b>Entities</b>\n"
+        context = entities[["entity", "description"]].to_markdown(index=False)
+        docs.append(self._to_document(header, context))
 
         header = "\n<b>Relationships</b>\n"
         context = relationships[["source", "target", "description"]].to_markdown(
@@ -296,15 +329,15 @@ class NaNoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
 
         header = "\n<b>Reports</b>\n"
         context = ""
-        for idx, row in reports.iterrows():
-            title, content = row["id"], row["content"] # not contain title
+        for _, row in reports.iterrows():
+            title, content = row["id"], row["content"]  # not contain title
             context += f"\n\n<h5>Report <b>{title}</b></h5>\n"
             context += content
         docs.append(self._to_document(header, context))
 
         header = "\n<b>Sources</b>\n"
         context = ""
-        for idx, row in sources.iterrows():
+        for _, row in sources.iterrows():
             title, content = row["id"], row["content"]
             context += f"\n\n<h5>Source <b>#{title}</b></h5>\n"
             context += content
@@ -312,8 +345,7 @@ class NaNoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
 
         return docs
 
-    def plot_graph(self, context_records):
-        reports, entities, relationships, sources = extract_csv_output(context_records)
+    def plot_graph(self, relationships):
         G = create_knowledge_graph(relationships)
         plot = visualize_graph(G)
         return plot
@@ -324,13 +356,16 @@ class NaNoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
     ) -> list[RetrievedDocument]:
         if not self.file_ids:
             return []
-        
 
         graphrag_func, query_params = self._build_graph_search()
-        context_records = graphrag_func.query(text, param = query_params)
+        entities, relationships, reports, sources = asyncio.run(
+            nano_graph_rag_build_local_query_context(graphrag_func, text, query_params)
+        )
 
-        documents = self.format_context_records(context_records)
-        plot = self.plot_graph(context_records)
+        documents = self.format_context_records(
+            entities, relationships, reports, sources
+        )
+        plot = self.plot_graph(relationships)
 
         return documents + [
             RetrievedDocument(

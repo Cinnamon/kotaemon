@@ -1,4 +1,4 @@
 from .graph_index import GraphRAGIndex
-from .nano_graph_index import NaNoGraphRAGIndex
+from .nano_graph_index import NanoGraphRAGIndex
 
-__all__ = ["GraphRAGIndex", "NaNoGraphRAGIndex"]
+__all__ = ["GraphRAGIndex", "NanoGraphRAGIndex"]
