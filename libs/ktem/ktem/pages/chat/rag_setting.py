@@ -18,8 +18,8 @@ class RAGSetting(BasePage):
     def __init__(self, app):
         self._app = app
         self.setting_state = gr.State(value={})
+
         self.on_building_ui()
-        self.on_register_events()
 
     def get_pipelines(self):
         """Retrieve pipeline list from KNet endpoint"""

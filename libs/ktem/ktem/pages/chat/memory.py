@@ -20,8 +20,8 @@ class MemoryPage(BasePage):
     def __init__(self, app):
         self._app = app
         self.memory_list = gr.State(value=[])
+
         self.on_building_ui()
-        self.on_register_events()
 
     def list_memories(self, user_id):
         """Retrieve memory list from KNet endpoint"""
