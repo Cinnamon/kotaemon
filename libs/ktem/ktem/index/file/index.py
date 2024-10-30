@@ -119,6 +119,23 @@ class FileIndex(BaseIndex):
                 "user": Column(Integer, default=1),
             },
         )
+        FileGroup = type(
+            "FileGroupTable",
+            (Base,),
+            {
+                "__tablename__": f"index__{self.id}__group",
+                "id": Column(Integer, primary_key=True, autoincrement=True),
+                "date_created": Column(
+                    DateTime(timezone=True), server_default=func.now()
+                ),
+                "name": Column(String, unique=True),
+                "user": Column(Integer, default=1),
+                "data": Column(
+                    MutableDict.as_mutable(JSON),  # type: ignore
+                    default={"files": []},
+                ),
+            },
+        )
 
         self._vs: BaseVectorStore = get_vectorstore(f"index_{self.id}")
         self._docstore: BaseDocumentStore = get_docstore(f"index_{self.id}")
@@ -126,6 +143,7 @@ class FileIndex(BaseIndex):
         self._resources = {
             "Source": Source,
             "Index": Index,
+            "FileGroup": FileGroup,
             "VectorStore": self._vs,
             "DocStore": self._docstore,
             "FileStoragePath": self._fs_path,
@@ -297,6 +315,7 @@ class FileIndex(BaseIndex):
         self._setup_resources()
         self._resources["Source"].metadata.create_all(engine)  # type: ignore
         self._resources["Index"].metadata.create_all(engine)  # type: ignore
+        self._resources["FileGroup"].metadata.create_all(engine)  # type: ignore
         self._fs_path.mkdir(parents=True, exist_ok=True)
 
     def on_delete(self):
@@ -306,6 +325,7 @@ class FileIndex(BaseIndex):
         self._setup_resources()
         self._resources["Source"].__table__.drop(engine)  # type: ignore
         self._resources["Index"].__table__.drop(engine)  # type: ignore
+        self._resources["FileGroup"].__table__.drop(engine)  # type: ignore
         self._vs.drop()
         self._docstore.drop()
         shutil.rmtree(self._fs_path)

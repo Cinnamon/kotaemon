@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import shutil
 import threading
@@ -120,6 +121,16 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             text: the text to retrieve similar documents
             doc_ids: list of document ids to constraint the retrieval
         """
+        # flatten doc_ids in case of group of doc_ids are passed
+        if doc_ids:
+            flatten_doc_ids = []
+            for doc_id in doc_ids:
+                if doc_id.startswith("["):
+                    flatten_doc_ids.extend(json.loads(doc_id))
+                else:
+                    flatten_doc_ids.append(doc_id)
+            doc_ids = flatten_doc_ids
+
         print("searching in doc_ids", doc_ids)
         if not doc_ids:
             logger.info(f"Skip retrieval because of no selected files: {self}")
