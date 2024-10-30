@@ -178,6 +178,8 @@ documents and developers who want to build their own RAG pipeline.
 <summary>Setup Nano GRAPHRAG</summary>
 
 - Install nano-GraphRAG: `pip install nano-graphrag`
+- `nano-graphrag` install might introduce version conflicts, see [this issue](https://github.com/Cinnamon/kotaemon/issues/440)
+  - To quickly fix: `pip uninstall hnswlib chroma-hnswlib && pip install chroma-hnswlib`
 - Launch Kotaemon with `USE_NANO_GRAPHRAG=true` environment variable.
 - Set your default LLM & Embedding models in Resources setting and it will be recognized automatically from NanoGraphRAG.
 
