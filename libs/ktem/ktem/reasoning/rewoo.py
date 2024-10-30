@@ -271,13 +271,12 @@ class RewooAgentPipeline(BaseReasoning):
 
         if "citation" in answer.metadata and answer.metadata["citation"] is not None:
             context = answer.metadata["worker_log"]
-            for fact_with_evidence in answer.metadata["citation"].answer:
-                for quote in fact_with_evidence.substring_quote:
-                    matches = find_text(quote, context)
-                    for match in matches:
-                        split_indices.append(match[0])
-                        split_indices.append(match[1])
-                        start_indices.add(match[0])
+            for evidence in answer.metadata["citation"].evidences:
+                matches = find_text(evidence, context)
+                for match in matches:
+                    split_indices.append(match[0])
+                    split_indices.append(match[1])
+                    start_indices.add(match[0])
             split_indices = sorted(list(set(split_indices)))
             spans = []
             prev = 0
