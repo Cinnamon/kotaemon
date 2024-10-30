@@ -38,6 +38,7 @@ except ImportError:
     print(
         (
             "GraphRAG dependencies not installed. "
+            "Try `pip install graphrag future` to install. "
             "GraphRAG retriever pipeline will not work properly."
         )
     )

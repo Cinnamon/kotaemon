@@ -40,7 +40,8 @@ try:
 except ImportError:
     print(
         (
-            "Nano-GraphRAG dependencies not installed. Try pip install nano-graphrag"
+            "Nano-GraphRAG dependencies not installed. "
+            "Try `pip install nano-graphrag` to install. "
             "Nano-GraphRAG retriever pipeline will not work properly."
         )
     )

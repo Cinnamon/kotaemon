@@ -284,12 +284,43 @@ SETTINGS_REASONING = {
     },
 }
 
-
+USE_NANO_GRAPHRAG = config("USE_NANO_GRAPHRAG", default=False, cast=bool)
+GRAPHRAG_INDEX_TYPE = (
+    "ktem.index.file.graph.GraphRAGIndex"
+    if not USE_NANO_GRAPHRAG
+    else "ktem.index.file.graph.NanoGraphRAGIndex"
+)
 KH_INDEX_TYPES = [
     "ktem.index.file.FileIndex",
-    "ktem.index.file.graph.GraphRAGIndex",
-    "ktem.index.file.graph.NanoGraphRAGIndex",
+    GRAPHRAG_INDEX_TYPE,
 ]
+
+GRAPHRAG_INDEX = (
+    {
+        "name": "GraphRAG",
+        "config": {
+            "supported_file_types": (
+                ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
+                ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
+            ),
+            "private": False,
+        },
+        "index_type": "ktem.index.file.graph.GraphRAGIndex",
+    }
+    if not USE_NANO_GRAPHRAG
+    else {
+        "name": "NanoGraphRAG",
+        "config": {
+            "supported_file_types": (
+                ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
+                ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
+            ),
+            "private": False,
+        },
+        "index_type": "ktem.index.file.graph.NanoGraphRAGIndex",
+    }
+)
+
 KH_INDICES = [
     {
         "name": "File",
@@ -302,26 +333,5 @@ KH_INDICES = [
         },
         "index_type": "ktem.index.file.FileIndex",
     },
-    {
-        "name": "GraphRAG",
-        "config": {
-            "supported_file_types": (
-                ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
-                ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
-            ),
-            "private": False,
-        },
-        "index_type": "ktem.index.file.graph.GraphRAGIndex",
-    },
-    {
-        "name": "NanoGraphRAG",
-        "config": {
-            "supported_file_types": (
-                ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
-                ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
-            ),
-            "private": False,
-        },
-        "index_type": "ktem.index.file.graph.NanoGraphRAGIndex",
-    },
+    GRAPHRAG_INDEX,
 ]
