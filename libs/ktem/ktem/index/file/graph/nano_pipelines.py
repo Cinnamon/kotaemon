@@ -29,13 +29,6 @@ try:
         _find_most_related_text_unit_from_entities,
     )
     from nano_graphrag._utils import EmbeddingFunc
-    from nano_graphrag.base import (
-        BaseGraphStorage,
-        BaseKVStorage,
-        BaseVectorStorage,
-        CommunitySchema,
-        TextChunkSchema,
-    )
 
 except ImportError:
     print(
@@ -124,12 +117,12 @@ def clean_quote(input: str) -> str:
 async def nano_graph_rag_build_local_query_context(
     graph_func,
     query,
-    query_param: QueryParam,
+    query_param,
 ):
-    knowledge_graph_inst: BaseGraphStorage = graph_func.chunk_entity_relation_graph
-    entities_vdb: BaseVectorStorage = graph_func.entities_vdb
-    community_reports: BaseKVStorage[CommunitySchema] = graph_func.community_reports
-    text_chunks_db: BaseKVStorage[TextChunkSchema] = graph_func.text_chunks
+    knowledge_graph_inst = graph_func.chunk_entity_relation_graph
+    entities_vdb = graph_func.entities_vdb
+    community_reports = graph_func.community_reports
+    text_chunks_db = graph_func.text_chunks
 
     results = await entities_vdb.query(query, top_k=query_param.top_k)
     if not len(results):
