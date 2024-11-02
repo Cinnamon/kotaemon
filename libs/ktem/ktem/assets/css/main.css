@@ -163,6 +163,10 @@ mark {
   right: 40px;
 }
 
+.upload-button {
+  display: none;
+}
+
 .scrollable {
   overflow-y: auto;
 }

@@ -192,7 +192,6 @@ class ChatPage(BasePage):
             gr.on(
                 triggers=[
                     self.chat_panel.text_input.submit,
-                    self.chat_panel.submit_btn.click,
                 ],
                 fn=self.submit_msg,
                 inputs=[
@@ -293,105 +292,6 @@ class ChatPage(BasePage):
 
         # final data persist
         chat_event = chat_event.then(
-            fn=self.persist_data_source,
-            inputs=[
-                self.chat_control.conversation_id,
-                self._app.user_id,
-                self.info_panel,
-                self.state_plot_panel,
-                self.state_retrieval_history,
-                self.state_plot_history,
-                self.chat_panel.chatbot,
-                self.state_chat,
-            ]
-            + self._indices_input,
-            outputs=[
-                self.state_retrieval_history,
-                self.state_plot_history,
-            ],
-            concurrency_limit=20,
-        )
-
-        regen_event = (
-            self.chat_panel.regen_btn.click(
-                fn=self.regen_fn,
-                inputs=[
-                    self.chat_control.conversation_id,
-                    self.chat_panel.chatbot,
-                    self._app.settings_state,
-                    self._reasoning_type,
-                    self._llm_type,
-                    self.state_chat,
-                    self._app.user_id,
-                ]
-                + self._indices_input,
-                outputs=[
-                    self.chat_panel.chatbot,
-                    self.info_panel,
-                    self.plot_panel,
-                    self.state_plot_panel,
-                    self.state_chat,
-                ],
-                concurrency_limit=20,
-                show_progress="minimal",
-            )
-            .then(
-                fn=lambda: True,
-                inputs=None,
-                outputs=[self._preview_links],
-                js=pdfview_js,
-            )
-            .success(
-                fn=self.check_and_suggest_name_conv,
-                inputs=self.chat_panel.chatbot,
-                outputs=[
-                    self.chat_control.conversation_rn,
-                    self._conversation_renamed,
-                ],
-            )
-            .success(
-                self.chat_control.rename_conv,
-                inputs=[
-                    self.chat_control.conversation_id,
-                    self.chat_control.conversation_rn,
-                    self._conversation_renamed,
-                    self._app.user_id,
-                ],
-                outputs=[
-                    self.chat_control.conversation,
-                    self.chat_control.conversation,
-                    self.chat_control.conversation_rn,
-                ],
-                show_progress="hidden",
-            )
-        )
-
-        # chat suggestion toggle
-        if getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False):
-            regen_event = regen_event.success(
-                fn=self.suggest_chat_conv,
-                inputs=[
-                    self._app.settings_state,
-                    self.chat_panel.chatbot,
-                ],
-                outputs=[
-                    self.state_follow_up,
-                    self._suggestion_updated,
-                ],
-                show_progress="hidden",
-            ).success(
-                self.chat_control.persist_chat_suggestions,
-                inputs=[
-                    self.chat_control.conversation_id,
-                    self.state_follow_up,
-                    self._suggestion_updated,
-                    self._app.user_id,
-                ],
-                show_progress="hidden",
-            )
-
-        # final data persist
-        regen_event = regen_event.then(
             fn=self.persist_data_source,
             inputs=[
                 self.chat_control.conversation_id,
@@ -616,6 +516,15 @@ class ChatPage(BasePage):
         if not chat_input:
             raise ValueError("Input is empty")
 
+        chat_input_text = chat_input.get("text", "")
+
+        # check if regen mode is active
+        if chat_input_text:
+            chat_history = chat_history + [(chat_input_text, None)]
+        else:
+            if not chat_history:
+                raise gr.Error("Empty chat")
+
         if not conv_id:
             id_, update = self.chat_control.new_conv(user_id)
             with Session(engine) as session:
@@ -637,8 +546,8 @@ class ChatPage(BasePage):
             new_chat_suggestion = chat_suggest
 
         return (
-            "",
-            chat_history + [(chat_input, None)],
+            {},
+            chat_history,
             new_conv_id,
             conv_update,
             new_conv_name,
@@ -871,8 +780,12 @@ class ChatPage(BasePage):
         *selecteds,
     ):
         """Chat function"""
-        chat_input = chat_history[-1][0]
+        chat_input, chat_output = chat_history[-1]
         chat_history = chat_history[:-1]
+
+        # if chat_input is empty, assume regen mode
+        if chat_output:
+            state["app"]["regen"] = True
 
         queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
 
@@ -921,6 +834,7 @@ class ChatPage(BasePage):
                 plot_gr = self._json_to_plot(plot)
 
             state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
+
             yield (
                 chat_history + [(chat_input, text or msg_placeholder)],
                 refs,
@@ -941,35 +855,6 @@ class ChatPage(BasePage):
                 plot,
                 state,
             )
-
-    def regen_fn(
-        self,
-        conversation_id,
-        chat_history,
-        settings,
-        reasoning_type,
-        llm_type,
-        state,
-        user_id,
-        *selecteds,
-    ):
-        """Regen function"""
-        if not chat_history:
-            gr.Warning("Empty chat")
-            yield chat_history, "", state
-            return
-
-        state["app"]["regen"] = True
-        yield from self.chat_fn(
-            conversation_id,
-            chat_history,
-            settings,
-            reasoning_type,
-            llm_type,
-            state,
-            user_id,
-            *selecteds,
-        )
 
     def check_and_suggest_name_conv(self, chat_history):
         suggest_pipeline = SuggestConvNamePipeline()

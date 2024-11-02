@@ -14,7 +14,7 @@ class ChatSuggestion(BasePage):
         with gr.Accordion(label="Chat Suggestion", open=False) as self.accordion:
             self.example = gr.DataFrame(
                 value=chat_samples,
-                headers=["Sample"],
+                headers=["Next Question"],
                 interactive=False,
                 wrap=True,
             )
@@ -23,4 +23,4 @@ class ChatSuggestion(BasePage):
         return self.example
 
     def select_example(self, ev: gr.SelectData):
-        return ev.value
+        return {"text": ev.value}
