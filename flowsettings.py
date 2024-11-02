@@ -63,7 +63,9 @@ os.environ["HF_HUB_CACHE"] = str(KH_APP_DATA_DIR / "huggingface")
 KH_DOC_DIR = this_dir / "docs"
 
 KH_MODE = "dev"
-KH_FEATURE_CHAT_SUGGESTION = config("KH_FEATURE_CHAT_SUGGESTION", default=False)
+KH_FEATURE_CHAT_SUGGESTION = config(
+    "KH_FEATURE_CHAT_SUGGESTION", default=False, cast=bool
+)
 KH_FEATURE_USER_MANAGEMENT = config(
     "KH_FEATURE_USER_MANAGEMENT", default=True, cast=bool
 )
