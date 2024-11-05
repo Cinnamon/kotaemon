@@ -110,7 +110,7 @@ def request_adobe_service(file_path: str, output_path: str = "") -> str:
     return output_path
 
 
-def make_markdown_table(table_as_list: List[str]) -> str:
+def make_markdown_table(table_as_list: List[List[str]]) -> str:
     """
     Convert table from python list representation to markdown format.
     The input list consists of rows of tables, the first row is the header.
