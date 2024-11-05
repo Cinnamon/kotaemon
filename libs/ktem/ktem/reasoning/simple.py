@@ -658,6 +658,7 @@ class FullQAPipeline(BaseReasoning):
     def prepare_citation_viz(self, answer, question, docs) -> Document | None:
         doc_texts = [doc.text for doc in docs]
         citation_plot = None
+        plot_content = None
 
         if answer.metadata["citation_viz"] and len(docs) > 1:
             try:
@@ -668,15 +669,6 @@ class FullQAPipeline(BaseReasoning):
             if citation_plot:
                 plot = to_json(citation_plot)
                 plot_content = Document(channel="plot", content=plot)
-            else:
-                plot_content = None
-        else:
-            print(
-                "The visualization feat was not enabled or "
-                "the number of documents cited did not meet "
-                "the presentation requirements."
-            )
-            plot_content = None
 
         return plot_content
 
