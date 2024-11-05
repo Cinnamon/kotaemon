@@ -742,7 +742,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
             loader=reader,
             splitter=TokenSplitter(
                 chunk_size=chunk_size or 1024,
-                chunk_overlap=chunk_overlap or 256,
+                chunk_overlap=chunk_overlap if chunk_overlap is not None else 256,
                 separator="\n\n",
                 backup_separators=["\n", ".", "\u200B"],
             ),
