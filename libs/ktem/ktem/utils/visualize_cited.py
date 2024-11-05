@@ -12,9 +12,8 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
 import umap
-from ktem.embeddings.manager import embedding_models_manager as embeddings
 
-from kotaemon.base import BaseComponent, Node
+from kotaemon.base import BaseComponent
 from kotaemon.embeddings import BaseEmbeddings
 
 VISUALIZATION_SETTINGS = {
@@ -28,9 +27,7 @@ VISUALIZATION_SETTINGS = {
 class CreateCitationVizPipeline(BaseComponent):
     """Creating PlotData for visualizing query results"""
 
-    embedding: BaseEmbeddings = Node(
-        default_callback=lambda _: embeddings.get_default()
-    )
+    embedding: BaseEmbeddings
     projector: umap.UMAP = None
 
     def _set_up_umap(self, embeddings: np.ndarray):

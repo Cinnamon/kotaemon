@@ -659,17 +659,17 @@ class FullQAPipeline(BaseReasoning):
         doc_texts = [doc.text for doc in docs]
         citation_plot = None
 
-        def citation_viz_call():
-            nonlocal citation_plot
-            citation_plot = self.create_citation_viz_pipeline(doc_texts, question)
-
         if answer.metadata["citation_viz"] and len(docs) > 1:
-            citation_plot_thread = threading.Thread(target=citation_viz_call)
-            citation_plot_thread.start()
-            citation_plot_thread.join()
+            try:
+                citation_plot = self.create_citation_viz_pipeline(doc_texts, question)
+            except Exception as e:
+                print("Failed to create citation plot:", e)
 
-            plot = to_json(citation_plot)
-            plot_content = Document(channel="plot", content=plot)
+            if citation_plot:
+                plot = to_json(citation_plot)
+                plot_content = Document(channel="plot", content=plot)
+            else:
+                plot_content = None
         else:
             print(
                 "The visualization feat was not enabled or "
@@ -866,7 +866,7 @@ class FullQAPipeline(BaseReasoning):
                 "component": "checkbox",
             },
             "create_citation_viz": {
-                "name": "Create Visualization of the retrieved docs",
+                "name": "Create Embeddings Visualization",
                 "value": False,
                 "component": "checkbox",
             },
