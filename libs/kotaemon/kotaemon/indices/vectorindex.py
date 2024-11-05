@@ -53,7 +53,11 @@ class VectorIndexing(BaseIndexing):
     def write_chunk_to_file(self, docs: list[Document]):
         # save the chunks content into markdown format
         if self.cache_dir:
-            file_name = Path(docs[0].metadata["file_name"])
+            file_name = docs[0].metadata.get("file_name")
+            if not file_name:
+                return
+
+            file_name = Path(file_name)
             for i in range(len(docs)):
                 markdown_content = ""
                 if "page_label" in docs[i].metadata:

@@ -38,6 +38,7 @@ dependencies = [
     "langchain-cohere>=0.2.4,<0.3.0",
     "llama-hub>=0.0.79,<0.1.0",
     "llama-index>=0.10.40,<0.11.0",
+    "chromadb<=0.5.16",
     "llama-index-vector-stores-chroma>=0.1.9",
     "llama-index-vector-stores-lancedb",
     "openai>=1.23.6,<2",
@@ -52,7 +53,8 @@ dependencies = [
     "python-dotenv>=1.0.1,<1.1",
     "tenacity>=8.2.3,<8.3",
     "theflow>=0.8.6,<0.9.0",
-    "trogon>=0.5.0,<0.6"
+    "trogon>=0.5.0,<0.6",
+    "umap-learn==0.5.5",
 ]
 readme = "README.md"
 authors = [
@@ -71,6 +73,7 @@ adv = [
     "duckduckgo-search>=6.1.0,<6.2",
     "elasticsearch>=8.13.0,<8.14",
     "fastembed",
+    "onnxruntime<v1.20",
     "googlesearch-python>=1.2.4,<1.3",
     "llama-cpp-python<0.2.8",
     "llama-index>=0.10.40,<0.11.0",
