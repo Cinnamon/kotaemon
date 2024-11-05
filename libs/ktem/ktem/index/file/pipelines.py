@@ -152,9 +152,10 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             filters=[
                 MetadataFilter(
                     key="file_id",
-                    value=doc_ids,
+                    value=doc_id,
                     operator=FilterOperator.IN,
                 )
+                for doc_id in doc_ids
             ],
             condition=FilterCondition.OR,
         )
