@@ -38,7 +38,7 @@ dependencies = [
     "langchain-cohere>=0.2.4,<0.3.0",
     "llama-hub>=0.0.79,<0.1.0",
     "llama-index>=0.10.40,<0.11.0",
-    "chromadb<=0.5.17",
+    "chromadb<=0.5.16",
     "llama-index-vector-stores-chroma>=0.1.9",
     "llama-index-vector-stores-lancedb",
     "openai>=1.23.6,<2",
