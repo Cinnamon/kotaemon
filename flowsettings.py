@@ -299,7 +299,7 @@ KH_INDEX_TYPES = [
 
 GRAPHRAG_INDEX = (
     {
-        "name": "GraphRAG",
+        "name": "GraphRAG Collection",
         "config": {
             "supported_file_types": (
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
@@ -311,7 +311,7 @@ GRAPHRAG_INDEX = (
     }
     if not USE_NANO_GRAPHRAG
     else {
-        "name": "NanoGraphRAG",
+        "name": "NanoGraphRAG Collection",
         "config": {
             "supported_file_types": (
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
@@ -325,7 +325,7 @@ GRAPHRAG_INDEX = (
 
 KH_INDICES = [
     {
-        "name": "File",
+        "name": "File Collection",
         "config": {
             "supported_file_types": (
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
