@@ -22,7 +22,6 @@ ARG TARGETARCH
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONIOENCODING=UTF-8
-ENV USE_LIGHTRAG=true
 ENV TARGETARCH=${TARGETARCH}
 
 # Create working directory
@@ -48,15 +47,6 @@ RUN --mount=type=ssh  \
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
     if [ "$TARGETARCH" = "amd64" ]; then pip install graphrag future; fi
-
-# install lightRAG
-RUN --mount=type=ssh  \
-    --mount=type=cache,target=/root/.cache/pip  \
-    pip install pip install git+https://github.com/HKUDS/LightRAG.git
-# a quickfix for compatibility issue of hsnwlib
-RUN --mount=type=ssh  \
-    --mount=type=cache,target=/root/.cache/pip  \
-    pip uninstall -y hnswlib chroma-hnswlib && pip install chroma-hnswlib
 
 # Clean up
 RUN apt-get autoremove \
@@ -90,6 +80,16 @@ RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
     pip install -e "libs/kotaemon[adv]" \
     && pip install unstructured[all-docs]
+
+# Install lightRAG
+ENV USE_LIGHTRAG=true
+RUN --mount=type=ssh  \
+    --mount=type=cache,target=/root/.cache/pip  \
+    pip install git+https://github.com/HKUDS/LightRAG.git
+# A quickfix for compatibility issue of hsnwlib
+RUN --mount=type=ssh  \
+    --mount=type=cache,target=/root/.cache/pip  \
+    pip uninstall -y hnswlib chroma-hnswlib && pip install chroma-hnswlib
 
 # Clean up
 RUN apt-get autoremove \
