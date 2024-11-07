@@ -187,6 +187,18 @@ documents and developers who want to build their own RAG pipeline.
 
 <details>
 
+<summary>Setup LIGHTRAG</summary>
+
+- Install LightRAG: `pip install git+https://github.com/HKUDS/LightRAG.git`
+- `LightRAG` install might introduce version conflicts, see [this issue](https://github.com/Cinnamon/kotaemon/issues/440)
+  - To quickly fix: `pip uninstall hnswlib chroma-hnswlib && pip install chroma-hnswlib`
+- Launch Kotaemon with `USE_LIGHTRAG=true` environment variable.
+- Set your default LLM & Embedding models in Resources setting and it will be recognized automatically from LightRAG.
+
+</details>
+
+<details>
+
 <summary>Setup MS GRAPHRAG</summary>
 
 - **Non-Docker Installation**: If you are not using Docker, install GraphRAG with the following command:
