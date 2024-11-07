@@ -85,11 +85,7 @@ RUN --mount=type=ssh  \
 ENV USE_LIGHTRAG=true
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
-    pip install git+https://github.com/HKUDS/LightRAG.git
-# A quickfix for compatibility issue of hsnwlib
-RUN --mount=type=ssh  \
-    --mount=type=cache,target=/root/.cache/pip  \
-    pip uninstall -y hnswlib chroma-hnswlib && pip install chroma-hnswlib
+    pip install aioboto3 nano-vectordb ollama xxhash lightrag-hku
 
 # Clean up
 RUN apt-get autoremove \
