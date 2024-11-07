@@ -101,12 +101,12 @@ class KnetRetrievalPipeline(BaseFileIndexRetriever):
             chunks = yaml.safe_load(response.content)
             for chunk in chunks:
                 metadata = chunk["node"]["metadata"]
+                content_type = metadata.pop("content_type", "")
+
                 metadata["page_label"] = metadata.get(
                     "pageIdx", metadata.get("parentPageIdx", "")
                 )
-                metadata["type"] = metadata_translation.get(
-                    metadata.pop("content_type", ""), ""
-                )
+                metadata["type"] = metadata_translation.get(content_type, content_type)
                 metadata["file_name"] = metadata.pop("company_name", "")
 
                 # load image from returned path

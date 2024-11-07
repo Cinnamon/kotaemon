@@ -205,6 +205,15 @@ DEFAULT_REWRITE_PROMPT = (
 
 CONTEXT_RELEVANT_WARNING_SCORE = 0.7
 
+FINAL_ANSWER_CONTENT_TYPES = [
+    "long_term_memory_index",
+    "tagged",
+    "number_of_page_nodes",
+    "document_page_info",
+    "template_based",
+    "chat_completion",
+]
+
 
 class AnswerWithContextPipeline(BaseComponent):
     """Answer the question based on the evidence
@@ -696,6 +705,15 @@ class FullQAPipeline(BaseReasoning):
             if without_citation:
                 yield from without_citation
 
+    def find_final_answer(self, docs):
+        final_answer = None
+        for doc in docs:
+            if doc.metadata.get("type") in FINAL_ANSWER_CONTENT_TYPES:
+                final_answer = doc
+                break
+
+        return final_answer
+
     async def ainvoke(  # type: ignore
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Document:  # type: ignore
@@ -747,6 +765,16 @@ class FullQAPipeline(BaseReasoning):
         docs, infos = self.retrieve(message, history, conv_id=conv_id)
         print(f"Got {len(docs)} retrieved documents")
         yield from infos
+
+        # check if evidences contain final answer
+        final_answer = self.find_final_answer(docs)
+        if final_answer:
+            yield Document(
+                channel="chat",
+                content=final_answer.text,
+            )
+            print("No LLM generation because final answer found in evidences")
+            return final_answer.text
 
         evidence_mode, evidence = self.evidence_pipeline(docs).content
 
