@@ -287,41 +287,31 @@ SETTINGS_REASONING = {
 }
 
 USE_NANO_GRAPHRAG = config("USE_NANO_GRAPHRAG", default=False, cast=bool)
-GRAPHRAG_INDEX_TYPE = (
-    "ktem.index.file.graph.GraphRAGIndex"
-    if not USE_NANO_GRAPHRAG
-    else "ktem.index.file.graph.NanoGraphRAGIndex"
-)
+USE_LIGHTRAG = config("USE_LIGHTRAG", default=False, cast=bool)
+
+if USE_NANO_GRAPHRAG:
+    GRAPHRAG_INDEX_TYPE = "ktem.index.file.graph.NanoGraphRAGIndex"
+elif USE_LIGHTRAG:
+    GRAPHRAG_INDEX_TYPE = "ktem.index.file.graph.LightRAGIndex"
+else:
+    GRAPHRAG_INDEX_TYPE = "ktem.index.file.graph.GraphRAGIndex"
+
 KH_INDEX_TYPES = [
     "ktem.index.file.FileIndex",
     GRAPHRAG_INDEX_TYPE,
 ]
 
-GRAPHRAG_INDEX = (
-    {
-        "name": "GraphRAG",
-        "config": {
-            "supported_file_types": (
-                ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
-                ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
-            ),
-            "private": False,
-        },
-        "index_type": "ktem.index.file.graph.GraphRAGIndex",
-    }
-    if not USE_NANO_GRAPHRAG
-    else {
-        "name": "NanoGraphRAG",
-        "config": {
-            "supported_file_types": (
-                ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
-                ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
-            ),
-            "private": False,
-        },
-        "index_type": "ktem.index.file.graph.NanoGraphRAGIndex",
-    }
-)
+GRAPHRAG_INDEX = {
+    "name": GRAPHRAG_INDEX_TYPE.split(".")[-1].replace("Index", ""),  # get last name
+    "config": {
+        "supported_file_types": (
+            ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
+            ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
+        ),
+        "private": False,
+    },
+    "index_type": GRAPHRAG_INDEX_TYPE,
+}
 
 KH_INDICES = [
     {
