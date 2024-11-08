@@ -150,16 +150,26 @@ async def lightrag_build_local_query_context(
         for k, n, d in zip(results, node_datas, node_degrees)
         if n is not None
     ]
-    use_text_units = await _find_most_related_text_unit_from_entities(
-        node_datas, query_param, text_chunks_db, knowledge_graph_inst
-    )
-    use_relations = await _find_most_related_edges_from_entities(
-        node_datas, query_param, knowledge_graph_inst
-    )
+
+    try:
+        use_text_units = await _find_most_related_text_unit_from_entities(
+            node_datas, query_param, text_chunks_db, knowledge_graph_inst
+        )
+    except Exception:
+        use_text_units = []
+
+    try:
+        use_relations = await _find_most_related_edges_from_entities(
+            node_datas, query_param, knowledge_graph_inst
+        )
+    except Exception:
+        use_relations = []
+
     logging.info(
         f"Local query uses {len(node_datas)} entities, "
         f"{len(use_relations)} relations, {len(use_text_units)} text units"
     )
+
     entites_section_list = [["id", "entity", "type", "description", "rank"]]
     for i, n in enumerate(node_datas):
         entites_section_list.append(
@@ -226,7 +236,9 @@ class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
         )
 
         all_docs = [
-            doc.text for doc in docs if doc.metadata.get("type", "text") == "text"
+            doc.text
+            for doc in docs
+            if doc.metadata.get("type", "text") == "text" and len(doc.text.strip()) > 0
         ]
 
         yield Document(

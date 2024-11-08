@@ -232,7 +232,9 @@ class NanoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
         )
 
         all_docs = [
-            doc.text for doc in docs if doc.metadata.get("type", "text") == "text"
+            doc.text
+            for doc in docs
+            if doc.metadata.get("type", "text") == "text" and len(doc.text.strip()) > 0
         ]
 
         yield Document(
