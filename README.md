@@ -204,7 +204,7 @@ documents and developers who want to build their own RAG pipeline.
 - **Non-Docker Installation**: If you are not using Docker, install GraphRAG with the following command:
 
   ```shell
-  pip install graphrag future
+  pip install "graphrag<=0.3.6" future
   ```
 
 - **Setting Up API KEY**: To use the GraphRAG retriever feature, ensure you set the `GRAPHRAG_API_KEY` environment variable. You can do this directly in your environment or by adding it to a `.env` file.
