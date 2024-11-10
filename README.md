@@ -87,7 +87,13 @@ documents and developers who want to build their own RAG pipeline.
 
 1. [Python](https://www.python.org/downloads/) >= 3.10
 2. [Docker](https://www.docker.com/): optional, if you [install with Docker](#with-docker-recommended)
-3. [Unstructured](https://docs.unstructured.io/open-source/installation/full-installation#full-installation) if you want to process files other than `.pdf`, `.html`, `.mhtml`, and `.xlsx` documents. Installation steps differ depending on your operating system. Please visit the link and follow the specific instructions provided there.
+3. [Unstructured](https://docs.unstructured.io/open-source/installation/full-installation#full-installation) requirements:
+   - Required for processing files other than `.pdf`, `.html`, `.mhtml`, and `.xlsx`
+   - Known limitations:
+     - May have issues with Korean PNG/JPG files (#445)
+     - Some Word DOCX files may fail embedding (#435)
+     - Text with overlapping characters may have distorted formatting (#420)
+   - Installation steps differ by OS - follow specific instructions at the link
 
 ### With Docker (recommended)
 
@@ -335,14 +341,22 @@ This file provides another way to configure your models and credentials.
 
 #### Custom Reasoning Pipeline
 
-1. Check the default pipeline implementation in [here](libs/ktem/ktem/reasoning/simple.py). You can make quick adjustment to how the default QA pipeline work.
-2. Add new `.py` implementation in `libs/ktem/ktem/reasoning/` and later include it in `flowssettings` to enable it on the UI.
+1. Check the default pipeline implementation in [libs/ktem/ktem/reasoning/simple.py](libs/ktem/ktem/reasoning/simple.py)
+2. Add new `.py` implementation in `libs/ktem/ktem/reasoning/` and include it in `flowssettings` to enable on UI
+3. Key considerations:
+   - For multiple documents, ensure proper context handling (#460)
+   - Consider chunk size strategies for different file types (#422)
+   - Tables should be handled carefully during chunking (#466)
 
 #### Custom Indexing Pipeline
 
-- Check sample implementation in `libs/ktem/ktem/index/file/graph`
+1. Check sample implementation in `libs/ktem/ktem/index/file/graph`
+2. Known GraphRAG considerations:
+   - NanoGraphRAG may have graph writing issues (#449)
+   - External MILVUS DB integration needs careful configuration (#438)
+   - Some files may fail during GraphRAG chat (#415)
 
-> (more instruction WIP).
+> More detailed implementation guides coming soon.
 
 ## Star History
 
