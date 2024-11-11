@@ -36,8 +36,8 @@ class BaseConversation(SQLModel):
     # contains messages + current files + chat_suggestions
     data_source: dict = Field(default={}, sa_column=Column(JSON))
 
-    date_created: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
-    date_updated: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    date_created: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(get_localzone()))
+    date_updated: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(get_localzone()))
 
 
 class BaseUser(SQLModel):
