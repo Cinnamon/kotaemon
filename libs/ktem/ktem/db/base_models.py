@@ -1,11 +1,10 @@
 import datetime
 import uuid
 from typing import Optional
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, SQLModel
-from theflow.settings import settings as flowsettings
+from tzlocal import get_localzone
 
 
 class BaseConversation(SQLModel):
@@ -26,9 +25,9 @@ class BaseConversation(SQLModel):
         default_factory=lambda: uuid.uuid4().hex, primary_key=True, index=True
     )
     name: str = Field(
-        default_factory=lambda: datetime.datetime.now(
-            ZoneInfo(getattr(flowsettings, "TIME_ZONE", "UTC"))
-        ).strftime("%Y-%m-%d %H:%M:%S")
+        default_factory=lambda: datetime.datetime.now(get_localzone()).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
     )
     user: int = Field(default=0)  # For now we only have one user
 
@@ -37,8 +36,12 @@ class BaseConversation(SQLModel):
     # contains messages + current files + chat_suggestions
     data_source: dict = Field(default={}, sa_column=Column(JSON))
 
-    date_created: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
-    date_updated: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    date_created: datetime.datetime = Field(
+        default_factory=lambda: datetime.datetime.now(get_localzone())
+    )
+    date_updated: datetime.datetime = Field(
+        default_factory=lambda: datetime.datetime.now(get_localzone())
+    )
 
 
 class BaseUser(SQLModel):
