@@ -100,7 +100,9 @@ class KnetRetrievalPipeline(BaseFileIndexRetriever):
             # Load YAML content from the response content
             chunks = yaml.safe_load(response.content)
             for chunk in chunks:
-                metadata = chunk["node"]["metadata"]
+                metadata = chunk["node"].get("metadata")
+                if not metadata:
+                    metadata = chunk["node"].get("extra_info")
                 content_type = metadata.pop("content_type", "")
 
                 metadata["page_label"] = metadata.get(
