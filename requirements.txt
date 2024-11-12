@@ -1,0 +1,6 @@
+theflow == 0.8.6
+python-decouple
+gradio
+databricks-sdk>=0.1.0
+-e ./libs/ktem/
+-e ./libs/kotaemon/
