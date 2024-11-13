@@ -545,6 +545,13 @@ class IndexPipeline(BaseComponent):
     def stream(
         self, file_path: str | Path, reindex: bool, **kwargs
     ) -> Generator[Document, None, tuple[str, list[Document]]]:
+        if self.loader is None:
+            raise NotImplementedError(
+                f"No supported pipeline to index {Path(file_path).name}. "
+                "Please specify "
+                "the suitable pipeline for this file type in the settings."
+            )
+
         # check for duplication
         file_path = Path(file_path).resolve()
         file_id = self.get_id_if_exists(file_path)
@@ -617,11 +624,6 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
 
         ext = file_path.suffix
         reader = readers.get(ext, KH_DEFAULT_FILE_EXTRACTORS.get(ext, None))
-        if reader is None:
-            raise NotImplementedError(
-                f"No supported pipeline to index {file_path.name}. Please specify "
-                "the suitable pipeline for this file type in the settings."
-            )
 
         pipeline: IndexPipeline = IndexPipeline(
             loader=reader,
