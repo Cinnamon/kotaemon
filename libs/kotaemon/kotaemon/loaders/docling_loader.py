@@ -1,4 +1,5 @@
 import base64
+from collections import defaultdict
 from io import BytesIO
 from pathlib import Path
 from typing import List, Optional
@@ -30,7 +31,7 @@ class DoclingReader(BaseReader):
         ),
     )
 
-    figure_friednly_filetypes: list[str] = Param(
+    figure_friendly_filetypes: list[str] = Param(
         [".pdf", ".jpeg", ".jpg", ".png", ".bmp", ".tiff", ".heif", ".tif"],
         help=(
             "File types that we can reliably open and extract figures. "
@@ -73,7 +74,7 @@ class DoclingReader(BaseReader):
         for figure_obj in result_dict.get("pictures", []):
             if not self.vlm_endpoint:
                 continue
-            if file_path.suffix.lower() not in self.figure_friednly_filetypes:
+            if file_path.suffix.lower() not in self.figure_friendly_filetypes:
                 continue
 
             # retrieve extractive captions provided by docling
@@ -81,20 +82,35 @@ class DoclingReader(BaseReader):
             extractive_captions = []
             for caption_ref in caption_refs:
                 text_id = caption_ref.split("/")[-1]
-                extractive_captions.append(
-                    result_dict["texts"][text_id]["prov"][0]["text"]
-                )
+                try:
+                    caption_text = result_dict["texts"][int(text_id)]["text"]
+                    extractive_captions.append(caption_text)
+                except (ValueError, TypeError, IndexError) as e:
+                    print(e)
+                    continue
 
             # read & crop image
             page_number = figure_obj["prov"][0]["page_no"]
-            page_width = result_dict["pages"][page_number]["size"]["width"]
-            page_height = result_dict["pages"][page_number]["size"]["height"]
 
-            bbox_obj = figure_obj["prov"][0]["bbox"]
-            bbox = [bbox_obj["l"], bbox_obj["t"], bbox_obj["r"], bbox_obj["b"]]
-            if bbox_obj["coord_origin"] == "BOTTOMLEFT":
-                bbox = self._convert_bbox_bl_tl(bbox, page_width, page_height)
-            img = crop_image(file_path, bbox, page_number - 1)
+            try:
+                page_number_text = str(page_number)
+                page_width = result_dict["pages"][page_number_text]["size"]["width"]
+                page_height = result_dict["pages"][page_number_text]["size"]["height"]
+
+                bbox_obj = figure_obj["prov"][0]["bbox"]
+                bbox: list[float] = [
+                    bbox_obj["l"],
+                    bbox_obj["t"],
+                    bbox_obj["r"],
+                    bbox_obj["b"],
+                ]
+                if bbox_obj["coord_origin"] == "BOTTOMLEFT":
+                    bbox = self._convert_bbox_bl_tl(bbox, page_width, page_height)
+
+                img = crop_image(file_path, bbox, page_number - 1)
+            except KeyError as e:
+                print(e, list(result_dict["pages"].keys()))
+                continue
 
             # convert img to base64
             img_bytes = BytesIO()
@@ -136,6 +152,21 @@ class DoclingReader(BaseReader):
         for table_obj in result_dict.get("tables", []):
             # convert the tables into markdown format
             markdown_table = self._parse_table(table_obj)
+            caption_refs = [caption["$ref"] for caption in table_obj["captions"]]
+
+            extractive_captions = []
+            for caption_ref in caption_refs:
+                text_id = caption_ref.split("/")[-1]
+                try:
+                    caption_text = result_dict["texts"][int(text_id)]["text"]
+                    extractive_captions.append(caption_text)
+                except (ValueError, TypeError, IndexError) as e:
+                    print(e)
+                    continue
+            # join the extractive and generative captions
+            caption = "\n".join(extractive_captions)
+            markdown_table = f"{caption}\n{markdown_table}"
+
             page_number = table_obj["prov"][0].get("page_no", 1)
 
             table_metadata = {
@@ -156,11 +187,16 @@ class DoclingReader(BaseReader):
 
         # join plain text elements
         texts = []
+        page_number_to_text = defaultdict(list)
+
         for text_obj in result_dict["texts"]:
             page_number = text_obj["prov"][0].get("page_no", 1)
+            page_number_to_text[page_number].append(text_obj["text"])
+
+        for page_number, txts in page_number_to_text.items():
             texts.append(
                 Document(
-                    text=text_obj["text"],
+                    text="\n".join(txts),
                     metadata={
                         "page_label": page_number,
                         "file_name": file_name,
@@ -173,11 +209,16 @@ class DoclingReader(BaseReader):
         return texts + tables + figures
 
     def _convert_bbox_bl_tl(
-        self, bbox: list[int], page_width: int, page_height: int
-    ) -> list[int]:
+        self, bbox: list[float], page_width: int, page_height: int
+    ) -> list[float]:
         """Convert bbox from bottom-left to top-left"""
         x0, y0, x1, y1 = bbox
-        return [x0, page_height - y1, x1, page_height - y0]
+        return [
+            x0 / page_width,
+            (page_height - y1) / page_height,
+            x1 / page_width,
+            (page_height - y0) / page_height,
+        ]
 
     def _parse_table(self, table_obj: dict) -> str:
         """Convert docling table object to markdown table"""

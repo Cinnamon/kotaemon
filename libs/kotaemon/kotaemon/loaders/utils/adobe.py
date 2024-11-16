@@ -203,17 +203,21 @@ def parse_figure_paths(file_paths: List[Path]) -> Union[bytes, str]:
 
 
 def generate_single_figure_caption(vlm_endpoint: str, figure: str) -> str:
+    output = ""
+
     """Summarize a single figure using GPT-4V"""
     if figure:
-        output = generate_gpt4v(
-            endpoint=vlm_endpoint,
-            prompt="Provide a short 2 sentence summary of this image?",
-            images=figure,
-        )
-        if "sorry" in output.lower():
-            output = ""
-    else:
-        output = ""
+        try:
+            output = generate_gpt4v(
+                endpoint=vlm_endpoint,
+                prompt="Provide a short 2 sentence summary of this image?",
+                images=figure,
+            )
+            if "sorry" in output.lower():
+                output = ""
+        except Exception as e:
+            print(f"Error generating caption: {e}")
+
     return output
 
 
