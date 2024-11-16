@@ -204,6 +204,17 @@ documents and developers who want to build their own RAG pipeline.
 
 See [Local model setup](docs/local_model.md).
 
+### Setup multimodal document parsing (OCR, table parsing, figure extraction)
+
+These options are available:
+
+- [Azure Document Intelligence (API)](https://azure.microsoft.com/en-us/products/ai-services/ai-document-intelligence)
+- [Adobe PDF Extract (API)](https://developer.adobe.com/document-services/docs/overview/pdf-extract-api/)
+- [Docling (local, open-source)](https://github.com/DS4SD/docling)
+  - To use Docling, first install required dependencies: `pip install docling`
+
+Select corresponding loaders in `Settings -> Retrieval Settings -> File loader`
+
 ### Customize your application
 
 - By default, all application data is stored in the `./ktem_app_data` folder. You can back up or copy this folder to transfer your installation to a new machine.
