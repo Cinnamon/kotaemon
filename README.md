@@ -26,6 +26,8 @@ developers in mind.
 
 </div>
 
+<!-- start-intro -->
+
 ## Introduction
 
 This project serves as a functional RAG UI for both end users who want to do QA on their
@@ -354,6 +356,8 @@ This file provides another way to configure your models and credentials.
 - Check sample implementation in `libs/ktem/ktem/index/file/graph`
 
 > (more instruction WIP).
+
+<!-- end-intro -->
 
 ## Star History
 
