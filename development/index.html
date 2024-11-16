@@ -3980,24 +3980,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#star-history" class="md-nav__link">
-    <span class="md-ellipsis">
-      Star History
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#contribution" class="md-nav__link">
-    <span class="md-ellipsis">
-      Contribution
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -4023,35 +4005,7 @@
 
   <h1>Development</h1>
 
-<div><div align="center">
-
-# kotaemon
-
-An open-source clean &amp; customizable RAG UI for chatting with your documents. Built with both end users and
-developers in mind.
-
-![Preview](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/preview-graph.png)
-
-<a href="https://trendshift.io/repositories/11607" target="_blank"><img src="https://trendshift.io/api/badge/repositories/11607" alt="Cinnamon%2Fkotaemon | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"></a>
-
-[Live Demo](https://huggingface.co/spaces/cin-model/kotaemon-demo) |
-[Online Install](https://cinnamon.github.io/kotaemon/online_install/) |
-[User Guide](https://cinnamon.github.io/kotaemon/) |
-[Developer Guide](https://cinnamon.github.io/kotaemon/development/) |
-[Feedback](https://github.com/Cinnamon/kotaemon/issues) |
-[Contact](mailto:kotaemon.support@cinnamon.is)
-
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-31013/)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-<a href="https://github.com/Cinnamon/kotaemon/pkgs/container/kotaemon" target="_blank">
-<img src="https://img.shields.io/badge/docker_pull-kotaemon:latest-brightgreen" alt="docker pull ghcr.io/cinnamon/kotaemon:latest"></a>
-![download](https://img.shields.io/github/downloads/Cinnamon/kotaemon/total.svg?label=downloads&amp;color=blue)
-<a href="https://huggingface.co/spaces/cin-model/kotaemon-demo"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue"></a>
-<a href="https://hellogithub.com/en/repository/d3141471a0244d5798bc654982b263eb" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=d3141471a0244d5798bc654982b263eb&amp;claim_uid=RLiD9UZ1rEHNaMf&amp;theme=small" alt="Featured｜HelloGitHub"></a>
-
-</div>
-
-<h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">¶</a></h2>
+<div><h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">¶</a></h2>
 <p>This project serves as a functional RAG UI for both end users who want to do QA on their
 documents and developers who want to build their own RAG pipeline.
 <br></p>
@@ -4124,7 +4078,7 @@ documents and developers who want to build their own RAG pipeline.
 <h3 id="system-requirements">System requirements<a class="headerlink" href="#system-requirements" title="Permanent link">¶</a></h3>
 <ol>
 <li><a href="https://www.python.org/downloads/">Python</a> &gt;= 3.10</li>
-<li><a href="https://www.docker.com/">Docker</a>: optional, if you <a href="#with-docker-recommended">install with Docker</a></li>
+<li><a href="https://www.docker.com/">Docker</a>: optional, if you <a href="../..#with-docker-recommended">install with Docker</a></li>
 <li><a href="https://docs.unstructured.io/open-source/installation/full-installation#full-installation">Unstructured</a> if you want to process files other than <code>.pdf</code>, <code>.html</code>, <code>.mhtml</code>, and <code>.xlsx</code> documents. Installation steps differ depending on your operating system. Please visit the link and follow the specific instructions provided there.</li>
 </ol>
 <h3 id="with-docker-recommended">With Docker (recommended)<a class="headerlink" href="#with-docker-recommended" title="Permanent link">¶</a></h3>
@@ -4255,11 +4209,23 @@ We recommend most users to use NanoGraphRAG implementation for straightforward i
 
 <details>
 
+<summary>Setup LIGHTRAG</summary>
+
+- Install LightRAG: `pip install git+https://github.com/HKUDS/LightRAG.git`
+- `LightRAG` install might introduce version conflicts, see [this issue](https://github.com/Cinnamon/kotaemon/issues/440)
+  - To quickly fix: `pip uninstall hnswlib chroma-hnswlib &amp;&amp; pip install chroma-hnswlib`
+- Launch Kotaemon with `USE_LIGHTRAG=true` environment variable.
+- Set your default LLM &amp; Embedding models in Resources setting and it will be recognized automatically from LightRAG.
+
+</details>
+
+<details>
+
 <summary>Setup MS GRAPHRAG</summary>
 
 - **Non-Docker Installation**: If you are not using Docker, install GraphRAG with the following command:
 
-  <div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-6-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1"></a>pip<span class="w"> </span>install<span class="w"> </span>graphrag<span class="w"> </span>future
+  <div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-6-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"graphrag&lt;=0.3.6"</span><span class="w"> </span>future
 </span></code></pre></div></td></tr></table></div>
 
 - **Setting Up API KEY**: To use the GraphRAG retriever feature, ensure you set the `GRAPHRAG_API_KEY` environment variable. You can do this directly in your environment or by adding it to a `.env` file.
@@ -4268,7 +4234,7 @@ We recommend most users to use NanoGraphRAG implementation for straightforward i
 </details>
 
 <h3 id="setup-local-models-for-localprivate-rag">Setup Local Models (for local/private RAG)<a class="headerlink" href="#setup-local-models-for-localprivate-rag" title="Permanent link">¶</a></h3>
-<p>See <a href="docs/local_model.md">Local model setup</a>.</p>
+<p>See <a href="../local_model/">Local model setup</a>.</p>
 <h3 id="setup-multimodal-document-parsing-ocr-table-parsing-figure-extraction">Setup multimodal document parsing (OCR, table parsing, figure extraction)<a class="headerlink" href="#setup-multimodal-document-parsing-ocr-table-parsing-figure-extraction" title="Permanent link">¶</a></h3>
 <p>These options are available:</p>
 <ul>
@@ -4295,7 +4261,7 @@ We recommend most users to use NanoGraphRAG implementation for straightforward i
 </ul>
 <h4 id="flowsettingspy"><code>flowsettings.py</code><a class="headerlink" href="#flowsettingspy" title="Permanent link">¶</a></h4>
 <p>This file contains the configuration of your application. You can use the example
-<a href="flowsettings.py">here</a> as the starting point.</p>
+<a href="../../flowsettings.py">here</a> as the starting point.</p>
 <details>
 
 <summary>Notable settings</summary>
@@ -4417,7 +4383,7 @@ We recommend most users to use NanoGraphRAG implementation for straightforward i
 <h3 id="adding-your-own-rag-pipeline">Adding your own RAG pipeline<a class="headerlink" href="#adding-your-own-rag-pipeline" title="Permanent link">¶</a></h3>
 <h4 id="custom-reasoning-pipeline">Custom Reasoning Pipeline<a class="headerlink" href="#custom-reasoning-pipeline" title="Permanent link">¶</a></h4>
 <ol>
-<li>Check the default pipeline implementation in <a href="libs/ktem/ktem/reasoning/simple.py">here</a>. You can make quick adjustment to how the default QA pipeline work.</li>
+<li>Check the default pipeline implementation in <a href="../../libs/ktem/ktem/reasoning/simple.py">here</a>. You can make quick adjustment to how the default QA pipeline work.</li>
 <li>Add new <code>.py</code> implementation in <code>libs/ktem/ktem/reasoning/</code> and later include it in <code>flowssettings</code> to enable it on the UI.</li>
 </ol>
 <h4 id="custom-indexing-pipeline">Custom Indexing Pipeline<a class="headerlink" href="#custom-indexing-pipeline" title="Permanent link">¶</a></h4>
@@ -4426,20 +4392,7 @@ We recommend most users to use NanoGraphRAG implementation for straightforward i
 </ul>
 <blockquote>
 <p>(more instruction WIP).</p>
-</blockquote>
-<h2 id="star-history">Star History<a class="headerlink" href="#star-history" title="Permanent link">¶</a></h2>
-<p><a href="https://star-history.com/#Cinnamon/kotaemon&amp;Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Cinnamon/kotaemon&amp;type=Date&amp;theme=dark"></source>
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Cinnamon/kotaemon&amp;type=Date"></source>
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Cinnamon/kotaemon&amp;type=Date">
- </picture>
-</a></p>
-<h2 id="contribution">Contribution<a class="headerlink" href="#contribution" title="Permanent link">¶</a></h2>
-<p>Since our project is actively being developed, we greatly value your feedback and contributions. Please see our <a href="https://github.com/Cinnamon/kotaemon/blob/main/CONTRIBUTING.md">Contributing Guide</a> to get started. Thank you to all our contributors!</p>
-<p><a href="https://github.com/Cinnamon/kotaemon/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Cinnamon/kotaemon">
-</a></p></div>
+</blockquote></div>
 
 
 
