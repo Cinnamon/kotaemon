@@ -207,7 +207,7 @@ class MathpixPDFReader(BaseReader):
     ) -> List[Document]:
         """Load data from file path."""
         file_path = Path(file) if isinstance(file, str) else file
-        return super().load_data(file_path, extra_info, **load_kwargs)
+
         if "response_content" in load_kwargs:
             content = load_kwargs["response_content"]
         else:
@@ -276,7 +276,7 @@ class MathpixPDFReader(BaseReader):
     ) -> Generator[Document, None, None]:
         """Lazy load data from file path."""
         file_path = Path(file) if isinstance(file, str) else file
-        return super().lazy_load_data(file_path, extra_info, **load_kwargs)
+
         if "response_content" in load_kwargs:
             content = load_kwargs["response_content"]
         else:
