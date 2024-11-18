@@ -87,6 +87,11 @@ RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
     pip install aioboto3 nano-vectordb ollama xxhash "lightrag-hku<=0.0.8"
 
+ENV USE_LIGHTRAG=true
+RUN --mount=type=ssh  \
+    --mount=type=cache,target=/root/.cache/pip  \
+    pip install "docling<=2.5.2"
+
 # Clean up
 RUN apt-get autoremove \
     && apt-get clean \
