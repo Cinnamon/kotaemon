@@ -74,6 +74,7 @@ class KnetRetrievalPipeline(BaseFileIndexRetriever):
         """
         print("searching in doc_ids", doc_ids)
         conv_id = kwargs.get("conv_id", "")
+        lang = kwargs.get("lang", None)
 
         if not doc_ids:
             return []
@@ -87,6 +88,7 @@ class KnetRetrievalPipeline(BaseFileIndexRetriever):
             "assert_query_type": self.pipeline_name,
             "retrieval_expansion": self.retrieval_expansion,
             "user_id": self.user_id,
+            "lang": lang,
         }
         print(params)
         params["meta_filters"] = json.dumps(params["meta_filters"])
