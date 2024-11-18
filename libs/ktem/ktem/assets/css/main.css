@@ -160,7 +160,19 @@ mark {
 #toggle-dark-button {
   position: fixed;
   top: 6px;
-  right: 40px;
+  right: 60px;
+}
+
+#info-expand-button {
+  position: fixed;
+  top: 6px;
+  right: 85px;
+}
+
+#new-conv-button > img {
+  position: relative;
+  top: 0px;
+  right: -50%;
 }
 
 .upload-button {
