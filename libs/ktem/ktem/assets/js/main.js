@@ -11,6 +11,11 @@ function run() {
   version_node.style = "position: fixed; top: 10px; right: 10px;";
   main_parent.appendChild(version_node);
 
+  // move info-expand-button
+  let info_expand_button = document.getElementById("info-expand-button");
+  let chat_info_panel = document.getElementById("info-expand");
+  chat_info_panel.insertBefore(info_expand_button, chat_info_panel.childNodes[2]);
+
   // clpse
   globalThis.clpseFn = (id) => {
     var obj = document.getElementById('clpse-btn-' + id);
