@@ -29,7 +29,7 @@ from .control import ConversationControl
 from .report import ReportIssue
 
 DEFAULT_SETTING = "(default)"
-INFO_PANEL_SCALES = {True: 8, False: 4}
+INFO_PANEL_SCALES = {True: 8, False: 5}
 
 
 pdfview_js = """
@@ -169,7 +169,9 @@ class ChatPage(BasePage):
             with gr.Column(
                 scale=INFO_PANEL_SCALES[False], elem_id="chat-info-panel"
             ) as self.info_column:
-                with gr.Accordion(label="Information panel", open=True):
+                with gr.Accordion(
+                    label="Information panel", open=True, elem_id="info-expand"
+                ):
                     self.modal = gr.HTML("<div id='pdf-modal'></div>")
                     self.plot_panel = gr.Plot(visible=False)
                     self.info_panel = gr.HTML(elem_id="html-info-panel")
