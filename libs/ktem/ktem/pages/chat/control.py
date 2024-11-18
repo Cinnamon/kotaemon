@@ -40,6 +40,15 @@ class ConversationControl(BasePage):
     def on_building_ui(self):
         with gr.Row():
             gr.Markdown("## Conversations")
+            self.btn_new = gr.Button(
+                value="",
+                icon=f"{ASSETS_DIR}/new.svg",
+                min_width=2,
+                scale=1,
+                size="sm",
+                elem_classes=["no-background", "body-text-color"],
+                elem_id="new-conv-button",
+            )
             self.btn_toggle_dark_mode = gr.Button(
                 value="",
                 icon=f"{ASSETS_DIR}/dark_mode.svg",
@@ -48,6 +57,16 @@ class ConversationControl(BasePage):
                 elem_classes=["no-background", "body-text-color"],
                 elem_id="toggle-dark-button",
             )
+            self.btn_info_expand = gr.Button(
+                value="",
+                icon=f"{ASSETS_DIR}/sidebar.svg",
+                min_width=2,
+                scale=1,
+                size="sm",
+                elem_classes=["no-background", "body-text-color"],
+                elem_id="info-expand-button",
+            )
+
             self.btn_toggle_dark_mode.click(
                 None,
                 js="""
@@ -68,14 +87,6 @@ class ConversationControl(BasePage):
         )
 
         with gr.Row() as self._new_delete:
-            self.btn_new = gr.Button(
-                value="",
-                icon=f"{ASSETS_DIR}/new.svg",
-                min_width=2,
-                scale=1,
-                size="sm",
-                elem_classes=["no-background", "body-text-color"],
-            )
             self.btn_del = gr.Button(
                 value="",
                 icon=f"{ASSETS_DIR}/delete.svg",
@@ -92,16 +103,8 @@ class ConversationControl(BasePage):
                 size="sm",
                 elem_classes=["no-background", "body-text-color"],
             )
-            self.btn_info_expand = gr.Button(
-                value="",
-                icon=f"{ASSETS_DIR}/sidebar.svg",
-                min_width=2,
-                scale=1,
-                size="sm",
-                elem_classes=["no-background", "body-text-color"],
-            )
             self.cb_is_public = gr.Checkbox(
-                value=False, label="Shared", min_width=10, scale=4
+                value=False, label="Share conversation", min_width=10, scale=6
             )
 
         with gr.Row(visible=False) as self._delete_confirm:

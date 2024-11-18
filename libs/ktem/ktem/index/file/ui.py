@@ -135,18 +135,23 @@ class FileIndexPage(BasePage):
         )
 
         with gr.Row():
-            self.deselect_button = gr.Button(
-                "Close",
+
+            self.chat_button = gr.Button(
+                "Go to Chat",
                 visible=False,
             )
             self.is_zipped_state = gr.State(value=False)
             self.download_single_button = gr.DownloadButton(
-                "Download file",
+                "Download",
                 visible=False,
             )
             self.delete_button = gr.Button(
                 "Delete",
                 variant="stop",
+                visible=False,
+            )
+            self.deselect_button = gr.Button(
+                "Close",
                 visible=False,
             )
 
@@ -192,13 +197,17 @@ class FileIndexPage(BasePage):
                 "Add",
                 variant="primary",
             )
-            self.group_close_button = gr.Button(
-                "Close",
+            self.group_chat_button = gr.Button(
+                "Go to Chat",
                 visible=False,
             )
             self.group_delete_button = gr.Button(
                 "Delete",
                 variant="stop",
+                visible=False,
+            )
+            self.group_close_button = gr.Button(
+                "Close",
                 visible=False,
             )
 
@@ -375,6 +384,7 @@ class FileIndexPage(BasePage):
             gr.update(visible=file_id is not None),
             gr.update(visible=file_id is not None),
             gr.update(visible=file_id is not None),
+            gr.update(visible=file_id is not None),
         )
 
     def delete_event(self, file_id):
@@ -475,6 +485,9 @@ class FileIndexPage(BasePage):
         for file_id in file_list.id.values:
             self.delete_event(file_id)
 
+    def set_file_id_selector(self, selected_file_id):
+        return [selected_file_id, "select", gr.Tabs(selected="chat-tab")]
+
     def show_delete_all_confirm(self, file_list):
         # when the list of files is empty it shows a single line with id equal to -
         if len(file_list) == 0 or (
@@ -520,6 +533,7 @@ class FileIndexPage(BasePage):
                     self.deselect_button,
                     self.delete_button,
                     self.download_single_button,
+                    self.chat_button,
                 ],
                 show_progress="hidden",
             )
@@ -540,8 +554,19 @@ class FileIndexPage(BasePage):
                 self.deselect_button,
                 self.delete_button,
                 self.download_single_button,
+                self.chat_button,
             ],
             show_progress="hidden",
+        )
+
+        self.chat_button.click(
+            fn=self.set_file_id_selector,
+            inputs=[self.selected_file_id],
+            outputs=[
+                self._index.get_selector_component_ui().selector,
+                self._index.get_selector_component_ui().mode,
+                self._app.tabs,
+            ],
         )
 
         self.download_all_button.click(
@@ -713,6 +738,7 @@ class FileIndexPage(BasePage):
                 self.deselect_button,
                 self.delete_button,
                 self.download_single_button,
+                self.chat_button,
             ],
             show_progress="hidden",
         )
@@ -728,12 +754,14 @@ class FileIndexPage(BasePage):
                 gr.update(visible=False),
                 gr.update(visible=True),
                 gr.update(visible=True),
+                gr.update(visible=True),
             ),
             outputs=[
                 self._group_info_panel,
                 self.group_add_button,
                 self.group_close_button,
                 self.group_delete_button,
+                self.group_chat_button,
             ],
         )
 
@@ -761,17 +789,35 @@ class FileIndexPage(BasePage):
             ],
         )
 
-        onGroupSaved = self.group_save_button.click(
-            fn=self.save_group,
-            inputs=[self.group_name, self.group_files, self._app.user_id],
-        ).then(
-            self.list_group,
-            inputs=[self._app.user_id, self.file_list_state],
-            outputs=[self.group_list_state, self.group_list],
+        self.group_chat_button.click(
+            fn=self.set_group_id_selector,
+            inputs=[self.group_name],
+            outputs=[
+                self._index.get_selector_component_ui().selector,
+                self._index.get_selector_component_ui().mode,
+                self._app.tabs,
+            ],
+        )
+
+        onGroupSaved = (
+            self.group_save_button.click(
+                fn=self.save_group,
+                inputs=[self.group_name, self.group_files, self._app.user_id],
+            )
+            .then(
+                self.list_group,
+                inputs=[self._app.user_id, self.file_list_state],
+                outputs=[self.group_list_state, self.group_list],
+            )
+            .then(
+                fn=lambda: gr.update(visible=False),
+                outputs=[self._group_info_panel],
+            )
         )
         self.group_close_button.click(
             fn=lambda: [
                 gr.update(visible=True),
+                gr.update(visible=False),
                 gr.update(visible=False),
                 gr.update(visible=False),
                 gr.update(visible=False),
@@ -781,6 +827,7 @@ class FileIndexPage(BasePage):
                 self._group_info_panel,
                 self.group_close_button,
                 self.group_delete_button,
+                self.group_chat_button,
             ],
         )
         onGroupDeleted = self.group_delete_button.click(
@@ -1157,6 +1204,18 @@ class FileIndexPage(BasePage):
             )
 
         return results, group_list
+
+    def set_group_id_selector(self, selected_group_name):
+        FileGroup = self._index._resources["FileGroup"]
+
+        # check if group_name exist
+        with Session(engine) as session:
+            current_group = (
+                session.query(FileGroup).filter_by(name=selected_group_name).first()
+            )
+
+        file_ids = [json.dumps(current_group.data["files"])]
+        return [file_ids, "select", gr.Tabs(selected="chat-tab")]
 
     def save_group(self, group_name, group_files, user_id):
         FileGroup = self._index._resources["FileGroup"]
