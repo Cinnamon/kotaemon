@@ -83,6 +83,7 @@ button.selected {
 
 #chat-area {
   height: var(--main-area-height) !important;
+  column-gap: 2px !important;
 }
 
 #chat-info-panel {
@@ -96,10 +97,30 @@ button.selected {
   overflow-y: scroll !important;
   position: sticky;
   min-width: min(305px, 100%) !important;
+  column-gap: 2px !important;
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* Internet Explorer 10+ */
+}
+
+#conv-settings-panel::-webkit-scrollbar {
+  /* WebKit */
+  width: 0;
+  height: 0;
+}
+
+td {
+  /* Fix for Firefox Gradio table overflow display */
+  overflow: hidden;
 }
 
 .setting-answer-mode-description {
   margin: 5px 5px 2px !important;
+}
+
+.message-buttons-right {
+  display: none !important;
 }
 
 mark {

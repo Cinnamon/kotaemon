@@ -29,7 +29,7 @@ from .control import ConversationControl
 from .report import ReportIssue
 
 DEFAULT_SETTING = "(default)"
-INFO_PANEL_SCALES = {True: 8, False: 5}
+INFO_PANEL_SCALES = {True: 8, False: 4}
 
 
 pdfview_js = """
