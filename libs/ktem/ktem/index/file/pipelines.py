@@ -695,7 +695,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                         "Azure AI Document Intelligence (figure+table extraction)",
                         "azure-di",
                     ),
-                    ("Docling", "docling"),
+                    ("Docling (figure+table extraction)", "docling"),
                 ],
                 "component": "dropdown",
             },
