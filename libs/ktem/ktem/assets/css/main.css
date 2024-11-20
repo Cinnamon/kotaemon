@@ -52,6 +52,14 @@ button.selected {
   font-weight: bold;
 }
 
+.message-row.bubble.bot-row{
+  overflow-x: auto;
+}
+
+.flex-wrap.bot {
+  overflow-x: inherit;
+}
+
 #chat-tab,
 #indices-tab,
 #settings-tab,
@@ -191,11 +199,11 @@ mark {
   right: 15px;
 }
 
-#new-conv-button > img {
+/* #new-conv-button > img {
   position: relative;
   top: 0px;
   right: -50%;
-}
+} */
 
 span.icon {
   color: #cecece;
@@ -270,4 +278,55 @@ pdfjs-viewer-element {
 .modal-body {
   flex: 1;
   overflow: auto;
+}
+
+/** Switch
+ -------------------------------------*/
+
+#is-public-checkbox {
+  position: relative;
+  top: 4px;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+}
+
+/**
+ * 1. Adjust this to size
+ */
+
+.switch {
+  display: inline-block;
+  /* 1 */
+  height: 1em;
+  width: 2em;
+  background: #8f8f8f;
+  border-radius: 1em;
+  position: relative;
+  top: 2px;
+  margin-right: 1em;
+}
+
+.switch div {
+  height: 1em;
+  width: 1em;
+  border-radius: 1em;
+  background: #FFF;
+  box-shadow: 0 0.1em 0.3em rgba(0, 0, 0, 0.3);
+  -webkit-transition: all 300ms;
+  -moz-transition: all 300ms;
+  transition: all 300ms;
+}
+
+.switch input:checked+div {
+  -webkit-transform: translate3d(100%, 0, 0);
+  -moz-transform: translate3d(100%, 0, 0);
+  transform: translate3d(100%, 0, 0);
+  background: #12df9a;
+}
+
+.switch:has(> input:checked) {
+  background: #0c895f;
 }
