@@ -76,7 +76,6 @@ class ChatPage(BasePage):
 
         self._preview_links = gr.State(value=None)
         self._reasoning_type = gr.State(value=None)
-        self._llm_type = gr.State(value=None)
         self._conversation_renamed = gr.State(value=False)
         self._suggestion_updated = gr.State(value=False)
         self._info_panel_expanded = gr.State(value=True)
@@ -142,6 +141,7 @@ class ChatPage(BasePage):
                         with gr.Row():
                             gr.HTML("Reasoning method")
                             gr.HTML("Model")
+                            gr.HTML("Generate mindmap")
 
                         with gr.Row():
                             reasoning_type_values = [
@@ -149,19 +149,30 @@ class ChatPage(BasePage):
                             ] + self._app.default_settings.reasoning.settings[
                                 "use"
                             ].choices
-                            self.reasoning_types = gr.Dropdown(
+                            self.reasoning_type = gr.Dropdown(
                                 choices=reasoning_type_values,
                                 value=DEFAULT_SETTING,
                                 container=False,
                                 show_label=False,
                             )
-                            self.model_types = gr.Dropdown(
+                            self.model_type = gr.Dropdown(
                                 choices=self._app.default_settings.reasoning.options[
                                     "simple"
                                 ]
                                 .settings["llm"]
                                 .choices,
                                 value="",
+                                container=False,
+                                show_label=False,
+                            )
+                            binary_default_choices = [
+                                (DEFAULT_SETTING, DEFAULT_SETTING),
+                                ("Enable", True),
+                                ("Disable", False),
+                            ]
+                            self.use_mindmap = gr.Dropdown(
+                                value=DEFAULT_SETTING,
+                                choices=binary_default_choices,
                                 container=False,
                                 show_label=False,
                             )
@@ -222,7 +233,8 @@ class ChatPage(BasePage):
                     self.chat_panel.chatbot,
                     self._app.settings_state,
                     self._reasoning_type,
-                    self._llm_type,
+                    self.model_type,
+                    self.use_mindmap,
                     self.state_chat,
                     self._app.user_id,
                 ]
@@ -489,15 +501,10 @@ class ChatPage(BasePage):
             + self._indices_input,
             outputs=None,
         )
-        self.reasoning_types.change(
+        self.reasoning_type.change(
             self.reasoning_changed,
-            inputs=[self.reasoning_types],
+            inputs=[self.reasoning_type],
             outputs=[self._reasoning_type],
-        )
-        self.model_types.change(
-            lambda x: x,
-            inputs=[self.model_types],
-            outputs=[self._llm_type],
         )
         self.chat_control.conversation_id.change(
             lambda: gr.update(visible=False),
@@ -714,6 +721,7 @@ class ChatPage(BasePage):
         settings: dict,
         session_reasoning_type: str,
         session_llm: str,
+        session_use_mindmap: bool | str,
         state: dict,
         user_id: int,
         *selecteds,
@@ -730,7 +738,12 @@ class ChatPage(BasePage):
             - the pipeline objects
         """
         # override reasoning_mode by temporary chat page state
-        print("Session reasoning type", session_reasoning_type)
+        print(
+            "Session reasoning type",
+            session_reasoning_type,
+            "use mindmap",
+            session_use_mindmap,
+        )
         print("Session LLM", session_llm)
         reasoning_mode = (
             settings["reasoning.use"]
@@ -743,8 +756,15 @@ class ChatPage(BasePage):
 
         settings = deepcopy(settings)
         llm_setting_key = f"reasoning.options.{reasoning_id}.llm"
-        if llm_setting_key in settings and session_llm not in (DEFAULT_SETTING, None):
+        if llm_setting_key in settings and session_llm not in (
+            DEFAULT_SETTING,
+            None,
+            "",
+        ):
             settings[llm_setting_key] = session_llm
+
+        if session_use_mindmap not in (DEFAULT_SETTING, None):
+            settings["reasoning.options.simple.create_mindmap"] = session_use_mindmap
 
         # get retrievers
         retrievers = []
@@ -777,6 +797,7 @@ class ChatPage(BasePage):
         settings,
         reasoning_type,
         llm_type,
+        use_mind_map,
         state,
         user_id,
         *selecteds,
@@ -793,7 +814,7 @@ class ChatPage(BasePage):
 
         # construct the pipeline
         pipeline, reasoning_state = self.create_pipeline(
-            settings, reasoning_type, llm_type, state, user_id, *selecteds
+            settings, reasoning_type, llm_type, use_mind_map, state, user_id, *selecteds
         )
         print("Reasoning state", reasoning_state)
         pipeline.set_output_queue(queue)
