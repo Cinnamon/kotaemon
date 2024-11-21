@@ -30,7 +30,7 @@ KH_DEMO_MODE = config("KH_DEMO_MODE", default=False, cast=bool)
 # App can be ran from anywhere and it's not trivial to decide where to store app data.
 # So let's use the same directory as the flowsetting.py file.
 KH_APP_DATA_DIR = this_dir / "ktem_app_data"
-# KH_APP_DATA_EXISTS = KH_APP_DATA_DIR.exists()
+KH_APP_DATA_EXISTS = KH_APP_DATA_DIR.exists()
 if not KH_APP_DATA_DIR.exists():
     KH_APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
