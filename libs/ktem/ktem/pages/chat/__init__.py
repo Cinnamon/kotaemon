@@ -41,25 +41,45 @@ function() {
     }
 
     var mindmap_el = document.getElementById('mindmap');
+
     if (mindmap_el) {
         var output = svgPanZoom(mindmap_el);
-    }
+        const svg = mindmap_el.cloneNode(true);
 
-    var link = document.getElementById("mindmap-toggle");
-    if (link) {
-        link.onclick = function(event) {
+        function on_svg_export(event) {
             event.preventDefault(); // Prevent the default link behavior
-            var div = document.getElementById("mindmap-wrapper");
-            if (div) {
-                var currentHeight = div.style.height;
-                if (currentHeight === '400px') {
-                    var contentHeight = div.scrollHeight;
-                    div.style.height = contentHeight + 'px';
-                } else {
-                    div.style.height = '400px'
+            // convert to a valid XML source
+            const as_text = new XMLSerializer().serializeToString(svg);
+            // store in a Blob
+            const blob = new Blob([as_text], { type: "image/svg+xml" });
+            // create an URI pointing to that blob
+            const url = URL.createObjectURL(blob);
+            const win = open(url);
+            // so the Garbage Collector can collect the blob
+            win.onload = (evt) => URL.revokeObjectURL(url);
+        }
+
+        var link = document.getElementById("mindmap-toggle");
+        if (link) {
+            link.onclick = function(event) {
+                event.preventDefault(); // Prevent the default link behavior
+                var div = document.getElementById("mindmap-wrapper");
+                if (div) {
+                    var currentHeight = div.style.height;
+                    if (currentHeight === '400px') {
+                        var contentHeight = div.scrollHeight;
+                        div.style.height = contentHeight + 'px';
+                    } else {
+                        div.style.height = '400px'
+                    }
                 }
-            }
-        };
+            };
+        }
+
+        var link = document.getElementById("mindmap-export");
+        if (link) {
+            link.addEventListener('click', on_svg_export);
+        }
     }
 
     return [links.length]
@@ -127,6 +147,14 @@ class ChatPage(BasePage):
                             file_count="multiple",
                             container=True,
                             show_label=False,
+                            elem_id="quick-file",
+                        )
+                        self.quick_urls = gr.Textbox(
+                            placeholder="Or paste URLs here",
+                            lines=1,
+                            container=False,
+                            show_label=False,
+                            elem_id="quick-url",
                         )
                         self.quick_file_upload_status = gr.Markdown()
 
@@ -136,12 +164,16 @@ class ChatPage(BasePage):
                 self.chat_panel = ChatPanel(self._app)
 
                 with gr.Row():
-                    with gr.Accordion(label="Chat settings", open=False):
+                    with gr.Accordion(
+                        label="Chat settings",
+                        elem_id="chat-settings-expand",
+                        open=False,
+                    ):
                         # a quick switch for reasoning type option
                         with gr.Row():
                             gr.HTML("Reasoning method")
                             gr.HTML("Model")
-                            gr.HTML("Generate mindmap")
+                            gr.HTML("Language")
 
                         with gr.Row():
                             reasoning_type_values = [
@@ -165,16 +197,24 @@ class ChatPage(BasePage):
                                 container=False,
                                 show_label=False,
                             )
-                            binary_default_choices = [
-                                (DEFAULT_SETTING, DEFAULT_SETTING),
-                                ("Enable", True),
-                                ("Disable", False),
-                            ]
-                            self.use_mindmap = gr.Dropdown(
+                            self.language = gr.Dropdown(
+                                choices=[
+                                    (DEFAULT_SETTING, DEFAULT_SETTING),
+                                ]
+                                + self._app.default_settings.reasoning.settings[
+                                    "lang"
+                                ].choices,
                                 value=DEFAULT_SETTING,
-                                choices=binary_default_choices,
+                                interactive=True,
                                 container=False,
                                 show_label=False,
+                            )
+
+                            self.use_mindmap = gr.State(value=DEFAULT_SETTING)
+                            self.use_mindmap_check = gr.Checkbox(
+                                label="Mindmap (default)",
+                                container=False,
+                                elem_id="use-mindmap-checkbox",
                             )
 
             with gr.Column(
@@ -235,6 +275,7 @@ class ChatPage(BasePage):
                     self._reasoning_type,
                     self.model_type,
                     self.use_mindmap,
+                    self.language,
                     self.state_chat,
                     self._app.user_id,
                 ]
@@ -506,6 +547,12 @@ class ChatPage(BasePage):
             inputs=[self.reasoning_type],
             outputs=[self._reasoning_type],
         )
+        self.use_mindmap_check.change(
+            lambda x: (x, gr.update(label="Mindmap " + ("(on)" if x else "(off)"))),
+            inputs=[self.use_mindmap_check],
+            outputs=[self.use_mindmap, self.use_mindmap_check],
+            show_progress="hidden",
+        )
         self.chat_control.conversation_id.change(
             lambda: gr.update(visible=False),
             outputs=self.plot_panel,
@@ -722,6 +769,7 @@ class ChatPage(BasePage):
         session_reasoning_type: str,
         session_llm: str,
         session_use_mindmap: bool | str,
+        session_language: str,
         state: dict,
         user_id: int,
         *selecteds,
@@ -743,6 +791,8 @@ class ChatPage(BasePage):
             session_reasoning_type,
             "use mindmap",
             session_use_mindmap,
+            "language",
+            session_language,
         )
         print("Session LLM", session_llm)
         reasoning_mode = (
@@ -765,6 +815,9 @@ class ChatPage(BasePage):
 
         if session_use_mindmap not in (DEFAULT_SETTING, None):
             settings["reasoning.options.simple.create_mindmap"] = session_use_mindmap
+
+        if session_language not in (DEFAULT_SETTING, None):
+            settings["reasoning.lang"] = session_language
 
         # get retrievers
         retrievers = []
@@ -798,6 +851,7 @@ class ChatPage(BasePage):
         reasoning_type,
         llm_type,
         use_mind_map,
+        language,
         state,
         user_id,
         *selecteds,
@@ -814,7 +868,14 @@ class ChatPage(BasePage):
 
         # construct the pipeline
         pipeline, reasoning_state = self.create_pipeline(
-            settings, reasoning_type, llm_type, use_mind_map, state, user_id, *selecteds
+            settings,
+            reasoning_type,
+            llm_type,
+            use_mind_map,
+            language,
+            state,
+            user_id,
+            *selecteds,
         )
         print("Reasoning state", reasoning_state)
         pipeline.set_output_queue(queue)

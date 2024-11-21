@@ -97,6 +97,11 @@ button.selected {
 #chat-info-panel {
   max-height: var(--main-area-height) !important;
   overflow: auto !important;
+  transition: all 0.5s;
+}
+
+body.dark #chat-info-panel figure>img{
+  filter: invert(100%);
 }
 
 #conv-settings-panel {
@@ -199,11 +204,40 @@ mark {
   right: 15px;
 }
 
-/* #new-conv-button > img {
-  position: relative;
-  top: 0px;
-  right: -50%;
-} */
+#use-mindmap-checkbox {
+  position: absolute;
+  width: 110px;
+  top: 10px;
+  right: 25px;
+}
+
+#quick-url textarea {
+  resize: none;
+  background: transparent;
+  margin-top: 0px;
+}
+
+#quick-url textarea::-webkit-input-placeholder {
+  text-align: center;
+}
+
+#quick-url textarea:-moz-placeholder {
+  /* Firefox 18- */
+  text-align: center;
+}
+
+#quick-url textarea::-moz-placeholder {
+  /* Firefox 19+ */
+  text-align: center;
+}
+
+#quick-url textarea:-ms-input-placeholder {
+  text-align: center;
+}
+
+#quick-file {
+  height: 110px;
+}
 
 span.icon {
   color: #cecece;
@@ -329,4 +363,22 @@ pdfjs-viewer-element {
 
 .switch:has(> input:checked) {
   background: #0c895f;
+}
+
+.message.bot {
+  animation: fadein 1.5s ease-in-out forwards;
+}
+
+details.evidence {
+  animation: fadein 0.5s ease-in-out forwards;
+}
+
+@keyframes fadein {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 100%;
+  }
 }

@@ -40,7 +40,10 @@ class Render:
     def collapsible(header, content, open: bool = False) -> str:
         """Render an HTML friendly collapsible section"""
         o = " open" if open else ""
-        return f"<details{o}><summary>{header}</summary>{content}</details><br>"
+        return (
+            f"<details class='evidence' {o}><summary>"
+            f"{header}</summary>{content}</details><br>"
+        )
 
     @staticmethod
     def table(text: str) -> str:

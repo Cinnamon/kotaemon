@@ -636,16 +636,30 @@ class FullQAPipeline(BaseReasoning):
         if mindmap:
             mindmap_text = mindmap.text
             uml_renderer = PlantUML()
-            mindmap_svg = uml_renderer.process(mindmap_text)
+
+            try:
+                mindmap_svg = uml_renderer.process(mindmap_text)
+            except Exception as e:
+                print("Failed to process mindmap:", e)
+                mindmap_svg = "<svg></svg>"
+
+            # post-process the mindmap SVG
+            mindmap_svg = (
+                mindmap_svg.replace("sans-serif", "Quicksand, sans-serif")
+                .replace("#181818", "#cecece")
+                .replace("background:#FFFFF", "background:none")
+                .replace("stroke-width:1", "stroke-width:2")
+            )
 
             mindmap_content = Document(
                 channel="info",
                 content=Render.collapsible(
                     header="""
                     <i>Mindmap</i>
-                    <a href="#" id='mindmap-toggle'">
-                        [Expand]
-                    </a>""",
+                    <a href="#" id='mindmap-toggle'>
+                        [Expand]</a>
+                    <a href="#" id='mindmap-export'>
+                        [Export]</a>""",
                     content=mindmap_svg,
                     open=True,
                 ),
