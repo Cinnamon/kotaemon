@@ -217,21 +217,7 @@ mark {
   margin-top: 0px;
 }
 
-#quick-url textarea::-webkit-input-placeholder {
-  text-align: center;
-}
-
-#quick-url textarea:-moz-placeholder {
-  /* Firefox 18- */
-  text-align: center;
-}
-
-#quick-url textarea::-moz-placeholder {
-  /* Firefox 19+ */
-  text-align: center;
-}
-
-#quick-url textarea:-ms-input-placeholder {
+#quick-url textarea::placeholder {
   text-align: center;
 }
 
@@ -258,11 +244,6 @@ span.icon {
 .unset-overflow {
   overflow: unset !important;
 }
-
-/*body {*/
-/*  margin: 0;*/
-/*  font-family: Arial, sans-serif;*/
-/*}*/
 
 pdfjs-viewer-element {
   height: 100vh;
@@ -314,8 +295,7 @@ pdfjs-viewer-element {
   overflow: auto;
 }
 
-/** Switch
- -------------------------------------*/
+/* Switch checkbox styles */
 
 #is-public-checkbox {
   position: relative;
@@ -326,10 +306,6 @@ pdfjs-viewer-element {
   position: absolute;
   opacity: 0;
 }
-
-/**
- * 1. Adjust this to size
- */
 
 .switch {
   display: inline-block;
@@ -364,6 +340,8 @@ pdfjs-viewer-element {
 .switch:has(> input:checked) {
   background: #0c895f;
 }
+
+/* Bot animation */
 
 .message.bot {
   animation: fadein 1.5s ease-in-out forwards;
