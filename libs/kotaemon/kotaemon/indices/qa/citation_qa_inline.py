@@ -1,4 +1,5 @@
 import re
+import threading
 from collections import defaultdict
 from typing import Generator
 
@@ -142,6 +143,18 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
         citation = None
         mindmap = None
 
+        def mindmap_call():
+            nonlocal mindmap
+            mindmap = self.create_mindmap_pipeline(context=evidence, question=question)
+
+        mindmap_thread = None
+
+        # execute function call in thread
+        if evidence:
+            if self.enable_mindmap:
+                mindmap_thread = threading.Thread(target=mindmap_call)
+                mindmap_thread.start()
+
         messages = []
         if self.system_prompt:
             messages.append(SystemMessage(content=self.system_prompt))
@@ -199,7 +212,9 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
 
         citation = self.answer_to_citations(output)
 
-        print(output)
+        if mindmap_thread:
+            mindmap_thread.join(timeout=CITATION_TIMEOUT)
+
         # convert citation to link
         answer = Document(
             text=final_answer,
