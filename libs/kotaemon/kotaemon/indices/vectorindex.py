@@ -42,14 +42,6 @@ class VectorIndexing(BaseIndexing):
             **kwargs,
         )
 
-    def to_qa_pipeline(self, *args, **kwargs):
-        from .qa import CitationQAPipeline
-
-        return TextVectorQA(
-            retrieving_pipeline=self.to_retrieval_pipeline(**kwargs),
-            qa_pipeline=CitationQAPipeline(**kwargs),
-        )
-
     def write_chunk_to_file(self, docs: list[Document]):
         # save the chunks content into markdown format
         if self.cache_dir:

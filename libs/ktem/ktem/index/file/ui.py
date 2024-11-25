@@ -22,6 +22,13 @@ from theflow.settings import settings as flowsettings
 DOWNLOAD_MESSAGE = "Press again to download"
 MAX_FILENAME_LENGTH = 20
 
+chat_input_focus_js = """
+function() {
+    let chatInput = document.querySelector("#chat-input textarea");
+    chatInput.focus();
+}
+"""
+
 
 class File(gr.File):
     """Subclass from gr.File to maintain the original filename
@@ -666,7 +673,7 @@ class FileIndexPage(BasePage):
                         outputs=self._app.chat_page.quick_file_upload_status,
                     )
                     .then(
-                        fn=self.index_fn_with_default_loaders,
+                        fn=self.index_fn_file_with_default_loaders,
                         inputs=[
                             self._app.chat_page.quick_file_upload,
                             gr.State(value=False),
@@ -689,6 +696,38 @@ class FileIndexPage(BasePage):
                 for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
                     quickUploadedEvent = quickUploadedEvent.then(**event)
 
+                quickURLUploadedEvent = (
+                    self._app.chat_page.quick_urls.submit(
+                        fn=lambda: gr.update(
+                            value="Please wait for the indexing process "
+                            "to complete before adding your question."
+                        ),
+                        outputs=self._app.chat_page.quick_file_upload_status,
+                    )
+                    .then(
+                        fn=self.index_fn_url_with_default_loaders,
+                        inputs=[
+                            self._app.chat_page.quick_urls,
+                            gr.State(value=True),
+                            self._app.settings_state,
+                            self._app.user_id,
+                        ],
+                        outputs=self.quick_upload_state,
+                    )
+                    .success(
+                        fn=lambda: [
+                            gr.update(value=None),
+                            gr.update(value="select"),
+                        ],
+                        outputs=[
+                            self._app.chat_page.quick_urls,
+                            self._app.chat_page._indices_input[0],
+                        ],
+                    )
+                )
+                for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
+                    quickURLUploadedEvent = quickURLUploadedEvent.then(**event)
+
                 quickUploadedEvent.success(
                     fn=lambda x: x,
                     inputs=self.quick_upload_state,
@@ -701,6 +740,30 @@ class FileIndexPage(BasePage):
                     inputs=[self._app.user_id, self.filter],
                     outputs=[self.file_list_state, self.file_list],
                     concurrency_limit=20,
+                ).then(
+                    fn=lambda: True,
+                    inputs=None,
+                    outputs=None,
+                    js=chat_input_focus_js,
+                )
+
+                quickURLUploadedEvent.success(
+                    fn=lambda x: x,
+                    inputs=self.quick_upload_state,
+                    outputs=self._app.chat_page._indices_input[1],
+                ).then(
+                    fn=lambda: gr.update(value="Indexing completed."),
+                    outputs=self._app.chat_page.quick_file_upload_status,
+                ).then(
+                    fn=self.list_file,
+                    inputs=[self._app.user_id, self.filter],
+                    outputs=[self.file_list_state, self.file_list],
+                    concurrency_limit=20,
+                ).then(
+                    fn=lambda: True,
+                    inputs=None,
+                    outputs=None,
+                    js=chat_input_focus_js,
                 )
 
         except Exception as e:
@@ -951,7 +1014,7 @@ class FileIndexPage(BasePage):
 
         return results
 
-    def index_fn_with_default_loaders(
+    def index_fn_file_with_default_loaders(
         self, files, reindex: bool, settings, user_id
     ) -> list["str"]:
         """Function for quick upload with default loaders
@@ -990,6 +1053,22 @@ class FileIndexPage(BasePage):
                 returned_ids = e.value
 
         return exist_ids + returned_ids
+
+    def index_fn_url_with_default_loaders(self, urls, reindex: bool, settings, user_id):
+        returned_ids = []
+        settings = deepcopy(settings)
+        settings[f"index.options.{self._index.id}.reader_mode"] = "default"
+        settings[f"index.options.{self._index.id}.quick_index_mode"] = True
+
+        if urls:
+            _iter = self.index_fn([], urls, reindex, settings, user_id)
+            try:
+                while next(_iter):
+                    pass
+            except StopIteration as e:
+                returned_ids = e.value
+
+        return returned_ids
 
     def index_files_from_dir(
         self, folder_path, reindex, settings, user_id

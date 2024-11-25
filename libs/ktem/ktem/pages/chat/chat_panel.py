@@ -28,6 +28,7 @@ class ChatPanel(BasePage):
                 placeholder="Chat input",
                 container=False,
                 show_label=False,
+                elem_id="chat-input",
             )
 
     def submit_msg(self, chat_input, chat_history):

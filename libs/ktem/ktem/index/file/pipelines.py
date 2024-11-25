@@ -126,6 +126,9 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
         if doc_ids:
             flatten_doc_ids = []
             for doc_id in doc_ids:
+                if doc_id is None:
+                    raise ValueError("No document is selected")
+
                 if doc_id.startswith("["):
                     flatten_doc_ids.extend(json.loads(doc_id))
                 else:

@@ -25,8 +25,8 @@ class BaseConversation(SQLModel):
         default_factory=lambda: uuid.uuid4().hex, primary_key=True, index=True
     )
     name: str = Field(
-        default_factory=lambda: datetime.datetime.now(get_localzone()).strftime(
-            "%Y-%m-%d %H:%M:%S"
+        default_factory=lambda: "Untitled - {}".format(
+            datetime.datetime.now(get_localzone()).strftime("%Y-%m-%d %H:%M:%S")
         )
     )
     user: int = Field(default=0)  # For now we only have one user
