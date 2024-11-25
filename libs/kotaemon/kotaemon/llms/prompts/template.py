@@ -72,7 +72,7 @@ class PromptTemplate:
                 UserWarning,
             )
 
-    def populate(self, **kwargs) -> str:
+    def populate(self, safe=True, **kwargs) -> str:
         """
         Strictly populate the template with the given keyword arguments.
 
@@ -86,7 +86,8 @@ class PromptTemplate:
         Raises:
             ValueError: If an unknown placeholder is provided.
         """
-        self.check_missing_kwargs(**kwargs)
+        if safe:
+            self.check_missing_kwargs(**kwargs)
 
         return self.partial_populate(**kwargs)
 

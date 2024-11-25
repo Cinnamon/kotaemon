@@ -106,9 +106,10 @@ class Render:
         """  # noqa
 
     @staticmethod
-    def highlight(text: str) -> str:
+    def highlight(text: str, elem_id: str | None = None) -> str:
         """Highlight text"""
-        return f"<mark>{text}</mark>"
+        id_text = f" id='mark-{elem_id}'" if elem_id else ""
+        return f"<mark{id_text}>{text}</mark>"
 
     @staticmethod
     def image(url: str, text: str = "") -> str:

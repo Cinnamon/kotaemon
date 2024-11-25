@@ -40,6 +40,12 @@ function() {
         links[i].onclick = openModal;
     }
 
+    // Get all citation links and attach click event
+    var links = document.querySelectorAll("a.citation");
+    for (var i = 0; i < links.length; i++) {
+        links[i].onclick = scrollToCitation;
+    }
+
     var mindmap_el = document.getElementById('mindmap');
 
     if (mindmap_el) {

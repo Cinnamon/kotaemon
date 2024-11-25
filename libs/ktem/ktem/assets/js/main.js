@@ -54,4 +54,21 @@ function run() {
   globalThis.removeFromStorage = (key) => {
       localStorage.removeItem(key)
   }
+
+  // Function to scroll to given citation with ID
+  // Sleep function using Promise and setTimeout
+  function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  globalThis.scrollToCitation = async (event) => {
+      event.preventDefault(); // Prevent the default link behavior
+      var citationId = event.target.getAttribute('id');
+
+      await sleep(100); // Sleep for 500 milliseconds
+      var citation = document.querySelector('mark[id="' + citationId + '"]');
+      if (citation) {
+          citation.scrollIntoView({ behavior: 'smooth' });
+      }
+  }
 }
