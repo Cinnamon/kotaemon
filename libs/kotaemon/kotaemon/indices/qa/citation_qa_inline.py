@@ -9,12 +9,9 @@ from kotaemon.base import AIMessage, Document, HumanMessage, SystemMessage
 from kotaemon.llms import PromptTemplate
 
 from .citation import CiteEvidence
-from .citation_qa import AnswerWithContextPipeline
+from .citation_qa import CITATION_TIMEOUT, MAX_IMAGES, AnswerWithContextPipeline
 from .format_context import EVIDENCE_MODE_FIGURE
 from .utils import find_start_end_phrase
-
-MAX_IMAGES = 10
-CITATION_TIMEOUT = 5.0
 
 DEFAULT_QA_CITATION_PROMPT = """
 Use the following pieces of context to answer the question at the end.
