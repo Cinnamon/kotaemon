@@ -110,7 +110,7 @@ def request_adobe_service(file_path: str, output_path: str = "") -> str:
     return output_path
 
 
-def make_markdown_table(table_as_list: List[str]) -> str:
+def make_markdown_table(table_as_list: List[List[str]]) -> str:
     """
     Convert table from python list representation to markdown format.
     The input list consists of rows of tables, the first row is the header.
@@ -203,17 +203,21 @@ def parse_figure_paths(file_paths: List[Path]) -> Union[bytes, str]:
 
 
 def generate_single_figure_caption(vlm_endpoint: str, figure: str) -> str:
+    output = ""
+
     """Summarize a single figure using GPT-4V"""
     if figure:
-        output = generate_gpt4v(
-            endpoint=vlm_endpoint,
-            prompt="Provide a short 2 sentence summary of this image?",
-            images=figure,
-        )
-        if "sorry" in output.lower():
-            output = ""
-    else:
-        output = ""
+        try:
+            output = generate_gpt4v(
+                endpoint=vlm_endpoint,
+                prompt="Provide a short 2 sentence summary of this image?",
+                images=figure,
+            )
+            if "sorry" in output.lower():
+                output = ""
+        except Exception as e:
+            print(f"Error generating caption: {e}")
+
     return output
 
 

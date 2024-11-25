@@ -26,6 +26,8 @@ developers in mind.
 
 </div>
 
+<!-- start-intro -->
+
 ## Introduction
 
 This project serves as a functional RAG UI for both end users who want to do QA on their
@@ -187,12 +189,24 @@ documents and developers who want to build their own RAG pipeline.
 
 <details>
 
+<summary>Setup LIGHTRAG</summary>
+
+- Install LightRAG: `pip install git+https://github.com/HKUDS/LightRAG.git`
+- `LightRAG` install might introduce version conflicts, see [this issue](https://github.com/Cinnamon/kotaemon/issues/440)
+  - To quickly fix: `pip uninstall hnswlib chroma-hnswlib && pip install chroma-hnswlib`
+- Launch Kotaemon with `USE_LIGHTRAG=true` environment variable.
+- Set your default LLM & Embedding models in Resources setting and it will be recognized automatically from LightRAG.
+
+</details>
+
+<details>
+
 <summary>Setup MS GRAPHRAG</summary>
 
 - **Non-Docker Installation**: If you are not using Docker, install GraphRAG with the following command:
 
   ```shell
-  pip install graphrag future
+  pip install "graphrag<=0.3.6" future
   ```
 
 - **Setting Up API KEY**: To use the GraphRAG retriever feature, ensure you set the `GRAPHRAG_API_KEY` environment variable. You can do this directly in your environment or by adding it to a `.env` file.
@@ -203,6 +217,17 @@ documents and developers who want to build their own RAG pipeline.
 ### Setup Local Models (for local/private RAG)
 
 See [Local model setup](docs/local_model.md).
+
+### Setup multimodal document parsing (OCR, table parsing, figure extraction)
+
+These options are available:
+
+- [Azure Document Intelligence (API)](https://azure.microsoft.com/en-us/products/ai-services/ai-document-intelligence)
+- [Adobe PDF Extract (API)](https://developer.adobe.com/document-services/docs/overview/pdf-extract-api/)
+- [Docling (local, open-source)](https://github.com/DS4SD/docling)
+  - To use Docling, first install required dependencies: `pip install docling`
+
+Select corresponding loaders in `Settings -> Retrieval Settings -> File loader`
 
 ### Customize your application
 
@@ -331,6 +356,8 @@ This file provides another way to configure your models and credentials.
 - Check sample implementation in `libs/ktem/ktem/index/file/graph`
 
 > (more instruction WIP).
+
+<!-- end-intro -->
 
 ## Star History
 

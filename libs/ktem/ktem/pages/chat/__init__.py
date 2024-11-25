@@ -40,26 +40,52 @@ function() {
         links[i].onclick = openModal;
     }
 
-    var mindmap_el = document.getElementById('mindmap');
-    if (mindmap_el) {
-        var output = svgPanZoom(mindmap_el);
+    // Get all citation links and attach click event
+    var links = document.querySelectorAll("a.citation");
+    for (var i = 0; i < links.length; i++) {
+        links[i].onclick = scrollToCitation;
     }
 
-    var link = document.getElementById("mindmap-toggle");
-    if (link) {
-        link.onclick = function(event) {
+    var mindmap_el = document.getElementById('mindmap');
+
+    if (mindmap_el) {
+        var output = svgPanZoom(mindmap_el);
+        const svg = mindmap_el.cloneNode(true);
+
+        function on_svg_export(event) {
             event.preventDefault(); // Prevent the default link behavior
-            var div = document.getElementById("mindmap-wrapper");
-            if (div) {
-                var currentHeight = div.style.height;
-                if (currentHeight === '400px') {
-                    var contentHeight = div.scrollHeight;
-                    div.style.height = contentHeight + 'px';
-                } else {
-                    div.style.height = '400px'
+            // convert to a valid XML source
+            const as_text = new XMLSerializer().serializeToString(svg);
+            // store in a Blob
+            const blob = new Blob([as_text], { type: "image/svg+xml" });
+            // create an URI pointing to that blob
+            const url = URL.createObjectURL(blob);
+            const win = open(url);
+            // so the Garbage Collector can collect the blob
+            win.onload = (evt) => URL.revokeObjectURL(url);
+        }
+
+        var link = document.getElementById("mindmap-toggle");
+        if (link) {
+            link.onclick = function(event) {
+                event.preventDefault(); // Prevent the default link behavior
+                var div = document.getElementById("mindmap-wrapper");
+                if (div) {
+                    var currentHeight = div.style.height;
+                    if (currentHeight === '400px') {
+                        var contentHeight = div.scrollHeight;
+                        div.style.height = contentHeight + 'px';
+                    } else {
+                        div.style.height = '400px'
+                    }
                 }
-            }
-        };
+            };
+        }
+
+        var link = document.getElementById("mindmap-export");
+        if (link) {
+            link.addEventListener('click', on_svg_export);
+        }
     }
 
     return [links.length]
@@ -76,7 +102,6 @@ class ChatPage(BasePage):
 
         self._preview_links = gr.State(value=None)
         self._reasoning_type = gr.State(value=None)
-        self._llm_type = gr.State(value=None)
         self._conversation_renamed = gr.State(value=False)
         self._suggestion_updated = gr.State(value=False)
         self._info_panel_expanded = gr.State(value=True)
@@ -128,6 +153,14 @@ class ChatPage(BasePage):
                             file_count="multiple",
                             container=True,
                             show_label=False,
+                            elem_id="quick-file",
+                        )
+                        self.quick_urls = gr.Textbox(
+                            placeholder="Or paste URLs here",
+                            lines=1,
+                            container=False,
+                            show_label=False,
+                            elem_id="quick-url",
                         )
                         self.quick_file_upload_status = gr.Markdown()
 
@@ -137,11 +170,17 @@ class ChatPage(BasePage):
                 self.chat_panel = ChatPanel(self._app)
 
                 with gr.Row():
-                    with gr.Accordion(label="Chat settings", open=False):
+                    with gr.Accordion(
+                        label="Chat settings",
+                        elem_id="chat-settings-expand",
+                        open=False,
+                    ):
                         # a quick switch for reasoning type option
                         with gr.Row():
                             gr.HTML("Reasoning method")
                             gr.HTML("Model")
+                            gr.HTML("Language")
+                            gr.HTML("Citation")
 
                         with gr.Row():
                             reasoning_type_values = [
@@ -149,13 +188,13 @@ class ChatPage(BasePage):
                             ] + self._app.default_settings.reasoning.settings[
                                 "use"
                             ].choices
-                            self.reasoning_types = gr.Dropdown(
+                            self.reasoning_type = gr.Dropdown(
                                 choices=reasoning_type_values,
                                 value=DEFAULT_SETTING,
                                 container=False,
                                 show_label=False,
                             )
-                            self.model_types = gr.Dropdown(
+                            self.model_type = gr.Dropdown(
                                 choices=self._app.default_settings.reasoning.options[
                                     "simple"
                                 ]
@@ -165,11 +204,43 @@ class ChatPage(BasePage):
                                 container=False,
                                 show_label=False,
                             )
+                            self.language = gr.Dropdown(
+                                choices=[
+                                    (DEFAULT_SETTING, DEFAULT_SETTING),
+                                ]
+                                + self._app.default_settings.reasoning.settings[
+                                    "lang"
+                                ].choices,
+                                value=DEFAULT_SETTING,
+                                container=False,
+                                show_label=False,
+                            )
+                            self.citation = gr.Dropdown(
+                                choices=[
+                                    (DEFAULT_SETTING, DEFAULT_SETTING),
+                                ]
+                                + self._app.default_settings.reasoning.options["simple"]
+                                .settings["highlight_citation"]
+                                .choices,
+                                value=DEFAULT_SETTING,
+                                container=False,
+                                show_label=False,
+                                interactive=True,
+                            )
+
+                            self.use_mindmap = gr.State(value=DEFAULT_SETTING)
+                            self.use_mindmap_check = gr.Checkbox(
+                                label="Mindmap (default)",
+                                container=False,
+                                elem_id="use-mindmap-checkbox",
+                            )
 
             with gr.Column(
                 scale=INFO_PANEL_SCALES[False], elem_id="chat-info-panel"
             ) as self.info_column:
-                with gr.Accordion(label="Information panel", open=True):
+                with gr.Accordion(
+                    label="Information panel", open=True, elem_id="info-expand"
+                ):
                     self.modal = gr.HTML("<div id='pdf-modal'></div>")
                     self.plot_panel = gr.Plot(visible=False)
                     self.info_panel = gr.HTML(elem_id="html-info-panel")
@@ -220,7 +291,10 @@ class ChatPage(BasePage):
                     self.chat_panel.chatbot,
                     self._app.settings_state,
                     self._reasoning_type,
-                    self._llm_type,
+                    self.model_type,
+                    self.use_mindmap,
+                    self.citation,
+                    self.language,
                     self.state_chat,
                     self._app.user_id,
                 ]
@@ -487,15 +561,16 @@ class ChatPage(BasePage):
             + self._indices_input,
             outputs=None,
         )
-        self.reasoning_types.change(
+        self.reasoning_type.change(
             self.reasoning_changed,
-            inputs=[self.reasoning_types],
+            inputs=[self.reasoning_type],
             outputs=[self._reasoning_type],
         )
-        self.model_types.change(
-            lambda x: x,
-            inputs=[self.model_types],
-            outputs=[self._llm_type],
+        self.use_mindmap_check.change(
+            lambda x: (x, gr.update(label="Mindmap " + ("(on)" if x else "(off)"))),
+            inputs=[self.use_mindmap_check],
+            outputs=[self.use_mindmap, self.use_mindmap_check],
+            show_progress="hidden",
         )
         self.chat_control.conversation_id.change(
             lambda: gr.update(visible=False),
@@ -712,6 +787,9 @@ class ChatPage(BasePage):
         settings: dict,
         session_reasoning_type: str,
         session_llm: str,
+        session_use_mindmap: bool | str,
+        session_use_citation: str,
+        session_language: str,
         state: dict,
         user_id: int,
         *selecteds,
@@ -728,7 +806,16 @@ class ChatPage(BasePage):
             - the pipeline objects
         """
         # override reasoning_mode by temporary chat page state
-        print("Session reasoning type", session_reasoning_type)
+        print(
+            "Session reasoning type",
+            session_reasoning_type,
+            "use mindmap",
+            session_use_mindmap,
+            "use citation",
+            session_use_citation,
+            "language",
+            session_language,
+        )
         print("Session LLM", session_llm)
         reasoning_mode = (
             settings["reasoning.use"]
@@ -741,8 +828,23 @@ class ChatPage(BasePage):
 
         settings = deepcopy(settings)
         llm_setting_key = f"reasoning.options.{reasoning_id}.llm"
-        if llm_setting_key in settings and session_llm not in (DEFAULT_SETTING, None):
+        if llm_setting_key in settings and session_llm not in (
+            DEFAULT_SETTING,
+            None,
+            "",
+        ):
             settings[llm_setting_key] = session_llm
+
+        if session_use_mindmap not in (DEFAULT_SETTING, None):
+            settings["reasoning.options.simple.create_mindmap"] = session_use_mindmap
+
+        if session_use_citation not in (DEFAULT_SETTING, None):
+            settings[
+                "reasoning.options.simple.highlight_citation"
+            ] = session_use_citation
+
+        if session_language not in (DEFAULT_SETTING, None):
+            settings["reasoning.lang"] = session_language
 
         # get retrievers
         retrievers = []
@@ -775,6 +877,9 @@ class ChatPage(BasePage):
         settings,
         reasoning_type,
         llm_type,
+        use_mind_map,
+        use_citation,
+        language,
         state,
         user_id,
         *selecteds,
@@ -791,7 +896,15 @@ class ChatPage(BasePage):
 
         # construct the pipeline
         pipeline, reasoning_state = self.create_pipeline(
-            settings, reasoning_type, llm_type, state, user_id, *selecteds
+            settings,
+            reasoning_type,
+            llm_type,
+            use_mind_map,
+            use_citation,
+            language,
+            state,
+            user_id,
+            *selecteds,
         )
         print("Reasoning state", reasoning_state)
         pipeline.set_output_queue(queue)

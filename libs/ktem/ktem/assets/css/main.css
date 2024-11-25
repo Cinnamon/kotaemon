@@ -52,6 +52,14 @@ button.selected {
   font-weight: bold;
 }
 
+.message-row.bubble.bot-row{
+  overflow-x: auto;
+}
+
+.flex-wrap.bot {
+  overflow-x: inherit;
+}
+
 #chat-tab,
 #indices-tab,
 #settings-tab,
@@ -83,11 +91,17 @@ button.selected {
 
 #chat-area {
   height: var(--main-area-height) !important;
+  column-gap: 2px !important;
 }
 
 #chat-info-panel {
   max-height: var(--main-area-height) !important;
   overflow: auto !important;
+  transition: all 0.5s;
+}
+
+body.dark #chat-info-panel figure>img{
+  filter: invert(100%);
 }
 
 #conv-settings-panel {
@@ -95,10 +109,31 @@ button.selected {
   flex-wrap: unset;
   overflow-y: scroll !important;
   position: sticky;
+  min-width: min(305px, 100%) !important;
+  column-gap: 2px !important;
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* Internet Explorer 10+ */
+}
+
+#conv-settings-panel::-webkit-scrollbar {
+  /* WebKit */
+  width: 0;
+  height: 0;
+}
+
+td {
+  /* Fix for Firefox Gradio table overflow display */
+  overflow: hidden;
 }
 
 .setting-answer-mode-description {
   margin: 5px 5px 2px !important;
+}
+
+.message-buttons-right {
+  display: none !important;
 }
 
 mark {
@@ -160,7 +195,38 @@ mark {
 #toggle-dark-button {
   position: fixed;
   top: 6px;
-  right: 40px;
+  right: 30px;
+}
+
+#info-expand-button {
+  position: absolute;
+  top: 6px;
+  right: 15px;
+}
+
+#use-mindmap-checkbox {
+  position: absolute;
+  width: 110px;
+  top: 10px;
+  right: 25px;
+}
+
+#quick-url textarea {
+  resize: none;
+  background: transparent;
+  margin-top: 0px;
+}
+
+#quick-url textarea::placeholder {
+  text-align: center;
+}
+
+#quick-file {
+  height: 110px;
+}
+
+span.icon {
+  color: #cecece;
 }
 
 .upload-button {
@@ -178,11 +244,6 @@ mark {
 .unset-overflow {
   overflow: unset !important;
 }
-
-/*body {*/
-/*  margin: 0;*/
-/*  font-family: Arial, sans-serif;*/
-/*}*/
 
 pdfjs-viewer-element {
   height: 100vh;
@@ -232,4 +293,75 @@ pdfjs-viewer-element {
 .modal-body {
   flex: 1;
   overflow: auto;
+}
+
+/* Switch checkbox styles */
+
+#is-public-checkbox {
+  position: relative;
+  top: 4px;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+}
+
+.switch {
+  display: inline-block;
+  /* 1 */
+  height: 1em;
+  width: 2em;
+  background: #8f8f8f;
+  border-radius: 1em;
+  position: relative;
+  top: 2px;
+  margin-right: 1em;
+}
+
+.switch div {
+  height: 1em;
+  width: 1em;
+  border-radius: 1em;
+  background: #FFF;
+  box-shadow: 0 0.1em 0.3em rgba(0, 0, 0, 0.3);
+  -webkit-transition: all 300ms;
+  -moz-transition: all 300ms;
+  transition: all 300ms;
+}
+
+.switch input:checked+div {
+  -webkit-transform: translate3d(100%, 0, 0);
+  -moz-transform: translate3d(100%, 0, 0);
+  transform: translate3d(100%, 0, 0);
+  background: #12df9a;
+}
+
+.switch:has(> input:checked) {
+  background: #0c895f;
+}
+
+/* Bot animation */
+
+.message.bot {
+  animation: fadein 1.5s ease-in-out forwards;
+}
+
+details.evidence {
+  animation: fadein 0.5s ease-in-out forwards;
+}
+
+@keyframes fadein {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 100%;
+  }
+}
+
+.message a.citation {
+  color: #10b981;
+  text-decoration: none;
 }
