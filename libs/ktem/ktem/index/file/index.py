@@ -409,16 +409,17 @@ class FileIndex(BaseIndex):
                 "value": -1,
                 "component": "number",
                 "info": (
-                    "The expected number of characters of each text segment. "
+                    "Number of characters of each text segment. "
                     "Set -1 to use developer setting."
                 ),
             },
             "chunk_overlap": {
-                "name": "Max number of characters that can be overlap between 2 segments",
+                "name": "Max number of characters that can be overlap between segments",
                 "value": -1,
                 "component": "number",
                 "info": (
-                    "The expected number of characters that consecutive text segments should overlap with each other. "
+                    "Number of characters that consecutive text segments "
+                    "should overlap with each other. "
                     "Set -1 to use developer setting."
                 ),
             },

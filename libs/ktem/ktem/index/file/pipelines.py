@@ -725,8 +725,14 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
 
         _, dev_chunk_size, dev_chunk_overlap = dev_settings()
 
-        chunk_size = self.user_chunk_size if self.user_chunk_size > 0 else dev_chunk_size 
-        chunk_overlap = self.user_chunk_overlap if self.user_chunk_overlap > 0 else dev_chunk_overlap 
+        chunk_size = (
+            self.user_chunk_size if self.user_chunk_size > 0 else dev_chunk_size
+        )
+        chunk_overlap = (
+            self.user_chunk_overlap
+            if self.user_chunk_overlap > 0
+            else dev_chunk_overlap
+        )
 
         # check if file_path is a URL
         if self.is_url(file_path):
