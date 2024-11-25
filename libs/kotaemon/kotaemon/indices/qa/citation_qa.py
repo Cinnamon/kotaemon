@@ -348,7 +348,6 @@ class AnswerWithContextPipeline(BaseComponent):
                     to_highlight,
                     elem_id=str(span_idx + 1) if span_idx is not None else None,
                 )
-                print(text)
                 if idx < len(ss) - 1:
                     text += cur_doc.text[span["end"] : ss[idx + 1]["start"]]
             text += cur_doc.text[ss[-1]["end"] :]

@@ -90,8 +90,6 @@ class Render:
                 highlight_text = (
                     text.replace("\n", "").replace('"', "").replace("'", "")
                 )
-
-                # print("highlight_text", highlight_text, phrase, lang)
             except Exception as e:
                 print(e)
                 highlight_text = text
