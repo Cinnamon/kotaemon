@@ -180,6 +180,7 @@ class ChatPage(BasePage):
                             gr.HTML("Reasoning method")
                             gr.HTML("Model")
                             gr.HTML("Language")
+                            gr.HTML("Citation")
 
                         with gr.Row():
                             reasoning_type_values = [
@@ -211,9 +212,20 @@ class ChatPage(BasePage):
                                     "lang"
                                 ].choices,
                                 value=DEFAULT_SETTING,
-                                interactive=True,
                                 container=False,
                                 show_label=False,
+                            )
+                            self.citation = gr.Dropdown(
+                                choices=[
+                                    (DEFAULT_SETTING, DEFAULT_SETTING),
+                                ]
+                                + self._app.default_settings.reasoning.options["simple"]
+                                .settings["highlight_citation"]
+                                .choices,
+                                value=DEFAULT_SETTING,
+                                container=False,
+                                show_label=False,
+                                interactive=True,
                             )
 
                             self.use_mindmap = gr.State(value=DEFAULT_SETTING)
@@ -281,6 +293,7 @@ class ChatPage(BasePage):
                     self._reasoning_type,
                     self.model_type,
                     self.use_mindmap,
+                    self.citation,
                     self.language,
                     self.state_chat,
                     self._app.user_id,
@@ -775,6 +788,7 @@ class ChatPage(BasePage):
         session_reasoning_type: str,
         session_llm: str,
         session_use_mindmap: bool | str,
+        session_use_citation: str,
         session_language: str,
         state: dict,
         user_id: int,
@@ -797,6 +811,8 @@ class ChatPage(BasePage):
             session_reasoning_type,
             "use mindmap",
             session_use_mindmap,
+            "use citation",
+            session_use_citation,
             "language",
             session_language,
         )
@@ -821,6 +837,11 @@ class ChatPage(BasePage):
 
         if session_use_mindmap not in (DEFAULT_SETTING, None):
             settings["reasoning.options.simple.create_mindmap"] = session_use_mindmap
+
+        if session_use_citation not in (DEFAULT_SETTING, None):
+            settings[
+                "reasoning.options.simple.highlight_citation"
+            ] = session_use_citation
 
         if session_language not in (DEFAULT_SETTING, None):
             settings["reasoning.lang"] = session_language
@@ -857,6 +878,7 @@ class ChatPage(BasePage):
         reasoning_type,
         llm_type,
         use_mind_map,
+        use_citation,
         language,
         state,
         user_id,
@@ -878,6 +900,7 @@ class ChatPage(BasePage):
             reasoning_type,
             llm_type,
             use_mind_map,
+            use_citation,
             language,
             state,
             user_id,

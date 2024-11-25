@@ -360,3 +360,8 @@ details.evidence {
     opacity: 100%;
   }
 }
+
+.message a.citation {
+  color: #10b981;
+  text-decoration: none;
+}

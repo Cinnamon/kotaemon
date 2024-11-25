@@ -320,6 +320,13 @@ class FullQAPipeline(BaseReasoning):
         return answer
 
     @classmethod
+    def prepare_pipeline_instance(cls, settings, retrievers):
+        return cls(
+            retrievers=retrievers,
+            rewrite_pipeline=RewriteQuestionPipeline(),
+        )
+
+    @classmethod
     def get_pipeline(cls, settings, states, retrievers):
         """Get the reasoning pipeline
 
@@ -329,10 +336,7 @@ class FullQAPipeline(BaseReasoning):
         """
         max_context_length_setting = settings.get("reasoning.max_context_length", 32000)
 
-        pipeline = cls(
-            retrievers=retrievers,
-            rewrite_pipeline=RewriteQuestionPipeline(),
-        )
+        pipeline = cls.prepare_pipeline_instance(settings, retrievers)
 
         prefix = f"reasoning.options.{cls.get_info()['id']}"
         llm_name = settings.get(f"{prefix}.llm", None)
@@ -343,7 +347,7 @@ class FullQAPipeline(BaseReasoning):
         evidence_pipeline.max_context_length = max_context_length_setting
 
         # answering pipeline configuration
-        use_inline_citation = settings.get(f"{prefix}.inline_citation", False)
+        use_inline_citation = settings[f"{prefix}.highlight_citation"] == "inline"
 
         if use_inline_citation:
             answer_pipeline = pipeline.answering_pipeline = AnswerWithInlineCitation()
@@ -353,9 +357,12 @@ class FullQAPipeline(BaseReasoning):
         answer_pipeline.llm = llm
         answer_pipeline.citation_pipeline.llm = llm
         answer_pipeline.n_last_interactions = settings[f"{prefix}.n_last_interactions"]
-        answer_pipeline.enable_citation = settings[f"{prefix}.highlight_citation"]
+        answer_pipeline.enable_citation = (
+            settings[f"{prefix}.highlight_citation"] != "off"
+        )
         answer_pipeline.enable_mindmap = settings[f"{prefix}.create_mindmap"]
         answer_pipeline.enable_citation_viz = settings[f"{prefix}.create_citation_viz"]
+        answer_pipeline.use_multimodal = settings[f"{prefix}.use_multimodal"]
         answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
         answer_pipeline.qa_template = settings[f"{prefix}.qa_prompt"]
         answer_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
@@ -400,14 +407,10 @@ class FullQAPipeline(BaseReasoning):
                 ),
             },
             "highlight_citation": {
-                "name": "Highlight Citation",
-                "value": True,
-                "component": "checkbox",
-            },
-            "inline_citation": {
-                "name": "Use Inline Citation",
-                "value": False,
-                "component": "checkbox",
+                "name": "Citation style",
+                "value": "highlight",
+                "component": "radio",
+                "choices": ["highlight", "inline", "off"],
             },
             "create_mindmap": {
                 "name": "Create Mindmap",
@@ -416,6 +419,11 @@ class FullQAPipeline(BaseReasoning):
             },
             "create_citation_viz": {
                 "name": "Create Embeddings Visualization",
+                "value": False,
+                "component": "checkbox",
+            },
+            "use_multimodal": {
+                "name": "Use Multimodal Input",
                 "value": False,
                 "component": "checkbox",
             },
@@ -558,13 +566,7 @@ class FullDecomposeQAPipeline(FullQAPipeline):
         return user_settings
 
     @classmethod
-    def get_pipeline(cls, settings, states, retrievers):
-        """Get the reasoning pipeline
-
-        Args:
-            settings: the settings for the pipeline
-            retrievers: the retrievers to use
-        """
+    def prepare_pipeline_instance(cls, settings, retrievers):
         prefix = f"reasoning.options.{cls.get_info()['id']}"
         pipeline = cls(
             retrievers=retrievers,
@@ -572,31 +574,6 @@ class FullDecomposeQAPipeline(FullQAPipeline):
                 prompt_template=settings.get(f"{prefix}.decompose_prompt")
             ),
         )
-
-        llm_name = settings.get(f"{prefix}.llm", None)
-        llm = llms.get(llm_name, llms.get_default())
-
-        # answering pipeline configuration
-        answer_pipeline = pipeline.answering_pipeline
-        answer_pipeline.llm = llm
-        answer_pipeline.citation_pipeline.llm = llm
-        answer_pipeline.n_last_interactions = settings[f"{prefix}.n_last_interactions"]
-        answer_pipeline.enable_citation = settings[f"{prefix}.highlight_citation"]
-        answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
-        answer_pipeline.qa_template = settings[f"{prefix}.qa_prompt"]
-        answer_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
-            settings["reasoning.lang"], "English"
-        )
-
-        pipeline.add_query_context.llm = llm
-        pipeline.add_query_context.n_last_interactions = settings[
-            f"{prefix}.n_last_interactions"
-        ]
-
-        pipeline.trigger_context = settings[f"{prefix}.trigger_context"]
-        pipeline.use_rewrite = states.get("app", {}).get("regen", False)
-        if pipeline.rewrite_pipeline:
-            pipeline.rewrite_pipeline.llm = llm
         return pipeline
 
     @classmethod
