@@ -106,7 +106,6 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
             matched_citations.add(citation)
 
         for citation in matched_citations:
-            print("Found citation:", citation)
             answer = answer.replace(
                 citation,
                 (
@@ -115,7 +114,6 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
                 ),
             )
 
-        print("Replaced answer:", answer)
         return answer
 
     def stream(  # type: ignore
