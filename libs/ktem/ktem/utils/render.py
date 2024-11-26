@@ -40,7 +40,10 @@ class Render:
     def collapsible(header, content, open: bool = False) -> str:
         """Render an HTML friendly collapsible section"""
         o = " open" if open else ""
-        return f"<details{o}><summary>{header}</summary>{content}</details><br>"
+        return (
+            f"<details class='evidence' {o}><summary>"
+            f"{header}</summary>{content}</details><br>"
+        )
 
     @staticmethod
     def table(text: str) -> str:
@@ -87,8 +90,6 @@ class Render:
                 highlight_text = (
                     text.replace("\n", "").replace('"', "").replace("'", "")
                 )
-
-                # print("highlight_text", highlight_text, phrase, lang)
             except Exception as e:
                 print(e)
                 highlight_text = text
@@ -103,9 +104,10 @@ class Render:
         """  # noqa
 
     @staticmethod
-    def highlight(text: str) -> str:
+    def highlight(text: str, elem_id: str | None = None) -> str:
         """Highlight text"""
-        return f"<mark>{text}</mark>"
+        id_text = f" id='mark-{elem_id}'" if elem_id else ""
+        return f"<mark{id_text}>{text}</mark>"
 
     @staticmethod
     def image(url: str, text: str = "") -> str:

@@ -97,6 +97,11 @@ button.selected {
 #chat-info-panel {
   max-height: var(--main-area-height) !important;
   overflow: auto !important;
+  transition: all 0.5s;
+}
+
+body.dark #chat-info-panel figure>img{
+  filter: invert(100%);
 }
 
 #conv-settings-panel {
@@ -199,11 +204,26 @@ mark {
   right: 15px;
 }
 
-/* #new-conv-button > img {
-  position: relative;
-  top: 0px;
-  right: -50%;
-} */
+#use-mindmap-checkbox {
+  position: absolute;
+  width: 110px;
+  top: 10px;
+  right: 25px;
+}
+
+#quick-url textarea {
+  resize: none;
+  background: transparent;
+  margin-top: 0px;
+}
+
+#quick-url textarea::placeholder {
+  text-align: center;
+}
+
+#quick-file {
+  height: 110px;
+}
 
 span.icon {
   color: #cecece;
@@ -224,11 +244,6 @@ span.icon {
 .unset-overflow {
   overflow: unset !important;
 }
-
-/*body {*/
-/*  margin: 0;*/
-/*  font-family: Arial, sans-serif;*/
-/*}*/
 
 pdfjs-viewer-element {
   height: 100vh;
@@ -280,8 +295,7 @@ pdfjs-viewer-element {
   overflow: auto;
 }
 
-/** Switch
- -------------------------------------*/
+/* Switch checkbox styles */
 
 #is-public-checkbox {
   position: relative;
@@ -292,10 +306,6 @@ pdfjs-viewer-element {
   position: absolute;
   opacity: 0;
 }
-
-/**
- * 1. Adjust this to size
- */
 
 .switch {
   display: inline-block;
@@ -329,4 +339,29 @@ pdfjs-viewer-element {
 
 .switch:has(> input:checked) {
   background: #0c895f;
+}
+
+/* Bot animation */
+
+.message.bot {
+  animation: fadein 1.5s ease-in-out forwards;
+}
+
+details.evidence {
+  animation: fadein 0.5s ease-in-out forwards;
+}
+
+@keyframes fadein {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 100%;
+  }
+}
+
+.message a.citation {
+  color: #10b981;
+  text-decoration: none;
 }
