@@ -5,6 +5,10 @@ activate*
 activate/*
 kotaemon-env*
 .env
+workdir*
+workdir/*
+run_container_ricoh.sh
+Makefile
 
 ### Emacs ###
 # -*- mode: gitignore; -*-
