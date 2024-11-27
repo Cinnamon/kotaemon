@@ -7,8 +7,9 @@ kotaemon-env*
 .env
 workdir*
 workdir/*
-run_container_ricoh.sh
+run_container.sh
 Makefile
+Dockerfile
 
 ### Emacs ###
 # -*- mode: gitignore; -*-
