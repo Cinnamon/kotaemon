@@ -365,3 +365,20 @@ details.evidence {
   color: #10b981;
   text-decoration: none;
 }
+
+/* pop-up for file tag in chat input*/
+.tribute-container ul {
+  background-color: var(--background-fill-primary) !important;
+  color: var(--body-text-color) !important;
+  font-family: var(--font);
+  font-size: var(--text-md);
+}
+
+.tribute-container li.highlight {
+  background-color: var(--border-color-primary) !important;
+}
+
+/* a fix for flickering background in Gradio DataFrame */
+tbody:not(.row_odd) {
+  background: var(--table-even-background-fill);
+}

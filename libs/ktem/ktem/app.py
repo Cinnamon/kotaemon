@@ -177,6 +177,10 @@ class BaseApp:
             "<script>"
             f"{self._svg_js}"
             "</script>"
+            "<script type='module' "
+            "src='https://cdnjs.cloudflare.com/ajax/libs/tributejs/5.1.3/tribute.min.js'>"  # noqa
+            "</script>"
+            "<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/tributejs/5.1.3/tribute.css'/>"  # noqa
         )
 
         with gr.Blocks(

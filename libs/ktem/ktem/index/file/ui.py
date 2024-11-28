@@ -29,6 +29,25 @@ function() {
 }
 """
 
+update_file_list_js = """
+function(file_list) {
+    var values = [];
+    for (var i = 0; i < file_list.length; i++) {
+        values.push({
+            key: file_list[i][0],
+            value: '"' + file_list[i][0] + '"',
+        });
+    }
+    var tribute = new Tribute({
+        values: values,
+        noMatchTemplate: "",
+        allowSpaces: true,
+    })
+    input_box = document.querySelector('#chat-input textarea');
+    tribute.attach(input_box);
+}
+"""
+
 
 class File(gr.File):
     """Subclass from gr.File to maintain the original filename
@@ -1429,6 +1448,10 @@ class FileSelector(BasePage):
             visible=False,
         )
         self.selector_user_id = gr.State(value=user_id)
+        self.selector_choices = gr.JSON(
+            value=[],
+            visible=False,
+        )
 
     def on_register_events(self):
         self.mode.change(
@@ -1436,6 +1459,14 @@ class FileSelector(BasePage):
             inputs=[self.mode, self._app.user_id],
             outputs=[self.selector, self.selector_user_id],
         )
+        # attach special event for the first index
+        if self._index.id == 1:
+            self.selector_choices.change(
+                fn=None,
+                inputs=[self.selector_choices],
+                js=update_file_list_js,
+                show_progress="hidden",
+            )
 
     def as_gradio_component(self):
         return [self.mode, self.selector, self.selector_user_id]
@@ -1468,7 +1499,7 @@ class FileSelector(BasePage):
         available_ids = []
         if user_id is None:
             # not signed in
-            return gr.update(value=selected_files, choices=options)
+            return gr.update(value=selected_files, choices=options), options
 
         with Session(engine) as session:
             # get file list from Source table
@@ -1501,13 +1532,13 @@ class FileSelector(BasePage):
                 each for each in selected_files if each in available_ids_set
             ]
 
-        return gr.update(value=selected_files, choices=options)
+        return gr.update(value=selected_files, choices=options), options
 
     def _on_app_created(self):
         self._app.app.load(
             self.load_files,
             inputs=[self.selector, self._app.user_id],
-            outputs=[self.selector],
+            outputs=[self.selector, self.selector_choices],
         )
 
     def on_subscribe_public_events(self):
@@ -1516,26 +1547,18 @@ class FileSelector(BasePage):
             definition={
                 "fn": self.load_files,
                 "inputs": [self.selector, self._app.user_id],
-                "outputs": [self.selector],
+                "outputs": [self.selector, self.selector_choices],
                 "show_progress": "hidden",
             },
         )
         if self._app.f_user_management:
-            self._app.subscribe_event(
-                name="onSignIn",
-                definition={
-                    "fn": self.load_files,
-                    "inputs": [self.selector, self._app.user_id],
-                    "outputs": [self.selector],
-                    "show_progress": "hidden",
-                },
-            )
-            self._app.subscribe_event(
-                name="onSignOut",
-                definition={
-                    "fn": self.load_files,
-                    "inputs": [self.selector, self._app.user_id],
-                    "outputs": [self.selector],
-                    "show_progress": "hidden",
-                },
-            )
+            for event_name in ["onSignIn", "onSignOut"]:
+                self._app.subscribe_event(
+                    name=event_name,
+                    definition={
+                        "fn": self.load_files,
+                        "inputs": [self.selector, self._app.user_id],
+                        "outputs": [self.selector, self.selector_choices],
+                        "show_progress": "hidden",
+                    },
+                )
