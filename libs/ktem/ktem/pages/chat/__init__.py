@@ -8,7 +8,7 @@ import gradio as gr
 from ktem.app import BasePage
 from ktem.components import reasonings
 from ktem.db.models import Conversation, engine
-from ktem.index.file.ui import File
+from ktem.index.file.ui import File, chat_input_focus_js
 from ktem.reasoning.prompt_optimization.suggest_conversation_name import (
     SuggestConvNamePipeline,
 )
@@ -22,7 +22,7 @@ from theflow.settings import settings as flowsettings
 from kotaemon.base import Document
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 
-from ...utils import SUPPORTED_LANGUAGE_MAP
+from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex
 from .chat_panel import ChatPanel
 from .common import STATE
 from .control import ConversationControl
@@ -113,6 +113,7 @@ class ChatPage(BasePage):
             self.state_plot_history = gr.State([])
             self.state_plot_panel = gr.State(None)
             self.state_follow_up = gr.State(None)
+            self.first_selector_choices = gr.State(None)
 
             with gr.Column(scale=1, elem_id="conv-settings-panel") as self.conv_column:
                 self.chat_control = ConversationControl(self._app)
@@ -130,6 +131,11 @@ class ChatPage(BasePage):
                     ):
                         index_ui.render()
                         gr_index = index_ui.as_gradio_component()
+
+                        # get the file selector choices for the first index
+                        if index_id == 0:
+                            self.first_selector_choices = index_ui.selector_choices
+
                         if gr_index:
                             if isinstance(gr_index, list):
                                 index.selector = tuple(
@@ -272,6 +278,7 @@ class ChatPage(BasePage):
                     self.chat_control.conversation_id,
                     self.chat_control.conversation_rn,
                     self.state_follow_up,
+                    self.first_selector_choices,
                 ],
                 outputs=[
                     self.chat_panel.text_input,
@@ -280,6 +287,9 @@ class ChatPage(BasePage):
                     self.chat_control.conversation,
                     self.chat_control.conversation_rn,
                     self.state_follow_up,
+                    # file selector from the first index
+                    self._indices_input[0],
+                    self._indices_input[1],
                 ],
                 concurrency_limit=20,
                 show_progress="hidden",
@@ -426,6 +436,10 @@ class ChatPage(BasePage):
             fn=self._json_to_plot,
             inputs=self.state_plot_panel,
             outputs=self.plot_panel,
+        ).then(
+            fn=None,
+            inputs=None,
+            js=chat_input_focus_js,
         )
 
         self.chat_control.btn_del.click(
@@ -516,7 +530,12 @@ class ChatPage(BasePage):
             lambda: self.toggle_delete(""),
             outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
         ).then(
-            fn=None, inputs=None, outputs=None, js=pdfview_js
+            fn=lambda: True,
+            inputs=None,
+            outputs=[self._preview_links],
+            js=pdfview_js,
+        ).then(
+            fn=None, inputs=None, outputs=None, js=chat_input_focus_js
         )
 
         # evidence display on message selection
@@ -535,7 +554,12 @@ class ChatPage(BasePage):
             inputs=self.state_plot_panel,
             outputs=self.plot_panel,
         ).then(
-            fn=None, inputs=None, outputs=None, js=pdfview_js
+            fn=lambda: True,
+            inputs=None,
+            outputs=[self._preview_links],
+            js=pdfview_js,
+        ).then(
+            fn=None, inputs=None, outputs=None, js=chat_input_focus_js
         )
 
         self.chat_control.cb_is_public.change(
@@ -585,13 +609,38 @@ class ChatPage(BasePage):
             )
 
     def submit_msg(
-        self, chat_input, chat_history, user_id, conv_id, conv_name, chat_suggest
+        self,
+        chat_input,
+        chat_history,
+        user_id,
+        conv_id,
+        conv_name,
+        chat_suggest,
+        first_selector_choices,
     ):
         """Submit a message to the chatbot"""
         if not chat_input:
             raise ValueError("Input is empty")
 
         chat_input_text = chat_input.get("text", "")
+
+        # get all file names with pattern @"filename" in input_str
+        file_names, chat_input_text = get_file_names_regex(chat_input_text)
+        first_selector_choices_map = {
+            item[0]: item[1] for item in first_selector_choices
+        }
+        file_ids = []
+
+        if file_names:
+            for file_name in file_names:
+                file_id = first_selector_choices_map.get(file_name)
+                if file_id:
+                    file_ids.append(file_id)
+
+        if file_ids:
+            selector_output = ["select", file_ids]
+        else:
+            selector_output = [gr.update(), gr.update()]
 
         # check if regen mode is active
         if chat_input_text:
@@ -620,14 +669,14 @@ class ChatPage(BasePage):
             new_conv_name = conv_name
             new_chat_suggestion = chat_suggest
 
-        return (
+        return [
             {},
             chat_history,
             new_conv_id,
             conv_update,
             new_conv_name,
             new_chat_suggestion,
-        )
+        ] + selector_output
 
     def toggle_delete(self, conv_id):
         if conv_id:

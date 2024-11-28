@@ -152,6 +152,20 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
     def replace_citation_with_link(self, answer: str):
         # Define the regex pattern to match 【number】
         pattern = r"【\d+】"
+
+        # Regular expression to match merged citations
+        multi_pattern = r"【([\d,\s]+)】"
+
+        # Function to replace merged citations with independent ones
+        def split_citations(match):
+            # Extract the numbers, split by comma, and create individual citations
+            numbers = match.group(1).split(",")
+            return "".join(f"【{num.strip()}】" for num in numbers)
+
+        # Replace merged citations in the text
+        answer = re.sub(multi_pattern, split_citations, answer)
+
+        # Find all citations in the answer
         matches = re.finditer(pattern, answer)
 
         matched_citations = set()
@@ -240,24 +254,29 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
             # try streaming first
             print("Trying LLM streaming")
             for out_msg in self.llm.stream(messages):
-                if START_ANSWER in output:
-                    if not final_answer:
-                        try:
-                            left_over_answer = output.split(START_ANSWER)[1].lstrip()
-                        except IndexError:
-                            left_over_answer = ""
-                        if left_over_answer:
-                            out_msg.text = left_over_answer + out_msg.text
+                if evidence:
+                    if START_ANSWER in output:
+                        if not final_answer:
+                            try:
+                                left_over_answer = output.split(START_ANSWER)[
+                                    1
+                                ].lstrip()
+                            except IndexError:
+                                left_over_answer = ""
+                            if left_over_answer:
+                                out_msg.text = left_over_answer + out_msg.text
 
-                    final_answer += (
-                        out_msg.text.lstrip() if not final_answer else out_msg.text
-                    )
+                        final_answer += (
+                            out_msg.text.lstrip() if not final_answer else out_msg.text
+                        )
+                        yield Document(channel="chat", content=out_msg.text)
+
+                        # check for the edge case of citation list is repeated
+                        # with smaller LLMs
+                        if START_CITATION in out_msg.text:
+                            break
+                else:
                     yield Document(channel="chat", content=out_msg.text)
-
-                    # check for the edge case of citation list is repeated
-                    # with smaller LLMs
-                    if START_CITATION in out_msg.text:
-                        break
 
                 output += out_msg.text
                 logprobs += out_msg.logprobs
@@ -289,8 +308,10 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
 
         # yield the final answer
         final_answer = self.replace_citation_with_link(final_answer)
-        yield Document(channel="chat", content=None)
-        yield Document(channel="chat", content=final_answer)
+
+        if final_answer:
+            yield Document(channel="chat", content=None)
+            yield Document(channel="chat", content=final_answer)
 
         return answer
 
