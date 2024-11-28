@@ -26,6 +26,9 @@ def find_start_end_phrase(
     matches = []
     matched_length = 0
     for sentence in [start_phrase, end_phrase]:
+        if sentence is None:
+            continue
+
         match = SequenceMatcher(
             None, sentence, context, autojunk=False
         ).find_longest_match()
