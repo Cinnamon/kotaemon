@@ -674,7 +674,7 @@ class FullQAPipeline(BaseReasoning):
             )
         return with_citation, without_citation
 
-    def show_citations(self, answer, docs):
+    def show_citations(self, answer, docs, warning_message=None):
         # show the evidence
         with_citation, without_citation = self.prepare_citations(answer, docs)
         if not with_citation and not without_citation:
@@ -688,14 +688,17 @@ class FullQAPipeline(BaseReasoning):
             yield Document(channel="info", content=None)
 
             # yield warning message
-            if max_llm_rerank_score < CONTEXT_RELEVANT_WARNING_SCORE:
-                yield Document(
-                    channel="info",
-                    content=(
-                        "<h5>WARNING! Context relevance score is low. "
-                        "Double check the model answer for correctness.</h5>"
-                    ),
-                )
+            if warning_message:
+                yield Document(channel="info", content=warning_message)
+            else:
+                if max_llm_rerank_score < CONTEXT_RELEVANT_WARNING_SCORE:
+                    yield Document(
+                        channel="info",
+                        content=(
+                            "<h5>WARNING! Context relevance score is low. "
+                            "Double check the model answer for correctness.</h5>"
+                        ),
+                    )
 
             # show QA score
             qa_score = (
