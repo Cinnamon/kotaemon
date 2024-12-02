@@ -597,7 +597,7 @@ class FullQAPipeline(BaseReasoning):
         with_citation, without_citation = [], []
         spans = defaultdict(list)
 
-        if answer.metadata["citation"] and answer.metadata["citation"].answer:
+        if answer.metadata.get("citation") and answer.metadata["citation"].answer:
             for fact_with_evidence in answer.metadata["citation"].answer:
                 for quote in fact_with_evidence.substring_quote:
                     matched_excerpts = []
@@ -789,7 +789,7 @@ class FullQAPipeline(BaseReasoning):
                 content=final_answer.text,
             )
             print("No LLM generation because final answer found in evidences")
-            return final_answer.text
+            answer = Document(text=final_answer.text)
 
         evidence_mode, evidence = self.evidence_pipeline(docs).content
 
@@ -804,14 +804,27 @@ class FullQAPipeline(BaseReasoning):
         else:
             scoring_thread = None
 
-        answer = yield from self.answering_pipeline.stream(
-            question=message,
-            history=history,
-            evidence=evidence,
-            evidence_mode=evidence_mode,
-            conv_id=conv_id,
-            **kwargs,
-        )
+        if final_answer:
+            # only generate the citation score
+            try:
+                answer = self.answering_pipeline.generate_evaluation_scores(
+                    response=answer,
+                    question=message,
+                    evidence=evidence,
+                    evidence_mode=evidence_mode,
+                )
+            except Exception as e:
+                print(f"Failed to generate evaluation scores: {e}")
+        else:
+            # generate answer with LLM
+            answer = yield from self.answering_pipeline.stream(
+                question=message,
+                history=history,
+                evidence=evidence,
+                evidence_mode=evidence_mode,
+                conv_id=conv_id,
+                **kwargs,
+            )
 
         # show the evidence
         if scoring_thread:
