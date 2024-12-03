@@ -16,6 +16,29 @@ function run() {
   let chat_info_panel = document.getElementById("info-expand");
   chat_info_panel.insertBefore(info_expand_button, chat_info_panel.childNodes[2]);
 
+  // move toggle-side-bar button
+  let chat_expand_button = document.getElementById("chat-expand-button");
+  let chat_column = document.getElementById("main-chat-bot");
+  let conv_column = document.getElementById("conv-settings-panel");
+
+  let default_conv_column_min_width = "min(300px, 100%)";
+  conv_column.style.minWidth = default_conv_column_min_width
+
+  globalThis.toggleChatColumn = (() => {
+    /* get flex-grow value of chat_column */
+    let flex_grow = conv_column.style.flexGrow;
+    console.log("chat col", flex_grow);
+    if (flex_grow == '0') {
+      conv_column.style.flexGrow = '1';
+      conv_column.style.minWidth = default_conv_column_min_width;
+    } else {
+      conv_column.style.flexGrow = '0';
+      conv_column.style.minWidth = "0px";
+    }
+  });
+
+  chat_column.insertBefore(chat_expand_button, chat_column.firstChild);
+
   // move use mind-map checkbox
   let mindmap_checkbox = document.getElementById("use-mindmap-checkbox");
   let chat_setting_panel = document.getElementById("chat-settings-expand");
