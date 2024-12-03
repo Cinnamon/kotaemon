@@ -717,12 +717,15 @@ class FullQAPipeline(BaseReasoning):
 
     def find_final_answer(self, docs):
         final_answer = None
+        normal_docs = []
+
         for doc in docs:
             if doc.metadata.get("type") in FINAL_ANSWER_CONTENT_TYPES:
                 final_answer = doc
-                break
+            else:
+                normal_docs.append(doc)
 
-        return final_answer
+        return final_answer, normal_docs
 
     async def ainvoke(  # type: ignore
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
@@ -782,7 +785,7 @@ class FullQAPipeline(BaseReasoning):
         yield from infos
 
         # check if evidences contain final answer
-        final_answer = self.find_final_answer(docs)
+        final_answer, docs = self.find_final_answer(docs)
         if final_answer:
             yield Document(
                 channel="chat",
