@@ -4,6 +4,7 @@ from .fastembed import FastEmbedEmbeddings
 from .langchain_based import (
     LCAzureOpenAIEmbeddings,
     LCCohereEmbeddings,
+    LCGoogleEmbeddings,
     LCHuggingFaceEmbeddings,
     LCOpenAIEmbeddings,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "LCAzureOpenAIEmbeddings",
     "LCCohereEmbeddings",
     "LCHuggingFaceEmbeddings",
+    "LCGoogleEmbeddings",
     "OpenAIEmbeddings",
     "AzureOpenAIEmbeddings",
     "FastEmbedEmbeddings",
