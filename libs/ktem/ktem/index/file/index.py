@@ -405,22 +405,22 @@ class FileIndex(BaseIndex):
                 "info": "If private, files will not be accessible across users.",
             },
             "chunk_size": {
-                "name": "Size of chunk",
-                "value": -1,
+                "name": "Size of chunk (number of tokens)",
+                "value": 0,
                 "component": "number",
                 "info": (
-                    "Number of characters of each text segment. "
-                    "Set -1 to use developer setting."
+                    "Number of tokens of each text segment. "
+                    "Set 0 to use developer setting."
                 ),
             },
             "chunk_overlap": {
-                "name": "Max number of characters that can be overlap between segments",
-                "value": -1,
+                "name": "Number of overlapping tokens between chunks",
+                "value": 0,
                 "component": "number",
                 "info": (
-                    "Number of characters that consecutive text segments "
+                    "Number of tokens that consecutive text segments "
                     "should overlap with each other. "
-                    "Set -1 to use developer setting."
+                    "Set 0 to use developer setting."
                 ),
             },
         }
@@ -442,8 +442,8 @@ class FileIndex(BaseIndex):
         obj.FSPath = self._fs_path
         obj.user_id = user_id
         obj.private = self.config.get("private", False)
-        obj.user_chunk_size = self.config.get("chunk_size", -1)
-        obj.user_chunk_overlap = self.config.get("chunk_overlap", -1)
+        obj.chunk_size = self.config.get("chunk_size", 0)
+        obj.chunk_overlap = self.config.get("chunk_overlap", 0)
 
         return obj
 

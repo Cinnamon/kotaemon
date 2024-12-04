@@ -732,14 +732,8 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
 
         _, dev_chunk_size, dev_chunk_overlap = dev_settings()
 
-        chunk_size = (
-            self.user_chunk_size if self.user_chunk_size > 0 else dev_chunk_size
-        )
-        chunk_overlap = (
-            self.user_chunk_overlap
-            if self.user_chunk_overlap > 0
-            else dev_chunk_overlap
-        )
+        chunk_size = self.chunk_size or dev_chunk_size
+        chunk_overlap = self.chunk_overlap or dev_chunk_overlap
 
         # check if file_path is a URL
         if self.is_url(file_path):
@@ -761,7 +755,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
             loader=reader,
             splitter=TokenSplitter(
                 chunk_size=chunk_size or 1024,
-                chunk_overlap=chunk_overlap if chunk_overlap is not None else 256,
+                chunk_overlap=chunk_overlap or 256,
                 separator="\n\n",
                 backup_separators=["\n", ".", "\u200B"],
             ),
