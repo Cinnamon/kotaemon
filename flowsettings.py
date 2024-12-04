@@ -26,6 +26,7 @@ if not KH_APP_VERSION:
 
 KH_ENABLE_FIRST_SETUP = True
 KH_DEMO_MODE = config("KH_DEMO_MODE", default=False, cast=bool)
+KH_OLLAMA_URL = config("KH_OLLAMA_URL", default="http://localhost:11434/v1/")
 
 # App can be ran from anywhere and it's not trivial to decide where to store app data.
 # So let's use the same directory as the flowsetting.py file.
@@ -162,7 +163,7 @@ if config("LOCAL_MODEL", default=""):
     KH_LLMS["ollama"] = {
         "spec": {
             "__type__": "kotaemon.llms.ChatOpenAI",
-            "base_url": "http://localhost:11434/v1/",
+            "base_url": KH_OLLAMA_URL,
             "model": config("LOCAL_MODEL", default="llama3.1:8b"),
             "api_key": "ollama",
         },
@@ -171,7 +172,7 @@ if config("LOCAL_MODEL", default=""):
     KH_EMBEDDINGS["ollama"] = {
         "spec": {
             "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
-            "base_url": "http://localhost:11434/v1/",
+            "base_url": KH_OLLAMA_URL,
             "model": config("LOCAL_MODEL_EMBEDDINGS", default="nomic-embed-text"),
             "api_key": "ollama",
         },
@@ -195,11 +196,11 @@ KH_LLMS["claude"] = {
     },
     "default": False,
 }
-KH_LLMS["gemini"] = {
+KH_LLMS["google"] = {
     "spec": {
         "__type__": "kotaemon.llms.chats.LCGeminiChat",
-        "model_name": "gemini-1.5-pro",
-        "api_key": "your-key",
+        "model_name": "gemini-1.5-flash",
+        "api_key": config("GOOGLE_API_KEY", default="your-key"),
     },
     "default": False,
 }
@@ -230,6 +231,13 @@ KH_EMBEDDINGS["cohere"] = {
         "user_agent": "default",
     },
     "default": False,
+}
+KH_EMBEDDINGS["google"] = {
+    "spec": {
+        "__type__": "kotaemon.embeddings.LCGoogleEmbeddings",
+        "model": "models/text-embedding-004",
+        "google_api_key": config("GOOGLE_API_KEY", default="your-key"),
+    }
 }
 # KH_EMBEDDINGS["huggingface"] = {
 #     "spec": {
