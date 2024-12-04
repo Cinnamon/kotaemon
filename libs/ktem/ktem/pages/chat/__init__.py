@@ -8,7 +8,7 @@ import gradio as gr
 from ktem.app import BasePage
 from ktem.components import reasonings
 from ktem.db.models import Conversation, engine
-from ktem.index.file.ui import File, chat_input_focus_js
+from ktem.index.file.ui import File
 from ktem.reasoning.prompt_optimization.suggest_conversation_name import (
     SuggestConvNamePipeline,
 )
@@ -31,6 +31,12 @@ from .report import ReportIssue
 DEFAULT_SETTING = "(default)"
 INFO_PANEL_SCALES = {True: 8, False: 4}
 
+chat_input_focus_js = """
+function() {
+    let chatInput = document.querySelector("#chat-input textarea");
+    chatInput.focus();
+}
+"""
 
 pdfview_js = """
 function() {
@@ -126,9 +132,7 @@ class ChatPage(BasePage):
                         continue
 
                     index_ui.unrender()  # need to rerender later within Accordion
-                    with gr.Accordion(
-                        label=f"{index.name} Collection", open=index_id < 1
-                    ):
+                    with gr.Accordion(label=index.name, open=index_id < 1):
                         index_ui.render()
                         gr_index = index_ui.as_gradio_component()
 
@@ -402,6 +406,9 @@ class ChatPage(BasePage):
             ),
             inputs=self._info_panel_expanded,
             outputs=[self.info_column, self._info_panel_expanded],
+        )
+        self.chat_control.btn_chat_expand.click(
+            fn=None, inputs=None, js="function() {toggleChatColumn();}"
         )
 
         self.chat_panel.chatbot.like(

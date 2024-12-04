@@ -97,7 +97,7 @@ button.selected {
 #chat-info-panel {
   max-height: var(--main-area-height) !important;
   overflow: auto !important;
-  transition: all 0.5s;
+  transition: all 0.4s;
 }
 
 body.dark #chat-info-panel figure>img{
@@ -109,12 +109,12 @@ body.dark #chat-info-panel figure>img{
   flex-wrap: unset;
   overflow-y: scroll !important;
   position: sticky;
-  min-width: min(305px, 100%) !important;
   column-gap: 2px !important;
   scrollbar-width: none;
   /* Firefox */
   -ms-overflow-style: none;
   /* Internet Explorer 10+ */
+  transition: all 0.3s;
 }
 
 #conv-settings-panel::-webkit-scrollbar {
@@ -202,6 +202,13 @@ mark {
   position: absolute;
   top: 6px;
   right: 15px;
+}
+
+#chat-expand-button {
+  position: absolute;
+  top: 6px;
+  right: -10px;
+  z-index: 10;
 }
 
 #use-mindmap-checkbox {

@@ -57,6 +57,7 @@ class EmbeddingManager:
             AzureOpenAIEmbeddings,
             FastEmbedEmbeddings,
             LCCohereEmbeddings,
+            LCGoogleEmbeddings,
             LCHuggingFaceEmbeddings,
             OpenAIEmbeddings,
             TeiEndpointEmbeddings,
@@ -68,6 +69,7 @@ class EmbeddingManager:
             FastEmbedEmbeddings,
             LCCohereEmbeddings,
             LCHuggingFaceEmbeddings,
+            LCGoogleEmbeddings,
             TeiEndpointEmbeddings,
         ]
 
