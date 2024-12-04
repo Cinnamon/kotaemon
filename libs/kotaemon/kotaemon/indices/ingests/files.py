@@ -13,6 +13,7 @@ from kotaemon.loaders import (
     AdobeReader,
     AzureAIDocumentIntelligenceLoader,
     DirectoryReader,
+    DoclingReader,
     HtmlReader,
     MathpixPDFReader,
     MhtmlReader,
@@ -32,9 +33,10 @@ azure_reader = AzureAIDocumentIntelligenceLoader(
     credential=str(config("AZURE_DI_CREDENTIAL", default="")),
     cache_dir=getattr(flowsettings, "KH_MARKDOWN_OUTPUT_DIR", None),
 )
-adobe_reader.vlm_endpoint = azure_reader.vlm_endpoint = getattr(
-    flowsettings, "KH_VLM_ENDPOINT", ""
-)
+docling_reader = DoclingReader()
+adobe_reader.vlm_endpoint = (
+    azure_reader.vlm_endpoint
+) = docling_reader.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
 
 
 KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {

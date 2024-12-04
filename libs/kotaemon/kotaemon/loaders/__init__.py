@@ -2,6 +2,7 @@ from .adobe_loader import AdobeReader
 from .azureai_document_intelligence_loader import AzureAIDocumentIntelligenceLoader
 from .base import AutoReader, BaseReader
 from .composite_loader import DirectoryReader
+from .docling_loader import DoclingReader
 from .docx_loader import DocxReader
 from .excel_loader import ExcelReader, PandasExcelReader
 from .html_loader import HtmlReader, MhtmlReader
@@ -30,4 +31,5 @@ __all__ = [
     "TxtReader",
     "PDFThumbnailReader",
     "WebReader",
+    "DoclingReader",
 ]

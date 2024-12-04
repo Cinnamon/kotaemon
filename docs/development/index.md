@@ -1,1 +1,5 @@
---8<-- "README.md"
+{%
+    include-markdown "../../README.md"
+    start="<!-- start-intro -->"
+    end="<!-- end-intro -->"
+%}

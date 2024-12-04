@@ -22,7 +22,7 @@ from theflow.settings import settings as flowsettings
 from kotaemon.base import Document
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 
-from ...utils import SUPPORTED_LANGUAGE_MAP
+from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex
 from .chat_panel import ChatPanel
 from .common import STATE
 from .control import ConversationControl
@@ -31,6 +31,12 @@ from .report import ReportIssue
 DEFAULT_SETTING = "(default)"
 INFO_PANEL_SCALES = {True: 8, False: 4}
 
+chat_input_focus_js = """
+function() {
+    let chatInput = document.querySelector("#chat-input textarea");
+    chatInput.focus();
+}
+"""
 
 pdfview_js = """
 function() {
@@ -40,26 +46,52 @@ function() {
         links[i].onclick = openModal;
     }
 
-    var mindmap_el = document.getElementById('mindmap');
-    if (mindmap_el) {
-        var output = svgPanZoom(mindmap_el);
+    // Get all citation links and attach click event
+    var links = document.querySelectorAll("a.citation");
+    for (var i = 0; i < links.length; i++) {
+        links[i].onclick = scrollToCitation;
     }
 
-    var link = document.getElementById("mindmap-toggle");
-    if (link) {
-        link.onclick = function(event) {
+    var mindmap_el = document.getElementById('mindmap');
+
+    if (mindmap_el) {
+        var output = svgPanZoom(mindmap_el);
+        const svg = mindmap_el.cloneNode(true);
+
+        function on_svg_export(event) {
             event.preventDefault(); // Prevent the default link behavior
-            var div = document.getElementById("mindmap-wrapper");
-            if (div) {
-                var currentHeight = div.style.height;
-                if (currentHeight === '400px') {
-                    var contentHeight = div.scrollHeight;
-                    div.style.height = contentHeight + 'px';
-                } else {
-                    div.style.height = '400px'
+            // convert to a valid XML source
+            const as_text = new XMLSerializer().serializeToString(svg);
+            // store in a Blob
+            const blob = new Blob([as_text], { type: "image/svg+xml" });
+            // create an URI pointing to that blob
+            const url = URL.createObjectURL(blob);
+            const win = open(url);
+            // so the Garbage Collector can collect the blob
+            win.onload = (evt) => URL.revokeObjectURL(url);
+        }
+
+        var link = document.getElementById("mindmap-toggle");
+        if (link) {
+            link.onclick = function(event) {
+                event.preventDefault(); // Prevent the default link behavior
+                var div = document.getElementById("mindmap-wrapper");
+                if (div) {
+                    var currentHeight = div.style.height;
+                    if (currentHeight === '400px') {
+                        var contentHeight = div.scrollHeight;
+                        div.style.height = contentHeight + 'px';
+                    } else {
+                        div.style.height = '400px'
+                    }
                 }
-            }
-        };
+            };
+        }
+
+        var link = document.getElementById("mindmap-export");
+        if (link) {
+            link.addEventListener('click', on_svg_export);
+        }
     }
 
     return [links.length]
@@ -76,7 +108,6 @@ class ChatPage(BasePage):
 
         self._preview_links = gr.State(value=None)
         self._reasoning_type = gr.State(value=None)
-        self._llm_type = gr.State(value=None)
         self._conversation_renamed = gr.State(value=False)
         self._suggestion_updated = gr.State(value=False)
         self._info_panel_expanded = gr.State(value=True)
@@ -88,6 +119,7 @@ class ChatPage(BasePage):
             self.state_plot_history = gr.State([])
             self.state_plot_panel = gr.State(None)
             self.state_follow_up = gr.State(None)
+            self.first_selector_choices = gr.State(None)
 
             with gr.Column(scale=1, elem_id="conv-settings-panel") as self.conv_column:
                 self.chat_control = ConversationControl(self._app)
@@ -100,11 +132,14 @@ class ChatPage(BasePage):
                         continue
 
                     index_ui.unrender()  # need to rerender later within Accordion
-                    with gr.Accordion(
-                        label=index.name, open=index_id < 1
-                    ):
+                    with gr.Accordion(label=index.name, open=index_id < 1):
                         index_ui.render()
                         gr_index = index_ui.as_gradio_component()
+
+                        # get the file selector choices for the first index
+                        if index_id == 0:
+                            self.first_selector_choices = index_ui.selector_choices
+
                         if gr_index:
                             if isinstance(gr_index, list):
                                 index.selector = tuple(
@@ -128,6 +163,14 @@ class ChatPage(BasePage):
                             file_count="multiple",
                             container=True,
                             show_label=False,
+                            elem_id="quick-file",
+                        )
+                        self.quick_urls = gr.Textbox(
+                            placeholder="Or paste URLs here",
+                            lines=1,
+                            container=False,
+                            show_label=False,
+                            elem_id="quick-url",
                         )
                         self.quick_file_upload_status = gr.Markdown()
 
@@ -137,11 +180,17 @@ class ChatPage(BasePage):
                 self.chat_panel = ChatPanel(self._app)
 
                 with gr.Row():
-                    with gr.Accordion(label="Chat settings", open=False):
+                    with gr.Accordion(
+                        label="Chat settings",
+                        elem_id="chat-settings-expand",
+                        open=False,
+                    ):
                         # a quick switch for reasoning type option
                         with gr.Row():
                             gr.HTML("Reasoning method")
                             gr.HTML("Model")
+                            gr.HTML("Language")
+                            gr.HTML("Citation")
 
                         with gr.Row():
                             reasoning_type_values = [
@@ -149,13 +198,13 @@ class ChatPage(BasePage):
                             ] + self._app.default_settings.reasoning.settings[
                                 "use"
                             ].choices
-                            self.reasoning_types = gr.Dropdown(
+                            self.reasoning_type = gr.Dropdown(
                                 choices=reasoning_type_values,
                                 value=DEFAULT_SETTING,
                                 container=False,
                                 show_label=False,
                             )
-                            self.model_types = gr.Dropdown(
+                            self.model_type = gr.Dropdown(
                                 choices=self._app.default_settings.reasoning.options[
                                     "simple"
                                 ]
@@ -165,11 +214,43 @@ class ChatPage(BasePage):
                                 container=False,
                                 show_label=False,
                             )
+                            self.language = gr.Dropdown(
+                                choices=[
+                                    (DEFAULT_SETTING, DEFAULT_SETTING),
+                                ]
+                                + self._app.default_settings.reasoning.settings[
+                                    "lang"
+                                ].choices,
+                                value=DEFAULT_SETTING,
+                                container=False,
+                                show_label=False,
+                            )
+                            self.citation = gr.Dropdown(
+                                choices=[
+                                    (DEFAULT_SETTING, DEFAULT_SETTING),
+                                ]
+                                + self._app.default_settings.reasoning.options["simple"]
+                                .settings["highlight_citation"]
+                                .choices,
+                                value=DEFAULT_SETTING,
+                                container=False,
+                                show_label=False,
+                                interactive=True,
+                            )
+
+                            self.use_mindmap = gr.State(value=DEFAULT_SETTING)
+                            self.use_mindmap_check = gr.Checkbox(
+                                label="Mindmap (default)",
+                                container=False,
+                                elem_id="use-mindmap-checkbox",
+                            )
 
             with gr.Column(
                 scale=INFO_PANEL_SCALES[False], elem_id="chat-info-panel"
             ) as self.info_column:
-                with gr.Accordion(label="Information panel", open=True):
+                with gr.Accordion(
+                    label="Information panel", open=True, elem_id="info-expand"
+                ):
                     self.modal = gr.HTML("<div id='pdf-modal'></div>")
                     self.plot_panel = gr.Plot(visible=False)
                     self.info_panel = gr.HTML(elem_id="html-info-panel")
@@ -201,6 +282,7 @@ class ChatPage(BasePage):
                     self.chat_control.conversation_id,
                     self.chat_control.conversation_rn,
                     self.state_follow_up,
+                    self.first_selector_choices,
                 ],
                 outputs=[
                     self.chat_panel.text_input,
@@ -209,6 +291,9 @@ class ChatPage(BasePage):
                     self.chat_control.conversation,
                     self.chat_control.conversation_rn,
                     self.state_follow_up,
+                    # file selector from the first index
+                    self._indices_input[0],
+                    self._indices_input[1],
                 ],
                 concurrency_limit=20,
                 show_progress="hidden",
@@ -220,7 +305,10 @@ class ChatPage(BasePage):
                     self.chat_panel.chatbot,
                     self._app.settings_state,
                     self._reasoning_type,
-                    self._llm_type,
+                    self.model_type,
+                    self.use_mindmap,
+                    self.citation,
+                    self.language,
                     self.state_chat,
                     self._app.user_id,
                 ]
@@ -319,6 +407,9 @@ class ChatPage(BasePage):
             inputs=self._info_panel_expanded,
             outputs=[self.info_column, self._info_panel_expanded],
         )
+        self.chat_control.btn_chat_expand.click(
+            fn=None, inputs=None, js="function() {toggleChatColumn();}"
+        )
 
         self.chat_panel.chatbot.like(
             fn=self.is_liked,
@@ -352,6 +443,10 @@ class ChatPage(BasePage):
             fn=self._json_to_plot,
             inputs=self.state_plot_panel,
             outputs=self.plot_panel,
+        ).then(
+            fn=None,
+            inputs=None,
+            js=chat_input_focus_js,
         )
 
         self.chat_control.btn_del.click(
@@ -442,7 +537,12 @@ class ChatPage(BasePage):
             lambda: self.toggle_delete(""),
             outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
         ).then(
-            fn=None, inputs=None, outputs=None, js=pdfview_js
+            fn=lambda: True,
+            inputs=None,
+            outputs=[self._preview_links],
+            js=pdfview_js,
+        ).then(
+            fn=None, inputs=None, outputs=None, js=chat_input_focus_js
         )
 
         # evidence display on message selection
@@ -461,7 +561,12 @@ class ChatPage(BasePage):
             inputs=self.state_plot_panel,
             outputs=self.plot_panel,
         ).then(
-            fn=None, inputs=None, outputs=None, js=pdfview_js
+            fn=lambda: True,
+            inputs=None,
+            outputs=[self._preview_links],
+            js=pdfview_js,
+        ).then(
+            fn=None, inputs=None, outputs=None, js=chat_input_focus_js
         )
 
         self.chat_control.cb_is_public.change(
@@ -487,15 +592,16 @@ class ChatPage(BasePage):
             + self._indices_input,
             outputs=None,
         )
-        self.reasoning_types.change(
+        self.reasoning_type.change(
             self.reasoning_changed,
-            inputs=[self.reasoning_types],
+            inputs=[self.reasoning_type],
             outputs=[self._reasoning_type],
         )
-        self.model_types.change(
-            lambda x: x,
-            inputs=[self.model_types],
-            outputs=[self._llm_type],
+        self.use_mindmap_check.change(
+            lambda x: (x, gr.update(label="Mindmap " + ("(on)" if x else "(off)"))),
+            inputs=[self.use_mindmap_check],
+            outputs=[self.use_mindmap, self.use_mindmap_check],
+            show_progress="hidden",
         )
         self.chat_control.conversation_id.change(
             lambda: gr.update(visible=False),
@@ -510,13 +616,38 @@ class ChatPage(BasePage):
             )
 
     def submit_msg(
-        self, chat_input, chat_history, user_id, conv_id, conv_name, chat_suggest
+        self,
+        chat_input,
+        chat_history,
+        user_id,
+        conv_id,
+        conv_name,
+        chat_suggest,
+        first_selector_choices,
     ):
         """Submit a message to the chatbot"""
         if not chat_input:
             raise ValueError("Input is empty")
 
         chat_input_text = chat_input.get("text", "")
+
+        # get all file names with pattern @"filename" in input_str
+        file_names, chat_input_text = get_file_names_regex(chat_input_text)
+        first_selector_choices_map = {
+            item[0]: item[1] for item in first_selector_choices
+        }
+        file_ids = []
+
+        if file_names:
+            for file_name in file_names:
+                file_id = first_selector_choices_map.get(file_name)
+                if file_id:
+                    file_ids.append(file_id)
+
+        if file_ids:
+            selector_output = ["select", file_ids]
+        else:
+            selector_output = [gr.update(), gr.update()]
 
         # check if regen mode is active
         if chat_input_text:
@@ -545,14 +676,14 @@ class ChatPage(BasePage):
             new_conv_name = conv_name
             new_chat_suggestion = chat_suggest
 
-        return (
+        return [
             {},
             chat_history,
             new_conv_id,
             conv_update,
             new_conv_name,
             new_chat_suggestion,
-        )
+        ] + selector_output
 
     def toggle_delete(self, conv_id):
         if conv_id:
@@ -712,6 +843,9 @@ class ChatPage(BasePage):
         settings: dict,
         session_reasoning_type: str,
         session_llm: str,
+        session_use_mindmap: bool | str,
+        session_use_citation: str,
+        session_language: str,
         state: dict,
         user_id: int,
         *selecteds,
@@ -728,7 +862,16 @@ class ChatPage(BasePage):
             - the pipeline objects
         """
         # override reasoning_mode by temporary chat page state
-        print("Session reasoning type", session_reasoning_type)
+        print(
+            "Session reasoning type",
+            session_reasoning_type,
+            "use mindmap",
+            session_use_mindmap,
+            "use citation",
+            session_use_citation,
+            "language",
+            session_language,
+        )
         print("Session LLM", session_llm)
         reasoning_mode = (
             settings["reasoning.use"]
@@ -741,8 +884,23 @@ class ChatPage(BasePage):
 
         settings = deepcopy(settings)
         llm_setting_key = f"reasoning.options.{reasoning_id}.llm"
-        if llm_setting_key in settings and session_llm not in (DEFAULT_SETTING, None):
+        if llm_setting_key in settings and session_llm not in (
+            DEFAULT_SETTING,
+            None,
+            "",
+        ):
             settings[llm_setting_key] = session_llm
+
+        if session_use_mindmap not in (DEFAULT_SETTING, None):
+            settings["reasoning.options.simple.create_mindmap"] = session_use_mindmap
+
+        if session_use_citation not in (DEFAULT_SETTING, None):
+            settings[
+                "reasoning.options.simple.highlight_citation"
+            ] = session_use_citation
+
+        if session_language not in (DEFAULT_SETTING, None):
+            settings["reasoning.lang"] = session_language
 
         # get retrievers
         retrievers = []
@@ -775,6 +933,9 @@ class ChatPage(BasePage):
         settings,
         reasoning_type,
         llm_type,
+        use_mind_map,
+        use_citation,
+        language,
         state,
         user_id,
         *selecteds,
@@ -791,7 +952,15 @@ class ChatPage(BasePage):
 
         # construct the pipeline
         pipeline, reasoning_state = self.create_pipeline(
-            settings, reasoning_type, llm_type, state, user_id, *selecteds
+            settings,
+            reasoning_type,
+            llm_type,
+            use_mind_map,
+            use_citation,
+            language,
+            state,
+            user_id,
+            *selecteds,
         )
         print("Reasoning state", reasoning_state)
         pipeline.set_output_queue(queue)

@@ -39,6 +39,7 @@ from kotaemon.indices.ingests.files import (
     KH_DEFAULT_FILE_EXTRACTORS,
     adobe_reader,
     azure_reader,
+    docling_reader,
     unstructured,
     web_reader,
 )
@@ -125,6 +126,9 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
         if doc_ids:
             flatten_doc_ids = []
             for doc_id in doc_ids:
+                if doc_id is None:
+                    raise ValueError("No document is selected")
+
                 if doc_id.startswith("["):
                     flatten_doc_ids.extend(json.loads(doc_id))
                 else:
@@ -673,6 +677,8 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
             readers[".pdf"] = adobe_reader
         elif self.reader_mode == "azure-di":
             readers[".pdf"] = azure_reader
+        elif self.reader_mode == "docling":
+            readers[".pdf"] = docling_reader
 
         dev_readers, _, _ = dev_settings()
         readers.update(dev_readers)
@@ -692,6 +698,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                         "Azure AI Document Intelligence (figure+table extraction)",
                         "azure-di",
                     ),
+                    ("Docling (figure+table extraction)", "docling"),
                 ],
                 "component": "dropdown",
             },
@@ -722,7 +729,11 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
 
         Can subclass this method for a more elaborate pipeline routing strategy.
         """
-        _, chunk_size, chunk_overlap = dev_settings()
+
+        _, dev_chunk_size, dev_chunk_overlap = dev_settings()
+
+        chunk_size = self.chunk_size or dev_chunk_size
+        chunk_overlap = self.chunk_overlap or dev_chunk_overlap
 
         # check if file_path is a URL
         if self.is_url(file_path):
@@ -737,12 +748,14 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                     "the suitable pipeline for this file type in the settings."
                 )
 
+        print(f"Chunk size: {chunk_size}, chunk overlap: {chunk_overlap}")
+
         print("Using reader", reader)
         pipeline: IndexPipeline = IndexPipeline(
             loader=reader,
             splitter=TokenSplitter(
                 chunk_size=chunk_size or 1024,
-                chunk_overlap=chunk_overlap if chunk_overlap is not None else 256,
+                chunk_overlap=chunk_overlap or 256,
                 separator="\n\n",
                 backup_separators=["\n", ".", "\u200B"],
             ),

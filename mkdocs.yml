@@ -80,6 +80,7 @@ plugins:
       fallback_to_build_date: true
   - section-index
   - mkdocs-video
+  - include-markdown
 
 theme:
   features:

@@ -57,6 +57,7 @@ repos:
             "types-requests",
             "sqlmodel",
             "types-Markdown",
+            types-tzlocal,
           ]
         args: ["--check-untyped-defs", "--ignore-missing-imports"]
         exclude: "^templates/"

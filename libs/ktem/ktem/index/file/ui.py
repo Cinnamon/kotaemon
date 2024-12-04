@@ -22,6 +22,32 @@ from theflow.settings import settings as flowsettings
 DOWNLOAD_MESSAGE = "Press again to download"
 MAX_FILENAME_LENGTH = 20
 
+chat_input_focus_js = """
+function() {
+    let chatInput = document.querySelector("#chat-input textarea");
+    chatInput.focus();
+}
+"""
+
+update_file_list_js = """
+function(file_list) {
+    var values = [];
+    for (var i = 0; i < file_list.length; i++) {
+        values.push({
+            key: file_list[i][0],
+            value: '"' + file_list[i][0] + '"',
+        });
+    }
+    var tribute = new Tribute({
+        values: values,
+        noMatchTemplate: "",
+        allowSpaces: true,
+    })
+    input_box = document.querySelector('#chat-input textarea');
+    tribute.attach(input_box);
+}
+"""
+
 
 class File(gr.File):
     """Subclass from gr.File to maintain the original filename
@@ -135,18 +161,23 @@ class FileIndexPage(BasePage):
         )
 
         with gr.Row():
-            self.deselect_button = gr.Button(
-                "Close",
+
+            self.chat_button = gr.Button(
+                "Go to Chat",
                 visible=False,
             )
             self.is_zipped_state = gr.State(value=False)
             self.download_single_button = gr.DownloadButton(
-                "Download file",
+                "Download",
                 visible=False,
             )
             self.delete_button = gr.Button(
                 "Delete",
                 variant="stop",
+                visible=False,
+            )
+            self.deselect_button = gr.Button(
+                "Close",
                 visible=False,
             )
 
@@ -192,13 +223,17 @@ class FileIndexPage(BasePage):
                 "Add",
                 variant="primary",
             )
-            self.group_close_button = gr.Button(
-                "Close",
+            self.group_chat_button = gr.Button(
+                "Go to Chat",
                 visible=False,
             )
             self.group_delete_button = gr.Button(
                 "Delete",
                 variant="stop",
+                visible=False,
+            )
+            self.group_close_button = gr.Button(
+                "Close",
                 visible=False,
             )
 
@@ -375,6 +410,7 @@ class FileIndexPage(BasePage):
             gr.update(visible=file_id is not None),
             gr.update(visible=file_id is not None),
             gr.update(visible=file_id is not None),
+            gr.update(visible=file_id is not None),
         )
 
     def delete_event(self, file_id):
@@ -475,6 +511,9 @@ class FileIndexPage(BasePage):
         for file_id in file_list.id.values:
             self.delete_event(file_id)
 
+    def set_file_id_selector(self, selected_file_id):
+        return [selected_file_id, "select", gr.Tabs(selected="chat-tab")]
+
     def show_delete_all_confirm(self, file_list):
         # when the list of files is empty it shows a single line with id equal to -
         if len(file_list) == 0 or (
@@ -520,6 +559,7 @@ class FileIndexPage(BasePage):
                     self.deselect_button,
                     self.delete_button,
                     self.download_single_button,
+                    self.chat_button,
                 ],
                 show_progress="hidden",
             )
@@ -540,8 +580,19 @@ class FileIndexPage(BasePage):
                 self.deselect_button,
                 self.delete_button,
                 self.download_single_button,
+                self.chat_button,
             ],
             show_progress="hidden",
+        )
+
+        self.chat_button.click(
+            fn=self.set_file_id_selector,
+            inputs=[self.selected_file_id],
+            outputs=[
+                self._index.get_selector_component_ui().selector,
+                self._index.get_selector_component_ui().mode,
+                self._app.tabs,
+            ],
         )
 
         self.download_all_button.click(
@@ -641,7 +692,7 @@ class FileIndexPage(BasePage):
                         outputs=self._app.chat_page.quick_file_upload_status,
                     )
                     .then(
-                        fn=self.index_fn_with_default_loaders,
+                        fn=self.index_fn_file_with_default_loaders,
                         inputs=[
                             self._app.chat_page.quick_file_upload,
                             gr.State(value=False),
@@ -664,6 +715,38 @@ class FileIndexPage(BasePage):
                 for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
                     quickUploadedEvent = quickUploadedEvent.then(**event)
 
+                quickURLUploadedEvent = (
+                    self._app.chat_page.quick_urls.submit(
+                        fn=lambda: gr.update(
+                            value="Please wait for the indexing process "
+                            "to complete before adding your question."
+                        ),
+                        outputs=self._app.chat_page.quick_file_upload_status,
+                    )
+                    .then(
+                        fn=self.index_fn_url_with_default_loaders,
+                        inputs=[
+                            self._app.chat_page.quick_urls,
+                            gr.State(value=True),
+                            self._app.settings_state,
+                            self._app.user_id,
+                        ],
+                        outputs=self.quick_upload_state,
+                    )
+                    .success(
+                        fn=lambda: [
+                            gr.update(value=None),
+                            gr.update(value="select"),
+                        ],
+                        outputs=[
+                            self._app.chat_page.quick_urls,
+                            self._app.chat_page._indices_input[0],
+                        ],
+                    )
+                )
+                for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
+                    quickURLUploadedEvent = quickURLUploadedEvent.then(**event)
+
                 quickUploadedEvent.success(
                     fn=lambda x: x,
                     inputs=self.quick_upload_state,
@@ -676,6 +759,30 @@ class FileIndexPage(BasePage):
                     inputs=[self._app.user_id, self.filter],
                     outputs=[self.file_list_state, self.file_list],
                     concurrency_limit=20,
+                ).then(
+                    fn=lambda: True,
+                    inputs=None,
+                    outputs=None,
+                    js=chat_input_focus_js,
+                )
+
+                quickURLUploadedEvent.success(
+                    fn=lambda x: x,
+                    inputs=self.quick_upload_state,
+                    outputs=self._app.chat_page._indices_input[1],
+                ).then(
+                    fn=lambda: gr.update(value="Indexing completed."),
+                    outputs=self._app.chat_page.quick_file_upload_status,
+                ).then(
+                    fn=self.list_file,
+                    inputs=[self._app.user_id, self.filter],
+                    outputs=[self.file_list_state, self.file_list],
+                    concurrency_limit=20,
+                ).then(
+                    fn=lambda: True,
+                    inputs=None,
+                    outputs=None,
+                    js=chat_input_focus_js,
                 )
 
         except Exception as e:
@@ -713,6 +820,7 @@ class FileIndexPage(BasePage):
                 self.deselect_button,
                 self.delete_button,
                 self.download_single_button,
+                self.chat_button,
             ],
             show_progress="hidden",
         )
@@ -728,12 +836,14 @@ class FileIndexPage(BasePage):
                 gr.update(visible=False),
                 gr.update(visible=True),
                 gr.update(visible=True),
+                gr.update(visible=True),
             ),
             outputs=[
                 self._group_info_panel,
                 self.group_add_button,
                 self.group_close_button,
                 self.group_delete_button,
+                self.group_chat_button,
             ],
         )
 
@@ -761,17 +871,35 @@ class FileIndexPage(BasePage):
             ],
         )
 
-        onGroupSaved = self.group_save_button.click(
-            fn=self.save_group,
-            inputs=[self.group_name, self.group_files, self._app.user_id],
-        ).then(
-            self.list_group,
-            inputs=[self._app.user_id, self.file_list_state],
-            outputs=[self.group_list_state, self.group_list],
+        self.group_chat_button.click(
+            fn=self.set_group_id_selector,
+            inputs=[self.group_name],
+            outputs=[
+                self._index.get_selector_component_ui().selector,
+                self._index.get_selector_component_ui().mode,
+                self._app.tabs,
+            ],
+        )
+
+        onGroupSaved = (
+            self.group_save_button.click(
+                fn=self.save_group,
+                inputs=[self.group_name, self.group_files, self._app.user_id],
+            )
+            .then(
+                self.list_group,
+                inputs=[self._app.user_id, self.file_list_state],
+                outputs=[self.group_list_state, self.group_list],
+            )
+            .then(
+                fn=lambda: gr.update(visible=False),
+                outputs=[self._group_info_panel],
+            )
         )
         self.group_close_button.click(
             fn=lambda: [
                 gr.update(visible=True),
+                gr.update(visible=False),
                 gr.update(visible=False),
                 gr.update(visible=False),
                 gr.update(visible=False),
@@ -781,6 +909,7 @@ class FileIndexPage(BasePage):
                 self._group_info_panel,
                 self.group_close_button,
                 self.group_delete_button,
+                self.group_chat_button,
             ],
         )
         onGroupDeleted = self.group_delete_button.click(
@@ -904,7 +1033,7 @@ class FileIndexPage(BasePage):
 
         return results
 
-    def index_fn_with_default_loaders(
+    def index_fn_file_with_default_loaders(
         self, files, reindex: bool, settings, user_id
     ) -> list["str"]:
         """Function for quick upload with default loaders
@@ -943,6 +1072,22 @@ class FileIndexPage(BasePage):
                 returned_ids = e.value
 
         return exist_ids + returned_ids
+
+    def index_fn_url_with_default_loaders(self, urls, reindex: bool, settings, user_id):
+        returned_ids = []
+        settings = deepcopy(settings)
+        settings[f"index.options.{self._index.id}.reader_mode"] = "default"
+        settings[f"index.options.{self._index.id}.quick_index_mode"] = True
+
+        if urls:
+            _iter = self.index_fn([], urls, reindex, settings, user_id)
+            try:
+                while next(_iter):
+                    pass
+            except StopIteration as e:
+                returned_ids = e.value
+
+        return returned_ids
 
     def index_files_from_dir(
         self, folder_path, reindex, settings, user_id
@@ -1158,6 +1303,18 @@ class FileIndexPage(BasePage):
 
         return results, group_list
 
+    def set_group_id_selector(self, selected_group_name):
+        FileGroup = self._index._resources["FileGroup"]
+
+        # check if group_name exist
+        with Session(engine) as session:
+            current_group = (
+                session.query(FileGroup).filter_by(name=selected_group_name).first()
+            )
+
+        file_ids = [json.dumps(current_group.data["files"])]
+        return [file_ids, "select", gr.Tabs(selected="chat-tab")]
+
     def save_group(self, group_name, group_files, user_id):
         FileGroup = self._index._resources["FileGroup"]
         current_group = None
@@ -1291,6 +1448,10 @@ class FileSelector(BasePage):
             visible=False,
         )
         self.selector_user_id = gr.State(value=user_id)
+        self.selector_choices = gr.JSON(
+            value=[],
+            visible=False,
+        )
 
     def on_register_events(self):
         self.mode.change(
@@ -1298,6 +1459,14 @@ class FileSelector(BasePage):
             inputs=[self.mode, self._app.user_id],
             outputs=[self.selector, self.selector_user_id],
         )
+        # attach special event for the first index
+        if self._index.id == 1:
+            self.selector_choices.change(
+                fn=None,
+                inputs=[self.selector_choices],
+                js=update_file_list_js,
+                show_progress="hidden",
+            )
 
     def as_gradio_component(self):
         return [self.mode, self.selector, self.selector_user_id]
@@ -1330,7 +1499,7 @@ class FileSelector(BasePage):
         available_ids = []
         if user_id is None:
             # not signed in
-            return gr.update(value=selected_files, choices=options)
+            return gr.update(value=selected_files, choices=options), options
 
         with Session(engine) as session:
             # get file list from Source table
@@ -1363,13 +1532,13 @@ class FileSelector(BasePage):
                 each for each in selected_files if each in available_ids_set
             ]
 
-        return gr.update(value=selected_files, choices=options)
+        return gr.update(value=selected_files, choices=options), options
 
     def _on_app_created(self):
         self._app.app.load(
             self.load_files,
             inputs=[self.selector, self._app.user_id],
-            outputs=[self.selector],
+            outputs=[self.selector, self.selector_choices],
         )
 
     def on_subscribe_public_events(self):
@@ -1378,26 +1547,18 @@ class FileSelector(BasePage):
             definition={
                 "fn": self.load_files,
                 "inputs": [self.selector, self._app.user_id],
-                "outputs": [self.selector],
+                "outputs": [self.selector, self.selector_choices],
                 "show_progress": "hidden",
             },
         )
         if self._app.f_user_management:
-            self._app.subscribe_event(
-                name="onSignIn",
-                definition={
-                    "fn": self.load_files,
-                    "inputs": [self.selector, self._app.user_id],
-                    "outputs": [self.selector],
-                    "show_progress": "hidden",
-                },
-            )
-            self._app.subscribe_event(
-                name="onSignOut",
-                definition={
-                    "fn": self.load_files,
-                    "inputs": [self.selector, self._app.user_id],
-                    "outputs": [self.selector],
-                    "show_progress": "hidden",
-                },
-            )
+            for event_name in ["onSignIn", "onSignOut"]:
+                self._app.subscribe_event(
+                    name=event_name,
+                    definition={
+                        "fn": self.load_files,
+                        "inputs": [self.selector, self._app.user_id],
+                        "outputs": [self.selector, self.selector_choices],
+                        "show_progress": "hidden",
+                    },
+                )
