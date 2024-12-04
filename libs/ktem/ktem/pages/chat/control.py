@@ -48,9 +48,17 @@ class ConversationControl(BasePage):
                 elem_classes=["no-background", "body-text-color"],
                 elem_id="toggle-dark-button",
             )
+            self.btn_chat_expand = gr.Button(
+                value="",
+                icon=f"{ASSETS_DIR}/expand.svg",
+                scale=1,
+                size="sm",
+                elem_classes=["no-background", "body-text-color"],
+                elem_id="chat-expand-button",
+            )
             self.btn_info_expand = gr.Button(
                 value="",
-                icon=f"{ASSETS_DIR}/sidebar.svg",
+                icon=f"{ASSETS_DIR}/expand.svg",
                 min_width=2,
                 scale=1,
                 size="sm",
