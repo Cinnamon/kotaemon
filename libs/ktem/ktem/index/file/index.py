@@ -404,6 +404,25 @@ class FileIndex(BaseIndex):
                 "choices": [("Yes", True), ("No", False)],
                 "info": "If private, files will not be accessible across users.",
             },
+            "chunk_size": {
+                "name": "Size of chunk (number of tokens)",
+                "value": 0,
+                "component": "number",
+                "info": (
+                    "Number of tokens of each text segment. "
+                    "Set 0 to use developer setting."
+                ),
+            },
+            "chunk_overlap": {
+                "name": "Number of overlapping tokens between chunks",
+                "value": 0,
+                "component": "number",
+                "info": (
+                    "Number of tokens that consecutive text segments "
+                    "should overlap with each other. "
+                    "Set 0 to use developer setting."
+                ),
+            },
         }
 
     def get_indexing_pipeline(self, settings, user_id) -> BaseFileIndexIndexing:
@@ -423,6 +442,8 @@ class FileIndex(BaseIndex):
         obj.FSPath = self._fs_path
         obj.user_id = user_id
         obj.private = self.config.get("private", False)
+        obj.chunk_size = self.config.get("chunk_size", 0)
+        obj.chunk_overlap = self.config.get("chunk_overlap", 0)
 
         return obj
 

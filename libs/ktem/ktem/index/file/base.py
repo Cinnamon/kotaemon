@@ -55,6 +55,8 @@ class BaseFileIndexIndexing(BaseComponent):
     FSPath = Param(help="The file storage path")
     user_id = Param(help="The user id")
     private = Param(False, help="Whether this is private index")
+    chunk_size = Param(help="Chunk size for this index")
+    chunk_overlap = Param(help="Chunk overlap for this index")
 
     def run(
         self, file_paths: str | Path | list[str | Path], *args, **kwargs
