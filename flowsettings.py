@@ -303,7 +303,8 @@ KH_INDEX_TYPES = [
 
 GRAPHRAG_INDICES = [
     {
-        "name": graph_type.split(".")[-1].replace("Index", ""),  # get last name
+        "name": graph_type.split(".")[-1].replace("Index", "")
+        + " Collection",  # get last name
         "config": {
             "supported_file_types": (
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
@@ -318,7 +319,7 @@ GRAPHRAG_INDICES = [
 
 KH_INDICES = [
     {
-        "name": "File",
+        "name": "File Collection",
         "config": {
             "supported_file_types": (
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "

@@ -84,7 +84,7 @@ class App(BaseApp):
                 ) as self._tabs["indices-tab"]:
                     for index in self.index_manager.indices:
                         with gr.Tab(
-                            f"{index.name} Collection",
+                            index.name,
                             elem_id=f"{index.id}-tab",
                         ) as self._tabs[f"{index.id}-tab"]:
                             page = index.get_index_page_ui()

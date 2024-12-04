@@ -272,7 +272,7 @@ class SettingsPage(BasePage):
         id2name = {k: v.name for k, v in self._app.index_manager.info().items()}
         with gr.Tab("Retrieval settings", visible=self._render_index_tab):
             for pn, sig in self._default_settings.index.options.items():
-                name = "{} Collection".format(id2name.get(pn, f"<id {pn}>"))
+                name = id2name.get(pn, f"<id {pn}>")
                 with gr.Tab(name):
                     for n, si in sig.settings.items():
                         obj = render_setting_item(si, si.value)
