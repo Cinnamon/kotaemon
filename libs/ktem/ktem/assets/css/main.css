@@ -208,7 +208,12 @@ mark {
   position: absolute;
   top: 6px;
   right: -10px;
-  z-index: 10;
+  z-index: 1;
+}
+
+#quick-setting-labels {
+  margin-top: 5px;
+  margin-bottom: -10px;
 }
 
 #use-mindmap-checkbox {
@@ -216,6 +221,14 @@ mark {
   width: 110px;
   top: 10px;
   right: 25px;
+}
+
+#citation-dropdown {
+  width: min(25%, 100px);
+  position: absolute;
+  top: 2px;
+  left: 120px;
+  height: 35px;
 }
 
 #quick-url textarea {
@@ -262,7 +275,7 @@ pdfjs-viewer-element {
 .modal {
   display: none;
   position: relative;
-  z-index: 1;
+  z-index: 2;
   left: 0;
   top: 0;
   width: 100%;
@@ -351,11 +364,11 @@ pdfjs-viewer-element {
 /* Bot animation */
 
 .message.bot {
-  animation: fadein 1.5s ease-in-out forwards;
+  animation: fadein 1.0s ease-in-out forwards;
 }
 
 details.evidence {
-  animation: fadein 0.5s ease-in-out forwards;
+  animation: fadein 0.3s ease-in-out forwards;
 }
 
 @keyframes fadein {
