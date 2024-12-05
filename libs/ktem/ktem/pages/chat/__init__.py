@@ -185,12 +185,10 @@ class ChatPage(BasePage):
                         elem_id="chat-settings-expand",
                         open=False,
                     ):
-                        # a quick switch for reasoning type option
-                        with gr.Row():
+                        with gr.Row(elem_id="quick-setting-labels"):
                             gr.HTML("Reasoning method")
                             gr.HTML("Model")
                             gr.HTML("Language")
-                            gr.HTML("Citation")
 
                         with gr.Row():
                             reasoning_type_values = [
@@ -236,6 +234,7 @@ class ChatPage(BasePage):
                                 container=False,
                                 show_label=False,
                                 interactive=True,
+                                elem_id="citation-dropdown",
                             )
 
                             self.use_mindmap = gr.State(value=DEFAULT_SETTING)

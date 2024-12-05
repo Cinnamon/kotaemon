@@ -296,6 +296,15 @@ class LCGeminiChat(LCChatMixin, ChatLLM):  # type: ignore
         required=True,
     )
 
+    def _get_tool_call_kwargs(self):
+        return {
+            "tool_config": {
+                "function_calling_config": {
+                    "mode": "ANY",
+                }
+            }
+        }
+
     def __init__(
         self,
         api_key: str | None = None,
