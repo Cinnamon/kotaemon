@@ -89,7 +89,7 @@ The reasoning pipeline:
 To register your pipelines to ktem, you declare it in the `flowsettings.py`
 file. This file locates at the current working directory where you start the
 ktem. In most use cases, it is this
-[one](https://github.com/Cinnamon/kotaemon/blob/main/libs/ktem/flowsettings.py).
+[one](https://github.com/Cinnamon/kotaemon/blob/main/flowsettings.py).
 
 ```python
 KH_REASONING = ["<python.module.path.to.the.reasoning.class>"]
