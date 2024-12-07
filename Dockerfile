@@ -37,12 +37,16 @@ RUN bash scripts/download_pdfjs.sh $PDFJS_PREBUILT_DIR
 COPY . /app
 COPY .env.example /app/.env
 
+# Update pip command
+RUN pip install --upgrade pip
+
 # Install pip packages
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
     pip install -e "libs/kotaemon" \
     && pip install -e "libs/ktem" \
-    && pip install "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
+    && pip install "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements" \
+    && pip install "docling"
 
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \

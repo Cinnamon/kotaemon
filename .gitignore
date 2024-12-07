@@ -5,6 +5,11 @@ activate*
 activate/*
 kotaemon-env*
 .env
+workdir*
+workdir/*
+run_container.sh
+Makefile
+Dockerfile
 
 ### Emacs ###
 # -*- mode: gitignore; -*-
