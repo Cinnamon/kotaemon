@@ -83,6 +83,7 @@ adv = [
     "tabulate",
     "unstructured>=0.15.8,<0.16",
     "wikipedia>=1.4.0,<1.5",
+    "voyageai>=0.2.0",
 ]
 dev = [
     "black",
