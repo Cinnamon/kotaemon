@@ -105,6 +105,10 @@ mark {
   background-color: #1496bb;
 }
 
+mark.warning {
+  background-color: rgb(216 120 104);
+}
+
 /* clpse */
 .clpse {
   background-color: var(--background-fill-secondary);

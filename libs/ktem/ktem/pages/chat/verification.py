@@ -43,7 +43,10 @@ class VerificationPage(BasePage):
         highlighted_text = text[: spans[0]["start"]]
         for idx, span in enumerate(spans):
             to_highlight = text[span["start"] : span["end"]]
-            highlighted_text += Render.highlight(to_highlight)
+            highlighted_text += Render.highlight(
+                to_highlight,
+                elem_classes="warning",
+            )
             if idx < len(spans) - 1:
                 highlighted_text += text[span["end"] : spans[idx + 1]["start"]]
         highlighted_text += text[spans[-1]["end"] :]
@@ -86,9 +89,16 @@ class VerificationPage(BasePage):
 
         for claim in result["ungroundedDetails"]:
             rationale += Render.collapsible_with_header(
-                Document(text=claim["reason"], metadata={"file_name": claim["text"]})
+                Document(
+                    text="<b>{}</b>".format(claim["reason"]),
+                    metadata={
+                        "file_name": "<mark class='warning'>{}</mark>".format(
+                            claim["text"]
+                        ),
+                    },
+                )
             )
 
-        verification_output += f"<div><b>{rationale}</b></div>"
+        verification_output += f"<div>{rationale}</div>"
 
         return gr.update(visible=True), verification_output

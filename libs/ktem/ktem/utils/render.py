@@ -101,9 +101,10 @@ class Render:
         """  # noqa
 
     @staticmethod
-    def highlight(text: str) -> str:
+    def highlight(text: str, elem_classes: str | None = None) -> str:
         """Highlight text"""
-        return f"<mark>{text}</mark>"
+        class_str = "" if not elem_classes else f' class="{elem_classes}"'
+        return f"<mark {class_str}>{text}</mark>"
 
     @staticmethod
     def image(url: str, text: str = "") -> str:
