@@ -456,9 +456,11 @@ class AnswerWithContextPipeline(BaseComponent):
 
         return answer
 
-    def extract_evidence_images(self, evidence: str):
+    @staticmethod
+    def extract_evidence_images(evidence: str):
         """Util function to extract and isolate images from context/evidence"""
-        image_pattern = r"src='(data:image\/[^;]+;base64[^']+)'"
+        image_pattern = r"(data:image\/[^;]+;base64[^']+)"
+
         matches = re.findall(image_pattern, evidence)
         context = re.sub(image_pattern, "", evidence)
         print(f"Got {len(matches)} images")

@@ -27,6 +27,7 @@ from .control import ConversationControl
 from .memory import MemoryPage
 from .rag_setting import RAGSetting
 from .report import ReportIssue
+from .verification import VerificationPage
 
 DEFAULT_SETTING = "(default)"
 INFO_PANEL_SCALES = {True: 8, False: 4}
@@ -102,6 +103,7 @@ class ChatPage(BasePage):
 
                 # long-term memory page
                 self.long_term_memory_btn = gr.Button("Long-term Memory")
+                self.verify_answer_btn = gr.Button("Verify Answer")
 
                 if len(self._app.index_manager.indices) > 0:
                     with gr.Accordion(label="Quick Upload", open=False) as _:
@@ -155,6 +157,8 @@ class ChatPage(BasePage):
                     label="Long-term Memory", open=True, visible=False
                 ) as self.memory_accordion:
                     self.memory_page = MemoryPage(self._app)
+
+                self.verification_page = VerificationPage(self._app)
 
                 with gr.Accordion(label="Information panel", open=True):
                     self.modal = gr.HTML("<div id='pdf-modal'></div>")
@@ -460,6 +464,18 @@ class ChatPage(BasePage):
                 gr.update(visible=False),
             ),
             outputs=[self.memory_accordion, self.memory_page.memory_detail_panel],
+        )
+
+        self.verify_answer_btn.click(
+            self.verification_page.verify_answer,
+            inputs=[
+                self.chat_panel.chatbot,
+                self.original_retrieval_history,
+            ],
+            outputs=[
+                self.verification_page.verification_ui,
+                self.verification_page.verification_result,
+            ],
         )
 
         # evidence display on message selection
