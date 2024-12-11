@@ -23,7 +23,7 @@ class VerificationPage(BasePage):
 
     def on_building_ui(self):
         with gr.Accordion(
-            "Verification Result",
+            "Verification result",
             visible=False,
         ) as self.verification_ui:
             self.verification_result = gr.HTML()
@@ -39,6 +39,9 @@ class VerificationPage(BasePage):
         )
 
     def highlight_spans(self, text, spans):
+        if len(spans) == 0:
+            return text
+
         spans = sorted(spans, key=lambda x: x["start"])
         highlighted_text = text[: spans[0]["start"]]
         for idx, span in enumerate(spans):
@@ -65,40 +68,46 @@ class VerificationPage(BasePage):
             last_evidence
         )
 
+        if not text_only_evidence:
+            raise gr.Error("No evidence found.")
+
         gr.Info("Verifying the groundedness of the answer. Please wait...")
         result = verify_answer_groundedness_azure(query, answer, [text_only_evidence])
 
         verification_output = "<h4>Trust score: {:.2f}</h4>".format(
             1 - result["ungroundedPercentage"]
         )
-        verification_output += "<h4>Claims that might be incorrect</h4>"
-        spans = [
-            {
-                "start": claim["offset"]["codePoint"],
-                "end": claim["offset"]["codePoint"] + claim["length"]["codePoint"],
-            }
-            for claim in result["ungroundedDetails"]
-        ]
-        highlighted_text = self.highlight_spans(answer, spans)
-        highlighted_text = highlighted_text.replace("\n", "<br>")
-        verification_output += f"<div>{highlighted_text}</div>"
 
-        verification_output += "<h4>Rationale</h4>"
-        print(verification_output)
-        rationale = ""
+        if len(result["ungroundedDetails"]) == 0:
+            verification_output += "<h4>Claims are correct</h4>"
+        else:
+            verification_output += "<h4>Claims that might be incorrect</h4>"
+            spans = [
+                {
+                    "start": claim["offset"]["codePoint"],
+                    "end": claim["offset"]["codePoint"] + claim["length"]["codePoint"],
+                }
+                for claim in result["ungroundedDetails"]
+            ]
+            highlighted_text = self.highlight_spans(answer, spans)
+            highlighted_text = highlighted_text.replace("\n", "<br>")
+            verification_output += f"<div>{highlighted_text}</div>"
 
-        for claim in result["ungroundedDetails"]:
-            rationale += Render.collapsible_with_header(
-                Document(
-                    text="<b>{}</b>".format(claim["reason"]),
-                    metadata={
-                        "file_name": "<mark class='warning'>{}</mark>".format(
-                            claim["text"]
-                        ),
-                    },
+            verification_output += "<h4>Rationale</h4>"
+            rationale = ""
+
+            for claim in result["ungroundedDetails"]:
+                rationale += Render.collapsible_with_header(
+                    Document(
+                        text="<b>{}</b>".format(claim["reason"]),
+                        metadata={
+                            "file_name": "<mark class='warning'>{}</mark>".format(
+                                claim["text"]
+                            ),
+                        },
+                    )
                 )
-            )
 
-        verification_output += f"<div>{rationale}</div>"
+            verification_output += f"<div>{rationale}</div>"
 
-        return gr.update(visible=True), verification_output
+        return verification_output

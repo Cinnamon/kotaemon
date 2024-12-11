@@ -467,13 +467,15 @@ class ChatPage(BasePage):
         )
 
         self.verify_answer_btn.click(
+            lambda: gr.update(visible=True),
+            outputs=[self.verification_page.verification_ui],
+        ).then(
             self.verification_page.verify_answer,
             inputs=[
                 self.chat_panel.chatbot,
                 self.original_retrieval_history,
             ],
             outputs=[
-                self.verification_page.verification_ui,
                 self.verification_page.verification_result,
             ],
         )
