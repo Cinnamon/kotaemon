@@ -101,6 +101,10 @@ class KnetRetrievalPipeline(BaseFileIndexRetriever):
         if response.status_code == 200:
             # Load YAML content from the response content
             chunks = yaml.safe_load(response.content)
+            print(response.content)
+            if chunks is None:
+                return docs
+
             for chunk in chunks:
                 metadata = chunk["node"].get("metadata")
                 if not metadata:
