@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -12,6 +13,7 @@ from ktem.settings import BaseSettingGroup, SettingGroup, SettingReasoningGroup
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
 
+BASE_PATH = os.environ.get('GRADIO_ROOT_PATH', '')
 
 class BaseApp:
     """The main app of Kotaemon
@@ -54,6 +56,8 @@ class BaseApp:
             self._pdf_view_js = self._pdf_view_js.replace(
                 "PDFJS_PREBUILT_DIR",
                 pdf_js_dist_dir,
+            ).replace(
+                "GRADIO_ROOT_PATH", BASE_PATH
             )
         with (dir_assets / "js" / "svg-pan-zoom.min.js").open() as fi:
             self._svg_js = fi.read()
