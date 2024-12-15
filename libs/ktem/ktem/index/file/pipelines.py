@@ -15,7 +15,6 @@ from typing import Generator, Optional, Sequence
 import tiktoken
 from ktem.db.models import engine
 from ktem.embeddings.manager import embedding_models_manager
-from ktem.extensions.extensions import extension_manager
 from ktem.llms.manager import llms
 from ktem.rerankings.manager import reranking_models_manager
 from llama_index.core.readers.base import BaseReader
@@ -35,6 +34,7 @@ from theflow.utils.modules import import_dotted_string
 from kotaemon.base import BaseComponent, Document, Node, Param, RetrievedDocument
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.indices import VectorIndexing, VectorRetrieval
+from kotaemon.indices.ingests.extensions import extension_manager
 
 # from kotaemon.indices.ingests.files import (  # KH_DEFAULT_FILE_EXTRACTORS,
 #     web_reader,

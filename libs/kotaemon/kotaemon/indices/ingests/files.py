@@ -1,38 +1,14 @@
 from pathlib import Path
 from typing import Type
 
-from decouple import config
-from ktem.extensions.extensions import extension_manager
 from llama_index.core.readers.base import BaseReader
 from llama_index.readers.file import PDFReader
-from theflow.settings import settings as flowsettings
 
 from kotaemon.base import BaseComponent, Document, Param
 from kotaemon.indices.extractors import BaseDocParser
+from kotaemon.indices.ingests.extensions import extension_manager
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
-from kotaemon.loaders import (
-    AdobeReader,
-    AzureAIDocumentIntelligenceLoader,
-    DirectoryReader,
-    DoclingReader,
-    MathpixPDFReader,
-    OCRReader,
-    UnstructuredReader,
-    WebReader,
-)
-
-web_reader = WebReader()
-unstructured = UnstructuredReader()
-adobe_reader = AdobeReader()
-azure_reader = AzureAIDocumentIntelligenceLoader(
-    endpoint=str(config("AZURE_DI_ENDPOINT", default="")),
-    credential=str(config("AZURE_DI_CREDENTIAL", default="")),
-    cache_dir=getattr(flowsettings, "KH_MARKDOWN_OUTPUT_DIR", None),
-)
-docling_reader = DoclingReader()
-adobe_reader.vlm_endpoint = (
-    azure_reader.vlm_endpoint
-) = docling_reader.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
+from kotaemon.loaders import DirectoryReader
 
 
 class DocumentIngestor(BaseComponent):
@@ -73,14 +49,13 @@ class DocumentIngestor(BaseComponent):
         for ext, cls in self.override_file_extractors.items():
             file_extractors[ext] = cls()
 
-        if self.pdf_mode == "normal":
-            file_extractors[".pdf"] = PDFReader()
-        elif self.pdf_mode == "ocr":
-            file_extractors[".pdf"] = OCRReader()
-        elif self.pdf_mode == "multimodal":
-            file_extractors[".pdf"] = AdobeReader()
-        else:
-            file_extractors[".pdf"] = MathpixPDFReader()
+        match self.pdf_mode:
+            case "normal":
+                file_extractors[".pdf"] = PDFReader()
+            case "multimodal":
+                file_extractors[".pdf"] = extension_manager.factory.adobe
+            case _:
+                file_extractors[".pdf"] = extension_manager.factory.mathpix_pdf
 
         main_reader = DirectoryReader(
             input_files=input_files,

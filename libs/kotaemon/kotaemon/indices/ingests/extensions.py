@@ -12,6 +12,7 @@ from kotaemon.loaders import (
     DoclingReader,
     GOCR2ImageReader,
     HtmlReader,
+    MathpixPDFReader,
     MhtmlReader,
     PandasExcelReader,
     PDFThumbnailReader,
@@ -22,6 +23,10 @@ from kotaemon.loaders import (
 
 
 class ReaderFactory:
+    @cached_property
+    def mathpix_pdf(self) -> MathpixPDFReader:
+        return MathpixPDFReader()
+
     @cached_property
     def web(self) -> WebReader:
         return WebReader()
