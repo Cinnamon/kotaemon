@@ -296,7 +296,7 @@ SETTINGS_REASONING = {
 }
 
 USE_NANO_GRAPHRAG = config("USE_NANO_GRAPHRAG", default=False, cast=bool)
-USE_LIGHTRAG = config("USE_LIGHTRAG", default=False, cast=bool)
+USE_LIGHTRAG = config("USE_LIGHTRAG", default=True, cast=bool)
 
 GRAPHRAG_INDEX_TYPES = ["ktem.index.file.graph.GraphRAGIndex"]
 

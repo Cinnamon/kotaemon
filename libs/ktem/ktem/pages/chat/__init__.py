@@ -22,7 +22,7 @@ from theflow.settings import settings as flowsettings
 from kotaemon.base import Document
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 
-from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex
+from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex, get_urls
 from .chat_panel import ChatPanel
 from .common import STATE
 from .control import ConversationControl
@@ -140,6 +140,7 @@ class ChatPage(BasePage):
                         # get the file selector choices for the first index
                         if index_id == 0:
                             self.first_selector_choices = index_ui.selector_choices
+                            self.first_indexing_url_fn = None
 
                         if gr_index:
                             if isinstance(gr_index, list):
@@ -284,6 +285,7 @@ class ChatPage(BasePage):
                     self.chat_panel.text_input,
                     self.chat_panel.chatbot,
                     self._app.user_id,
+                    self._app.settings_state,
                     self.chat_control.conversation_id,
                     self.chat_control.conversation_rn,
                     self.first_selector_choices,
@@ -634,6 +636,7 @@ class ChatPage(BasePage):
         chat_input,
         chat_history,
         user_id,
+        settings,
         conv_id,
         conv_name,
         first_selector_choices,
@@ -643,22 +646,44 @@ class ChatPage(BasePage):
             raise ValueError("Input is empty")
 
         chat_input_text = chat_input.get("text", "")
+        file_ids = []
 
-        # get all file names with pattern @"filename" in input_str
-        file_names, chat_input_text = get_file_names_regex(chat_input_text)
         first_selector_choices_map = {
             item[0]: item[1] for item in first_selector_choices
         }
-        file_ids = []
 
-        if file_names:
+        # get all file names with pattern @"filename" in input_str
+        file_names, chat_input_text = get_file_names_regex(chat_input_text)
+        # get all urls in input_str
+        urls, chat_input_text = get_urls(chat_input_text)
+
+        if urls and self.first_indexing_url_fn:
+            print("Detected URLs", urls)
+            file_ids = self.first_indexing_url_fn(
+                "\n".join(urls),
+                True,
+                settings,
+                user_id,
+            )
+        elif file_names:
             for file_name in file_names:
                 file_id = first_selector_choices_map.get(file_name)
                 if file_id:
                     file_ids.append(file_id)
 
+        # add new file ids to the first selector choices
+        first_selector_choices.extend(zip(urls, file_ids))
+
+        # if file_ids is not empty and chat_input_text is empty
+        # set the input to summary
+        if not chat_input_text and file_ids:
+            chat_input_text = "Summary"
+
         if file_ids:
-            selector_output = ["select", file_ids]
+            selector_output = [
+                "select",
+                gr.update(value=file_ids, choices=first_selector_choices),
+            ]
         else:
             selector_output = [gr.update(), gr.update()]
 
