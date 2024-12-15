@@ -15,7 +15,6 @@ from kotaemon.loaders import (
     AzureAIDocumentIntelligenceLoader,
     DirectoryReader,
     DoclingReader,
-    HtmlReader,
     MathpixPDFReader,
     OCRReader,
     UnstructuredReader,
