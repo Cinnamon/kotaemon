@@ -7,12 +7,11 @@ from ktem import extension_protocol
 from ktem.assets import PDFJS_PREBUILT_DIR, KotaemonTheme
 from ktem.components import reasonings
 from ktem.exceptions import HookAlreadyDeclared, HookNotDeclared
+from ktem.extensions.extensions import extension_manager
 from ktem.index import IndexManager
 from ktem.settings import BaseSettingGroup, SettingGroup, SettingReasoningGroup
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
-
-from kotaemon.indices.ingests.extensions import extension_manager
 
 
 class BaseApp:

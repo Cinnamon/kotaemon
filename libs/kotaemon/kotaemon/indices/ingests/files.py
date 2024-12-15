@@ -2,13 +2,13 @@ from pathlib import Path
 from typing import Type
 
 from decouple import config
+from ktem.extensions.extensions import extension_manager
 from llama_index.core.readers.base import BaseReader
 from llama_index.readers.file import PDFReader
 from theflow.settings import settings as flowsettings
 
 from kotaemon.base import BaseComponent, Document, Param
 from kotaemon.indices.extractors import BaseDocParser
-from kotaemon.indices.ingests.extensions import extension_manager
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 from kotaemon.loaders import (
     AdobeReader,

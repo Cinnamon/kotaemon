@@ -4,9 +4,8 @@ import gradio as gr
 from ktem.app import BasePage
 from ktem.components import reasonings
 from ktem.db.models import Settings, User, engine
+from ktem.extensions.extensions import extension_manager
 from sqlmodel import Session, select
-
-from kotaemon.indices.ingests.extensions import extension_manager
 
 signout_js = """
 function(u, c, pw, pwc) {

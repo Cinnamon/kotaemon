@@ -1,4 +1,5 @@
 from copy import deepcopy
+from functools import cached_property
 from typing import Any
 
 from decouple import config
@@ -8,6 +9,7 @@ from theflow.settings import settings as flowsettings
 from kotaemon.loaders import (
     AdobeReader,
     AzureAIDocumentIntelligenceLoader,
+    DoclingReader,
     GOCR2ImageReader,
     HtmlReader,
     MhtmlReader,
@@ -15,24 +17,69 @@ from kotaemon.loaders import (
     PDFThumbnailReader,
     TxtReader,
     UnstructuredReader,
+    WebReader,
 )
 
-unstructured = UnstructuredReader()
-adobe_reader = AdobeReader()
-azure_reader = AzureAIDocumentIntelligenceLoader(
-    endpoint=str(config("AZURE_DI_ENDPOINT", default="")),
-    credential=str(config("AZURE_DI_CREDENTIAL", default="")),
-    cache_dir=getattr(flowsettings, "KH_MARKDOWN_OUTPUT_DIR", None),
-)
-adobe_reader.vlm_endpoint = azure_reader.vlm_endpoint = getattr(
-    flowsettings, "KH_VLM_ENDPOINT", ""
-)
+
+class ReaderFactory:
+    @cached_property
+    def web(self) -> WebReader:
+        return WebReader()
+
+    @cached_property
+    def unstructured(self) -> UnstructuredReader:
+        return UnstructuredReader()
+
+    @cached_property
+    def adobe(self) -> AdobeReader:
+        adobe_reader = AdobeReader()
+        adobe_reader.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
+        return adobe_reader
+
+    @cached_property
+    def azuredi(self) -> AzureAIDocumentIntelligenceLoader:
+        azuredi_reader = AzureAIDocumentIntelligenceLoader(
+            endpoint=str(config("AZURE_DI_ENDPOINT", default="")),
+            credential=str(config("AZURE_DI_CREDENTIAL", default="")),
+            cache_dir=getattr(flowsettings, "KH_MARKDOWN_OUTPUT_DIR", None),
+        )
+        azuredi_reader.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
+        return azuredi_reader
+
+    @cached_property
+    def pandas_excel(self) -> PandasExcelReader:
+        return PandasExcelReader()
+
+    @cached_property
+    def html(self) -> HtmlReader:
+        return HtmlReader()
+
+    @cached_property
+    def mhtml(self) -> MhtmlReader:
+        return MhtmlReader()
+
+    @cached_property
+    def gocr(self) -> GOCR2ImageReader:
+        return GOCR2ImageReader()
+
+    @cached_property
+    def txt(self) -> TxtReader:
+        return TxtReader()
+
+    @cached_property
+    def docling(self) -> DoclingReader:
+        return DoclingReader()
+
+    @cached_property
+    def pdf_thumbnail(self) -> PDFThumbnailReader:
+        return PDFThumbnailReader()
 
 
 class ExtensionManager:
     """Pool of loaders for extensions"""
 
-    def __init__(self):
+    def __init__(self, factory: ReaderFactory | None = None):
+        self.factory = factory or ReaderFactory()
         self._supported, self._default_index = self._init_supported()
 
     def get_current_loader(self) -> dict[str, BaseReader]:
@@ -43,26 +90,40 @@ class ExtensionManager:
             }
         )
 
-    @staticmethod
-    def _init_supported() -> tuple[dict[str, list[BaseReader]], dict[str, str]]:
-        gocr = GOCR2ImageReader()
-
+    def _init_supported(self) -> tuple[dict[str, list[BaseReader]], dict[str, str]]:
         supported: dict[str, list[BaseReader]] = {
-            ".xlsx": [PandasExcelReader()],
-            ".docx": [unstructured],
-            ".pptx": [unstructured],
-            ".xls": [unstructured],
-            ".doc": [unstructured],
-            ".html": [HtmlReader()],
-            ".mhtml": [MhtmlReader()],
-            ".png": [unstructured, gocr],
-            ".jpeg": [unstructured, gocr],
-            ".jpg": [unstructured, gocr],
-            ".tiff": [unstructured],
-            ".tif": [unstructured],
-            ".pdf": [PDFThumbnailReader(), adobe_reader, azure_reader],
-            ".txt": [TxtReader()],
-            ".md": [TxtReader()],
+            ".xlsx": [self.factory.pandas_excel],
+            ".docx": [self.factory.unstructured],
+            ".pptx": [self.factory.unstructured],
+            ".xls": [self.factory.unstructured],
+            ".doc": [self.factory.unstructured],
+            ".html": [self.factory.html],
+            ".mhtml": [self.factory.mhtml],
+            ".png": [
+                self.factory.unstructured,
+                self.factory.gocr,
+                self.factory.docling,
+            ],
+            ".jpeg": [
+                self.factory.unstructured,
+                self.factory.gocr,
+                self.factory.docling,
+            ],
+            ".jpg": [
+                self.factory.unstructured,
+                self.factory.gocr,
+                self.factory.docling,
+            ],
+            ".tiff": [self.factory.unstructured, self.factory.docling],
+            ".tif": [self.factory.unstructured, self.factory.docling],
+            ".pdf": [
+                self.factory.pdf_thumbnail,
+                self.factory.adobe,
+                self.factory.azuredi,
+                self.factory.docling,
+            ],
+            ".txt": [self.factory.txt],
+            ".md": [self.factory.txt],
         }
 
         default_index = {
@@ -136,7 +197,3 @@ class ExtensionManager:
 
 
 extension_manager = ExtensionManager()
-
-
-if __name__ == "__main__":
-    print(extension_manager.get_loaders_by_extension(".xlsx"))
