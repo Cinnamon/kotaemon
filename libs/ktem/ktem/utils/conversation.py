@@ -29,5 +29,15 @@ def get_file_names_regex(input_str: str) -> tuple[list[str], str]:
     return matches, input_str
 
 
+def get_urls(input_str: str) -> tuple[list[str], str]:
+    # get all urls in input_str
+    # also remove these urls from input_str
+    pattern = r"https?://[^\s]+"
+    matches = re.findall(pattern, input_str)
+    input_str = re.sub(pattern, "", input_str).strip()
+
+    return matches, input_str
+
+
 if __name__ == "__main__":
     print(sync_retrieval_n_message([[""], [""], [""]], []))
