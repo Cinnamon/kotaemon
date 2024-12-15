@@ -47,6 +47,14 @@ except ImportError:
 filestorage_path = Path(settings.KH_FILESTORAGE_PATH) / "graphrag"
 filestorage_path.mkdir(parents=True, exist_ok=True)
 
+GRAPHRAG_KEY_MISSING_MESSAGE = (
+    "GRAPHRAG_API_KEY is not set. Please set it to use the GraphRAG retriever pipeline."
+)
+
+
+def check_graphrag_api_key():
+    return len(os.getenv("GRAPHRAG_API_KEY", "")) > 0
+
 
 def prepare_graph_index_path(graph_id: str):
     root_path = Path(filestorage_path) / graph_id
@@ -99,6 +107,9 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
         return root_path
 
     def call_graphrag_index(self, graph_id: str, all_docs: list[Document]):
+        if not check_graphrag_api_key():
+            raise ValueError(GRAPHRAG_KEY_MISSING_MESSAGE)
+
         # call GraphRAG index with docs and graph_id
         input_path = self.write_docs_to_files(graph_id, all_docs)
         input_path = str(input_path.absolute())
@@ -346,6 +357,10 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
     ) -> list[RetrievedDocument]:
         if not self.file_ids:
             return []
+
+        if not check_graphrag_api_key():
+            raise ValueError(GRAPHRAG_KEY_MISSING_MESSAGE)
+
         context_builder = self._build_graph_search()
 
         local_context_params = {
