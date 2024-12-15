@@ -14,6 +14,9 @@ from pathlib import Path
 from typing import Generator, Optional, Sequence
 
 import tiktoken
+
+from kotaemon.indices.ingests.extension_manager import extension_manager
+from kotaemon.loaders import OCRReader
 from ktem.db.models import engine
 from ktem.embeddings.manager import embedding_models_manager
 from ktem.llms.manager import llms
@@ -36,7 +39,7 @@ from kotaemon.base import BaseComponent, Document, Node, Param, RetrievedDocumen
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.indices import VectorIndexing, VectorRetrieval
 from kotaemon.indices.ingests.files import (
-    KH_DEFAULT_FILE_EXTRACTORS,
+    # KH_DEFAULT_FILE_EXTRACTORS,
     adobe_reader,
     azure_reader,
     docling_reader,
@@ -671,7 +674,8 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
 
     @Param.auto(depends_on="reader_mode")
     def readers(self):
-        readers = deepcopy(KH_DEFAULT_FILE_EXTRACTORS)
+        # readers = deepcopy(KH_DEFAULT_FILE_EXTRACTORS)
+        readers: dict[str, BaseReader] = extension_manager.get_current_loader()
         print("reader_mode", self.reader_mode)
         if self.reader_mode == "adobe":
             readers[".pdf"] = adobe_reader

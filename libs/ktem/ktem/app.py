@@ -3,6 +3,9 @@ from typing import Optional
 
 import gradio as gr
 import pluggy
+from aiohttp.web_fileresponse import extension
+
+from kotaemon.indices.ingests.extension_manager import extension_manager
 from ktem import extension_protocol
 from ktem.assets import PDFJS_PREBUILT_DIR, KotaemonTheme
 from ktem.components import reasonings
@@ -63,6 +66,7 @@ class BaseApp:
         self.default_settings = SettingGroup(
             application=BaseSettingGroup(settings=settings.SETTINGS_APP),
             reasoning=SettingReasoningGroup(settings=settings.SETTINGS_REASONING),
+            extension=BaseSettingGroup(settings=extension_manager.generate_gradio_settings())
         )
 
         self._callbacks: dict[str, list] = {}

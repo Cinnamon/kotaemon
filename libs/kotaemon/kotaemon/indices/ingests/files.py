@@ -23,6 +23,8 @@ from kotaemon.loaders import (
     TxtReader,
     UnstructuredReader,
     WebReader,
+    UnstructuredReader, 
+    ImageReader,
 )
 
 web_reader = WebReader()
@@ -47,9 +49,9 @@ KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
     ".doc": unstructured,
     ".html": HtmlReader(),
     ".mhtml": MhtmlReader(),
-    ".png": unstructured,
-    ".jpeg": unstructured,
-    ".jpg": unstructured,
+    ".png": ImageReader(),
+    ".jpeg": ImageReader(),
+    ".jpg": ImageReader(),
     ".tiff": unstructured,
     ".tif": unstructured,
     ".pdf": PDFThumbnailReader(),
