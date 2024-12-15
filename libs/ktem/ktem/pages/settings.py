@@ -1,12 +1,12 @@
 import hashlib
 
 import gradio as gr
-
-from kotaemon.indices.ingests.extension_manager import extension_manager
 from ktem.app import BasePage
 from ktem.components import reasonings
 from ktem.db.models import Settings, User, engine
 from sqlmodel import Session, select
+
+from kotaemon.indices.ingests.extensions import extension_manager
 
 signout_js = """
 function(u, c, pw, pwc) {
@@ -183,7 +183,7 @@ class SettingsPage(BasePage):
         ).then(
             fn=lambda state: extension_manager.load(state),
             inputs=[self._settings_state],
-            outputs=None
+            outputs=None,
         )
 
         self._components["reasoning.use"].change(
@@ -304,27 +304,26 @@ class SettingsPage(BasePage):
         with gr.Tab("Extension settings"):
             for left, right in zip(lefts, rights):
                 left_setting = self._default_settings.extension.settings.get(left, None)
-                right_setting = self._default_settings.extension.settings.get(right, None)
+                right_setting = self._default_settings.extension.settings.get(
+                    right, None
+                )
 
                 with gr.Row():
                     with gr.Column(1):
                         if left_setting:
                             left_gradio_obj = render_setting_item(
-                                left_setting,
-                                left_setting.value
+                                left_setting, left_setting.value
                             )
                             self._components[f"extension.{left}"] = left_gradio_obj
 
                     with gr.Column(1):
                         if right_setting:
                             right_gradio_obj = render_setting_item(
-                                right_setting,
-                                right_setting.value
+                                right_setting, right_setting.value
                             )
                             self._components[f"extension.{right}"] = right_gradio_obj
                         else:
                             gr.TextArea(value="", visible=False)
-
 
     def reasoning_tab(self):
         with gr.Tab("Reasoning settings", visible=self._render_reasoning_tab):

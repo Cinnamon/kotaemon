@@ -6,8 +6,6 @@ from typing import Optional
 
 import gradio as gr
 from filelock import FileLock
-
-from kotaemon.indices.ingests.extension_manager import extension_manager
 from ktem.app import BasePage
 from ktem.components import reasonings
 from ktem.db.models import Conversation, engine
@@ -23,13 +21,16 @@ from sqlmodel import Session, select
 from theflow.settings import settings as flowsettings
 
 from kotaemon.base import Document
-# from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
+from kotaemon.indices.ingests.extensions import extension_manager
 
 from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex
 from .chat_panel import ChatPanel
 from .common import STATE
 from .control import ConversationControl
 from .report import ReportIssue
+
+# from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
+
 
 DEFAULT_SETTING = "(default)"
 INFO_PANEL_SCALES = {True: 8, False: 4}

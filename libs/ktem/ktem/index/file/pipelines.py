@@ -7,16 +7,12 @@ import threading
 import time
 import warnings
 from collections import defaultdict
-from copy import deepcopy
 from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
 from typing import Generator, Optional, Sequence
 
 import tiktoken
-
-from kotaemon.indices.ingests.extension_manager import extension_manager
-from kotaemon.loaders import OCRReader
 from ktem.db.models import engine
 from ktem.embeddings.manager import embedding_models_manager
 from ktem.llms.manager import llms
@@ -38,8 +34,8 @@ from theflow.utils.modules import import_dotted_string
 from kotaemon.base import BaseComponent, Document, Node, Param, RetrievedDocument
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.indices import VectorIndexing, VectorRetrieval
-from kotaemon.indices.ingests.files import (
-    # KH_DEFAULT_FILE_EXTRACTORS,
+from kotaemon.indices.ingests.extensions import extension_manager
+from kotaemon.indices.ingests.files import (  # KH_DEFAULT_FILE_EXTRACTORS,
     adobe_reader,
     azure_reader,
     docling_reader,

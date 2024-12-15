@@ -2,8 +2,6 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from kotaemon.indices.ingests.extension_manager import extension_manager
-
 
 class SettingItem(BaseModel):
     """Represent a setting item

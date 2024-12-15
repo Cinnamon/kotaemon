@@ -7,19 +7,15 @@ from theflow.settings import settings as flowsettings
 from kotaemon.loaders import (
     AdobeReader,
     AzureAIDocumentIntelligenceLoader,
-    DirectoryReader,
+    GOCR2ImageReader,
     HtmlReader,
-    MathpixPDFReader,
+    ImageReader,
     MhtmlReader,
-    OCRReader,
     PandasExcelReader,
     PDFThumbnailReader,
     TxtReader,
     UnstructuredReader,
-    ImageReader,
-    GOCR2ImageReader
 )
-
 
 unstructured = UnstructuredReader()
 adobe_reader = AdobeReader()
@@ -53,11 +49,17 @@ KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
 
 class ExtensionManager:
     """Pool of loaders for extensions"""
+
     def __init__(self):
         self._supported, self._default_index = self._init_supported()
 
     def get_current_loader(self) -> dict[str, BaseReader]:
-        return deepcopy({k: self.get_selected_loader_by_extension(k)[0] for k, _ in self._supported.items()})
+        return deepcopy(
+            {
+                k: self.get_selected_loader_by_extension(k)[0]
+                for k, _ in self._supported.items()
+            }
+        )
 
     @staticmethod
     def _init_supported() -> tuple[dict[str, list[BaseReader]], dict[str, str]]:
@@ -80,9 +82,7 @@ class ExtensionManager:
         }
 
         default_index = {
-            k: ExtensionManager.get_loader_name(vs[0])
-            for k, vs
-            in supported.items()
+            k: ExtensionManager.get_loader_name(vs[0]) for k, vs in supported.items()
         }
 
         return supported, default_index
@@ -99,8 +99,10 @@ class ExtensionManager:
                 if value in supported_loader_names:
                     self._default_index[extension] = value
                 else:
-                    print(f"[{extension}]Can not find loader: {value} from list of "
-                          f"supported extensions: {supported_loader_names}")
+                    print(
+                        f"[{extension}]Can not find loader: {value} from list of "
+                        f"supported extensions: {supported_loader_names}"
+                    )
 
     @staticmethod
     def get_loader_name(loader: BaseReader) -> str:
@@ -109,12 +111,16 @@ class ExtensionManager:
     def get_supported_extensions(self):
         return list(self._supported.keys())
 
-    def get_loaders_by_extension(self, extension: str) -> tuple[list[BaseReader], list[str]]:
+    def get_loaders_by_extension(
+        self, extension: str
+    ) -> tuple[list[BaseReader], list[str]]:
         loaders = self._supported[extension]
         loaders_name = [self.get_loader_name(loader) for loader in loaders]
         return loaders, loaders_name
 
-    def get_selected_loader_by_extension(self, extension: str) -> tuple[BaseReader, str]:
+    def get_selected_loader_by_extension(
+        self, extension: str
+    ) -> tuple[BaseReader, str]:
         supported_loaders: list[BaseReader] = self._supported[extension]
 
         for loader in supported_loaders:
@@ -131,7 +137,9 @@ class ExtensionManager:
 
         for extension, loaders in self._supported.items():
             current_loader: str = self._default_index[extension]
-            loaders_choices: list[str] = [self.get_loader_name(loader) for loader in loaders]
+            loaders_choices: list[str] = [
+                self.get_loader_name(loader) for loader in loaders
+            ]
 
             settings[extension] = {
                 "name": f"Loader {extension}",

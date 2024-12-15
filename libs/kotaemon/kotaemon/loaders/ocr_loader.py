@@ -206,15 +206,10 @@ class GOCR2ImageReader(BaseReader):
     def __init__(self, endpoint: Optional[str] = None):
         """Init the OCR reader with OCR endpoint (FullOCR pipeline)"""
         super().__init__()
-        self.endpoint = endpoint or os.getenv(
-            "GOCR2_ENDPOINT", self.default_endpoint
-        )
+        self.endpoint = endpoint or os.getenv("GOCR2_ENDPOINT", self.default_endpoint)
 
     def load_data(
-        self,
-        file_path: Path,
-        extra_info: dict | None = None,
-        **kwargs
+        self, file_path: Path, extra_info: dict | None = None, **kwargs
     ) -> List[Document]:
         """Load data using OCR reader
 
@@ -232,10 +227,7 @@ class GOCR2ImageReader(BaseReader):
             after=after_log(logger, logging.WARNING),
         )
         def _tenacious_api_post(
-            url: str,
-            file_path: str,
-            ocr_type: str = "ocr",
-            **kwargs
+            url: str, file_path: str, ocr_type: str = "ocr", **kwargs
         ):
             with file_path.open("rb") as content:
                 files = {"file": content}
@@ -252,10 +244,7 @@ class GOCR2ImageReader(BaseReader):
             ocr_results = kwargs["response_content"]
         else:
             # call original API
-            resp = _tenacious_api_post(
-                url=self.endpoint,
-                file_path=file_path
-            )
+            resp = _tenacious_api_post(url=self.endpoint, file_path=file_path)
             ocr_results = [resp.json()["result"]]
 
         extra_info = extra_info or {}
