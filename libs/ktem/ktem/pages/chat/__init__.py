@@ -22,7 +22,7 @@ from theflow.settings import settings as flowsettings
 from kotaemon.base import Document
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 
-from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex
+from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex, get_urls
 from .chat_panel import ChatPanel
 from .common import STATE
 from .control import ConversationControl
@@ -109,7 +109,9 @@ class ChatPage(BasePage):
         self._preview_links = gr.State(value=None)
         self._reasoning_type = gr.State(value=None)
         self._conversation_renamed = gr.State(value=False)
-        self._suggestion_updated = gr.State(value=False)
+        self._use_suggestion = gr.State(
+            value=getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False)
+        )
         self._info_panel_expanded = gr.State(value=True)
 
     def on_building_ui(self):
@@ -118,7 +120,6 @@ class ChatPage(BasePage):
             self.state_retrieval_history = gr.State([])
             self.state_plot_history = gr.State([])
             self.state_plot_panel = gr.State(None)
-            self.state_follow_up = gr.State(None)
             self.first_selector_choices = gr.State(None)
 
             with gr.Column(scale=1, elem_id="conv-settings-panel") as self.conv_column:
@@ -139,6 +140,7 @@ class ChatPage(BasePage):
                         # get the file selector choices for the first index
                         if index_id == 0:
                             self.first_selector_choices = index_ui.selector_choices
+                            self.first_indexing_url_fn = None
 
                         if gr_index:
                             if isinstance(gr_index, list):
@@ -185,12 +187,11 @@ class ChatPage(BasePage):
                         elem_id="chat-settings-expand",
                         open=False,
                     ):
-                        # a quick switch for reasoning type option
-                        with gr.Row():
+                        with gr.Row(elem_id="quick-setting-labels"):
                             gr.HTML("Reasoning method")
                             gr.HTML("Model")
                             gr.HTML("Language")
-                            gr.HTML("Citation")
+                            gr.HTML("Suggestion")
 
                         with gr.Row():
                             reasoning_type_values = [
@@ -225,6 +226,12 @@ class ChatPage(BasePage):
                                 container=False,
                                 show_label=False,
                             )
+                            self.use_chat_suggestion = gr.Checkbox(
+                                label="Chat suggestion",
+                                container=False,
+                                elem_id="use-suggestion-checkbox",
+                            )
+
                             self.citation = gr.Dropdown(
                                 choices=[
                                     (DEFAULT_SETTING, DEFAULT_SETTING),
@@ -236,6 +243,7 @@ class ChatPage(BasePage):
                                 container=False,
                                 show_label=False,
                                 interactive=True,
+                                elem_id="citation-dropdown",
                             )
 
                             self.use_mindmap = gr.State(value=DEFAULT_SETTING)
@@ -264,10 +272,8 @@ class ChatPage(BasePage):
         return plot
 
     def on_register_events(self):
-        if getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False):
-            self.state_follow_up = self.chat_control.chat_suggestion.example
-        else:
-            self.state_follow_up = self.chat_control.followup_suggestions
+        self.followup_questions = self.chat_control.chat_suggestion.examples
+        self.followup_questions_ui = self.chat_control.chat_suggestion.accordion
 
         chat_event = (
             gr.on(
@@ -279,9 +285,9 @@ class ChatPage(BasePage):
                     self.chat_panel.text_input,
                     self.chat_panel.chatbot,
                     self._app.user_id,
+                    self._app.settings_state,
                     self.chat_control.conversation_id,
                     self.chat_control.conversation_rn,
-                    self.state_follow_up,
                     self.first_selector_choices,
                 ],
                 outputs=[
@@ -290,7 +296,6 @@ class ChatPage(BasePage):
                     self.chat_control.conversation_id,
                     self.chat_control.conversation,
                     self.chat_control.conversation_rn,
-                    self.state_follow_up,
                     # file selector from the first index
                     self._indices_input[0],
                     self._indices_input[1],
@@ -355,28 +360,29 @@ class ChatPage(BasePage):
         )
 
         # chat suggestion toggle
-        if getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False):
-            chat_event = chat_event.success(
-                fn=self.suggest_chat_conv,
-                inputs=[
-                    self._app.settings_state,
-                    self.chat_panel.chatbot,
-                ],
-                outputs=[
-                    self.state_follow_up,
-                    self._suggestion_updated,
-                ],
-                show_progress="hidden",
-            ).success(
-                self.chat_control.persist_chat_suggestions,
-                inputs=[
-                    self.chat_control.conversation_id,
-                    self.state_follow_up,
-                    self._suggestion_updated,
-                    self._app.user_id,
-                ],
-                show_progress="hidden",
-            )
+        chat_event = chat_event.success(
+            fn=self.suggest_chat_conv,
+            inputs=[
+                self._app.settings_state,
+                self.chat_panel.chatbot,
+                self._use_suggestion,
+            ],
+            outputs=[
+                self.followup_questions_ui,
+                self.followup_questions,
+            ],
+            show_progress="hidden",
+        )
+        # .success(
+        #     self.chat_control.persist_chat_suggestions,
+        #     inputs=[
+        #         self.chat_control.conversation_id,
+        #         self.followup_questions,
+        #         self._use_suggestion,
+        #         self._app.user_id,
+        #     ],
+        #     show_progress="hidden",
+        # )
 
         # final data persist
         chat_event = chat_event.then(
@@ -429,7 +435,7 @@ class ChatPage(BasePage):
                 self.chat_control.conversation,
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
-                self.state_follow_up,
+                self.followup_questions,
                 self.info_panel,
                 self.state_plot_panel,
                 self.state_retrieval_history,
@@ -467,7 +473,7 @@ class ChatPage(BasePage):
                 self.chat_control.conversation,
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
-                self.state_follow_up,
+                self.followup_questions,
                 self.info_panel,
                 self.state_plot_panel,
                 self.state_retrieval_history,
@@ -519,7 +525,7 @@ class ChatPage(BasePage):
                 self.chat_control.conversation,
                 self.chat_control.conversation_rn,
                 self.chat_panel.chatbot,
-                self.state_follow_up,
+                self.followup_questions,
                 self.info_panel,
                 self.state_plot_panel,
                 self.state_retrieval_history,
@@ -603,26 +609,36 @@ class ChatPage(BasePage):
             outputs=[self.use_mindmap, self.use_mindmap_check],
             show_progress="hidden",
         )
+        self.use_chat_suggestion.change(
+            lambda x: (x, gr.update(visible=x)),
+            inputs=[self.use_chat_suggestion],
+            outputs=[self._use_suggestion, self.followup_questions_ui],
+            show_progress="hidden",
+        )
         self.chat_control.conversation_id.change(
             lambda: gr.update(visible=False),
             outputs=self.plot_panel,
         )
 
-        if getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False):
-            self.state_follow_up.select(
-                self.chat_control.chat_suggestion.select_example,
-                outputs=[self.chat_panel.text_input],
-                show_progress="hidden",
-            )
+        self.followup_questions.select(
+            self.chat_control.chat_suggestion.select_example,
+            outputs=[self.chat_panel.text_input],
+            show_progress="hidden",
+        ).then(
+            fn=None,
+            inputs=None,
+            outputs=None,
+            js=chat_input_focus_js,
+        )
 
     def submit_msg(
         self,
         chat_input,
         chat_history,
         user_id,
+        settings,
         conv_id,
         conv_name,
-        chat_suggest,
         first_selector_choices,
     ):
         """Submit a message to the chatbot"""
@@ -630,22 +646,44 @@ class ChatPage(BasePage):
             raise ValueError("Input is empty")
 
         chat_input_text = chat_input.get("text", "")
+        file_ids = []
 
-        # get all file names with pattern @"filename" in input_str
-        file_names, chat_input_text = get_file_names_regex(chat_input_text)
         first_selector_choices_map = {
             item[0]: item[1] for item in first_selector_choices
         }
-        file_ids = []
 
-        if file_names:
+        # get all file names with pattern @"filename" in input_str
+        file_names, chat_input_text = get_file_names_regex(chat_input_text)
+        # get all urls in input_str
+        urls, chat_input_text = get_urls(chat_input_text)
+
+        if urls and self.first_indexing_url_fn:
+            print("Detected URLs", urls)
+            file_ids = self.first_indexing_url_fn(
+                "\n".join(urls),
+                True,
+                settings,
+                user_id,
+            )
+        elif file_names:
             for file_name in file_names:
                 file_id = first_selector_choices_map.get(file_name)
                 if file_id:
                     file_ids.append(file_id)
 
+        # add new file ids to the first selector choices
+        first_selector_choices.extend(zip(urls, file_ids))
+
+        # if file_ids is not empty and chat_input_text is empty
+        # set the input to summary
+        if not chat_input_text and file_ids:
+            chat_input_text = "Summary"
+
         if file_ids:
-            selector_output = ["select", file_ids]
+            selector_output = [
+                "select",
+                gr.update(value=file_ids, choices=first_selector_choices),
+            ]
         else:
             selector_output = [gr.update(), gr.update()]
 
@@ -661,20 +699,13 @@ class ChatPage(BasePage):
             with Session(engine) as session:
                 statement = select(Conversation).where(Conversation.id == id_)
                 name = session.exec(statement).one().name
-                suggestion = (
-                    session.exec(statement)
-                    .one()
-                    .data_source.get("chat_suggestions", [])
-                )
                 new_conv_id = id_
                 conv_update = update
                 new_conv_name = name
-                new_chat_suggestion = suggestion
         else:
             new_conv_id = conv_id
             conv_update = gr.update()
             new_conv_name = conv_name
-            new_chat_suggestion = chat_suggest
 
         return [
             {},
@@ -682,7 +713,6 @@ class ChatPage(BasePage):
             new_conv_id,
             conv_update,
             new_conv_name,
-            new_chat_suggestion,
         ] + selector_output
 
     def toggle_delete(self, conv_id):
@@ -1039,24 +1069,26 @@ class ChatPage(BasePage):
 
         return new_name, renamed
 
-    def suggest_chat_conv(self, settings, chat_history):
-        suggest_pipeline = SuggestFollowupQuesPipeline()
-        suggest_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
-            settings["reasoning.lang"], "English"
-        )
+    def suggest_chat_conv(self, settings, chat_history, use_suggestion):
+        if use_suggestion:
+            suggest_pipeline = SuggestFollowupQuesPipeline()
+            suggest_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
+                settings["reasoning.lang"], "English"
+            )
+            suggested_questions = []
 
-        updated = False
+            if len(chat_history) >= 1:
+                suggested_resp = suggest_pipeline(chat_history).text
+                if ques_res := re.search(
+                    r"\[(.*?)\]", re.sub("\n", "", suggested_resp)
+                ):
+                    ques_res_str = ques_res.group()
+                    try:
+                        suggested_questions = json.loads(ques_res_str)
+                        suggested_questions = [[x] for x in suggested_questions]
+                    except Exception:
+                        pass
 
-        suggested_ques = []
-        if len(chat_history) >= 1:
-            suggested_resp = suggest_pipeline(chat_history).text
-            if ques_res := re.search(r"\[(.*?)\]", re.sub("\n", "", suggested_resp)):
-                ques_res_str = ques_res.group()
-                try:
-                    suggested_ques = json.loads(ques_res_str)
-                    suggested_ques = [[x] for x in suggested_ques]
-                    updated = True
-                except Exception:
-                    pass
+            return gr.update(visible=True), suggested_questions
 
-        return suggested_ques, updated
+        return gr.update(visible=False), gr.update()

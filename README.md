@@ -359,6 +359,19 @@ This file provides another way to configure your models and credentials.
 
 <!-- end-intro -->
 
+## Citation
+
+Please cite this project as
+
+```BibTeX
+@misc{kotaemon2024,
+    title = {Kotaemon - An open-source RAG-based tool for chatting with any content.},
+    author = {The Kotaemon Team},
+    year = {2024},
+    howpublished = {\url{https://github.com/Cinnamon/kotaemon}},
+}
+```
+
 ## Star History
 
 <a href="https://star-history.com/#Cinnamon/kotaemon&Date">

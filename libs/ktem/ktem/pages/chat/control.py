@@ -139,9 +139,7 @@ class ConversationControl(BasePage):
                 visible=False,
             )
 
-        self.followup_suggestions = gr.State([])
-        if getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False):
-            self.chat_suggestion = ChatSuggestion(self._app)
+        self.chat_suggestion = ChatSuggestion(self._app)
 
     def load_chat_history(self, user_id):
         """Reload chat history"""
@@ -259,7 +257,6 @@ class ConversationControl(BasePage):
                     selected = {}
 
                 chats = result.data_source.get("messages", [])
-
                 chat_suggestions = result.data_source.get("chat_suggestions", [])
 
                 retrieval_history: list[str] = result.data_source.get(

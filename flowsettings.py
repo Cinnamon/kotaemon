@@ -4,6 +4,7 @@ from inspect import currentframe, getframeinfo
 from pathlib import Path
 
 from decouple import config
+from ktem.utils.lang import SUPPORTED_LANGUAGE_MAP
 from theflow.settings.default import *  # noqa
 
 cur_frame = currentframe()
@@ -284,7 +285,7 @@ SETTINGS_REASONING = {
     "lang": {
         "name": "Language",
         "value": "en",
-        "choices": [("English", "en"), ("Japanese", "ja"), ("Vietnamese", "vi")],
+        "choices": [(lang, code) for code, lang in SUPPORTED_LANGUAGE_MAP.items()],
         "component": "dropdown",
     },
     "max_context_length": {
@@ -295,7 +296,7 @@ SETTINGS_REASONING = {
 }
 
 USE_NANO_GRAPHRAG = config("USE_NANO_GRAPHRAG", default=False, cast=bool)
-USE_LIGHTRAG = config("USE_LIGHTRAG", default=False, cast=bool)
+USE_LIGHTRAG = config("USE_LIGHTRAG", default=True, cast=bool)
 
 GRAPHRAG_INDEX_TYPES = ["ktem.index.file.graph.GraphRAGIndex"]
 

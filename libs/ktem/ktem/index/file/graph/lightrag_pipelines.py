@@ -45,7 +45,7 @@ logging.getLogger("lightrag").setLevel(logging.INFO)
 filestorage_path = Path(settings.KH_FILESTORAGE_PATH) / "lightrag"
 filestorage_path.mkdir(parents=True, exist_ok=True)
 
-INDEX_BATCHSIZE = 2
+INDEX_BATCHSIZE = 4
 
 
 def get_llm_func(model):
@@ -268,7 +268,9 @@ class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
 
         for doc_id in range(0, len(all_docs), INDEX_BATCHSIZE):
             cur_docs = all_docs[doc_id : doc_id + INDEX_BATCHSIZE]
-            graphrag_func.insert(cur_docs)
+            combined_doc = "\n".join(cur_docs)
+
+            graphrag_func.insert(combined_doc)
             process_doc_count += len(cur_docs)
             yield Document(
                 channel="debug",

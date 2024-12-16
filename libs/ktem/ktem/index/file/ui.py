@@ -683,6 +683,11 @@ class FileIndexPage(BasePage):
             if self._index.id == 1:
                 self.quick_upload_state = gr.State(value=[])
                 print("Setting up quick upload event")
+
+                # override indexing function from chat page
+                self._app.chat_page.first_indexing_url_fn = (
+                    self.index_fn_url_with_default_loaders
+                )
                 quickUploadedEvent = (
                     self._app.chat_page.quick_file_upload.upload(
                         fn=lambda: gr.update(
