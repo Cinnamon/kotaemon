@@ -8,6 +8,7 @@ from ktem.assets import PDFJS_PREBUILT_DIR, KotaemonTheme
 from ktem.components import reasonings
 from ktem.exceptions import HookAlreadyDeclared, HookNotDeclared
 from ktem.index import IndexManager
+from ktem.loaders.extensions import extension_manager
 from ktem.settings import BaseSettingGroup, SettingGroup, SettingReasoningGroup
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
@@ -63,6 +64,9 @@ class BaseApp:
         self.default_settings = SettingGroup(
             application=BaseSettingGroup(settings=settings.SETTINGS_APP),
             reasoning=SettingReasoningGroup(settings=settings.SETTINGS_REASONING),
+            extension=BaseSettingGroup(
+                settings=extension_manager.generate_gradio_settings()
+            ),
         )
 
         self._callbacks: dict[str, list] = {}

@@ -1,0 +1,30 @@
+services:
+  kotaemon:
+    build:
+      context: .
+      target: lite
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      - GRADIO_SERVER_NAME=0.0.0.0
+      - GRADIO_SERVER_PORT=7860
+    ports:
+      - "7860:7860"
+    networks:
+      - backend
+  # gocr:
+  #   image: ghcr.io/phv2312/got-ocr2.0:main
+  #   ports:
+  #     - "8881:8881"
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: 1
+  #             capabilities: [gpu]
+  #   networks:
+  #     - backend
+networks:
+  backend:
+    driver: bridge

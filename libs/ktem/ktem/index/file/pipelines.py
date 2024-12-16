@@ -7,7 +7,6 @@ import threading
 import time
 import warnings
 from collections import defaultdict
-from copy import deepcopy
 from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
@@ -17,6 +16,7 @@ import tiktoken
 from ktem.db.models import engine
 from ktem.embeddings.manager import embedding_models_manager
 from ktem.llms.manager import llms
+from ktem.loaders.extensions import extension_manager
 from ktem.rerankings.manager import reranking_models_manager
 from llama_index.core.readers.base import BaseReader
 from llama_index.core.readers.file.base import default_file_metadata_func
@@ -35,14 +35,6 @@ from theflow.utils.modules import import_dotted_string
 from kotaemon.base import BaseComponent, Document, Node, Param, RetrievedDocument
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.indices import VectorIndexing, VectorRetrieval
-from kotaemon.indices.ingests.files import (
-    KH_DEFAULT_FILE_EXTRACTORS,
-    adobe_reader,
-    azure_reader,
-    docling_reader,
-    unstructured,
-    web_reader,
-)
 from kotaemon.indices.rankings import BaseReranking, LLMReranking, LLMTrulensScoring
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 
@@ -665,44 +657,16 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
     decide which pipeline should be used.
     """
 
-    reader_mode: str = Param("default", help="The reader mode")
     embedding: BaseEmbeddings
     run_embedding_in_thread: bool = False
 
-    @Param.auto(depends_on="reader_mode")
+    @Param.auto()
     def readers(self):
-        readers = deepcopy(KH_DEFAULT_FILE_EXTRACTORS)
-        print("reader_mode", self.reader_mode)
-        if self.reader_mode == "adobe":
-            readers[".pdf"] = adobe_reader
-        elif self.reader_mode == "azure-di":
-            readers[".pdf"] = azure_reader
-        elif self.reader_mode == "docling":
-            readers[".pdf"] = docling_reader
-
+        readers: dict[str, BaseReader] = extension_manager.get_current_loader()
         dev_readers, _, _ = dev_settings()
         readers.update(dev_readers)
 
         return readers
-
-    @classmethod
-    def get_user_settings(cls):
-        return {
-            "reader_mode": {
-                "name": "File loader",
-                "value": "default",
-                "choices": [
-                    ("Default (open-source)", "default"),
-                    ("Adobe API (figure+table extraction)", "adobe"),
-                    (
-                        "Azure AI Document Intelligence (figure+table extraction)",
-                        "azure-di",
-                    ),
-                    ("Docling (figure+table extraction)", "docling"),
-                ],
-                "component": "dropdown",
-            },
-        }
 
     @classmethod
     def get_pipeline(cls, user_settings, index_settings) -> BaseFileIndexIndexing:
@@ -715,7 +679,6 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                 )
             ],
             run_embedding_in_thread=use_quick_index_mode,
-            reader_mode=user_settings.get("reader_mode", "default"),
         )
         return obj
 
@@ -737,11 +700,11 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
 
         # check if file_path is a URL
         if self.is_url(file_path):
-            reader = web_reader
+            reader = extension_manager.factory.web
         else:
             assert isinstance(file_path, Path)
             ext = file_path.suffix.lower()
-            reader = self.readers.get(ext, unstructured)
+            reader = self.readers.get(ext, extension_manager.factory.unstructured)
             if reader is None:
                 raise NotImplementedError(
                     f"No supported pipeline to index {file_path.name}. Please specify "

@@ -191,3 +191,74 @@ class ImageReader(BaseReader):
             )
 
         return result
+
+
+class GOCR2ImageReader(BaseReader):
+    default_endpoint = "http://localhost:8881/ai/infer/"
+    """Read Image using GOCR-2.0
+
+    Args:
+        endpoint: URL to GOCR endpoint. If not provided, will look for
+            environment variable `GOCR2_ENDPOINT` or use the default
+            (http://localhost:8881/ai/infer/)
+    """
+
+    def __init__(self, endpoint: Optional[str] = None):
+        """Init the OCR reader with OCR endpoint (FullOCR pipeline)"""
+        super().__init__()
+        self.endpoint = endpoint or os.getenv("GOCR2_ENDPOINT", self.default_endpoint)
+
+    def load_data(
+        self, file_path: Path, extra_info: dict | None = None, **kwargs
+    ) -> List[Document]:
+        """Load data using OCR reader
+
+        Args:
+            file_path (Path): Path to PDF file
+            extra_info (Path): Extra information while inference
+
+        Returns:
+            List[Document]: list of documents extracted from the PDF file
+        """
+
+        @retry(
+            stop=stop_after_attempt(6),
+            wait=wait_exponential(multiplier=20, exp_base=2, min=1, max=1000),
+            after=after_log(logger, logging.WARNING),
+        )
+        def _tenacious_api_post(
+            url: str, file_path: Path, ocr_type: str = "ocr", **kwargs
+        ):
+            with file_path.open("rb") as content:
+                files = {"file": content}
+                data = {"ocr_type": ocr_type}
+                resp = requests.post(url=url, files=files, data=data, **kwargs)
+                resp.raise_for_status()
+            return resp
+
+        file_path = Path(file_path).resolve()
+
+        # call the API from GOCR endpoint
+        if "response_content" in kwargs:
+            # overriding response content if specified
+            ocr_results = kwargs["response_content"]
+        else:
+            # call original API
+            resp = _tenacious_api_post(url=self.endpoint, file_path=file_path)
+            ocr_results = [resp.json()["result"]]
+
+        extra_info = extra_info or {}
+        result = []
+        for ocr_result in ocr_results:
+            metadata = {"file_name": file_path.name, "page_label": 1}
+            if extra_info is not None:
+                metadata.update(extra_info)
+
+            result.append(
+                Document(
+                    content=ocr_result,
+                    metadata=metadata,
+                )
+            )
+
+        return result
