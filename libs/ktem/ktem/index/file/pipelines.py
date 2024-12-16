@@ -657,45 +657,16 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
     decide which pipeline should be used.
     """
 
-    reader_mode: str = Param("default", help="The reader mode")
     embedding: BaseEmbeddings
     run_embedding_in_thread: bool = False
 
-    @Param.auto(depends_on="reader_mode")
+    @Param.auto()
     def readers(self):
-        # readers = deepcopy(KH_DEFAULT_FILE_EXTRACTORS)
         readers: dict[str, BaseReader] = extension_manager.get_current_loader()
-        print("reader_mode", self.reader_mode)
-        if self.reader_mode == "adobe":
-            readers[".pdf"] = extension_manager.factory.adobe
-        elif self.reader_mode == "azure-di":
-            readers[".pdf"] = extension_manager.factory.azuredi
-        elif self.reader_mode == "docling":
-            readers[".pdf"] = extension_manager.factory.docling
-
         dev_readers, _, _ = dev_settings()
         readers.update(dev_readers)
 
         return readers
-
-    @classmethod
-    def get_user_settings(cls):
-        return {
-            "reader_mode": {
-                "name": "File loader",
-                "value": "default",
-                "choices": [
-                    ("Default (open-source)", "default"),
-                    ("Adobe API (figure+table extraction)", "adobe"),
-                    (
-                        "Azure AI Document Intelligence (figure+table extraction)",
-                        "azure-di",
-                    ),
-                    ("Docling (figure+table extraction)", "docling"),
-                ],
-                "component": "dropdown",
-            },
-        }
 
     @classmethod
     def get_pipeline(cls, user_settings, index_settings) -> BaseFileIndexIndexing:
@@ -708,7 +679,6 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                 )
             ],
             run_embedding_in_thread=use_quick_index_mode,
-            reader_mode=user_settings.get("reader_mode", "default"),
         )
         return obj
 

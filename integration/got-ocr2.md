@@ -26,5 +26,5 @@ docker run -d --gpus all -p 8881:8881 ghcr.io/phv2312/got-ocr2.0:main
 - Users can switch between multiple loaders for the same file extension, such as using the GOCR2ImageReader or a
   different unstructured data parser for .png files. This provides the flexibility to choose the best-suited loader for the task at hand.
 
-- To change the default loader, go to **Settings**, then **Extension settings**. It displays a grid of extensions and
+- To change the default loader, go to **Settings**, then **Loader settings**. It displays a grid of extensions and
   its supported loaders. Any modification will be saved to DB as other settings do.

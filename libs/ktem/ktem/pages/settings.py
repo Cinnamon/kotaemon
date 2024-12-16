@@ -300,7 +300,7 @@ class SettingsPage(BasePage):
 
         assert len(lefts) == len(rights)
 
-        with gr.Tab("Extension settings"):
+        with gr.Tab("Loader settings"):
             for left, right in zip(lefts, rights):
                 left_setting = self._default_settings.extension.settings.get(left, None)
                 right_setting = self._default_settings.extension.settings.get(
