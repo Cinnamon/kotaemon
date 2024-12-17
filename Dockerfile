@@ -4,15 +4,15 @@ FROM python:3.10-slim AS lite
 # Common dependencies
 RUN apt-get update -qqy && \
     apt-get install -y --no-install-recommends \
-    ssh \
-    git \
-    gcc \
-    g++ \
-    poppler-utils \
-    libpoppler-dev \
-    unzip \
-    curl \
-    cargo
+        ssh \
+        git \
+        gcc \
+        g++ \
+        poppler-utils \
+        libpoppler-dev \
+        unzip \
+        curl \
+        cargo
 
 # Setup args
 ARG TARGETPLATFORM
@@ -62,13 +62,13 @@ FROM lite AS full
 # Additional dependencies for full version
 RUN apt-get update -qqy && \
     apt-get install -y --no-install-recommends \
-    tesseract-ocr \
-    tesseract-ocr-jpn \
-    libsm6 \
-    libxext6 \
-    libreoffice \
-    ffmpeg \
-    libmagic-dev
+        tesseract-ocr \
+        tesseract-ocr-jpn \
+        libsm6 \
+        libxext6 \
+        libreoffice \
+        ffmpeg \
+        libmagic-dev
 
 # Install torch and torchvision for unstructured
 RUN --mount=type=ssh  \
