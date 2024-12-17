@@ -4,15 +4,15 @@ FROM python:3.10-slim AS lite
 # Common dependencies
 RUN apt-get update -qqy && \
     apt-get install -y --no-install-recommends \
-      ssh \
-      git \
-      gcc \
-      g++ \
-      poppler-utils \
-      libpoppler-dev \
-      unzip \
-      curl \
-      cargo
+    ssh \
+    git \
+    gcc \
+    g++ \
+    poppler-utils \
+    libpoppler-dev \
+    unzip \
+    curl \
+    cargo
 
 # Setup args
 ARG TARGETPLATFORM
@@ -37,16 +37,12 @@ RUN bash scripts/download_pdfjs.sh $PDFJS_PREBUILT_DIR
 COPY . /app
 COPY .env.example /app/.env
 
-# Update pip command
-RUN pip install --upgrade pip
-
 # Install pip packages
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
     pip install -e "libs/kotaemon" \
     && pip install -e "libs/ktem" \
-    && pip install "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements" \
-    && pip install "docling"
+    && pip install "pdfservices-sdk@git+https://github.com/niallcm/pdfservices-python-sdk.git@bump-and-unfreeze-requirements"
 
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
@@ -66,13 +62,13 @@ FROM lite AS full
 # Additional dependencies for full version
 RUN apt-get update -qqy && \
     apt-get install -y --no-install-recommends \
-      tesseract-ocr \
-      tesseract-ocr-jpn \
-      libsm6 \
-      libxext6 \
-      libreoffice \
-      ffmpeg \
-      libmagic-dev
+    tesseract-ocr \
+    tesseract-ocr-jpn \
+    libsm6 \
+    libxext6 \
+    libreoffice \
+    ffmpeg \
+    libmagic-dev
 
 # Install torch and torchvision for unstructured
 RUN --mount=type=ssh  \
