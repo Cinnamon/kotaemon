@@ -11,4 +11,4 @@ Once enabled, you have access to the following features:
 
 - User login/logout (located in Settings Tab)
 - User changing password (located in Settings Tab)
-- Create / List / Edit / Delete user (located in Admin > User Management Tab)
+- Create / List / Edit / Delete user (located in Resources > Users Tab)
