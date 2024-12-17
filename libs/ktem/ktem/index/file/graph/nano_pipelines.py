@@ -12,6 +12,12 @@ from ktem.db.models import engine
 from ktem.embeddings.manager import embedding_models_manager as embeddings
 from ktem.llms.manager import llms
 from sqlalchemy.orm import Session
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 from theflow.settings import settings
 
 from kotaemon.base import Document, Param, RetrievedDocument
@@ -50,6 +56,17 @@ INDEX_BATCHSIZE = 4
 
 
 def get_llm_func(model):
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type((Exception,)),
+        after=lambda retry_state: logging.warning(
+            f"LLM API call attempt {retry_state.attempt_number} failed. Retrying..."
+        ),
+    )
+    async def _call_model(model, input_messages):
+        return (await model.ainvoke(input_messages)).text
+
     async def llm_func(
         prompt, system_prompt=None, history_messages=[], **kwargs
     ) -> str:
@@ -71,7 +88,11 @@ def get_llm_func(model):
             if if_cache_return is not None:
                 return if_cache_return["return"]
 
-        output = (await model.ainvoke(input_messages)).text
+        try:
+            output = await _call_model(model, input_messages)
+        except Exception as e:
+            logging.error(f"Failed to call LLM API after 3 retries: {str(e)}")
+            raise
 
         print("-" * 50)
         print(output, "\n", "-" * 50)
