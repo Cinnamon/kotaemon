@@ -340,7 +340,7 @@ class LightRAGRetrieverPipeline(BaseFileIndexRetriever):
             "search_type": {
                 "name": "Search type",
                 "value": "local",
-                "choices": ["local", "global", "hybrid", "naive"],
+                "choices": ["local", "global", "hybrid"],
                 "component": "dropdown",
                 "info": "Whether to use local or global search in the graph.",
             }
@@ -425,20 +425,40 @@ class LightRAGRetrieverPipeline(BaseFileIndexRetriever):
             return []
 
         graphrag_func, query_params = self._build_graph_search()
-        entities, relationships, sources = asyncio.run(
-            lightrag_build_local_query_context(graphrag_func, text, query_params)
-        )
 
-        documents = self.format_context_records(entities, relationships, sources)
-        plot = self.plot_graph(relationships)
+        # only local mode support graph visualization
+        if query_params.mode == "local":
+            entities, relationships, sources = asyncio.run(
+                lightrag_build_local_query_context(graphrag_func, text, query_params)
+            )
+            documents = self.format_context_records(entities, relationships, sources)
+            plot = self.plot_graph(relationships)
+            documents += [
+                RetrievedDocument(
+                    text="",
+                    metadata={
+                        "file_name": "GraphRAG",
+                        "type": "plot",
+                        "data": plot,
+                    },
+                ),
+            ]
+        else:
+            context = graphrag_func.query(text, query_params)
 
-        return documents + [
-            RetrievedDocument(
-                text="",
-                metadata={
-                    "file_name": "GraphRAG",
-                    "type": "plot",
-                    "data": plot,
-                },
-            ),
-        ]
+            # account for missing ``` for closing code block
+            context += "\n```"
+
+            documents = [
+                RetrievedDocument(
+                    text=context,
+                    metadata={
+                        "file_name": "GraphRAG {} Search".format(
+                            query_params.mode.capitalize()
+                        ),
+                        "type": "table",
+                    },
+                )
+            ]
+
+        return documents

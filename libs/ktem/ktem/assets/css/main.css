@@ -204,6 +204,11 @@ mark {
   right: 15px;
 }
 
+/* prevent overflow of html info panel */
+#html-info-panel {
+  overflow-x: auto !important;
+}
+
 #chat-expand-button {
   position: absolute;
   top: 6px;

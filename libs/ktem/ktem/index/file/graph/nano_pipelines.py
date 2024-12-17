@@ -335,7 +335,7 @@ class NanoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             "search_type": {
                 "name": "Search type",
                 "value": "local",
-                "choices": ["local", "global", "naive"],
+                "choices": ["local", "global"],
                 "component": "dropdown",
                 "info": "Whether to use local or global search in the graph.",
             }
@@ -428,22 +428,43 @@ class NanoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             return []
 
         graphrag_func, query_params = self._build_graph_search()
-        entities, relationships, reports, sources = asyncio.run(
-            nano_graph_rag_build_local_query_context(graphrag_func, text, query_params)
-        )
 
-        documents = self.format_context_records(
-            entities, relationships, reports, sources
-        )
-        plot = self.plot_graph(relationships)
+        # only local mode support graph visualization
+        if query_params.mode == "local":
+            entities, relationships, reports, sources = asyncio.run(
+                nano_graph_rag_build_local_query_context(
+                    graphrag_func, text, query_params
+                )
+            )
 
-        return documents + [
-            RetrievedDocument(
-                text="",
-                metadata={
-                    "file_name": "GraphRAG",
-                    "type": "plot",
-                    "data": plot,
-                },
-            ),
-        ]
+            documents = self.format_context_records(
+                entities, relationships, reports, sources
+            )
+            plot = self.plot_graph(relationships)
+
+            documents += [
+                RetrievedDocument(
+                    text="",
+                    metadata={
+                        "file_name": "GraphRAG",
+                        "type": "plot",
+                        "data": plot,
+                    },
+                ),
+            ]
+        else:
+            context = graphrag_func.query(text, query_params)
+
+            documents = [
+                RetrievedDocument(
+                    text=context,
+                    metadata={
+                        "file_name": "GraphRAG {} Search".format(
+                            query_params.mode.capitalize()
+                        ),
+                        "type": "table",
+                    },
+                )
+            ]
+
+        return documents
