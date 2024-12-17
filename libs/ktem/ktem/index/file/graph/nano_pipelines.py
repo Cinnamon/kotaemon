@@ -216,7 +216,37 @@ def build_graphrag(working_dir, llm_func, embedding_func):
 class NanoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
     """GraphRAG specific indexing pipeline"""
 
+    prompts: dict[str, str] = {}
+
+    @classmethod
+    def get_user_settings(cls) -> dict:
+        try:
+            from nano_graphrag.prompt import PROMPTS
+
+            blacklist_keywords = ["default", "response", "process"]
+            return {
+                prompt_name: {
+                    "name": f"Prompt for '{prompt_name}'",
+                    "value": content,
+                    "component": "text",
+                }
+                for prompt_name, content in PROMPTS.items()
+                if all(
+                    keyword not in prompt_name.lower() for keyword in blacklist_keywords
+                )
+            }
+        except ImportError as e:
+            print(e)
+            return {}
+
     def call_graphrag_index(self, graph_id: str, docs: list[Document]):
+        from nano_graphrag.prompt import PROMPTS
+
+        # modify the prompt if it is set in the settings
+        for prompt_name, content in self.prompts.items():
+            if prompt_name in PROMPTS:
+                PROMPTS[prompt_name] = content
+
         _, input_path = prepare_graph_index_path(graph_id)
         input_path.mkdir(parents=True, exist_ok=True)
 
