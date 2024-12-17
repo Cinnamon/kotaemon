@@ -1,9 +1,11 @@
-import os.path
+import os
 
 import markdown
 from fast_langdetect import detect
 
 from kotaemon.base import RetrievedDocument
+
+BASE_PATH = os.environ.get("GRADIO_ROOT_PATH", "")
 
 
 def is_close(val1, val2, tolerance=1e-9):
@@ -49,7 +51,13 @@ class Render:
     def table(text: str) -> str:
         """Render table from markdown format into HTML"""
         text = replace_mardown_header(text)
-        return markdown.markdown(text, extensions=["markdown.extensions.tables"])
+        return markdown.markdown(
+            text,
+            extensions=[
+                "markdown.extensions.tables",
+                "markdown.extensions.fenced_code",
+            ],
+        )
 
     @staticmethod
     def preview(
@@ -98,7 +106,7 @@ class Render:
 
         return f"""
         {html_content}
-        <a href="#" class="pdf-link" data-src="/file={pdf_path}" data-page="{page_idx}" data-search="{highlight_text}" data-phrase="{phrase}">
+        <a href="#" class="pdf-link" data-src="{BASE_PATH}/file={pdf_path}" data-page="{page_idx}" data-search="{highlight_text}" data-phrase="{phrase}">
             [Preview]
         </a>
         """  # noqa

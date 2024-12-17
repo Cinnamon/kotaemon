@@ -180,7 +180,7 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             "search_type": {
                 "name": "Search type",
                 "value": "local",
-                "choices": ["local", "global"],
+                "choices": ["local"],
                 "component": "dropdown",
                 "info": "Whether to use local or global search in the graph.",
             }
