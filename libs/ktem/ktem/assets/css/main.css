@@ -204,11 +204,22 @@ mark {
   right: 15px;
 }
 
+/* prevent overflow of html info panel */
+#html-info-panel {
+  overflow-x: auto !important;
+}
+
 #chat-expand-button {
   position: absolute;
   top: 6px;
   right: -10px;
   z-index: 1;
+}
+
+#save-setting-btn {
+  width: 150px;
+  height: 30px;
+  min-width: 100px !important;
 }
 
 #quick-setting-labels {

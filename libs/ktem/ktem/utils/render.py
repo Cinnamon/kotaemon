@@ -49,7 +49,13 @@ class Render:
     def table(text: str) -> str:
         """Render table from markdown format into HTML"""
         text = replace_mardown_header(text)
-        return markdown.markdown(text, extensions=["markdown.extensions.tables"])
+        return markdown.markdown(
+            text,
+            extensions=[
+                "markdown.extensions.tables",
+                "markdown.extensions.fenced_code",
+            ],
+        )
 
     @staticmethod
     def preview(

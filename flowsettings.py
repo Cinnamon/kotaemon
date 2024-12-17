@@ -302,7 +302,7 @@ GRAPHRAG_INDEX_TYPES = ["ktem.index.file.graph.GraphRAGIndex"]
 
 if USE_NANO_GRAPHRAG:
     GRAPHRAG_INDEX_TYPES.append("ktem.index.file.graph.NanoGraphRAGIndex")
-elif USE_LIGHTRAG:
+if USE_LIGHTRAG:
     GRAPHRAG_INDEX_TYPES.append("ktem.index.file.graph.LightRAGIndex")
 
 KH_INDEX_TYPES = [
