@@ -16,10 +16,15 @@ class LightRAGIndex(GraphRAGIndex):
         self, settings: dict, user_id: int, selected: Any = None
     ) -> list["BaseFileIndexRetriever"]:
         _, file_ids, _ = selected
+        # retrieval settings
+        prefix = f"index.options.{self.id}."
+        search_type = settings.get(prefix + "search_type", "local")
+
         retrievers = [
             LightRAGRetrieverPipeline(
                 file_ids=file_ids,
                 Index=self._resources["Index"],
+                search_type=search_type,
             )
         ]
 

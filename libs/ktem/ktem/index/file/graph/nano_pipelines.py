@@ -71,7 +71,7 @@ def get_llm_func(model):
             if if_cache_return is not None:
                 return if_cache_return["return"]
 
-        output = model(input_messages).text
+        output = (await model.ainvoke(input_messages)).text
 
         print("-" * 50)
         print(output, "\n", "-" * 50)
@@ -297,6 +297,19 @@ class NanoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
 
     Index = Param(help="The SQLAlchemy Index table")
     file_ids: list[str] = []
+    search_type: str = "local"
+
+    @classmethod
+    def get_user_settings(cls) -> dict:
+        return {
+            "search_type": {
+                "name": "Search type",
+                "value": "local",
+                "choices": ["local", "global", "naive"],
+                "component": "dropdown",
+                "info": "Whether to use local or global search in the graph.",
+            }
+        }
 
     def _build_graph_search(self):
         file_id = self.file_ids[0]
@@ -321,7 +334,8 @@ class NanoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             llm_func=llm_func,
             embedding_func=embedding_func,
         )
-        query_params = QueryParam(mode="local", only_need_context=True)
+        print("search_type", self.search_type)
+        query_params = QueryParam(mode=self.search_type, only_need_context=True)
 
         return graphrag_func, query_params
 
