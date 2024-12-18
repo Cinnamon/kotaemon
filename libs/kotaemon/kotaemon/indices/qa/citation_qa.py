@@ -334,11 +334,19 @@ class AnswerWithContextPipeline(BaseComponent):
             highlight_text = ""
 
             ss = sorted(ss, key=lambda x: x["start"])
+            last_end = 0
             text = cur_doc.text[: ss[0]["start"]]
+
             for idx, span in enumerate(ss):
-                to_highlight = cur_doc.text[span["start"] : span["end"]]
-                if len(to_highlight) > len(highlight_text):
-                    highlight_text = to_highlight
+                # prevent overlapping between span
+                span_start = max(last_end, span["start"])
+                span_end = max(last_end, span["end"])
+
+                to_highlight = cur_doc.text[span_start:span_end]
+                last_end = span_end
+
+                # append to highlight on PDF viewer
+                highlight_text += (" " if highlight_text else "") + to_highlight
 
                 span_idx = span.get("idx", None)
                 if span_idx is not None:
@@ -350,6 +358,7 @@ class AnswerWithContextPipeline(BaseComponent):
                 )
                 if idx < len(ss) - 1:
                     text += cur_doc.text[span["end"] : ss[idx + 1]["start"]]
+
             text += cur_doc.text[ss[-1]["end"] :]
             # add to display list
             with_citation.append(

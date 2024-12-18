@@ -43,16 +43,52 @@ function onBlockLoad () {
             modal.style.position = "fixed";
             modal.style.width = "70%";
             modal.style.left = "15%";
+            modal.style.height = "100dvh";
           } else {
             modal.style.position = old_position;
             modal.style.width = old_width;
             modal.style.left = old_left;
+            modal.style.height = "85dvh";
           }
         };
     }
 
+    globalThis.compareText = (search_phrase, page_label) => {
+      var iframe = document.querySelector("#pdf-viewer").iframe;
+      var innerDoc = (iframe.contentDocument) ? iframe.contentDocument : iframe.contentWindow.document;
+
+      var query_selector = (
+        "#viewer > div[data-page-number='" +
+        page_label +
+        "'] > div.textLayer > span"
+      );
+      var page_spans = innerDoc.querySelectorAll(query_selector);
+      for (var i = 0; i < page_spans.length; i++) {
+        var span = page_spans[i];
+        if (
+          span.textContent.length > 4 &&
+          (
+            search_phrase.includes(span.textContent) ||
+            span.textContent.includes(search_phrase)
+          )
+        ) {
+          span.innerHTML = "<span class='highlight selected'>" + span.textContent + "</span>";
+        } else {
+          // if span is already highlighted, remove it
+          if (span.querySelector(".highlight")) {
+            span.innerHTML = span.textContent;
+          }
+        }
+      }
+    }
+
+    // Sleep function using Promise and setTimeout
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
     // Function to open modal and display PDF
-    globalThis.openModal = (event) => {
+    globalThis.openModal = async (event) => {
       event.preventDefault();
       var target = event.currentTarget;
       var src = target.getAttribute("data-src");
@@ -66,8 +102,8 @@ function onBlockLoad () {
       if (current_src != src) {
         pdfViewer.setAttribute("src", src);
       }
-      pdfViewer.setAttribute("phrase", phrase);
-      pdfViewer.setAttribute("search", search);
+      // pdfViewer.setAttribute("phrase", phrase);
+      // pdfViewer.setAttribute("search", search);
       pdfViewer.setAttribute("page", page);
 
       var scrollableDiv = document.getElementById("chat-info-panel");
@@ -80,6 +116,10 @@ function onBlockLoad () {
         info_panel.style.display = "none";
       }
       scrollableDiv.scrollTop = 0;
+
+      /* search for text inside PDF page */
+      await sleep(500);
+      compareText(search, page);
     }
 
     globalThis.assignPdfOnclickEvent = () => {
@@ -93,7 +133,6 @@ function onBlockLoad () {
     var created_modal = document.getElementById("pdf-viewer");
     if (!created_modal) {
         createModal();
-        console.log("Created modal")
     }
 
 }

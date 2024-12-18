@@ -5,17 +5,38 @@ def find_text(search_span, context, min_length=5):
     sentence_list = search_span.split("\n")
     context = context.replace("\n", " ")
 
-    matches = []
+    matches_span = []
     # don't search for small text
     if len(search_span) > min_length:
         for sentence in sentence_list:
-            match = SequenceMatcher(
-                None, sentence, context, autojunk=False
-            ).find_longest_match()
-            if match.size > max(len(sentence) * 0.35, min_length):
-                matches.append((match.b, match.b + match.size))
+            match_results = SequenceMatcher(
+                None,
+                sentence,
+                context,
+                autojunk=False,
+            ).get_matching_blocks()
 
-    return matches
+            matched_blocks = []
+            for _, start, length in match_results:
+                if length > max(len(sentence) * 0.2, min_length):
+                    matched_blocks.append((start, start + length))
+
+            if matched_blocks:
+                start_index = min(start for start, _ in matched_blocks)
+                end_index = max(end for _, end in matched_blocks)
+                length = end_index - start_index
+
+                if length > max(len(sentence) * 0.35, min_length):
+                    matches_span.append((start_index, end_index))
+
+    if matches_span:
+        # merge all matches into one span
+        final_span = min(start for start, _ in matches_span), max(
+            end for _, end in matches_span
+        )
+        matches_span = [final_span]
+
+    return matches_span
 
 
 def find_start_end_phrase(
