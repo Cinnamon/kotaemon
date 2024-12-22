@@ -81,6 +81,10 @@ KH_FEATURE_USER_MANAGEMENT_PASSWORD = str(
 KH_ENABLE_ALEMBIC = False
 KH_DATABASE = f"sqlite:///{KH_USER_DATA_DIR / 'sql.db'}"
 KH_FILESTORAGE_PATH = str(KH_USER_DATA_DIR / "files")
+KH_WEB_SEARCH_BACKEND = (
+    "kotaemon.indices.retrievers.tavily_web_search.WebSearch"
+    # "kotaemon.indices.retrievers.jina_web_search.WebSearch"
+)
 
 KH_DOCSTORE = {
     # "__type__": "kotaemon.storages.ElasticsearchDocumentStore",
