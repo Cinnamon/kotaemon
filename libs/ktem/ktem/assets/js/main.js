@@ -11,6 +11,14 @@ function run() {
   version_node.style = "position: fixed; top: 10px; right: 10px;";
   main_parent.appendChild(version_node);
 
+  // add favicon
+  const favicon = document.createElement("link");
+  // set favicon attributes
+  favicon.rel = "icon";
+  favicon.type = "image/svg+xml";
+  favicon.href = "/favicon.svg";
+  document.head.appendChild(favicon);
+
   // move info-expand-button
   let info_expand_button = document.getElementById("info-expand-button");
   let chat_info_panel = document.getElementById("info-expand");
