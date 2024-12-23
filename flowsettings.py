@@ -65,6 +65,8 @@ os.environ["HF_HUB_CACHE"] = str(KH_APP_DATA_DIR / "huggingface")
 KH_DOC_DIR = this_dir / "docs"
 
 KH_MODE = "dev"
+KH_SSO_ENABLED = config("KH_SSO_ENABLED", default=False, cast=bool)
+
 KH_FEATURE_CHAT_SUGGESTION = config(
     "KH_FEATURE_CHAT_SUGGESTION", default=False, cast=bool
 )
@@ -145,7 +147,7 @@ if config("OPENAI_API_KEY", default=""):
             "base_url": config("OPENAI_API_BASE", default="")
             or "https://api.openai.com/v1",
             "api_key": config("OPENAI_API_KEY", default=""),
-            "model": config("OPENAI_CHAT_MODEL", default="gpt-3.5-turbo"),
+            "model": config("OPENAI_CHAT_MODEL", default="gpt-4o-mini"),
             "timeout": 20,
         },
         "default": True,
@@ -156,7 +158,7 @@ if config("OPENAI_API_KEY", default=""):
             "base_url": config("OPENAI_API_BASE", default="https://api.openai.com/v1"),
             "api_key": config("OPENAI_API_KEY", default=""),
             "model": config(
-                "OPENAI_EMBEDDINGS_MODEL", default="text-embedding-ada-002"
+                "OPENAI_EMBEDDINGS_MODEL", default="text-embedding-3-large"
             ),
             "timeout": 10,
             "context_length": 8191,
@@ -323,7 +325,7 @@ GRAPHRAG_INDICES = [
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
                 ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
             ),
-            "private": False,
+            "private": True,
         },
         "index_type": graph_type,
     }
@@ -338,7 +340,7 @@ KH_INDICES = [
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
                 ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
             ),
-            "private": False,
+            "private": True,
         },
         "index_type": "ktem.index.file.FileIndex",
     },

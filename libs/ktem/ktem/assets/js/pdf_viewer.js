@@ -17,7 +17,7 @@ function onBlockLoad () {
                 <span class="close" id="modal-expand">&#x26F6;</span>
               </div>
               <div class="modal-body">
-                <pdfjs-viewer-element id="pdf-viewer" viewer-path="GRADIO_ROOT_PATH/file=PDFJS_PREBUILT_DIR" locale="en" phrase="true">
+                <pdfjs-viewer-element id="pdf-viewer" viewer-path="GR_FILE_ROOT_PATH/file=PDFJS_PREBUILT_DIR" locale="en" phrase="true">
                 </pdfjs-viewer-element>
               </div>
             </div>
