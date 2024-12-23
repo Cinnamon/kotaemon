@@ -32,7 +32,9 @@ function run() {
   // move setting close button
   let setting_tab_nav_bar = document.querySelector("#settings-tab .tab-nav");
   let setting_close_button = document.getElementById("save-setting-btn");
-  setting_tab_nav_bar.appendChild(setting_close_button);
+  if (setting_close_button) {
+    setting_tab_nav_bar.appendChild(setting_close_button);
+  }
 
   let default_conv_column_min_width = "min(300px, 100%)";
   conv_column.style.minWidth = default_conv_column_min_width
