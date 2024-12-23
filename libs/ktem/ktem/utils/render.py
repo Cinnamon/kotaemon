@@ -5,7 +5,7 @@ from fast_langdetect import detect
 
 from kotaemon.base import RetrievedDocument
 
-BASE_PATH = os.environ.get("GRADIO_ROOT_PATH", "")
+BASE_PATH = os.environ.get("GR_FILE_ROOT_PATH", "")
 
 
 def is_close(val1, val2, tolerance=1e-9):
