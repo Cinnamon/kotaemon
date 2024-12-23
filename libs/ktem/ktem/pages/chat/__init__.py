@@ -1,5 +1,4 @@
 import asyncio
-import importlib
 import json
 import re
 from copy import deepcopy
@@ -19,6 +18,7 @@ from ktem.reasoning.prompt_optimization.suggest_followup_chat import (
 from plotly.io import from_json
 from sqlmodel import Session, select
 from theflow.settings import settings as flowsettings
+from theflow.utils.modules import import_dotted_string
 
 from kotaemon.base import Document
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
@@ -34,11 +34,9 @@ KH_WEB_SEARCH_BACKEND = getattr(flowsettings, "KH_WEB_SEARCH_BACKEND", None)
 WebSearch = None
 if KH_WEB_SEARCH_BACKEND:
     try:
-        module_name, class_name = KH_WEB_SEARCH_BACKEND.rsplit(".", 1)
-        module = importlib.import_module(module_name)
-        WebSearch = getattr(module, class_name)
+        WebSearch = import_dotted_string(KH_WEB_SEARCH_BACKEND, safe=False)
     except (ImportError, AttributeError) as e:
-        print(f"Error importing {class_name} from {module_name}: {e}")
+        print(f"Error importing {KH_WEB_SEARCH_BACKEND}: {e}")
 
 DEFAULT_SETTING = "(default)"
 INFO_PANEL_SCALES = {True: 8, False: 4}
