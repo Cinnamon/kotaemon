@@ -15,7 +15,7 @@ class ChatSuggestion(BasePage):
             [
                 "Summary this document",
                 "Generate a FAQ for this document",
-                "Identify the main highlights in this text",
+                "Identify the main highlights in bullet points",
             ],
         )
         self.chat_samples = [[each] for each in chat_samples]
@@ -23,6 +23,9 @@ class ChatSuggestion(BasePage):
             label="Chat Suggestion",
             visible=getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False),
         ) as self.accordion:
+            self.default_example = gr.State(
+                value=self.chat_samples,
+            )
             self.examples = gr.DataFrame(
                 value=self.chat_samples,
                 headers=["Next Question"],
