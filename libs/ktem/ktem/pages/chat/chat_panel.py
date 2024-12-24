@@ -12,7 +12,8 @@ class ChatPanel(BasePage):
             label=self._app.app_name,
             placeholder=(
                 "This is the beginning of a new conversation.\n"
-                "Start by uploading a file or web URL(s)"
+                "Start by uploading a file or a web URL. "
+                "Visit Files tab for more options (e.g: GraphRAG)."
             ),
             show_label=False,
             elem_id="main-chat-bot",

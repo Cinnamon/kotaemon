@@ -21,7 +21,7 @@ from theflow.settings import settings as flowsettings
 
 from ...utils.commands import WEB_SEARCH_COMMAND
 
-DOWNLOAD_MESSAGE = "Press again to download"
+DOWNLOAD_MESSAGE = "Start download"
 MAX_FILENAME_LENGTH = 20
 
 chat_input_focus_js = """
@@ -203,7 +203,7 @@ class FileIndexPage(BasePage):
             with gr.Row():
                 self.download_all_button = gr.DownloadButton(
                     "Download all files",
-                    visible=True,
+                    visible=False,
                 )
                 self.delete_all_button = gr.Button(
                     "Delete all files",
