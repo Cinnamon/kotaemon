@@ -11,8 +11,8 @@ class ChatPanel(BasePage):
         self.chatbot = gr.Chatbot(
             label=self._app.app_name,
             placeholder=(
-                "This is the beginning of a new conversation.\nIf you are new, "
-                "visit the Help tab for quick instructions."
+                "This is the beginning of a new conversation.\n"
+                "Start by uploading a file or web URL(s)"
             ),
             show_label=False,
             elem_id="main-chat-bot",
