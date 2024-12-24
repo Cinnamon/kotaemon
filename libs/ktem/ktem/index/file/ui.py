@@ -1362,7 +1362,12 @@ class FileIndexPage(BasePage):
                 session.commit()
             else:
                 current_group = (
-                    session.query(FileGroup).filter_by(name=group_name).first()
+                    session.query(FileGroup)
+                    .filter_by(
+                        name=group_name,
+                        user=user_id,
+                    )
+                    .first()
                 )
                 if current_group:
                     raise gr.Error(f"Group {group_name} already exists")

@@ -121,7 +121,7 @@ class FileIndex(BaseIndex):
                 "source_id": Column(String),
                 "target_id": Column(String),
                 "relation_type": Column(String),
-                "user": Column(Integer, default=1),
+                "user": Column(String, default=""),
             },
         )
         FileGroup = type(
@@ -129,6 +129,9 @@ class FileIndex(BaseIndex):
             (Base,),
             {
                 "__tablename__": f"index__{self.id}__group",
+                "__table_args__": (
+                    UniqueConstraint("name", "user", name="_name_user_uc"),
+                ),
                 "id": Column(
                     String,
                     primary_key=True,
@@ -138,8 +141,8 @@ class FileIndex(BaseIndex):
                 "date_created": Column(
                     DateTime(timezone=True), default=datetime.now(get_localzone())
                 ),
-                "name": Column(String, unique=True),
-                "user": Column(Integer, default=1),
+                "name": Column(String),
+                "user": Column(String, default=""),
                 "data": Column(
                     MutableDict.as_mutable(JSON),  # type: ignore
                     default={"files": []},
