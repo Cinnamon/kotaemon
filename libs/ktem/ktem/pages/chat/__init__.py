@@ -26,6 +26,7 @@ from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex, get_urls
 from ...utils.commands import WEB_SEARCH_COMMAND
 from .chat_panel import ChatPanel
+from .chat_suggestion import ChatSuggestion
 from .common import STATE
 from .control import ConversationControl
 from .report import ReportIssue
@@ -144,7 +145,12 @@ class ChatPage(BasePage):
                         continue
 
                     index_ui.unrender()  # need to rerender later within Accordion
-                    with gr.Accordion(label=index.name, open=index_id < 1):
+                    is_first_index = index_id == 0
+                    with gr.Accordion(
+                        label=index.name,
+                        open=is_first_index,
+                        elem_id=f"index-{index_id}",
+                    ):
                         index_ui.render()
                         gr_index = index_ui.as_gradio_component()
 
@@ -169,8 +175,11 @@ class ChatPage(BasePage):
                                 self._indices_input.append(gr_index)
                         setattr(self, f"_index_{index.id}", index_ui)
 
+                self.chat_suggestion = ChatSuggestion(self._app)
+
                 if len(self._app.index_manager.indices) > 0:
                     with gr.Accordion(label="Quick Upload") as _:
+                        self.quick_file_upload_status = gr.Markdown()
                         self.quick_file_upload = File(
                             file_types=list(KH_DEFAULT_FILE_EXTRACTORS.keys()),
                             file_count="multiple",
@@ -179,13 +188,12 @@ class ChatPage(BasePage):
                             elem_id="quick-file",
                         )
                         self.quick_urls = gr.Textbox(
-                            placeholder="Paste URLs",
+                            placeholder="Or paste URLs",
                             lines=1,
                             container=False,
                             show_label=False,
                             elem_id="quick-url",
                         )
-                        self.quick_file_upload_status = gr.Markdown()
 
                 self.report_issue = ReportIssue(self._app)
 
@@ -202,7 +210,6 @@ class ChatPage(BasePage):
                             gr.HTML("Reasoning method")
                             gr.HTML("Model", visible=False)
                             gr.HTML("Language")
-                            gr.HTML("Suggestion")
 
                         with gr.Row():
                             reasoning_setting = (
@@ -241,11 +248,6 @@ class ChatPage(BasePage):
                                 container=False,
                                 show_label=False,
                             )
-                            self.use_chat_suggestion = gr.Checkbox(
-                                label="Chat suggestion",
-                                container=False,
-                                elem_id="use-suggestion-checkbox",
-                            )
 
                             self.citation = gr.Dropdown(
                                 choices=citation_setting.choices,
@@ -282,8 +284,8 @@ class ChatPage(BasePage):
         return plot
 
     def on_register_events(self):
-        self.followup_questions = self.chat_control.chat_suggestion.examples
-        self.followup_questions_ui = self.chat_control.chat_suggestion.accordion
+        self.followup_questions = self.chat_suggestion.examples
+        self.followup_questions_ui = self.chat_suggestion.accordion
 
         chat_event = (
             gr.on(
@@ -371,20 +373,21 @@ class ChatPage(BasePage):
             )
         )
 
-        # chat suggestion toggle
-        chat_event = chat_event.success(
-            fn=self.suggest_chat_conv,
-            inputs=[
+        onSuggestChatEvent = {
+            "fn": self.suggest_chat_conv,
+            "inputs": [
                 self._app.settings_state,
                 self.chat_panel.chatbot,
                 self._use_suggestion,
             ],
-            outputs=[
+            "outputs": [
                 self.followup_questions_ui,
                 self.followup_questions,
             ],
-            show_progress="hidden",
-        )
+            "show_progress": "hidden",
+        }
+        # chat suggestion toggle
+        chat_event = chat_event.success(**onSuggestChatEvent)
         # .success(
         #     self.chat_control.persist_chat_suggestions,
         #     inputs=[
@@ -621,11 +624,25 @@ class ChatPage(BasePage):
             outputs=[self.use_mindmap, self.use_mindmap_check],
             show_progress="hidden",
         )
-        self.use_chat_suggestion.change(
-            lambda x: (x, gr.update(visible=x)),
-            inputs=[self.use_chat_suggestion],
+
+        def toggle_chat_suggestion(current_state):
+            return current_state, gr.update(visible=current_state)
+
+        def raise_error_on_state(state):
+            if not state:
+                raise ValueError("Chat suggestion disabled")
+
+        self.chat_control.cb_suggest_chat.change(
+            fn=toggle_chat_suggestion,
+            inputs=[self.chat_control.cb_suggest_chat],
             outputs=[self._use_suggestion, self.followup_questions_ui],
             show_progress="hidden",
+        ).then(
+            fn=raise_error_on_state,
+            inputs=[self._use_suggestion],
+            show_progress="hidden",
+        ).success(
+            **onSuggestChatEvent
         )
         self.chat_control.conversation_id.change(
             lambda: gr.update(visible=False),
@@ -633,7 +650,7 @@ class ChatPage(BasePage):
         )
 
         self.followup_questions.select(
-            self.chat_control.chat_suggestion.select_example,
+            self.chat_suggestion.select_example,
             outputs=[self.chat_panel.text_input],
             show_progress="hidden",
         ).then(
