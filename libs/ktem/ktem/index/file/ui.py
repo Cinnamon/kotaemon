@@ -201,10 +201,10 @@ class FileIndexPage(BasePage):
 
         with gr.Accordion("Advance options", open=False):
             with gr.Row():
-                self.download_all_button = gr.DownloadButton(
-                    "Download all files",
-                    visible=False,
-                )
+                # self.download_all_button = gr.DownloadButton(
+                #     "Download all files",
+                #     visible=False,
+                # )
                 self.delete_all_button = gr.Button(
                     "Delete all files",
                     variant="stop",
@@ -500,6 +500,34 @@ class FileIndexPage(BasePage):
 
         return not is_zipped_state, new_button
 
+    def download_single_file_simple(self, is_zipped_state, file_html, file_id):
+        with Session(engine) as session:
+            source = session.execute(
+                select(self._index._resources["Source"]).where(
+                    self._index._resources["Source"].id == file_id
+                )
+            ).first()
+        if source:
+            target_file_name = Path(source[0].name)
+
+        # create a temporary file with a path to export
+        output_file_path = os.path.join(
+            flowsettings.KH_ZIP_OUTPUT_DIR, target_file_name.stem + ".html"
+        )
+        with open(output_file_path, "w") as f:
+            f.write(file_html)
+
+        if is_zipped_state:
+            new_button = gr.DownloadButton(label="Download", value=None)
+        else:
+            # export the file path
+            new_button = gr.DownloadButton(
+                label=DOWNLOAD_MESSAGE,
+                value=output_file_path,
+            )
+
+        return not is_zipped_state, new_button
+
     def download_all_files(self):
         if self._index.config.get("private", False):
             raise gr.Error("This feature is not available for private collection.")
@@ -606,12 +634,12 @@ class FileIndexPage(BasePage):
             ],
         )
 
-        self.download_all_button.click(
-            fn=self.download_all_files,
-            inputs=[],
-            outputs=self.download_all_button,
-            show_progress="hidden",
-        )
+        # self.download_all_button.click(
+        #     fn=self.download_all_files,
+        #     inputs=[],
+        #     outputs=self.download_all_button,
+        #     show_progress="hidden",
+        # )
 
         self.delete_all_button.click(
             self.show_delete_all_confirm,
@@ -659,9 +687,15 @@ class FileIndexPage(BasePage):
             ],
         )
 
+        # self.download_single_button.click(
+        #     fn=self.download_single_file,
+        #     inputs=[self.is_zipped_state, self.selected_file_id],
+        #     outputs=[self.is_zipped_state, self.download_single_button],
+        #     show_progress="hidden",
+        # )
         self.download_single_button.click(
-            fn=self.download_single_file,
-            inputs=[self.is_zipped_state, self.selected_file_id],
+            fn=self.download_single_file_simple,
+            inputs=[self.is_zipped_state, self.chunks, self.selected_file_id],
             outputs=[self.is_zipped_state, self.download_single_button],
             show_progress="hidden",
         )
@@ -880,17 +914,17 @@ class FileIndexPage(BasePage):
                 gr.update(visible=False),
                 gr.update(value="### Add new group"),
                 gr.update(visible=True),
-                gr.update(value=None),
                 gr.update(value=""),
                 gr.update(value=[]),
+                None,
             ],
             outputs=[
                 self.group_add_button,
                 self.group_label,
                 self._group_info_panel,
-                self.selected_group_id,
                 self.group_name,
                 self.group_files,
+                self.selected_group_id,
             ],
         )
 
@@ -911,7 +945,7 @@ class FileIndexPage(BasePage):
                 gr.update(visible=False),
                 gr.update(visible=False),
                 gr.update(visible=False),
-                gr.update(value=None),
+                None,
             ],
             "outputs": [
                 self.group_add_button,
