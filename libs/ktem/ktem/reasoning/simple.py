@@ -323,7 +323,7 @@ class FullQAPipeline(BaseReasoning):
     def prepare_pipeline_instance(cls, settings, retrievers):
         return cls(
             retrievers=retrievers,
-            rewrite_pipeline=RewriteQuestionPipeline(),
+            rewrite_pipeline=None,
         )
 
     @classmethod

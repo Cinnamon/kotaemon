@@ -61,7 +61,7 @@ function run() {
   chat_setting_panel.insertBefore(citation_dropdown, mindmap_checkbox);
 
   // create slider toggle
-  const is_public_checkbox = document.getElementById("is-public-checkbox");
+  const is_public_checkbox = document.getElementById("suggest-chat-checkbox");
   const label_element = is_public_checkbox.getElementsByTagName("label")[0];
   const checkbox_span = is_public_checkbox.getElementsByTagName("span")[0];
   new_div = document.createElement("div");

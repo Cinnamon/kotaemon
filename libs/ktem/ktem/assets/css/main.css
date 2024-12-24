@@ -326,7 +326,12 @@ pdfjs-viewer-element {
 
 /* Switch checkbox styles */
 
-#is-public-checkbox {
+/* #is-public-checkbox {
+  position: relative;
+  top: 4px;
+} */
+
+#suggest-chat-checkbox {
   position: relative;
   top: 4px;
 }
@@ -410,4 +415,16 @@ details.evidence {
 /* a fix for flickering background in Gradio DataFrame */
 tbody:not(.row_odd) {
   background: var(--table-even-background-fill);
+}
+
+#chat-suggestion {
+  max-height: 350px;
+}
+
+#chat-suggestion table {
+  overflow: hidden;
+}
+
+#chat-suggestion table thead {
+  display: none;
 }
