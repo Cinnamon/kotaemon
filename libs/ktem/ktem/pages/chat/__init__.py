@@ -179,7 +179,7 @@ class ChatPage(BasePage):
                             elem_id="quick-file",
                         )
                         self.quick_urls = gr.Textbox(
-                            placeholder="Or paste URLs here",
+                            placeholder="Paste URLs",
                             lines=1,
                             container=False,
                             show_label=False,
@@ -200,40 +200,44 @@ class ChatPage(BasePage):
                     ):
                         with gr.Row(elem_id="quick-setting-labels"):
                             gr.HTML("Reasoning method")
-                            gr.HTML("Model")
+                            gr.HTML("Model", visible=False)
                             gr.HTML("Language")
                             gr.HTML("Suggestion")
 
                         with gr.Row():
-                            reasoning_type_values = [
-                                (DEFAULT_SETTING, DEFAULT_SETTING)
-                            ] + self._app.default_settings.reasoning.settings[
-                                "use"
-                            ].choices
+                            reasoning_setting = (
+                                self._app.default_settings.reasoning.settings["use"]
+                            )
+                            model_setting = (
+                                self._app.default_settings.reasoning.options[
+                                    "simple"
+                                ].settings["llm"]
+                            )
+                            language_setting = (
+                                self._app.default_settings.reasoning.settings["lang"]
+                            )
+                            citation_setting = (
+                                self._app.default_settings.reasoning.options[
+                                    "simple"
+                                ].settings["highlight_citation"]
+                            )
+
                             self.reasoning_type = gr.Dropdown(
-                                choices=reasoning_type_values,
-                                value=DEFAULT_SETTING,
+                                choices=reasoning_setting.choices,
+                                value=reasoning_setting.value,
                                 container=False,
                                 show_label=False,
                             )
                             self.model_type = gr.Dropdown(
-                                choices=self._app.default_settings.reasoning.options[
-                                    "simple"
-                                ]
-                                .settings["llm"]
-                                .choices,
-                                value="",
+                                choices=model_setting.choices,
+                                value=model_setting.value,
                                 container=False,
                                 show_label=False,
+                                visible=False,
                             )
                             self.language = gr.Dropdown(
-                                choices=[
-                                    (DEFAULT_SETTING, DEFAULT_SETTING),
-                                ]
-                                + self._app.default_settings.reasoning.settings[
-                                    "lang"
-                                ].choices,
-                                value=DEFAULT_SETTING,
+                                choices=language_setting.choices,
+                                value=language_setting.value,
                                 container=False,
                                 show_label=False,
                             )
@@ -244,22 +248,17 @@ class ChatPage(BasePage):
                             )
 
                             self.citation = gr.Dropdown(
-                                choices=[
-                                    (DEFAULT_SETTING, DEFAULT_SETTING),
-                                ]
-                                + self._app.default_settings.reasoning.options["simple"]
-                                .settings["highlight_citation"]
-                                .choices,
-                                value=DEFAULT_SETTING,
+                                choices=citation_setting.choices,
+                                value=citation_setting.value,
                                 container=False,
                                 show_label=False,
                                 interactive=True,
                                 elem_id="citation-dropdown",
                             )
 
-                            self.use_mindmap = gr.State(value=DEFAULT_SETTING)
+                            self.use_mindmap = gr.State(value=False)
                             self.use_mindmap_check = gr.Checkbox(
-                                label="Mindmap (default)",
+                                label="Mindmap (off)",
                                 container=False,
                                 elem_id="use-mindmap-checkbox",
                             )

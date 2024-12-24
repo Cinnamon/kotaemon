@@ -411,8 +411,8 @@ class FullQAPipeline(BaseReasoning):
                 "value": "highlight",
                 "component": "radio",
                 "choices": [
-                    ("highlight (verbose)", "highlight"),
-                    ("inline (concise)", "inline"),
+                    ("citation: highlight", "highlight"),
+                    ("citation: inline", "inline"),
                     ("no citation", "off"),
                 ],
             },
