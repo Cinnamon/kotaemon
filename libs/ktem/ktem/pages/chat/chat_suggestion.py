@@ -27,6 +27,7 @@ class ChatSuggestion(BasePage):
                 value=self.chat_samples,
                 headers=["Next Question"],
                 interactive=False,
+                elem_id="chat-suggestion",
                 wrap=True,
             )
 

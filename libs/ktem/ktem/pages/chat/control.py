@@ -10,7 +10,6 @@ from sqlmodel import Session, or_, select
 import flowsettings
 
 from ...utils.conversation import sync_retrieval_n_message
-from .chat_suggestion import ChatSuggestion
 from .common import STATE
 
 logger = logging.getLogger(__name__)
@@ -93,6 +92,15 @@ class ConversationControl(BasePage):
                 scale=4,
                 elem_id="is-public-checkbox",
                 container=False,
+                visible=False,
+            )
+            self.cb_suggest_chat = gr.Checkbox(
+                value=False,
+                label="Suggest chat",
+                min_width=10,
+                scale=6,
+                elem_id="suggest-chat-checkbox",
+                container=False,
             )
             self.btn_conversation_rn = gr.Button(
                 value="",
@@ -138,8 +146,6 @@ class ConversationControl(BasePage):
                 interactive=True,
                 visible=False,
             )
-
-        self.chat_suggestion = ChatSuggestion(self._app)
 
     def load_chat_history(self, user_id):
         """Reload chat history"""
