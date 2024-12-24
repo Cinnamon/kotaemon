@@ -249,13 +249,13 @@ class FileIndexPage(BasePage):
             )
 
         with gr.Column(visible=False) as self._group_info_panel:
+            self.selected_group_id = gr.State(value=None)
             self.group_label = gr.Markdown()
             self.group_name = gr.Textbox(
                 label="Group name",
                 placeholder="Group name",
                 lines=1,
                 max_lines=1,
-                interactive=False,
             )
             self.group_files = gr.Dropdown(
                 label="Attached files",
@@ -290,7 +290,7 @@ class FileIndexPage(BasePage):
                         )
                         gr.Markdown("(separated by new line)")
 
-                    with gr.Accordion("Advanced indexing options", open=True):
+                    with gr.Accordion("Advanced indexing options", open=False):
                         with gr.Row():
                             self.reindex = gr.Checkbox(
                                 value=False, label="Force reindex file", container=False
@@ -844,7 +844,12 @@ class FileIndexPage(BasePage):
         self.group_list.select(
             fn=self.interact_group_list,
             inputs=[self.group_list_state],
-            outputs=[self.group_label, self.group_name, self.group_files],
+            outputs=[
+                self.group_label,
+                self.selected_group_id,
+                self.group_name,
+                self.group_files,
+            ],
             show_progress="hidden",
         ).then(
             fn=lambda: (
@@ -875,13 +880,15 @@ class FileIndexPage(BasePage):
                 gr.update(visible=False),
                 gr.update(value="### Add new group"),
                 gr.update(visible=True),
-                gr.update(value="", interactive=True),
+                gr.update(value=None),
+                gr.update(value=""),
                 gr.update(value=[]),
             ],
             outputs=[
                 self.group_add_button,
                 self.group_label,
                 self._group_info_panel,
+                self.selected_group_id,
                 self.group_name,
                 self.group_files,
             ],
@@ -889,7 +896,7 @@ class FileIndexPage(BasePage):
 
         self.group_chat_button.click(
             fn=self.set_group_id_selector,
-            inputs=[self.group_name],
+            inputs=[self.selected_group_id],
             outputs=[
                 self._index.get_selector_component_ui().selector,
                 self._index.get_selector_component_ui().mode,
@@ -897,44 +904,53 @@ class FileIndexPage(BasePage):
             ],
         )
 
+        onGroupClosedEvent = {
+            "fn": lambda: [
+                gr.update(visible=True),
+                gr.update(visible=False),
+                gr.update(visible=False),
+                gr.update(visible=False),
+                gr.update(visible=False),
+                gr.update(value=None),
+            ],
+            "outputs": [
+                self.group_add_button,
+                self._group_info_panel,
+                self.group_close_button,
+                self.group_delete_button,
+                self.group_chat_button,
+                self.selected_group_id,
+            ],
+        }
+        self.group_close_button.click(**onGroupClosedEvent)
         onGroupSaved = (
             self.group_save_button.click(
                 fn=self.save_group,
-                inputs=[self.group_name, self.group_files, self._app.user_id],
+                inputs=[
+                    self.selected_group_id,
+                    self.group_name,
+                    self.group_files,
+                    self._app.user_id,
+                ],
             )
             .then(
                 self.list_group,
                 inputs=[self._app.user_id, self.file_list_state],
                 outputs=[self.group_list_state, self.group_list],
             )
-            .then(
-                fn=lambda: gr.update(visible=False),
-                outputs=[self._group_info_panel],
+            .then(**onGroupClosedEvent)
+        )
+        onGroupDeleted = (
+            self.group_delete_button.click(
+                fn=self.delete_group,
+                inputs=[self.selected_group_id],
             )
-        )
-        self.group_close_button.click(
-            fn=lambda: [
-                gr.update(visible=True),
-                gr.update(visible=False),
-                gr.update(visible=False),
-                gr.update(visible=False),
-                gr.update(visible=False),
-            ],
-            outputs=[
-                self.group_add_button,
-                self._group_info_panel,
-                self.group_close_button,
-                self.group_delete_button,
-                self.group_chat_button,
-            ],
-        )
-        onGroupDeleted = self.group_delete_button.click(
-            fn=self.delete_group,
-            inputs=[self.group_name],
-        ).then(
-            self.list_group,
-            inputs=[self._app.user_id, self.file_list_state],
-            outputs=[self.group_list_state, self.group_list],
+            .then(
+                self.list_group,
+                inputs=[self._app.user_id, self.file_list_state],
+                outputs=[self.group_list_state, self.group_list],
+            )
+            .then(**onGroupClosedEvent)
         )
 
         for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
@@ -1254,6 +1270,7 @@ class FileIndexPage(BasePage):
         return gr.update(choices=file_names)
 
     def list_group(self, user_id, file_list):
+        # supply file_list to display the file names in the group
         if file_list:
             file_id_to_name = {item["id"]: item["name"] for item in file_list}
         else:
@@ -1319,27 +1336,37 @@ class FileIndexPage(BasePage):
 
         return results, group_list
 
-    def set_group_id_selector(self, selected_group_name):
+    def set_group_id_selector(self, selected_group_id):
         FileGroup = self._index._resources["FileGroup"]
 
         # check if group_name exist
         with Session(engine) as session:
             current_group = (
-                session.query(FileGroup).filter_by(name=selected_group_name).first()
+                session.query(FileGroup).filter_by(id=selected_group_id).first()
             )
 
         file_ids = [json.dumps(current_group.data["files"])]
         return [file_ids, "select", gr.Tabs(selected="chat-tab")]
 
-    def save_group(self, group_name, group_files, user_id):
+    def save_group(self, group_id, group_name, group_files, user_id):
         FileGroup = self._index._resources["FileGroup"]
         current_group = None
 
         # check if group_name exist
         with Session(engine) as session:
-            current_group = session.query(FileGroup).filter_by(name=group_name).first()
+            if group_id:
+                current_group = session.query(FileGroup).filter_by(id=group_id).first()
+                # update current group with new info
+                current_group.name = group_name
+                current_group.data["files"] = group_files  # Update the files
+                session.commit()
+            else:
+                current_group = (
+                    session.query(FileGroup).filter_by(name=group_name).first()
+                )
+                if current_group:
+                    raise gr.Error(f"Group {group_name} already exists")
 
-            if not current_group:
                 current_group = FileGroup(
                     name=group_name,
                     data={"files": group_files},  # type: ignore
@@ -1347,34 +1374,31 @@ class FileIndexPage(BasePage):
                 )
                 session.add(current_group)
                 session.commit()
-            else:
-                # update current group with new info
-                current_group.name = group_name
-                current_group.data["files"] = group_files  # Update the files
-                session.commit()
 
             group_id = current_group.id
 
         gr.Info(f"Group {group_name} has been saved")
         return group_id
 
-    def delete_group(self, group_name):
+    def delete_group(self, group_id):
+        if not group_id:
+            raise gr.Error("No group is selected")
+
         FileGroup = self._index._resources["FileGroup"]
-        group_id = None
         with Session(engine) as session:
             group = session.execute(
-                select(FileGroup).where(FileGroup.name == group_name)
+                select(FileGroup).where(FileGroup.id == group_id)
             ).first()
             if group:
                 item = group[0]
-                group_id = item.id
+                group_name = item.name
                 session.delete(item)
                 session.commit()
                 gr.Info(f"Group {group_name} has been deleted")
             else:
-                raise gr.Error(f"Group {group_name} not found")
+                raise gr.Error("No group found")
 
-        return group_id
+        return None
 
     def interact_file_list(self, list_files, ev: gr.SelectData):
         if ev.value == "-" and ev.index[0] == 0:
@@ -1394,9 +1418,11 @@ class FileIndexPage(BasePage):
             raise gr.Error("No group is selected")
 
         selected_item = list_groups[selected_id]
+        selected_group_id = selected_item["id"]
         return (
             "### Group Information",
-            gr.update(value=selected_item["name"], interactive=False),
+            selected_group_id,
+            selected_item["name"],
             selected_item["files"],
         )
 
