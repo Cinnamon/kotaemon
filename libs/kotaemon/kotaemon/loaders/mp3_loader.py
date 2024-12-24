@@ -1,54 +1,61 @@
-from loguru import logger
-from typing import Optional, List
-from kotaemon.base import Document, BaseReader
+from pathlib import Path
+from typing import Any, List, Optional
 
-###--------------------------------------------------------------------------###
+from loguru import logger
+
+from kotaemon.base import Document
+
+from .base import BaseReader
 
 try:
+    import accelerate  # noqa: F401
+    import librosa
     import torch
     from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 except ImportError:
     raise ImportError(
-        "Please install the required packages: 'pip install torch transformers'"
+        "To use the ASR pipeline please install the required packages: "
+        "'pip install accelerate librosa torch transformers'"
     )
-
-
-###--------------------------------------------------------------------------###
 
 
 class MP3Reader(BaseReader):
     def __init__(
         self,
-        model_id: str = "distil-whisper/distil-large-v3",
+        model_name_or_path: str = "distil-whisper/distil-large-v3",
         cache_dir: str = "models",
-    ):
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(*args, **kwargs)
         try:
             # Device and model configuration
-            self.torch_dtype = (
-                torch.float16 if torch.cuda.is_available() else torch.float32
-            )
-            self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+            torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+            device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
             # Model and processor initialization
-            self.model = AutoModelForSpeechSeq2Seq.from_pretrained(
-                model_id,
-                torch_dtype=self.torch_dtype,
+            model = AutoModelForSpeechSeq2Seq.from_pretrained(
+                model_name_or_path,
+                torch_dtype=torch_dtype,
                 low_cpu_mem_usage=True,
                 use_safetensors=True,
                 cache_dir=cache_dir,
-            ).to(self.device)
+            ).to(device)
 
-            self.processor = AutoProcessor.from_pretrained(model_id)
+            processor = AutoProcessor.from_pretrained(
+                model_name_or_path,
+            )
 
             # ASR pipeline setup
-            self.asr_pipeline = pipeline(
+            self._asr_pipeline = pipeline(
                 "automatic-speech-recognition",
-                model=self.model,
-                tokenizer=self.processor.tokenizer,
-                feature_extractor=self.processor.feature_extractor,
+                model=model,
+                tokenizer=processor.tokenizer,
+                feature_extractor=processor.feature_extractor,
                 max_new_tokens=128,
-                torch_dtype=self.torch_dtype,
-                device=self.device,
+                torch_dtype=torch_dtype,
+                device=device,
+                return_timestamps=True,
             )
             logger.info("ASR pipeline setup successful.")
         except Exception as e:
@@ -58,22 +65,27 @@ class MP3Reader(BaseReader):
     def speech_to_text(self, audio_path: str) -> str:
         try:
             # Performing speech recognition
-            result = self.asr_pipeline(audio_path)
-            return result.get("text", "Error: Text not found in the result")
+            audio_array, _ = librosa.load(audio_path, sr=16000)  # 16kHz sampling rate
+            result = self._asr_pipeline(audio_array)
+
+            text = result.get("text", "").strip()
+            if text == "":
+                logger.warning("No text found in the audio file.")
+            return text
         except Exception as e:
             logger.error(f"Error occurred during speech recognition: {e}")
-            return "Error: Speech recognition failed"
+            return ""
+
+    def run(
+        self, file_path: str | Path, extra_info: Optional[dict] = None, **kwargs
+    ) -> list[Document]:
+        return self.load_data(str(file_path), extra_info=extra_info, **kwargs)
 
     def load_data(
-        self, audio_file: str, extra_info: Optional[dict] = None
+        self, audio_file: str, extra_info: Optional[dict] = None, **kwargs
     ) -> List[Document]:
-        try:
-            # Get text from the audio file
-            text = self.speech_to_text(audio_file)
+        # Get text from the audio file
+        text = self.speech_to_text(audio_file)
+        metadata = extra_info or {}
 
-            metadata = extra_info or {}
-
-            return [Document(text=text, metadata=metadata)]
-        except Exception as e:
-            logger.error(f"Error occurred while loading data: {e}")
-            return []
+        return [Document(text=text, metadata=metadata)]
