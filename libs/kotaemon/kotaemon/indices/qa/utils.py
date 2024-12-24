@@ -2,6 +2,8 @@ from difflib import SequenceMatcher
 
 
 def find_text(search_span, context, min_length=5):
+    search_span, context = search_span.lower(), context.lower()
+
     sentence_list = search_span.split("\n")
     context = context.replace("\n", " ")
 
@@ -18,7 +20,7 @@ def find_text(search_span, context, min_length=5):
 
             matched_blocks = []
             for _, start, length in match_results:
-                if length > max(len(sentence) * 0.2, min_length):
+                if length > max(len(sentence) * 0.25, min_length):
                     matched_blocks.append((start, start + length))
 
             if matched_blocks:
@@ -42,6 +44,9 @@ def find_text(search_span, context, min_length=5):
 def find_start_end_phrase(
     start_phrase, end_phrase, context, min_length=5, max_excerpt_length=300
 ):
+    start_phrase, end_phrase = start_phrase.lower(), end_phrase.lower()
+    context = context.lower()
+
     context = context.replace("\n", " ")
 
     matches = []
