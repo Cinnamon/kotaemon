@@ -17,12 +17,12 @@ from kotaemon.loaders import (
     HtmlReader,
     MathpixPDFReader,
     MhtmlReader,
+    MP3Reader,
     OCRReader,
     PandasExcelReader,
     PDFThumbnailReader,
     TxtReader,
     UnstructuredReader,
-    MP3Reader,
     WebReader,
 )
 
