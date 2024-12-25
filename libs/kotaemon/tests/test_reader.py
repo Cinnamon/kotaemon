@@ -11,10 +11,14 @@ from kotaemon.loaders import (
     DocxReader,
     HtmlReader,
     MhtmlReader,
+    MP3Reader,
     UnstructuredReader,
 )
 
-from .conftest import skip_when_unstructured_pdf_not_installed
+from .conftest import (
+    skip_when_transformers_not_installed,
+    skip_when_unstructured_pdf_not_installed,
+)
 
 
 def test_docx_reader():
@@ -93,3 +97,18 @@ def test_azureai_document_intelligence_reader(mock_client):
 
     assert len(docs) == 1
     mock_client.assert_called_once()
+
+
+@skip_when_transformers_not_installed
+@patch("kotaemon.loaders.MP3Reader.asr_pipeline")
+def test_mp3_reader(mock_pipeline):
+    # Mock the return value
+    mock_pipeline.return_value = "This is the transcript"
+
+    reader = MP3Reader()
+    docs = reader.load_data(str(Path(__file__).parent / "resources" / "dummy.mp3"))
+
+    assert len(docs) == 1
+
+    # Assert that the ASR pipeline was called
+    mock_pipeline.assert_called_once()

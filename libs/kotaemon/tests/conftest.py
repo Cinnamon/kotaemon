@@ -70,6 +70,15 @@ def if_llama_cpp_not_installed():
         return False
 
 
+def if_transformers_not_installed():
+    try:
+        import transformers  # noqa: F401
+    except ImportError:
+        return True
+    else:
+        return False
+
+
 skip_when_haystack_not_installed = pytest.mark.skipif(
     if_haystack_not_installed(), reason="Haystack is not installed"
 )
@@ -96,4 +105,8 @@ skip_openai_lc_wrapper_test = pytest.mark.skipif(
 
 skip_llama_cpp_not_installed = pytest.mark.skipif(
     if_llama_cpp_not_installed(), reason="llama_cpp is not installed"
+)
+
+skip_when_transformers_not_installed = pytest.mark.skipif(
+    if_transformers_not_installed(), reason="transformers is not installed"
 )
