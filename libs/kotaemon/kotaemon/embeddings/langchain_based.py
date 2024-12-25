@@ -183,7 +183,7 @@ class LCCohereEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
 
     def _get_lc_class(self):
         try:
-            from langchain_community.embeddings import CohereEmbeddings
+            from langchain_cohere import CohereEmbeddings
         except ImportError:
             from langchain.embeddings import CohereEmbeddings
 
@@ -219,3 +219,38 @@ class LCHuggingFaceEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
             from langchain.embeddings import HuggingFaceBgeEmbeddings
 
         return HuggingFaceBgeEmbeddings
+
+
+class LCGoogleEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
+    """Wrapper around Langchain's Google GenAI embedding, focusing on key parameters"""
+
+    google_api_key: str = Param(
+        help="API key (https://aistudio.google.com/app/apikey)",
+        default=None,
+        required=True,
+    )
+    model: str = Param(
+        help="Model name to use (https://ai.google.dev/gemini-api/docs/models/gemini#text-embedding-and-embedding)",  # noqa
+        default="models/text-embedding-004",
+        required=True,
+    )
+
+    def __init__(
+        self,
+        model: str = "models/text-embedding-004",
+        google_api_key: Optional[str] = None,
+        **params,
+    ):
+        super().__init__(
+            model=model,
+            google_api_key=google_api_key,
+            **params,
+        )
+
+    def _get_lc_class(self):
+        try:
+            from langchain_google_genai import GoogleGenerativeAIEmbeddings
+        except ImportError:
+            raise ImportError("Please install langchain-google-genai")
+
+        return GoogleGenerativeAIEmbeddings

@@ -27,7 +27,9 @@ dependencies = [
     "sqlmodel>=0.0.16,<0.1",
     "tiktoken>=0.6.0,<1",
     "gradio>=4.31.0,<5",
+    "python-multipart==0.0.12", # required for gradio, pinning to avoid yanking issues with micropip (fixed in gradio >= 5.4.0)
     "markdown>=3.6,<4",
+    "tzlocal>=5.0",
 ]
 authors = [
     { name = "@trducng", email = "john@cinnamon.is" },

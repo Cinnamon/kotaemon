@@ -10,6 +10,7 @@ from .chats import (
     LCAnthropicChat,
     LCAzureChatOpenAI,
     LCChatOpenAI,
+    LCCohereChat,
     LCGeminiChat,
     LlamaCppChat,
 )
@@ -31,6 +32,7 @@ __all__ = [
     "ChatOpenAI",
     "LCAnthropicChat",
     "LCGeminiChat",
+    "LCCohereChat",
     "LCAzureChatOpenAI",
     "LCChatOpenAI",
     "LlamaCppChat",

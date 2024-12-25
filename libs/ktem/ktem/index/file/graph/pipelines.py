@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 from pathlib import Path
 from shutil import rmtree
@@ -7,6 +8,8 @@ from uuid import uuid4
 
 import pandas as pd
 import tiktoken
+import yaml
+from decouple import config
 from ktem.db.models import engine
 from sqlalchemy.orm import Session
 from theflow.settings import settings
@@ -35,6 +38,7 @@ except ImportError:
     print(
         (
             "GraphRAG dependencies not installed. "
+            "Try `pip install graphrag future` to install. "
             "GraphRAG retriever pipeline will not work properly."
         )
     )
@@ -42,6 +46,14 @@ except ImportError:
 
 filestorage_path = Path(settings.KH_FILESTORAGE_PATH) / "graphrag"
 filestorage_path.mkdir(parents=True, exist_ok=True)
+
+GRAPHRAG_KEY_MISSING_MESSAGE = (
+    "GRAPHRAG_API_KEY is not set. Please set it to use the GraphRAG retriever pipeline."
+)
+
+
+def check_graphrag_api_key():
+    return len(os.getenv("GRAPHRAG_API_KEY", "")) > 0
 
 
 def prepare_graph_index_path(graph_id: str):
@@ -54,7 +66,7 @@ def prepare_graph_index_path(graph_id: str):
 class GraphRAGIndexingPipeline(IndexDocumentPipeline):
     """GraphRAG specific indexing pipeline"""
 
-    def route(self, file_path: Path) -> IndexPipeline:
+    def route(self, file_path: str | Path) -> IndexPipeline:
         """Simply disable the splitter (chunking) for this pipeline"""
         pipeline = super().route(file_path)
         pipeline.splitter = None
@@ -94,7 +106,14 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
 
         return root_path
 
-    def call_graphrag_index(self, input_path: str):
+    def call_graphrag_index(self, graph_id: str, all_docs: list[Document]):
+        if not check_graphrag_api_key():
+            raise ValueError(GRAPHRAG_KEY_MISSING_MESSAGE)
+
+        # call GraphRAG index with docs and graph_id
+        input_path = self.write_docs_to_files(graph_id, all_docs)
+        input_path = str(input_path.absolute())
+
         # Construct the command
         command = [
             "python",
@@ -116,6 +135,16 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
         print(result.stdout)
         command = command[:-1]
 
+        # copy customized GraphRAG config file if it exists
+        if config("USE_CUSTOMIZED_GRAPHRAG_SETTING", default="value").lower() == "true":
+            setting_file_path = os.path.join(os.getcwd(), "settings.yaml.example")
+            destination_file_path = os.path.join(input_path, "settings.yaml")
+            try:
+                shutil.copy(setting_file_path, destination_file_path)
+            except shutil.Error:
+                # Handle the error if the file copy fails
+                print("failed to copy customized GraphRAG config file. ")
+
         # Run the command and stream stdout
         with subprocess.Popen(command, stdout=subprocess.PIPE, text=True) as process:
             if process.stdout:
@@ -134,8 +163,7 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
         # assign graph_id to file_ids
         graph_id = self.store_file_id_with_graph_id(file_ids)
         # call GraphRAG index with docs and graph_id
-        graph_index_path = self.write_docs_to_files(graph_id, all_docs)
-        yield from self.call_graphrag_index(graph_index_path)
+        yield from self.call_graphrag_index(graph_id, all_docs)
 
         return file_ids, errors, all_docs
 
@@ -152,7 +180,7 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             "search_type": {
                 "name": "Search type",
                 "value": "local",
-                "choices": ["local", "global"],
+                "choices": ["local"],
                 "component": "dropdown",
                 "info": "Whether to use local or global search in the graph.",
             }
@@ -177,15 +205,8 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
 
         root_path, _ = prepare_graph_index_path(graph_id)
         output_path = root_path / "output"
-        child_paths = sorted(
-            list(output_path.iterdir()), key=lambda x: x.stem, reverse=True
-        )
 
-        # get the latest child path
-        assert child_paths, "GraphRAG index output not found"
-        latest_child_path = Path(child_paths[0]) / "artifacts"
-
-        INPUT_DIR = latest_child_path
+        INPUT_DIR = output_path
         LANCEDB_URI = str(INPUT_DIR / "lancedb")
         COMMUNITY_REPORT_TABLE = "create_final_community_reports"
         ENTITY_TABLE = "create_final_nodes"
@@ -228,10 +249,28 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
         text_unit_df = pd.read_parquet(f"{INPUT_DIR}/{TEXT_UNIT_TABLE}.parquet")
         text_units = read_indexer_text_units(text_unit_df)
 
-        embedding_model = os.getenv("GRAPHRAG_EMBEDDING_MODEL")
+        # initialize default settings
+        embedding_model = os.getenv(
+            "GRAPHRAG_EMBEDDING_MODEL", "text-embedding-3-small"
+        )
+        embedding_api_key = os.getenv("GRAPHRAG_API_KEY")
+        embedding_api_base = None
+
+        # use customized GraphRAG settings if the flag is set
+        if config("USE_CUSTOMIZED_GRAPHRAG_SETTING", default="value").lower() == "true":
+            settings_yaml_path = Path(root_path) / "settings.yaml"
+            with open(settings_yaml_path, "r") as f:
+                settings = yaml.safe_load(f)
+            if settings["embeddings"]["llm"]["model"]:
+                embedding_model = settings["embeddings"]["llm"]["model"]
+            if settings["embeddings"]["llm"]["api_key"]:
+                embedding_api_key = settings["embeddings"]["llm"]["api_key"]
+            if settings["embeddings"]["llm"]["api_base"]:
+                embedding_api_base = settings["embeddings"]["llm"]["api_base"]
+
         text_embedder = OpenAIEmbedding(
-            api_key=os.getenv("OPENAI_API_KEY"),
-            api_base=None,
+            api_key=embedding_api_key,
+            api_base=embedding_api_base,
             api_type=OpenaiApiType.OpenAI,
             model=embedding_model,
             deployment_name=embedding_model,
@@ -318,6 +357,10 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
     ) -> list[RetrievedDocument]:
         if not self.file_ids:
             return []
+
+        if not check_graphrag_api_key():
+            raise ValueError(GRAPHRAG_KEY_MISSING_MESSAGE)
+
         context_builder = self._build_graph_search()
 
         local_context_params = {

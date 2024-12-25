@@ -98,15 +98,15 @@ _openai_chat_completion_responses_react_langchain_tool = [
             "Action: wikipedia\n"
             "Action Input: Cinnamon AI company\n"
         ),
-        (
-            "The information retrieved from Wikipedia is not "
-            "about Cinnamon AI company, but about Blue Prism, "
-            "a British multinational software corporation. "
-            "I need to try another source to gather information "
-            "about Cinnamon AI company.\n"
-            "Action: duckduckgo_search\n"
-            "Action Input: Cinnamon AI company\n"
-        ),
+        # (
+        #     "The information retrieved from Wikipedia is not "
+        #     "about Cinnamon AI company, but about Blue Prism, "
+        #     "a British multinational software corporation. "
+        #     "I need to try another source to gather information "
+        #     "about Cinnamon AI company.\n"
+        #     "Action: duckduckgo_search\n"
+        #     "Action Input: Cinnamon AI company\n"
+        # ),
         FINAL_RESPONSE_TEXT,
     ]
 ]

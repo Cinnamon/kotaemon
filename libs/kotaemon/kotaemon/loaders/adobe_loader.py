@@ -146,6 +146,7 @@ class AdobeReader(BaseReader):
                         "page_label": page_number,
                         "file_name": filename,
                         "file_path": filepath,
+                        **(extra_info if extra_info else {}),
                     },
                 )
             )
@@ -161,6 +162,7 @@ class AdobeReader(BaseReader):
                         "page_label": page_number,
                         "file_name": filename,
                         "file_path": filepath,
+                        **(extra_info if extra_info else {}),
                     },
                     metadata_template="",
                     metadata_seperator="",
@@ -178,6 +180,7 @@ class AdobeReader(BaseReader):
                         "page_label": page_number,
                         "file_name": filename,
                         "file_path": filepath,
+                        **(extra_info if extra_info else {}),
                     },
                     metadata_template="",
                     metadata_seperator="",

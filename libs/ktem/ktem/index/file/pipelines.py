@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import shutil
 import threading
@@ -16,6 +17,7 @@ import tiktoken
 from ktem.db.models import engine
 from ktem.embeddings.manager import embedding_models_manager
 from ktem.llms.manager import llms
+from ktem.rerankings.manager import reranking_models_manager
 from llama_index.core.readers.base import BaseReader
 from llama_index.core.readers.file.base import default_file_metadata_func
 from llama_index.core.vector_stores import (
@@ -37,14 +39,11 @@ from kotaemon.indices.ingests.files import (
     KH_DEFAULT_FILE_EXTRACTORS,
     adobe_reader,
     azure_reader,
+    docling_reader,
     unstructured,
+    web_reader,
 )
-from kotaemon.indices.rankings import (
-    BaseReranking,
-    CohereReranking,
-    LLMReranking,
-    LLMTrulensScoring,
-)
+from kotaemon.indices.rankings import BaseReranking, LLMReranking, LLMTrulensScoring
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 
 from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
@@ -123,6 +122,19 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             text: the text to retrieve similar documents
             doc_ids: list of document ids to constraint the retrieval
         """
+        # flatten doc_ids in case of group of doc_ids are passed
+        if doc_ids:
+            flatten_doc_ids = []
+            for doc_id in doc_ids:
+                if doc_id is None:
+                    raise ValueError("No document is selected")
+
+                if doc_id.startswith("["):
+                    flatten_doc_ids.extend(json.loads(doc_id))
+                else:
+                    flatten_doc_ids.append(doc_id)
+            doc_ids = flatten_doc_ids
+
         print("searching in doc_ids", doc_ids)
         if not doc_ids:
             logger.info(f"Skip retrieval because of no selected files: {self}")
@@ -285,7 +297,13 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             ],
             retrieval_mode=user_settings["retrieval_mode"],
             llm_scorer=(LLMTrulensScoring() if use_llm_reranking else None),
-            rerankers=[CohereReranking()],
+            rerankers=[
+                reranking_models_manager[
+                    index_settings.get(
+                        "reranking", reranking_models_manager.get_default_name()
+                    )
+                ]
+            ],
         )
         if not user_settings["use_reranking"]:
             retriever.rerankers = []  # type: ignore
@@ -442,7 +460,7 @@ class IndexPipeline(BaseComponent):
                 session.add_all(nodes)
                 session.commit()
 
-    def get_id_if_exists(self, file_path: Path) -> Optional[str]:
+    def get_id_if_exists(self, file_path: str | Path) -> Optional[str]:
         """Check if the file is already indexed
 
         Args:
@@ -451,13 +469,14 @@ class IndexPipeline(BaseComponent):
         Returns:
             the file id if the file is indexed, otherwise None
         """
+        file_name = file_path.name if isinstance(file_path, Path) else file_path
         if self.private:
             cond: tuple = (
-                self.Source.name == file_path.name,
+                self.Source.name == file_name,
                 self.Source.user == self.user_id,
             )
         else:
-            cond = (self.Source.name == file_path.name,)
+            cond = (self.Source.name == file_name,)
 
         with Session(engine) as session:
             stmt = select(self.Source).where(*cond)
@@ -466,6 +485,29 @@ class IndexPipeline(BaseComponent):
                 return item[0].id
 
         return None
+
+    def store_url(self, url: str) -> str:
+        """Store URL into the database and storage, return the file id
+
+        Args:
+            url: the URL
+
+        Returns:
+            the file id
+        """
+        file_hash = sha256(url.encode()).hexdigest()
+        source = self.Source(
+            name=url,
+            path=file_hash,
+            size=0,
+            user=self.user_id,  # type: ignore
+        )
+        with Session(engine) as session:
+            session.add(source)
+            session.commit()
+            file_id = source.id
+
+        return file_id
 
     def store_file(self, file_path: Path) -> str:
         """Store file into the database and storage, return the file id
@@ -493,7 +535,7 @@ class IndexPipeline(BaseComponent):
 
         return file_id
 
-    def finish(self, file_id: str, file_path: Path) -> str:
+    def finish(self, file_id: str, file_path: str | Path) -> str:
         """Finish the indexing"""
         with Session(engine) as session:
             stmt = select(self.Source).where(self.Source.id == file_id)
@@ -559,37 +601,55 @@ class IndexPipeline(BaseComponent):
     def stream(
         self, file_path: str | Path, reindex: bool, **kwargs
     ) -> Generator[Document, None, tuple[str, list[Document]]]:
-        # check for duplication
-        file_path = Path(file_path).resolve()
+        # check if the file is already indexed
+        if isinstance(file_path, Path):
+            file_path = file_path.resolve()
+
         file_id = self.get_id_if_exists(file_path)
-        if file_id is not None:
-            if not reindex:
-                raise ValueError(
-                    f"File {file_path.name} already indexed. Please rerun with "
-                    "reindex=True to force reindexing."
-                )
+
+        if isinstance(file_path, Path):
+            if file_id is not None:
+                if not reindex:
+                    raise ValueError(
+                        f"File {file_path.name} already indexed. Please rerun with "
+                        "reindex=True to force reindexing."
+                    )
+                else:
+                    # remove the existing records
+                    yield Document(
+                        f" => Removing old {file_path.name}", channel="debug"
+                    )
+                    self.delete_file(file_id)
+                    file_id = self.store_file(file_path)
             else:
-                # remove the existing records
-                yield Document(f" => Removing old {file_path.name}", channel="debug")
-                self.delete_file(file_id)
+                # add record to db
                 file_id = self.store_file(file_path)
         else:
-            # add record to db
-            file_id = self.store_file(file_path)
+            if file_id is not None:
+                raise ValueError(f"URL {file_path} already indexed.")
+            else:
+                # add record to db
+                file_id = self.store_url(file_path)
 
         # extract the file
-        extra_info = default_file_metadata_func(str(file_path))
+        if isinstance(file_path, Path):
+            extra_info = default_file_metadata_func(str(file_path))
+            file_name = file_path.name
+        else:
+            extra_info = {"file_name": file_path}
+            file_name = file_path
+
         extra_info["file_id"] = file_id
         extra_info["collection_name"] = self.collection_name
 
-        yield Document(f" => Converting {file_path.name} to text", channel="debug")
+        yield Document(f" => Converting {file_name} to text", channel="debug")
         docs = self.loader.load_data(file_path, extra_info=extra_info)
-        yield Document(f" => Converted {file_path.name} to text", channel="debug")
-        yield from self.handle_docs(docs, file_id, file_path.name)
+        yield Document(f" => Converted {file_name} to text", channel="debug")
+        yield from self.handle_docs(docs, file_id, file_name)
 
         self.finish(file_id, file_path)
 
-        yield Document(f" => Finished indexing {file_path.name}", channel="debug")
+        yield Document(f" => Finished indexing {file_name}", channel="debug")
         return file_id, docs
 
 
@@ -617,6 +677,8 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
             readers[".pdf"] = adobe_reader
         elif self.reader_mode == "azure-di":
             readers[".pdf"] = azure_reader
+        elif self.reader_mode == "docling":
+            readers[".pdf"] = docling_reader
 
         dev_readers, _, _ = dev_settings()
         readers.update(dev_readers)
@@ -636,6 +698,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                         "Azure AI Document Intelligence (figure+table extraction)",
                         "azure-di",
                     ),
+                    ("Docling (figure+table extraction)", "docling"),
                 ],
                 "component": "dropdown",
             },
@@ -656,20 +719,36 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         )
         return obj
 
-    def route(self, file_path: Path) -> IndexPipeline:
+    def is_url(self, file_path: str | Path) -> bool:
+        return isinstance(file_path, str) and (
+            file_path.startswith("http://") or file_path.startswith("https://")
+        )
+
+    def route(self, file_path: str | Path) -> IndexPipeline:
         """Decide the pipeline based on the file type
 
         Can subclass this method for a more elaborate pipeline routing strategy.
         """
-        _, chunk_size, chunk_overlap = dev_settings()
 
-        ext = file_path.suffix.lower()
-        reader = self.readers.get(ext, unstructured)
-        if reader is None:
-            raise NotImplementedError(
-                f"No supported pipeline to index {file_path.name}. Please specify "
-                "the suitable pipeline for this file type in the settings."
-            )
+        _, dev_chunk_size, dev_chunk_overlap = dev_settings()
+
+        chunk_size = self.chunk_size or dev_chunk_size
+        chunk_overlap = self.chunk_overlap or dev_chunk_overlap
+
+        # check if file_path is a URL
+        if self.is_url(file_path):
+            reader = web_reader
+        else:
+            assert isinstance(file_path, Path)
+            ext = file_path.suffix.lower()
+            reader = self.readers.get(ext, unstructured)
+            if reader is None:
+                raise NotImplementedError(
+                    f"No supported pipeline to index {file_path.name}. Please specify "
+                    "the suitable pipeline for this file type in the settings."
+                )
+
+        print(f"Chunk size: {chunk_size}, chunk overlap: {chunk_overlap}")
 
         print("Using reader", reader)
         pipeline: IndexPipeline = IndexPipeline(
@@ -713,9 +792,14 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
 
         n_files = len(file_paths)
         for idx, file_path in enumerate(file_paths):
-            file_path = Path(file_path)
+            if self.is_url(file_path):
+                file_name = file_path
+            else:
+                file_path = Path(file_path)
+                file_name = file_path.name
+
             yield Document(
-                content=f"Indexing [{idx+1}/{n_files}]: {file_path.name}",
+                content=f"Indexing [{idx + 1}/{n_files}]: {file_name}",
                 channel="debug",
             )
 
@@ -728,7 +812,11 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                 file_ids.append(file_id)
                 errors.append(None)
                 yield Document(
-                    content={"file_path": file_path, "status": "success"},
+                    content={
+                        "file_path": file_path,
+                        "file_name": file_name,
+                        "status": "success",
+                    },
                     channel="index",
                 )
             except Exception as e:
@@ -738,6 +826,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                 yield Document(
                     content={
                         "file_path": file_path,
+                        "file_name": file_name,
                         "status": "failed",
                         "message": str(e),
                     },

@@ -106,6 +106,12 @@ class SettingsPage(BasePage):
         self.on_building_ui()
 
     def on_building_ui(self):
+        self.setting_save_btn = gr.Button(
+            "Save & Close",
+            variant="primary",
+            elem_classes=["right-button"],
+            elem_id="save-setting-btn",
+        )
         if self._app.f_user_management:
             with gr.Tab("User settings"):
                 self.user_tab()
@@ -113,10 +119,6 @@ class SettingsPage(BasePage):
         self.app_tab()
         self.index_tab()
         self.reasoning_tab()
-
-        self.setting_save_btn = gr.Button(
-            "Save changes", variant="primary", scale=1, elem_classes=["right-button"]
-        )
 
     def on_subscribe_public_events(self):
         """
@@ -177,6 +179,9 @@ class SettingsPage(BasePage):
             self.save_setting,
             inputs=[self._user_id] + self.components(),
             outputs=self._settings_state,
+        ).then(
+            lambda: gr.Tabs(selected="chat-tab"),
+            outputs=self._app.tabs,
         )
         self._components["reasoning.use"].change(
             self.change_reasoning_mode,
@@ -272,7 +277,7 @@ class SettingsPage(BasePage):
         id2name = {k: v.name for k, v in self._app.index_manager.info().items()}
         with gr.Tab("Retrieval settings", visible=self._render_index_tab):
             for pn, sig in self._default_settings.index.options.items():
-                name = "{} Collection".format(id2name.get(pn, f"<id {pn}>"))
+                name = id2name.get(pn, f"<id {pn}>")
                 with gr.Tab(name):
                     for n, si in sig.settings.items():
                         obj = render_setting_item(si, si.value)

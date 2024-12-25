@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -11,6 +12,8 @@ from ktem.index import IndexManager
 from ktem.settings import BaseSettingGroup, SettingGroup, SettingReasoningGroup
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
+
+BASE_PATH = os.environ.get("GRADIO_ROOT_PATH", "")
 
 
 class BaseApp:
@@ -54,7 +57,9 @@ class BaseApp:
             self._pdf_view_js = self._pdf_view_js.replace(
                 "PDFJS_PREBUILT_DIR",
                 pdf_js_dist_dir,
-            )
+            ).replace("GRADIO_ROOT_PATH", BASE_PATH)
+        with (dir_assets / "js" / "svg-pan-zoom.min.js").open() as fi:
+            self._svg_js = fi.read()
 
         self._favicon = str(dir_assets / "img" / "favicon.svg")
 
@@ -172,6 +177,13 @@ class BaseApp:
             "<script type='module' "
             "src='https://cdn.skypack.dev/pdfjs-viewer-element'>"
             "</script>"
+            "<script>"
+            f"{self._svg_js}"
+            "</script>"
+            "<script type='module' "
+            "src='https://cdnjs.cloudflare.com/ajax/libs/tributejs/5.1.3/tribute.min.js'>"  # noqa
+            "</script>"
+            "<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/tributejs/5.1.3/tribute.css'/>"  # noqa
         )
 
         with gr.Blocks(

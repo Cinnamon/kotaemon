@@ -1,11 +1,10 @@
 # kotaemon
 
-Quick and easy AI components to build Kotaemon - applicable in client
-project.
+Quick and easy AI components to build Kotaemon
 
 ## Documentation
 
-https://docs.promptui.dm.cinnamon.is
+TBD
 
 ## Install
 

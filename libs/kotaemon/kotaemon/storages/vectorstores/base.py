@@ -73,17 +73,25 @@ class BaseVectorStore(ABC):
 
 
 class LlamaIndexVectorStore(BaseVectorStore):
-    _li_class: type[LIVectorStore | BasePydanticVectorStore]
+    """Mixin for LlamaIndex based vectorstores"""
+
+    _li_class: type[LIVectorStore | BasePydanticVectorStore] | None
+
+    def _get_li_class(self):
+        raise NotImplementedError(
+            "Please return the relevant LlamaIndex class in in _get_li_class"
+        )
 
     def __init__(self, *args, **kwargs):
-        if self._li_class is None:
-            raise AttributeError(
-                "Require `_li_class` to set a VectorStore class from LlamarIndex"
-            )
+        # get li_class from the method if not set
+        if not self._li_class:
+            LIClass = self._get_li_class()
+        else:
+            LIClass = self._li_class
 
         from dataclasses import fields
 
-        self._client = self._li_class(*args, **kwargs)
+        self._client = LIClass(*args, **kwargs)
 
         self._vsq_kwargs = {_.name for _ in fields(VectorStoreQuery)}
         for key in ["query_embedding", "similarity_top_k", "node_ids"]:
@@ -97,6 +105,9 @@ class LlamaIndexVectorStore(BaseVectorStore):
         return setattr(self._client, name, value)
 
     def __getattr__(self, name: str) -> Any:
+        if name == "_li_class":
+            return super().__getattribute__(name)
+
         return getattr(self._client, name)
 
     def add(

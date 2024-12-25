@@ -21,32 +21,41 @@ dynamic = ["version"]
 requires-python = ">= 3.10"
 description = "Kotaemon core library for AI development."
 dependencies = [
+    "azure-ai-documentintelligence",
+    "beautifulsoup4>=4.12.3,<4.13",
     "click>=8.1.7,<9",
     "cohere>=5.3.2,<6",
     "cookiecutter>=2.6.0,<2.7",
     "fast_langdetect",
+    "fastapi<=0.112.1",
     "gradio>=4.31.0,<4.40",
     "html2text==2024.2.26",
-    "langchain>=0.1.16,<0.2.0",
-    "langchain-community>=0.0.34,<0.1.0",
+    "langchain>=0.1.16,<0.2.16",
+    "langchain-community>=0.0.34,<=0.2.11",
     "langchain-openai>=0.1.4,<0.2.0",
+    "langchain-google-genai>=1.0.3,<2.0.0",
     "langchain-anthropic",
+    "langchain-cohere>=0.2.4,<0.3.0",
     "llama-hub>=0.0.79,<0.1.0",
     "llama-index>=0.10.40,<0.11.0",
-    "fastapi<=0.112.1",
+    "chromadb<=0.5.16",
     "llama-index-vector-stores-chroma>=0.1.9",
     "llama-index-vector-stores-lancedb",
-    "llama-index-vector-stores-milvus",
     "openai>=1.23.6,<2",
     "openpyxl>=3.1.2,<3.2",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.25.0", # https://github.com/chroma-core/chroma/issues/2571
     "pandas>=2.2.2,<2.3",
     "plotly",
-    "PyMuPDF>=1.23",
+    "PyMuPDF>=1.23,<=1.24.11",
     "pypdf>=4.2.0,<4.3",
+    "python-decouple", # for theflow
+    "python-docx>=1.1.0,<1.2",
     "python-dotenv>=1.0.1,<1.1",
     "tenacity>=8.2.3,<8.3",
     "theflow>=0.8.6,<0.9.0",
     "trogon>=0.5.0,<0.6",
+    "umap-learn==0.5.5",
+    "tavily-python>=0.4.0",
 ]
 readme = "README.md"
 authors = [
@@ -62,18 +71,19 @@ classifiers = [
 
 [project.optional-dependencies]
 adv = [
-    "azure-ai-documentintelligence",
-    "beautifulsoup4>=4.12.3,<4.13",
     "duckduckgo-search>=6.1.0,<6.2",
     "elasticsearch>=8.13.0,<8.14",
-    "googlesearch-python>=1.2.4,<1.3",
-    "python-docx>=1.1.0,<1.2",
-    "tabulate",
-    "wikipedia>=1.4.0,<1.5",
-    "sentence-transformers",
-    "llama-cpp-python<0.2.8",
     "fastembed",
+    "onnxruntime<v1.20",
+    "googlesearch-python>=1.2.4,<1.3",
+    "llama-cpp-python<0.2.8",
+    "llama-index>=0.10.40,<0.11.0",
+    "llama-index-vector-stores-milvus",
     "llama-index-vector-stores-qdrant",
+    "sentence-transformers",
+    "tabulate",
+    "unstructured>=0.15.8,<0.16",
+    "wikipedia>=1.4.0,<1.5",
 ]
 dev = [
     "black",
@@ -83,7 +93,6 @@ dev = [
     "pre-commit",
     "pytest",
     "pytest-mock",
-    "python-decouple",
     "sphinx",
 ]
 all = ["kotaemon[adv,dev]"]

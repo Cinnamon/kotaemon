@@ -42,18 +42,14 @@ class VectorIndexing(BaseIndexing):
             **kwargs,
         )
 
-    def to_qa_pipeline(self, *args, **kwargs):
-        from .qa import CitationQAPipeline
-
-        return TextVectorQA(
-            retrieving_pipeline=self.to_retrieval_pipeline(**kwargs),
-            qa_pipeline=CitationQAPipeline(**kwargs),
-        )
-
     def write_chunk_to_file(self, docs: list[Document]):
         # save the chunks content into markdown format
         if self.cache_dir:
-            file_name = Path(docs[0].metadata["file_name"])
+            file_name = docs[0].metadata.get("file_name")
+            if not file_name:
+                return
+
+            file_name = Path(file_name)
             for i in range(len(docs)):
                 markdown_content = ""
                 if "page_label" in docs[i].metadata:
@@ -241,7 +237,7 @@ class VectorRetrieval(BaseRetrieval):
                 # if reranker is LLMReranking, limit the document with top_k items only
                 if isinstance(reranker, LLMReranking):
                     result = self._filter_docs(result, top_k=top_k)
-                result = reranker(documents=result, query=text)
+                result = reranker.run(documents=result, query=text)
 
         result = self._filter_docs(result, top_k=top_k)
         print(f"Got raw {len(result)} retrieved documents")

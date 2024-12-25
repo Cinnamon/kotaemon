@@ -1,5 +1,6 @@
 import logging
 import os
+from copy import deepcopy
 
 import gradio as gr
 from ktem.app import BasePage
@@ -9,6 +10,7 @@ from sqlmodel import Session, or_, select
 import flowsettings
 
 from ...utils.conversation import sync_retrieval_n_message
+from .chat_suggestion import ChatSuggestion
 from .common import STATE
 
 logger = logging.getLogger(__name__)
@@ -36,7 +38,43 @@ class ConversationControl(BasePage):
         self.on_building_ui()
 
     def on_building_ui(self):
-        gr.Markdown("## Conversations")
+        with gr.Row():
+            gr.Markdown("## Conversations")
+            self.btn_toggle_dark_mode = gr.Button(
+                value="",
+                icon=f"{ASSETS_DIR}/dark_mode.svg",
+                scale=1,
+                size="sm",
+                elem_classes=["no-background", "body-text-color"],
+                elem_id="toggle-dark-button",
+            )
+            self.btn_chat_expand = gr.Button(
+                value="",
+                icon=f"{ASSETS_DIR}/expand.svg",
+                scale=1,
+                size="sm",
+                elem_classes=["no-background", "body-text-color"],
+                elem_id="chat-expand-button",
+            )
+            self.btn_info_expand = gr.Button(
+                value="",
+                icon=f"{ASSETS_DIR}/expand.svg",
+                min_width=2,
+                scale=1,
+                size="sm",
+                elem_classes=["no-background", "body-text-color"],
+                elem_id="info-expand-button",
+            )
+
+            self.btn_toggle_dark_mode.click(
+                None,
+                js="""
+                () => {
+                    document.body.classList.toggle('dark');
+                }
+                """,
+            )
+
         self.conversation_id = gr.State(value="")
         self.conversation = gr.Dropdown(
             label="Chat sessions",
@@ -48,9 +86,17 @@ class ConversationControl(BasePage):
         )
 
         with gr.Row() as self._new_delete:
-            self.btn_new = gr.Button(
+            self.cb_is_public = gr.Checkbox(
+                value=False,
+                label="Shared",
+                min_width=10,
+                scale=4,
+                elem_id="is-public-checkbox",
+                container=False,
+            )
+            self.btn_conversation_rn = gr.Button(
                 value="",
-                icon=f"{ASSETS_DIR}/new.svg",
+                icon=f"{ASSETS_DIR}/rename.svg",
                 min_width=2,
                 scale=1,
                 size="sm",
@@ -64,24 +110,14 @@ class ConversationControl(BasePage):
                 size="sm",
                 elem_classes=["no-background", "body-text-color"],
             )
-            self.btn_conversation_rn = gr.Button(
+            self.btn_new = gr.Button(
                 value="",
-                icon=f"{ASSETS_DIR}/rename.svg",
+                icon=f"{ASSETS_DIR}/new.svg",
                 min_width=2,
                 scale=1,
                 size="sm",
                 elem_classes=["no-background", "body-text-color"],
-            )
-            self.btn_info_expand = gr.Button(
-                value="",
-                icon=f"{ASSETS_DIR}/sidebar.svg",
-                min_width=2,
-                scale=1,
-                size="sm",
-                elem_classes=["no-background", "body-text-color"],
-            )
-            self.cb_is_public = gr.Checkbox(
-                value=False, label="Shared", min_width=10, scale=4
+                elem_id="new-conv-button",
             )
 
         with gr.Row(visible=False) as self._delete_confirm:
@@ -102,6 +138,8 @@ class ConversationControl(BasePage):
                 interactive=True,
                 visible=False,
             )
+
+        self.chat_suggestion = ChatSuggestion(self._app)
 
     def load_chat_history(self, user_id):
         """Reload chat history"""
@@ -219,6 +257,7 @@ class ConversationControl(BasePage):
                     selected = {}
 
                 chats = result.data_source.get("messages", [])
+                chat_suggestions = result.data_source.get("chat_suggestions", [])
 
                 retrieval_history: list[str] = result.data_source.get(
                     "retrieval_messages", []
@@ -243,6 +282,7 @@ class ConversationControl(BasePage):
                 name = ""
                 selected = {}
                 chats = []
+                chat_suggestions = []
                 retrieval_history = []
                 plot_history = []
                 info_panel = ""
@@ -265,6 +305,7 @@ class ConversationControl(BasePage):
             id_,
             name,
             chats,
+            chat_suggestions,
             info_panel,
             plot_data,
             retrieval_history,
@@ -310,6 +351,36 @@ class ConversationControl(BasePage):
             conversation_id,
             gr.update(visible=False),
         )
+
+    def persist_chat_suggestions(
+        self, conversation_id, new_suggestions, is_updated, user_id
+    ):
+        """Update the conversation's chat suggestions"""
+        if not is_updated:
+            return
+
+        if user_id is None:
+            gr.Warning("Please sign in first (Settings → User Settings)")
+            return gr.update(), ""
+
+        if not conversation_id:
+            gr.Warning("No conversation selected.")
+            return gr.update(), ""
+
+        with Session(engine) as session:
+            statement = select(Conversation).where(Conversation.id == conversation_id)
+            result = session.exec(statement).one()
+
+            data_source = deepcopy(result.data_source)
+            data_source["chat_suggestions"] = [
+                [x] for x in new_suggestions.iloc[:, 0].tolist()
+            ]
+
+            result.data_source = data_source
+            session.add(result)
+            session.commit()
+
+        gr.Info("Chat suggestions updated.")
 
     def _on_app_created(self):
         """Reload the conversation once the app is created"""

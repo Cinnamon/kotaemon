@@ -52,6 +52,7 @@ class DecomposeQuestionPipeline(RewriteQuestionPipeline):
         llm_kwargs = {
             "tools": [{"type": "function", "function": function}],
             "tool_choice": "auto",
+            "tools_pydantic": [SubQuery],
         }
 
         messages = [
@@ -68,11 +69,21 @@ class DecomposeQuestionPipeline(RewriteQuestionPipeline):
         sub_queries = []
         if tool_calls:
             for tool_call in tool_calls:
+                if "function" in tool_call:
+                    # openai and cohere format
+                    function_output = tool_call["function"]["arguments"]
+                else:
+                    # anthropic format
+                    function_output = tool_call["args"]
+
+                if isinstance(function_output, str):
+                    sub_query = SubQuery.parse_raw(function_output).sub_query
+                else:
+                    sub_query = SubQuery.parse_obj(function_output).sub_query
+
                 sub_queries.append(
                     Document(
-                        content=SubQuery.parse_raw(
-                            tool_call["function"]["arguments"]
-                        ).sub_query
+                        content=sub_query,
                     )
                 )
 
