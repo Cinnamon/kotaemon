@@ -10,6 +10,7 @@ from sqlmodel import Session, or_, select
 import flowsettings
 
 from ...utils.conversation import sync_retrieval_n_message
+from .chat_suggestion import ChatSuggestion
 from .common import STATE
 
 logger = logging.getLogger(__name__)
@@ -247,6 +248,8 @@ class ConversationControl(BasePage):
 
     def select_conv(self, conversation_id, user_id):
         """Select the conversation"""
+        default_chat_suggestions = [[each] for each in ChatSuggestion.CHAT_SAMPLES]
+
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == conversation_id)
             try:
@@ -263,7 +266,9 @@ class ConversationControl(BasePage):
                     selected = {}
 
                 chats = result.data_source.get("messages", [])
-                chat_suggestions = result.data_source.get("chat_suggestions", [])
+                chat_suggestions = result.data_source.get(
+                    "chat_suggestions", default_chat_suggestions
+                )
 
                 retrieval_history: list[str] = result.data_source.get(
                     "retrieval_messages", []
@@ -288,7 +293,7 @@ class ConversationControl(BasePage):
                 name = ""
                 selected = {}
                 chats = []
-                chat_suggestions = []
+                chat_suggestions = default_chat_suggestions
                 retrieval_history = []
                 plot_history = []
                 info_panel = ""
