@@ -377,7 +377,7 @@ class ChatPage(BasePage):
             "fn": self.suggest_chat_conv,
             "inputs": [
                 self._app.settings_state,
-                self.chat_suggestion.default_example,
+                self.language,
                 self.chat_panel.chatbot,
                 self._use_suggestion,
             ],
@@ -1122,14 +1122,23 @@ class ChatPage(BasePage):
         return new_name, renamed
 
     def suggest_chat_conv(
-        self, settings, default_suggestions, chat_history, use_suggestion
+        self,
+        settings,
+        session_language,
+        chat_history,
+        use_suggestion,
     ):
+        target_language = (
+            session_language
+            if session_language not in (DEFAULT_SETTING, None)
+            else settings["reasoning.lang"]
+        )
         if use_suggestion:
             suggest_pipeline = SuggestFollowupQuesPipeline()
             suggest_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
-                settings["reasoning.lang"], "English"
+                target_language, "English"
             )
-            suggested_questions = default_suggestions
+            suggested_questions = [[each] for each in ChatSuggestion.CHAT_SAMPLES]
 
             if len(chat_history) >= 1:
                 suggested_resp = suggest_pipeline(chat_history).text
