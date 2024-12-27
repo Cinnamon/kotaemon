@@ -16,7 +16,7 @@ from kotaemon.loaders import (
 )
 
 from .conftest import (
-    skip_when_transformers_not_installed,
+    skip_when_librosa_not_installed,
     skip_when_unstructured_pdf_not_installed,
 )
 
@@ -99,7 +99,7 @@ def test_azureai_document_intelligence_reader(mock_client):
     mock_client.assert_called_once()
 
 
-@skip_when_transformers_not_installed
+@skip_when_librosa_not_installed
 @patch("kotaemon.loaders.MP3Reader.asr_pipeline")
 def test_mp3_reader(mock_pipeline):
     # Mock the return value

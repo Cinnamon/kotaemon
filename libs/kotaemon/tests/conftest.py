@@ -70,9 +70,9 @@ def if_llama_cpp_not_installed():
         return False
 
 
-def if_transformers_not_installed():
+def if_librosa_not_installed():
     try:
-        import transformers  # noqa: F401
+        import librosa  # noqa: F401
     except ImportError:
         return True
     else:
@@ -107,6 +107,6 @@ skip_llama_cpp_not_installed = pytest.mark.skipif(
     if_llama_cpp_not_installed(), reason="llama_cpp is not installed"
 )
 
-skip_when_transformers_not_installed = pytest.mark.skipif(
-    if_transformers_not_installed(), reason="transformers is not installed"
+skip_when_librosa_not_installed = pytest.mark.skipif(
+    if_librosa_not_installed(), reason="librosa is not installed"
 )
