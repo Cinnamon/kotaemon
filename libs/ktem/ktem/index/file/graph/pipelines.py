@@ -291,10 +291,10 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
         )
 
     def format_context_records(self, context_records) -> list[RetrievedDocument]:
-        entities = context_records.get("entities", [])
-        relationships = context_records.get("relationships", [])
-        reports = context_records.get("reports", [])
-        sources = context_records.get("sources", [])
+        entities = context_records.get("entities", pd.DataFrame())
+        relationships = context_records.get("relationships", pd.DataFrame())
+        reports = context_records.get("reports", pd.DataFrame())
+        sources = context_records.get("sources", pd.DataFrame())
 
         docs = []
 
