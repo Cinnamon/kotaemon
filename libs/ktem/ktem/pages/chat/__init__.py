@@ -9,6 +9,7 @@ from ktem.app import BasePage
 from ktem.components import reasonings
 from ktem.db.models import Conversation, engine
 from ktem.index.file.ui import File
+from ktem.reasoning.prompt_optimization.mindmap import MINDMAP_HTML_EXPORT_TEMPLATE
 from ktem.reasoning.prompt_optimization.suggest_conversation_name import (
     SuggestConvNamePipeline,
 )
@@ -41,6 +42,7 @@ if KH_WEB_SEARCH_BACKEND:
 
 DEFAULT_SETTING = "(default)"
 INFO_PANEL_SCALES = {True: 8, False: 4}
+DEFAULT_QUESTION = "What is the summary of this document?"
 
 chat_input_focus_js = """
 function() {
@@ -51,6 +53,93 @@ function() {
 
 pdfview_js = """
 function() {
+    setTimeout(() => {
+        // Assign text selection event to last bot message
+        var bot_messages = document.querySelectorAll(
+            "div#main-chat-bot div.message-row.bot-row"
+        );
+        var last_bot_message = bot_messages[bot_messages.length - 1];
+
+        // check if the last bot message has class "text_selection"
+        if (last_bot_message.classList.contains("text_selection")) {
+            return;
+        }
+
+        // assign new class to last message
+        last_bot_message.classList.add("text_selection");
+
+        // Get sentences from evidence div
+        var evidences = document.querySelectorAll(
+            "#html-info-panel > div:last-child > div > details.evidence"
+        );
+        const segmenterEn = new Intl.Segmenter('en', { granularity: 'sentence' });
+        // Split sentences and save to all_segments list
+        var all_segments = [];
+        for (evidence of evidences) {
+            var markmap_div = evidence.querySelector("div.markmap");
+            if (markmap_div) {
+                continue;
+            }
+
+            sentence_it = segmenterEn.segment(evidence.innerText)[Symbol.iterator]();
+            while (sentence = sentence_it.next().value) {
+                segment = sentence.segment.trim();
+                if (segment) {
+                    all_segments.push({
+                        id: all_segments.length,
+                        text: segment,
+                    });
+                }
+            }
+        }
+
+        let miniSearch = new MiniSearch({
+            fields: ['text'], // fields to index for full-text search
+            storeFields: ['text'],
+        })
+
+        // Index all documents
+        miniSearch.addAll(all_segments);
+
+        last_bot_message.addEventListener('mouseup', () => {
+            let selection = window.getSelection().toString();
+            let results = miniSearch.search(selection);
+
+            if (results.length == 0) {
+                return;
+            }
+            let matched_text = results[0].text;
+
+            var evidences = document.querySelectorAll(
+                "#html-info-panel > div:last-child > div > details.evidence"
+            );
+
+            // convert all <mark> in evidences to normal text
+            evidences.forEach(evidence => {
+                evidence.querySelectorAll("mark").forEach(mark => {
+                    mark.outerHTML = mark.innerText;
+                });
+            });
+
+            // highlight matched_text in evidences
+            for (evidence of evidences) {
+                if (evidence.innerText.includes(matched_text)) {
+                    // select all p and li elements
+                    paragraphs = evidence.querySelectorAll("p, li");
+                    for (p of paragraphs) {
+                        if (p.innerText.includes(matched_text)) {
+                            p.innerHTML = p.innerText.replace(
+                                matched_text, "<mark>" + matched_text + "</mark>"
+                            );
+                            p.scrollIntoView({behavior: "smooth", block: "center"});
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+    }, 100);
+
     // Get all links and attach click event
     var links = document.getElementsByClassName("pdf-link");
     for (var i = 0; i < links.length; i++) {
@@ -63,51 +152,95 @@ function() {
         links[i].onclick = scrollToCitation;
     }
 
-    var mindmap_el = document.getElementById('mindmap');
+    var markmap_div = document.querySelector("div.markmap");
+    var mindmap_el_script = document.querySelector('div.markmap script');
 
-    if (mindmap_el) {
-        var output = svgPanZoom(mindmap_el);
-        const svg = mindmap_el.cloneNode(true);
+    if (mindmap_el_script) {
+        markmap_div_html = markmap_div.outerHTML;
+    }
 
-        function on_svg_export(event) {
-            event.preventDefault(); // Prevent the default link behavior
-            // convert to a valid XML source
-            const as_text = new XMLSerializer().serializeToString(svg);
-            // store in a Blob
-            const blob = new Blob([as_text], { type: "image/svg+xml" });
-            // create an URI pointing to that blob
-            const url = URL.createObjectURL(blob);
-            const win = open(url);
-            // so the Garbage Collector can collect the blob
-            win.onload = (evt) => URL.revokeObjectURL(url);
-        }
+    // render the mindmap if the script tag is present
 
-        var link = document.getElementById("mindmap-toggle");
-        if (link) {
-            link.onclick = function(event) {
-                event.preventDefault(); // Prevent the default link behavior
-                var div = document.getElementById("mindmap-wrapper");
-                if (div) {
-                    var currentHeight = div.style.height;
-                    if (currentHeight === '400px') {
-                        var contentHeight = div.scrollHeight;
-                        div.style.height = contentHeight + 'px';
-                    } else {
-                        div.style.height = '400px'
-                    }
-                }
-            };
-        }
+    if (mindmap_el_script) {
+        markmap.autoLoader.renderAll();
+    }
 
-        var link = document.getElementById("mindmap-export");
-        if (link) {
-            link.addEventListener('click', on_svg_export);
+    function spawnDocument(content, options) {
+        let opt = {
+            window: "",
+            closeChild: true,
+            childId: "_blank",
+        };
+        Object.assign(opt, options);
+        // minimal error checking
+        if (
+            content
+            && typeof content.toString == "function"
+            && content.toString().length
+        ) {
+            let child = window.open("", opt.childId, opt.window);
+            child.document.write(content.toString());
+            if (opt.closeChild)
+            child.document.close();
+            return child;
         }
     }
 
+    function fillChatInput(event) {
+        let chatInput = document.querySelector("#chat-input textarea");
+        // fill the chat input with the clicked div text
+        chatInput.value = "Explain " + event.target.innerText;
+        var evt = new Event('change');
+        chatInput.dispatchEvent(new Event('input', { bubbles: true }))
+        chatInput.focus();
+    }
+
+    setTimeout(() => {
+        var mindmap_el = document.querySelector('svg.markmap');
+
+        var text_nodes = document.querySelectorAll("svg.markmap div");
+        for (var i = 0; i < text_nodes.length; i++) {
+            text_nodes[i].onclick = fillChatInput;
+        }
+
+        if (mindmap_el) {
+            function on_svg_export(event) {
+                html = "{html_template}";
+                html = html.replace("{markmap_div}", markmap_div_html);
+                spawnDocument(html, {window: "width=1000,height=1000"});
+            }
+
+            var link = document.getElementById("mindmap-toggle");
+            if (link) {
+                link.onclick = function(event) {
+                    event.preventDefault(); // Prevent the default link behavior
+                    var div = document.querySelector("div.markmap");
+                    if (div) {
+                        var currentHeight = div.style.height;
+                        if (currentHeight === '400px' || (currentHeight === '')) {
+                            div.style.height = '650px';
+                        } else {
+                            div.style.height = '400px'
+                        }
+                    }
+                };
+            }
+
+            if (markmap_div_html) {
+                var link = document.getElementById("mindmap-export");
+                if (link) {
+                    link.addEventListener('click', on_svg_export);
+                }
+            }
+        }
+    }, 250);
+
     return [links.length]
 }
-"""
+""".replace(
+    "{html_template}",
+    MINDMAP_HTML_EXPORT_TEMPLATE.replace("\n", "").replace('"', '\\"'),
+)
 
 
 class ChatPage(BasePage):
@@ -258,11 +391,12 @@ class ChatPage(BasePage):
                                 elem_id="citation-dropdown",
                             )
 
-                            self.use_mindmap = gr.State(value=False)
+                            self.use_mindmap = gr.State(value=True)
                             self.use_mindmap_check = gr.Checkbox(
-                                label="Mindmap (off)",
+                                label="Mindmap (on)",
                                 container=False,
                                 elem_id="use-mindmap-checkbox",
+                                value=True,
                             )
 
             with gr.Column(
@@ -587,9 +721,10 @@ class ChatPage(BasePage):
             inputs=None,
             outputs=[self._preview_links],
             js=pdfview_js,
-        ).then(
-            fn=None, inputs=None, outputs=None, js=chat_input_focus_js
         )
+        # .then(
+        #     fn=None, inputs=None, outputs=None, js=chat_input_focus_js
+        # )
 
         self.chat_control.cb_is_public.change(
             self.on_set_public_conversation,
@@ -713,7 +848,11 @@ class ChatPage(BasePage):
         # if file_ids is not empty and chat_input_text is empty
         # set the input to summary
         if not chat_input_text and file_ids:
-            chat_input_text = "Summary"
+            chat_input_text = DEFAULT_QUESTION
+
+        # if start of conversation and no query is specified
+        if not chat_input_text and not chat_history:
+            chat_input_text = DEFAULT_QUESTION
 
         if file_ids:
             selector_output = [

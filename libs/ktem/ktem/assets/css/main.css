@@ -428,3 +428,14 @@ tbody:not(.row_odd) {
 #chat-suggestion table thead {
   display: none;
 }
+
+svg.markmap {
+  width: 100%;
+  height: 100%;
+  font-family: Quicksand, sans-serif;
+  font-size: 15px;
+}
+
+div.markmap {
+  height: 400px;
+}
