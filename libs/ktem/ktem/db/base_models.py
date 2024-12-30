@@ -55,7 +55,9 @@ class BaseUser(SQLModel):
 
     __table_args__ = {"extend_existing": True}
 
-    id: Optional[str] = Field(default=None, primary_key=True)
+    id: str = Field(
+        default_factory=lambda: uuid.uuid4().hex, primary_key=True, index=True
+    )
     username: str = Field(unique=True)
     username_lower: str = Field(unique=True)
     password: str

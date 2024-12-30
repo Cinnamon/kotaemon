@@ -75,7 +75,6 @@ Use the template like this:
         except IndexError:
             text = ""
 
-        print(text)
         return text
 
     def run(self, question: str, context: str) -> Document:  # type: ignore
