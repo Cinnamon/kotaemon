@@ -31,6 +31,15 @@ function() {
 }
 """
 
+chat_input_focus_js_with_submit = """
+function() {
+    let chatInput = document.querySelector("#chat-input textarea");
+    let chatInputSubmit = document.querySelector("#chat-input button.submit-button");
+    chatInputSubmit.click();
+    chatInput.focus();
+}
+"""
+
 update_file_list_js = """
 function(file_list) {
     var values = [];
@@ -53,6 +62,7 @@ function(file_list) {
         allowSpaces: true,
     })
     input_box = document.querySelector('#chat-input textarea');
+    tribute.detach(input_box);
     tribute.attach(input_box);
 }
 """.replace(
@@ -813,7 +823,7 @@ class FileIndexPage(BasePage):
                     fn=lambda: True,
                     inputs=None,
                     outputs=None,
-                    js=chat_input_focus_js,
+                    js=chat_input_focus_js_with_submit,
                 )
 
                 quickURLUploadedEvent.success(
@@ -832,7 +842,7 @@ class FileIndexPage(BasePage):
                     fn=lambda: True,
                     inputs=None,
                     outputs=None,
-                    js=chat_input_focus_js,
+                    js=chat_input_focus_js_with_submit,
                 )
 
         except Exception as e:
