@@ -1,4 +1,5 @@
 import logging
+from textwrap import dedent
 
 from ktem.llms.manager import llms
 
@@ -6,6 +7,31 @@ from kotaemon.base import BaseComponent, Document, HumanMessage, Node, SystemMes
 from kotaemon.llms import ChatLLM, PromptTemplate
 
 logger = logging.getLogger(__name__)
+
+
+MINDMAP_HTML_EXPORT_TEMPLATE = dedent(
+    """
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mindmap</title>
+    <style>
+      svg.markmap {
+        width: 100%;
+        height: 100vh;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.16"></script>
+  </head>
+  <body>
+    {markmap_div}
+  </body>
+</html>
+"""
+)
 
 
 class CreateMindmapPipeline(BaseComponent):
@@ -37,6 +63,21 @@ Use the template like this:
     """  # noqa: E501
     prompt_template: str = MINDMAP_PROMPT_TEMPLATE
 
+    @classmethod
+    def convert_uml_to_markdown(cls, text: str) -> str:
+        start_phrase = "@startmindmap"
+        end_phrase = "@endmindmap"
+
+        try:
+            text = text.split(start_phrase)[-1]
+            text = text.split(end_phrase)[0]
+            text = text.strip().replace("*", "#")
+        except IndexError:
+            text = ""
+
+        print(text)
+        return text
+
     def run(self, question: str, context: str) -> Document:  # type: ignore
         prompt_template = PromptTemplate(self.prompt_template)
         prompt = prompt_template.populate(
@@ -49,4 +90,9 @@ Use the template like this:
             HumanMessage(content=prompt),
         ]
 
-        return self.llm(messages)
+        uml_text = self.llm(messages).text
+        markdown_text = self.convert_uml_to_markdown(uml_text)
+
+        return Document(
+            text=markdown_text,
+        )
