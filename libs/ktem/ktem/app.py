@@ -79,7 +79,7 @@ class BaseApp:
         self.default_settings.index.finalize()
         self.settings_state = gr.State(self.default_settings.flatten())
 
-        self.user_id = gr.State(None)
+        self.user_id = gr.State("default" if not self.f_user_management else None)
 
     def initialize_indices(self):
         """Create the index manager, start indices, and register to app settings"""
