@@ -439,3 +439,12 @@ svg.markmap {
 div.markmap {
   height: 400px;
 }
+
+#google-login {
+  width: 250px;
+}
+
+#login-row {
+  display: grid;
+  place-items: center;
+}
