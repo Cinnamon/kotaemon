@@ -994,6 +994,18 @@ class ChatPage(BasePage):
                 },
             )
 
+    def _on_app_created(self):
+        if KH_DEMO_MODE:
+            self._app.app.load(
+                fn=self.chat_control.toggle_demo_login_visibility,
+                outputs=[
+                    self.chat_control.cb_suggest_chat,
+                    self.chat_control.btn_new,
+                    self.chat_control.btn_demo_logout,
+                    self.chat_control.btn_demo_login,
+                ],
+            )
+
     def persist_data_source(
         self,
         convo_id,

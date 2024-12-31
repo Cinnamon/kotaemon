@@ -3,7 +3,7 @@ import os
 import gradio as gr
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from decouple import config
-from fastapi import Depends, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 from ktem.assets import KotaemonTheme
 from starlette.config import Config
@@ -11,6 +11,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import RedirectResponse
 from theflow.settings import settings as flowsettings
 
+KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 KH_APP_DATA_DIR = getattr(flowsettings, "KH_APP_DATA_DIR", ".")
 GRADIO_TEMP_DIR = os.getenv("GRADIO_TEMP_DIR", None)
 # override GRADIO_TEMP_DIR if it's not set
@@ -52,20 +53,9 @@ app = FastAPI()
 oauth = add_session_middleware(app)
 
 
-# Dependency to get the current user
-def get_user(request: Request):
-    user = request.session.get("user")
-    if user:
-        return user["name"]
-    return None
-
-
 @app.get("/")
-def public(user: dict = Depends(get_user)):
-    if user:
-        return RedirectResponse(url="/app")
-    else:
-        return RedirectResponse(url="/login-app")
+def public():
+    return RedirectResponse(url="/app")
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -118,7 +108,6 @@ app = gr.mount_gradio_app(
     app,
     main_demo,
     path="/app",
-    auth_dependency=get_user,
     allowed_paths=[
         "libs/ktem/ktem/assets",
         GRADIO_TEMP_DIR,
