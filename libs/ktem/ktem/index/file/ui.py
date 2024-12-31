@@ -21,6 +21,8 @@ from theflow.settings import settings as flowsettings
 
 from ...utils.commands import WEB_SEARCH_COMMAND
 
+KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
+KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
 DOWNLOAD_MESSAGE = "Start download"
 MAX_FILENAME_LENGTH = 20
 
@@ -138,7 +140,9 @@ class FileIndexPage(BasePage):
         # TODO: on_building_ui is not correctly named if it's always called in
         # the constructor
         self.public_events = [f"onFileIndex{index.id}Changed"]
-        self.on_building_ui()
+
+        if not KH_DEMO_MODE:
+            self.on_building_ui()
 
     def upload_instruction(self) -> str:
         msgs = []
@@ -211,10 +215,10 @@ class FileIndexPage(BasePage):
 
         with gr.Accordion("Advance options", open=False):
             with gr.Row():
-                # self.download_all_button = gr.DownloadButton(
-                #     "Download all files",
-                #     visible=False,
-                # )
+                if not KH_SSO_ENABLED:
+                    self.download_all_button = gr.DownloadButton(
+                        "Download all files",
+                    )
                 self.delete_all_button = gr.Button(
                     "Delete all files",
                     variant="stop",
@@ -334,6 +338,9 @@ class FileIndexPage(BasePage):
 
     def on_subscribe_public_events(self):
         """Subscribe to the declared public event of the app"""
+        if KH_DEMO_MODE:
+            return
+
         self._app.subscribe_event(
             name=f"onFileIndex{self._index.id}Changed",
             definition={
@@ -581,158 +588,7 @@ class FileIndexPage(BasePage):
                 gr.update(visible=True),
             ]
 
-    def on_register_events(self):
-        """Register all events to the app"""
-        onDeleted = (
-            self.delete_button.click(
-                fn=self.delete_event,
-                inputs=[self.selected_file_id],
-                outputs=None,
-            )
-            .then(
-                fn=lambda: (None, self.selected_panel_false),
-                inputs=[],
-                outputs=[self.selected_file_id, self.selected_panel],
-                show_progress="hidden",
-            )
-            .then(
-                fn=self.list_file,
-                inputs=[self._app.user_id, self.filter],
-                outputs=[self.file_list_state, self.file_list],
-            )
-            .then(
-                fn=self.file_selected,
-                inputs=[self.selected_file_id],
-                outputs=[
-                    self.chunks,
-                    self.deselect_button,
-                    self.delete_button,
-                    self.download_single_button,
-                    self.chat_button,
-                ],
-                show_progress="hidden",
-            )
-        )
-        for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
-            onDeleted = onDeleted.then(**event)
-
-        self.deselect_button.click(
-            fn=lambda: (None, self.selected_panel_false),
-            inputs=[],
-            outputs=[self.selected_file_id, self.selected_panel],
-            show_progress="hidden",
-        ).then(
-            fn=self.file_selected,
-            inputs=[self.selected_file_id],
-            outputs=[
-                self.chunks,
-                self.deselect_button,
-                self.delete_button,
-                self.download_single_button,
-                self.chat_button,
-            ],
-            show_progress="hidden",
-        )
-
-        self.chat_button.click(
-            fn=self.set_file_id_selector,
-            inputs=[self.selected_file_id],
-            outputs=[
-                self._index.get_selector_component_ui().selector,
-                self._index.get_selector_component_ui().mode,
-                self._app.tabs,
-            ],
-        )
-
-        # self.download_all_button.click(
-        #     fn=self.download_all_files,
-        #     inputs=[],
-        #     outputs=self.download_all_button,
-        #     show_progress="hidden",
-        # )
-
-        self.delete_all_button.click(
-            self.show_delete_all_confirm,
-            [self.file_list],
-            [
-                self.delete_all_button,
-                self.delete_all_button_confirm,
-                self.delete_all_button_cancel,
-            ],
-        )
-        self.delete_all_button_cancel.click(
-            lambda: [
-                gr.update(visible=True),
-                gr.update(visible=False),
-                gr.update(visible=False),
-            ],
-            None,
-            [
-                self.delete_all_button,
-                self.delete_all_button_confirm,
-                self.delete_all_button_cancel,
-            ],
-        )
-
-        self.delete_all_button_confirm.click(
-            fn=self.delete_all_files,
-            inputs=[self.file_list],
-            outputs=[],
-            show_progress="hidden",
-        ).then(
-            fn=self.list_file,
-            inputs=[self._app.user_id, self.filter],
-            outputs=[self.file_list_state, self.file_list],
-        ).then(
-            lambda: [
-                gr.update(visible=True),
-                gr.update(visible=False),
-                gr.update(visible=False),
-            ],
-            None,
-            [
-                self.delete_all_button,
-                self.delete_all_button_confirm,
-                self.delete_all_button_cancel,
-            ],
-        )
-
-        # self.download_single_button.click(
-        #     fn=self.download_single_file,
-        #     inputs=[self.is_zipped_state, self.selected_file_id],
-        #     outputs=[self.is_zipped_state, self.download_single_button],
-        #     show_progress="hidden",
-        # )
-        self.download_single_button.click(
-            fn=self.download_single_file_simple,
-            inputs=[self.is_zipped_state, self.chunks, self.selected_file_id],
-            outputs=[self.is_zipped_state, self.download_single_button],
-            show_progress="hidden",
-        )
-
-        onUploaded = (
-            self.upload_button.click(
-                fn=lambda: gr.update(visible=True),
-                outputs=[self.upload_progress_panel],
-            )
-            .then(
-                fn=self.index_fn,
-                inputs=[
-                    self.files,
-                    self.urls,
-                    self.reindex,
-                    self._app.settings_state,
-                    self._app.user_id,
-                ],
-                outputs=[self.upload_result, self.upload_info],
-                concurrency_limit=20,
-            )
-            .then(
-                fn=lambda: gr.update(value=""),
-                outputs=[self.urls],
-            )
-        )
-
+    def on_register_quick_uploads(self):
         try:
             # quick file upload event registration of first Index only
             if self._index.id == 1:
@@ -807,38 +663,48 @@ class FileIndexPage(BasePage):
                 for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
                     quickURLUploadedEvent = quickURLUploadedEvent.then(**event)
 
-                quickUploadedEvent.success(
+                quickUploadedEvent = quickUploadedEvent.success(
                     fn=lambda x: x,
                     inputs=self.quick_upload_state,
                     outputs=self._app.chat_page._indices_input[1],
                 ).then(
                     fn=lambda: gr.update(value="Indexing completed."),
                     outputs=self._app.chat_page.quick_file_upload_status,
-                ).then(
-                    fn=self.list_file,
-                    inputs=[self._app.user_id, self.filter],
-                    outputs=[self.file_list_state, self.file_list],
-                    concurrency_limit=20,
-                ).then(
+                )
+
+                if not KH_DEMO_MODE:
+                    quickUploadedEvent = quickUploadedEvent.then(
+                        fn=self.list_file,
+                        inputs=[self._app.user_id, self.filter],
+                        outputs=[self.file_list_state, self.file_list],
+                        concurrency_limit=20,
+                    )
+
+                quickUploadedEvent = quickUploadedEvent.then(
                     fn=lambda: True,
                     inputs=None,
                     outputs=None,
                     js=chat_input_focus_js_with_submit,
                 )
 
-                quickURLUploadedEvent.success(
+                quickURLUploadedEvent = quickURLUploadedEvent.success(
                     fn=lambda x: x,
                     inputs=self.quick_upload_state,
                     outputs=self._app.chat_page._indices_input[1],
                 ).then(
                     fn=lambda: gr.update(value="Indexing completed."),
                     outputs=self._app.chat_page.quick_file_upload_status,
-                ).then(
-                    fn=self.list_file,
-                    inputs=[self._app.user_id, self.filter],
-                    outputs=[self.file_list_state, self.file_list],
-                    concurrency_limit=20,
-                ).then(
+                )
+
+                if not KH_DEMO_MODE:
+                    quickURLUploadedEvent = quickURLUploadedEvent.then(
+                        fn=self.list_file,
+                        inputs=[self._app.user_id, self.filter],
+                        outputs=[self.file_list_state, self.file_list],
+                        concurrency_limit=20,
+                    )
+
+                quickURLUploadedEvent = quickURLUploadedEvent.then(
                     fn=lambda: True,
                     inputs=None,
                     outputs=None,
@@ -847,6 +713,166 @@ class FileIndexPage(BasePage):
 
         except Exception as e:
             print(e)
+
+    def on_register_events(self):
+        """Register all events to the app"""
+        self.on_register_quick_uploads()
+
+        if KH_DEMO_MODE:
+            return
+
+        onDeleted = (
+            self.delete_button.click(
+                fn=self.delete_event,
+                inputs=[self.selected_file_id],
+                outputs=None,
+            )
+            .then(
+                fn=lambda: (None, self.selected_panel_false),
+                inputs=[],
+                outputs=[self.selected_file_id, self.selected_panel],
+                show_progress="hidden",
+            )
+            .then(
+                fn=self.list_file,
+                inputs=[self._app.user_id, self.filter],
+                outputs=[self.file_list_state, self.file_list],
+            )
+            .then(
+                fn=self.file_selected,
+                inputs=[self.selected_file_id],
+                outputs=[
+                    self.chunks,
+                    self.deselect_button,
+                    self.delete_button,
+                    self.download_single_button,
+                    self.chat_button,
+                ],
+                show_progress="hidden",
+            )
+        )
+        for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
+            onDeleted = onDeleted.then(**event)
+
+        self.deselect_button.click(
+            fn=lambda: (None, self.selected_panel_false),
+            inputs=[],
+            outputs=[self.selected_file_id, self.selected_panel],
+            show_progress="hidden",
+        ).then(
+            fn=self.file_selected,
+            inputs=[self.selected_file_id],
+            outputs=[
+                self.chunks,
+                self.deselect_button,
+                self.delete_button,
+                self.download_single_button,
+                self.chat_button,
+            ],
+            show_progress="hidden",
+        )
+
+        self.chat_button.click(
+            fn=self.set_file_id_selector,
+            inputs=[self.selected_file_id],
+            outputs=[
+                self._index.get_selector_component_ui().selector,
+                self._index.get_selector_component_ui().mode,
+                self._app.tabs,
+            ],
+        )
+
+        if not KH_SSO_ENABLED:
+            self.download_all_button.click(
+                fn=self.download_all_files,
+                inputs=[],
+                outputs=self.download_all_button,
+                show_progress="hidden",
+            )
+
+        self.delete_all_button.click(
+            self.show_delete_all_confirm,
+            [self.file_list],
+            [
+                self.delete_all_button,
+                self.delete_all_button_confirm,
+                self.delete_all_button_cancel,
+            ],
+        )
+        self.delete_all_button_cancel.click(
+            lambda: [
+                gr.update(visible=True),
+                gr.update(visible=False),
+                gr.update(visible=False),
+            ],
+            None,
+            [
+                self.delete_all_button,
+                self.delete_all_button_confirm,
+                self.delete_all_button_cancel,
+            ],
+        )
+
+        self.delete_all_button_confirm.click(
+            fn=self.delete_all_files,
+            inputs=[self.file_list],
+            outputs=[],
+            show_progress="hidden",
+        ).then(
+            fn=self.list_file,
+            inputs=[self._app.user_id, self.filter],
+            outputs=[self.file_list_state, self.file_list],
+        ).then(
+            lambda: [
+                gr.update(visible=True),
+                gr.update(visible=False),
+                gr.update(visible=False),
+            ],
+            None,
+            [
+                self.delete_all_button,
+                self.delete_all_button_confirm,
+                self.delete_all_button_cancel,
+            ],
+        )
+
+        if not KH_SSO_ENABLED:
+            self.download_single_button.click(
+                fn=self.download_single_file,
+                inputs=[self.is_zipped_state, self.selected_file_id],
+                outputs=[self.is_zipped_state, self.download_single_button],
+                show_progress="hidden",
+            )
+        else:
+            self.download_single_button.click(
+                fn=self.download_single_file_simple,
+                inputs=[self.is_zipped_state, self.chunks, self.selected_file_id],
+                outputs=[self.is_zipped_state, self.download_single_button],
+                show_progress="hidden",
+            )
+
+        onUploaded = (
+            self.upload_button.click(
+                fn=lambda: gr.update(visible=True),
+                outputs=[self.upload_progress_panel],
+            )
+            .then(
+                fn=self.index_fn,
+                inputs=[
+                    self.files,
+                    self.urls,
+                    self.reindex,
+                    self._app.settings_state,
+                    self._app.user_id,
+                ],
+                outputs=[self.upload_result, self.upload_info],
+                concurrency_limit=20,
+            )
+            .then(
+                fn=lambda: gr.update(value=""),
+                outputs=[self.urls],
+            )
+        )
 
         uploadedEvent = onUploaded.then(
             fn=self.list_file,
@@ -1003,6 +1029,9 @@ class FileIndexPage(BasePage):
 
     def _on_app_created(self):
         """Called when the app is created"""
+        if KH_DEMO_MODE:
+            return
+
         self._app.app.load(
             self.list_file,
             inputs=[self._app.user_id, self.filter],
