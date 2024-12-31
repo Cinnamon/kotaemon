@@ -96,6 +96,7 @@ class ConversationControl(BasePage):
                 scale=6,
                 elem_id="suggest-chat-checkbox",
                 container=False,
+                visible=not KH_DEMO_MODE,
             )
             self.cb_is_public = gr.Checkbox(
                 value=False,
@@ -124,8 +125,6 @@ class ConversationControl(BasePage):
                     size="sm",
                     elem_classes=["no-background", "body-text-color"],
                 )
-
-            if not KH_DEMO_MODE:
                 self.btn_new = gr.Button(
                     value="",
                     icon=f"{ASSETS_DIR}/new.svg",
@@ -143,6 +142,26 @@ class ConversationControl(BasePage):
                     scale=1,
                     variant="primary",
                     elem_id="new-conv-button",
+                    visible=False,
+                )
+
+        if KH_DEMO_MODE:
+            with gr.Row():
+                self.btn_demo_login = gr.Button(
+                    "Sign-in to create new chat",
+                    link="/login-app",
+                    min_width=120,
+                    size="sm",
+                    scale=1,
+                    variant="primary",
+                )
+                self.btn_demo_logout = gr.Button(
+                    "Sign-out",
+                    link="/logout",
+                    min_width=120,
+                    size="sm",
+                    scale=1,
+                    visible=False,
                 )
 
         with gr.Row(visible=False) as self._delete_confirm:
@@ -408,6 +427,29 @@ class ConversationControl(BasePage):
             session.commit()
 
         gr.Info("Chat suggestions updated.")
+
+    def toggle_demo_login_visibility(self, request: gr.Request):
+        try:
+            import gradiologin as grlogin
+
+            user = grlogin.get_user(request)
+        except (ImportError, AssertionError):
+            user = None
+
+        if user:
+            return [
+                gr.update(visible=True),
+                gr.update(visible=True),
+                gr.update(visible=True),
+                gr.update(visible=False),
+            ]
+        else:
+            return [
+                gr.update(visible=False),
+                gr.update(visible=False),
+                gr.update(visible=False),
+                gr.update(visible=True),
+            ]
 
     def _on_app_created(self):
         """Reload the conversation once the app is created"""
