@@ -43,7 +43,11 @@ if KH_WEB_SEARCH_BACKEND:
 
 DEFAULT_SETTING = "(default)"
 INFO_PANEL_SCALES = {True: 8, False: 4}
-DEFAULT_QUESTION = "What is the summary of this document?"
+DEFAULT_QUESTION = (
+    "What is the summary of this document?"
+    if not KH_DEMO_MODE
+    else "What is the summary of this paper?"
+)
 
 chat_input_focus_js = """
 function() {
@@ -280,8 +284,13 @@ class ChatPage(BasePage):
 
                     index_ui.unrender()  # need to rerender later within Accordion
                     is_first_index = index_id == 0
+                    index_name = index.name
+
+                    if KH_DEMO_MODE and is_first_index:
+                        index_name = "Select from Paper Collection"
+
                     with gr.Accordion(
-                        label=index.name,
+                        label=index_name,
                         open=is_first_index,
                         elem_id=f"index-{index_id}",
                     ):
@@ -312,21 +321,32 @@ class ChatPage(BasePage):
                 self.chat_suggestion = ChatSuggestion(self._app)
 
                 if len(self._app.index_manager.indices) > 0:
-                    with gr.Accordion(label="Quick Upload") as _:
+                    quick_upload_label = (
+                        "Quick Upload" if not KH_DEMO_MODE else "Or input new paper URL"
+                    )
+
+                    with gr.Accordion(label=quick_upload_label) as _:
                         self.quick_file_upload_status = gr.Markdown()
-                        self.quick_file_upload = File(
-                            file_types=list(KH_DEFAULT_FILE_EXTRACTORS.keys()),
-                            file_count="multiple",
-                            container=True,
-                            show_label=False,
-                            elem_id="quick-file",
-                        )
+                        if not KH_DEMO_MODE:
+                            self.quick_file_upload = File(
+                                file_types=list(KH_DEFAULT_FILE_EXTRACTORS.keys()),
+                                file_count="multiple",
+                                container=True,
+                                show_label=False,
+                                elem_id="quick-file",
+                            )
                         self.quick_urls = gr.Textbox(
-                            placeholder="Or paste URLs",
+                            placeholder=(
+                                "Or paste URLs"
+                                if not KH_DEMO_MODE
+                                else "Paste Arxiv URLs\n(https://arxiv.org/abs/xxx)"
+                            ),
                             lines=1,
                             container=False,
                             show_label=False,
-                            elem_id="quick-url",
+                            elem_id=(
+                                "quick-url" if not KH_DEMO_MODE else "quick-url-demo"
+                            ),
                         )
 
                 self.report_issue = ReportIssue(self._app)
@@ -569,12 +589,6 @@ class ChatPage(BasePage):
             fn=None, inputs=None, js="function() {toggleChatColumn();}"
         )
 
-        self.chat_panel.chatbot.like(
-            fn=self.is_liked,
-            inputs=[self.chat_control.conversation_id],
-            outputs=None,
-        )
-
         if KH_DEMO_MODE:
             self.chat_control.btn_new.click(
                 fn=lambda: self.chat_control.select_conv("", None),
@@ -768,22 +782,30 @@ class ChatPage(BasePage):
             show_progress="hidden",
         )
 
-        self.report_issue.report_btn.click(
-            self.report_issue.report,
-            inputs=[
-                self.report_issue.correctness,
-                self.report_issue.issues,
-                self.report_issue.more_detail,
-                self.chat_control.conversation_id,
-                self.chat_panel.chatbot,
-                self._app.settings_state,
-                self._app.user_id,
-                self.info_panel,
-                self.state_chat,
-            ]
-            + self._indices_input,
-            outputs=None,
-        )
+        if not KH_DEMO_MODE:
+            # user feedback events
+            self.chat_panel.chatbot.like(
+                fn=self.is_liked,
+                inputs=[self.chat_control.conversation_id],
+                outputs=None,
+            )
+            self.report_issue.report_btn.click(
+                self.report_issue.report,
+                inputs=[
+                    self.report_issue.correctness,
+                    self.report_issue.issues,
+                    self.report_issue.more_detail,
+                    self.chat_control.conversation_id,
+                    self.chat_panel.chatbot,
+                    self._app.settings_state,
+                    self._app.user_id,
+                    self.info_panel,
+                    self.state_chat,
+                ]
+                + self._indices_input,
+                outputs=None,
+            )
+
         self.reasoning_type.change(
             self.reasoning_changed,
             inputs=[self.reasoning_type],
@@ -840,8 +862,20 @@ class ChatPage(BasePage):
         conv_id,
         conv_name,
         first_selector_choices,
+        request: gr.Request,
     ):
         """Submit a message to the chatbot"""
+        if KH_DEMO_MODE:
+            try:
+                import gradiologin as grlogin
+
+                user = grlogin.get_user(request)
+            except (ImportError, AssertionError):
+                user = None
+
+            if not user:
+                raise ValueError("Please sign-in to use this feature")
+
         if not chat_input:
             raise ValueError("Input is empty")
 

@@ -25,7 +25,7 @@ if not KH_APP_VERSION:
     except Exception:
         KH_APP_VERSION = "local"
 
-KH_ENABLE_FIRST_SETUP = config("KH_ENABLE_FIRST_SETUP", default=False, cast=bool)
+KH_ENABLE_FIRST_SETUP = config("KH_ENABLE_FIRST_SETUP", default=True, cast=bool)
 KH_DEMO_MODE = config("KH_DEMO_MODE", default=False, cast=bool)
 KH_OLLAMA_URL = config("KH_OLLAMA_URL", default="http://localhost:11434/v1/")
 
@@ -302,7 +302,7 @@ SETTINGS_REASONING = {
 }
 
 USE_NANO_GRAPHRAG = config("USE_NANO_GRAPHRAG", default=False, cast=bool)
-USE_LIGHTRAG = config("USE_LIGHTRAG", default=False, cast=bool)
+USE_LIGHTRAG = config("USE_LIGHTRAG", default=True, cast=bool)
 USE_MS_GRAPHRAG = config("USE_MS_GRAPHRAG", default=False, cast=bool)
 
 GRAPHRAG_INDEX_TYPES = []
