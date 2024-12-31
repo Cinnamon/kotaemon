@@ -100,6 +100,5 @@ RUN apt-get autoremove \
 # Download nltk packages as required for unstructured
 RUN python -c "from unstructured.nlp.tokenize import _download_nltk_packages_if_not_present; _download_nltk_packages_if_not_present()"
 
-ENV KH_SSO_ENABLED=true
 ENV GR_FILE_ROOT_PATH="/app"
 ENTRYPOINT ["uvicorn", "sso_app:app", "--host", "0.0.0.0", "--port", "8080"]

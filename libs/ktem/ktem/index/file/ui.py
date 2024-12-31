@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
 
 from ...utils.commands import WEB_SEARCH_COMMAND
+from .utils import download_arxiv_pdf, is_arxiv_url
 
 KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
@@ -599,37 +600,66 @@ class FileIndexPage(BasePage):
                 self._app.chat_page.first_indexing_url_fn = (
                     self.index_fn_url_with_default_loaders
                 )
-                quickUploadedEvent = (
-                    self._app.chat_page.quick_file_upload.upload(
-                        fn=lambda: gr.update(
-                            value="Please wait for the indexing process "
-                            "to complete before adding your question."
-                        ),
-                        outputs=self._app.chat_page.quick_file_upload_status,
+
+                if not KH_DEMO_MODE:
+                    quickUploadedEvent = (
+                        self._app.chat_page.quick_file_upload.upload(
+                            fn=lambda: gr.update(
+                                value="Please wait for the indexing process "
+                                "to complete before adding your question."
+                            ),
+                            outputs=self._app.chat_page.quick_file_upload_status,
+                        )
+                        .then(
+                            fn=self.index_fn_file_with_default_loaders,
+                            inputs=[
+                                self._app.chat_page.quick_file_upload,
+                                gr.State(value=False),
+                                self._app.settings_state,
+                                self._app.user_id,
+                            ],
+                            outputs=self.quick_upload_state,
+                            concurrency_limit=10,
+                        )
+                        .success(
+                            fn=lambda: [
+                                gr.update(value=None),
+                                gr.update(value="select"),
+                            ],
+                            outputs=[
+                                self._app.chat_page.quick_file_upload,
+                                self._app.chat_page._indices_input[0],
+                            ],
+                        )
                     )
-                    .then(
-                        fn=self.index_fn_file_with_default_loaders,
-                        inputs=[
-                            self._app.chat_page.quick_file_upload,
-                            gr.State(value=False),
-                            self._app.settings_state,
-                            self._app.user_id,
-                        ],
-                        outputs=self.quick_upload_state,
+                    for event in self._app.get_event(
+                        f"onFileIndex{self._index.id}Changed"
+                    ):
+                        quickUploadedEvent = quickUploadedEvent.then(**event)
+
+                    quickUploadedEvent = (
+                        quickUploadedEvent.success(
+                            fn=lambda x: x,
+                            inputs=self.quick_upload_state,
+                            outputs=self._app.chat_page._indices_input[1],
+                        )
+                        .then(
+                            fn=lambda: gr.update(value="Indexing completed."),
+                            outputs=self._app.chat_page.quick_file_upload_status,
+                        )
+                        .then(
+                            fn=self.list_file,
+                            inputs=[self._app.user_id, self.filter],
+                            outputs=[self.file_list_state, self.file_list],
+                            concurrency_limit=20,
+                        )
+                        .then(
+                            fn=lambda: True,
+                            inputs=None,
+                            outputs=None,
+                            js=chat_input_focus_js_with_submit,
+                        )
                     )
-                    .success(
-                        fn=lambda: [
-                            gr.update(value=None),
-                            gr.update(value="select"),
-                        ],
-                        outputs=[
-                            self._app.chat_page.quick_file_upload,
-                            self._app.chat_page._indices_input[0],
-                        ],
-                    )
-                )
-                for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
-                    quickUploadedEvent = quickUploadedEvent.then(**event)
 
                 quickURLUploadedEvent = (
                     self._app.chat_page.quick_urls.submit(
@@ -648,6 +678,7 @@ class FileIndexPage(BasePage):
                             self._app.user_id,
                         ],
                         outputs=self.quick_upload_state,
+                        concurrency_limit=10,
                     )
                     .success(
                         fn=lambda: [
@@ -662,30 +693,6 @@ class FileIndexPage(BasePage):
                 )
                 for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
                     quickURLUploadedEvent = quickURLUploadedEvent.then(**event)
-
-                quickUploadedEvent = quickUploadedEvent.success(
-                    fn=lambda x: x,
-                    inputs=self.quick_upload_state,
-                    outputs=self._app.chat_page._indices_input[1],
-                ).then(
-                    fn=lambda: gr.update(value="Indexing completed."),
-                    outputs=self._app.chat_page.quick_file_upload_status,
-                )
-
-                if not KH_DEMO_MODE:
-                    quickUploadedEvent = quickUploadedEvent.then(
-                        fn=self.list_file,
-                        inputs=[self._app.user_id, self.filter],
-                        outputs=[self.file_list_state, self.file_list],
-                        concurrency_limit=20,
-                    )
-
-                quickUploadedEvent = quickUploadedEvent.then(
-                    fn=lambda: True,
-                    inputs=None,
-                    outputs=None,
-                    js=chat_input_focus_js_with_submit,
-                )
 
                 quickURLUploadedEvent = quickURLUploadedEvent.success(
                     fn=lambda x: x,
@@ -1178,19 +1185,57 @@ class FileIndexPage(BasePage):
 
         return exist_ids + returned_ids
 
-    def index_fn_url_with_default_loaders(self, urls, reindex: bool, settings, user_id):
+    def index_fn_url_with_default_loaders(
+        self,
+        urls,
+        reindex: bool,
+        settings,
+        user_id,
+        request: gr.Request,
+    ):
+        if KH_DEMO_MODE:
+            try:
+                import gradiologin as grlogin
+
+                user = grlogin.get_user(request)
+            except (ImportError, AssertionError):
+                user = None
+
+            if not user:
+                raise ValueError("Please sign-in to use this feature")
+
         returned_ids = []
         settings = deepcopy(settings)
         settings[f"index.options.{self._index.id}.reader_mode"] = "default"
         settings[f"index.options.{self._index.id}.quick_index_mode"] = True
 
-        if urls:
-            _iter = self.index_fn([], urls, reindex, settings, user_id)
+        if KH_DEMO_MODE:
+            urls_splitted = urls.split("\n")
+            if not all(is_arxiv_url(url) for url in urls_splitted):
+                raise ValueError("All URLs must be valid arXiv URLs")
+
+            output_files = [
+                download_arxiv_pdf(
+                    url,
+                    output_path=os.environ.get("GRADIO_TEMP_DIR", "/tmp"),
+                )
+                for url in urls_splitted
+            ]
+
+            _iter = self.index_fn(output_files, [], reindex, settings, user_id)
             try:
                 while next(_iter):
                     pass
             except StopIteration as e:
                 returned_ids = e.value
+        else:
+            if urls:
+                _iter = self.index_fn([], urls, reindex, settings, user_id)
+                try:
+                    while next(_iter):
+                        pass
+                except StopIteration as e:
+                    returned_ids = e.value
 
         return returned_ids
 
