@@ -3,15 +3,18 @@ from io import BytesIO
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from decouple import config
 from fsspec import AbstractFileSystem
 from llama_index.readers.file import PDFReader
 from PIL import Image
 
 from kotaemon.base import Document
 
+PDF_LOADER_DPI = config("PDF_LOADER_DPI", default=40, cast=int)
+
 
 def get_page_thumbnails(
-    file_path: Path, pages: list[int], dpi: int = 80
+    file_path: Path, pages: list[int], dpi: int = PDF_LOADER_DPI
 ) -> List[Image.Image]:
     """Get image thumbnails of the pages in the PDF file.
 

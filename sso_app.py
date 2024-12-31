@@ -35,7 +35,7 @@ grlogin.register(
 )
 
 
-@app.get("/favicon.svg", include_in_schema=False)
+@app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return FileResponse(gradio_app._favicon)
 
