@@ -238,7 +238,7 @@ class SettingsPage(BasePage):
         if KH_SSO_ENABLED:
             import gradiologin as grlogin
 
-            self.sso_singout = grlogin.LogoutButton("Logout")
+            self.sso_signout = grlogin.LogoutButton("Logout")
         else:
             self.signout = gr.Button("Logout")
 

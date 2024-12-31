@@ -85,6 +85,7 @@ class ConversationControl(BasePage):
             filterable=True,
             interactive=True,
             elem_classes=["unset-overflow"],
+            elem_id="conversation-dropdown",
         )
 
         with gr.Row() as self._new_delete:
