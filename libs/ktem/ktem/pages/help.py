@@ -5,6 +5,8 @@ import gradio as gr
 import requests
 from theflow.settings import settings
 
+KH_DEMO_MODE = getattr(settings, "KH_DEMO_MODE", False)
+
 
 def get_remote_doc(url: str) -> str:
     try:
@@ -58,6 +60,20 @@ class HelpPage:
                 if self.app_version:
                     about_md = f"Version: {self.app_version}\n\n{about_md}"
                 gr.Markdown(about_md)
+
+        if KH_DEMO_MODE:
+            with gr.Accordion("Create Your Own Space"):
+                gr.Markdown(
+                    "This is a demo with limited functionality. "
+                    "Use Duplicate space button to install Kotaemon "
+                    "in your own space with all features "
+                    "(including upload and manage your private "
+                    "documents securely)."
+                )
+                gr.DuplicateButton(
+                    variant="primary",
+                    size="lg",
+                )
 
         user_guide_md_dir = self.doc_dir / "usage.md"
         if user_guide_md_dir.exists():
