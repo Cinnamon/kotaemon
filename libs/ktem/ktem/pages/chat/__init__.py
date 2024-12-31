@@ -32,6 +32,7 @@ from .common import STATE
 from .control import ConversationControl
 from .report import ReportIssue
 
+KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 KH_WEB_SEARCH_BACKEND = getattr(flowsettings, "KH_WEB_SEARCH_BACKEND", None)
 WebSearch = None
 if KH_WEB_SEARCH_BACKEND:
@@ -409,6 +410,9 @@ class ChatPage(BasePage):
                     self.plot_panel = gr.Plot(visible=False)
                     self.info_panel = gr.HTML(elem_id="html-info-panel")
 
+        self.followup_questions = self.chat_suggestion.examples
+        self.followup_questions_ui = self.chat_suggestion.accordion
+
     def _json_to_plot(self, json_dict: dict | None):
         if json_dict:
             plot = from_json(json_dict)
@@ -418,9 +422,6 @@ class ChatPage(BasePage):
         return plot
 
     def on_register_events(self):
-        self.followup_questions = self.chat_suggestion.examples
-        self.followup_questions_ui = self.chat_suggestion.accordion
-
         chat_event = (
             gr.on(
                 triggers=[
@@ -535,25 +536,26 @@ class ChatPage(BasePage):
         # )
 
         # final data persist
-        chat_event = chat_event.then(
-            fn=self.persist_data_source,
-            inputs=[
-                self.chat_control.conversation_id,
-                self._app.user_id,
-                self.info_panel,
-                self.state_plot_panel,
-                self.state_retrieval_history,
-                self.state_plot_history,
-                self.chat_panel.chatbot,
-                self.state_chat,
-            ]
-            + self._indices_input,
-            outputs=[
-                self.state_retrieval_history,
-                self.state_plot_history,
-            ],
-            concurrency_limit=20,
-        )
+        if not KH_DEMO_MODE:
+            chat_event = chat_event.then(
+                fn=self.persist_data_source,
+                inputs=[
+                    self.chat_control.conversation_id,
+                    self._app.user_id,
+                    self.info_panel,
+                    self.state_plot_panel,
+                    self.state_retrieval_history,
+                    self.state_plot_history,
+                    self.chat_panel.chatbot,
+                    self.state_chat,
+                ]
+                + self._indices_input,
+                outputs=[
+                    self.state_retrieval_history,
+                    self.state_plot_history,
+                ],
+                concurrency_limit=20,
+            )
 
         self.chat_control.btn_info_expand.click(
             fn=lambda is_expanded: (
@@ -572,100 +574,136 @@ class ChatPage(BasePage):
             inputs=[self.chat_control.conversation_id],
             outputs=None,
         )
-        self.chat_control.btn_new.click(
-            self.chat_control.new_conv,
-            inputs=self._app.user_id,
-            outputs=[self.chat_control.conversation_id, self.chat_control.conversation],
-            show_progress="hidden",
-        ).then(
-            self.chat_control.select_conv,
-            inputs=[self.chat_control.conversation, self._app.user_id],
-            outputs=[
-                self.chat_control.conversation_id,
-                self.chat_control.conversation,
-                self.chat_control.conversation_rn,
-                self.chat_panel.chatbot,
-                self.followup_questions,
-                self.info_panel,
-                self.state_plot_panel,
-                self.state_retrieval_history,
-                self.state_plot_history,
-                self.chat_control.cb_is_public,
-                self.state_chat,
-            ]
-            + self._indices_input,
-            show_progress="hidden",
-        ).then(
-            fn=self._json_to_plot,
-            inputs=self.state_plot_panel,
-            outputs=self.plot_panel,
-        ).then(
-            fn=None,
-            inputs=None,
-            js=chat_input_focus_js,
-        )
 
-        self.chat_control.btn_del.click(
-            lambda id: self.toggle_delete(id),
-            inputs=[self.chat_control.conversation_id],
-            outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
-        )
-        self.chat_control.btn_del_conf.click(
-            self.chat_control.delete_conv,
-            inputs=[self.chat_control.conversation_id, self._app.user_id],
-            outputs=[self.chat_control.conversation_id, self.chat_control.conversation],
-            show_progress="hidden",
-        ).then(
-            self.chat_control.select_conv,
-            inputs=[self.chat_control.conversation, self._app.user_id],
-            outputs=[
-                self.chat_control.conversation_id,
-                self.chat_control.conversation,
-                self.chat_control.conversation_rn,
-                self.chat_panel.chatbot,
-                self.followup_questions,
-                self.info_panel,
-                self.state_plot_panel,
-                self.state_retrieval_history,
-                self.state_plot_history,
-                self.chat_control.cb_is_public,
-                self.state_chat,
-            ]
-            + self._indices_input,
-            show_progress="hidden",
-        ).then(
-            fn=self._json_to_plot,
-            inputs=self.state_plot_panel,
-            outputs=self.plot_panel,
-        ).then(
-            lambda: self.toggle_delete(""),
-            outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
-        )
-        self.chat_control.btn_del_cnl.click(
-            lambda: self.toggle_delete(""),
-            outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
-        )
-        self.chat_control.btn_conversation_rn.click(
-            lambda: gr.update(visible=True),
-            outputs=[
-                self.chat_control.conversation_rn,
-            ],
-        )
-        self.chat_control.conversation_rn.submit(
-            self.chat_control.rename_conv,
-            inputs=[
-                self.chat_control.conversation_id,
-                self.chat_control.conversation_rn,
-                gr.State(value=True),
-                self._app.user_id,
-            ],
-            outputs=[
-                self.chat_control.conversation,
-                self.chat_control.conversation,
-                self.chat_control.conversation_rn,
-            ],
-            show_progress="hidden",
-        )
+        if KH_DEMO_MODE:
+            self.chat_control.btn_new.click(
+                fn=lambda: self.chat_control.select_conv("", None),
+                outputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation,
+                    self.chat_control.conversation_rn,
+                    self.chat_panel.chatbot,
+                    self.followup_questions,
+                    self.info_panel,
+                    self.state_plot_panel,
+                    self.state_retrieval_history,
+                    self.state_plot_history,
+                    self.chat_control.cb_is_public,
+                    self.state_chat,
+                ]
+                + self._indices_input,
+            )
+
+        if not KH_DEMO_MODE:
+            self.chat_control.btn_new.click(
+                self.chat_control.new_conv,
+                inputs=self._app.user_id,
+                outputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation,
+                ],
+                show_progress="hidden",
+            ).then(
+                self.chat_control.select_conv,
+                inputs=[self.chat_control.conversation, self._app.user_id],
+                outputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation,
+                    self.chat_control.conversation_rn,
+                    self.chat_panel.chatbot,
+                    self.followup_questions,
+                    self.info_panel,
+                    self.state_plot_panel,
+                    self.state_retrieval_history,
+                    self.state_plot_history,
+                    self.chat_control.cb_is_public,
+                    self.state_chat,
+                ]
+                + self._indices_input,
+                show_progress="hidden",
+            ).then(
+                fn=self._json_to_plot,
+                inputs=self.state_plot_panel,
+                outputs=self.plot_panel,
+            ).then(
+                fn=None,
+                inputs=None,
+                js=chat_input_focus_js,
+            )
+
+            self.chat_control.btn_del.click(
+                lambda id: self.toggle_delete(id),
+                inputs=[self.chat_control.conversation_id],
+                outputs=[
+                    self.chat_control._new_delete,
+                    self.chat_control._delete_confirm,
+                ],
+            )
+            self.chat_control.btn_del_conf.click(
+                self.chat_control.delete_conv,
+                inputs=[self.chat_control.conversation_id, self._app.user_id],
+                outputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation,
+                ],
+                show_progress="hidden",
+            ).then(
+                self.chat_control.select_conv,
+                inputs=[self.chat_control.conversation, self._app.user_id],
+                outputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation,
+                    self.chat_control.conversation_rn,
+                    self.chat_panel.chatbot,
+                    self.followup_questions,
+                    self.info_panel,
+                    self.state_plot_panel,
+                    self.state_retrieval_history,
+                    self.state_plot_history,
+                    self.chat_control.cb_is_public,
+                    self.state_chat,
+                ]
+                + self._indices_input,
+                show_progress="hidden",
+            ).then(
+                fn=self._json_to_plot,
+                inputs=self.state_plot_panel,
+                outputs=self.plot_panel,
+            ).then(
+                lambda: self.toggle_delete(""),
+                outputs=[
+                    self.chat_control._new_delete,
+                    self.chat_control._delete_confirm,
+                ],
+            )
+            self.chat_control.btn_del_cnl.click(
+                lambda: self.toggle_delete(""),
+                outputs=[
+                    self.chat_control._new_delete,
+                    self.chat_control._delete_confirm,
+                ],
+            )
+            self.chat_control.btn_conversation_rn.click(
+                lambda: gr.update(visible=True),
+                outputs=[
+                    self.chat_control.conversation_rn,
+                ],
+            )
+            self.chat_control.conversation_rn.submit(
+                self.chat_control.rename_conv,
+                inputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation_rn,
+                    gr.State(value=True),
+                    self._app.user_id,
+                ],
+                outputs=[
+                    self.chat_control.conversation,
+                    self.chat_control.conversation,
+                    self.chat_control.conversation_rn,
+                ],
+                show_progress="hidden",
+            )
 
         self.chat_control.conversation.select(
             self.chat_control.select_conv,
@@ -722,9 +760,6 @@ class ChatPage(BasePage):
             outputs=[self._preview_links],
             js=pdfview_js,
         )
-        # .then(
-        #     fn=None, inputs=None, outputs=None, js=chat_input_focus_js
-        # )
 
         self.chat_control.cb_is_public.change(
             self.on_set_public_conversation,
@@ -870,13 +905,16 @@ class ChatPage(BasePage):
                 raise gr.Error("Empty chat")
 
         if not conv_id:
-            id_, update = self.chat_control.new_conv(user_id)
-            with Session(engine) as session:
-                statement = select(Conversation).where(Conversation.id == id_)
-                name = session.exec(statement).one().name
-                new_conv_id = id_
-                conv_update = update
-                new_conv_name = name
+            if not KH_DEMO_MODE:
+                id_, update = self.chat_control.new_conv(user_id)
+                with Session(engine) as session:
+                    statement = select(Conversation).where(Conversation.id == id_)
+                    name = session.exec(statement).one().name
+                    new_conv_id = id_
+                    conv_update = update
+                    new_conv_name = name
+            else:
+                new_conv_id, new_conv_name, conv_update = None, None, gr.update()
         else:
             new_conv_id = conv_id
             conv_update = gr.update()
@@ -943,11 +981,13 @@ class ChatPage(BasePage):
                         self.chat_control.conversation,
                         self.chat_control.conversation_rn,
                         self.chat_panel.chatbot,
+                        self.followup_questions,
                         self.info_panel,
                         self.state_plot_panel,
                         self.state_retrieval_history,
                         self.state_plot_history,
                         self.chat_control.cb_is_public,
+                        self.state_chat,
                     ]
                     + self._indices_input,
                     "show_progress": "hidden",

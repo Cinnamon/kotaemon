@@ -14,6 +14,8 @@ from .chat_suggestion import ChatSuggestion
 from .common import STATE
 
 logger = logging.getLogger(__name__)
+
+KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 ASSETS_DIR = "assets/icons"
 if not os.path.isdir(ASSETS_DIR):
     ASSETS_DIR = "libs/ktem/ktem/assets/icons"
@@ -86,6 +88,14 @@ class ConversationControl(BasePage):
         )
 
         with gr.Row() as self._new_delete:
+            self.cb_suggest_chat = gr.Checkbox(
+                value=False,
+                label="Suggest chat",
+                min_width=10,
+                scale=6,
+                elem_id="suggest-chat-checkbox",
+                container=False,
+            )
             self.cb_is_public = gr.Checkbox(
                 value=False,
                 label="Shared",
@@ -95,39 +105,44 @@ class ConversationControl(BasePage):
                 container=False,
                 visible=False,
             )
-            self.cb_suggest_chat = gr.Checkbox(
-                value=False,
-                label="Suggest chat",
-                min_width=10,
-                scale=6,
-                elem_id="suggest-chat-checkbox",
-                container=False,
-            )
-            self.btn_conversation_rn = gr.Button(
-                value="",
-                icon=f"{ASSETS_DIR}/rename.svg",
-                min_width=2,
-                scale=1,
-                size="sm",
-                elem_classes=["no-background", "body-text-color"],
-            )
-            self.btn_del = gr.Button(
-                value="",
-                icon=f"{ASSETS_DIR}/delete.svg",
-                min_width=2,
-                scale=1,
-                size="sm",
-                elem_classes=["no-background", "body-text-color"],
-            )
-            self.btn_new = gr.Button(
-                value="",
-                icon=f"{ASSETS_DIR}/new.svg",
-                min_width=2,
-                scale=1,
-                size="sm",
-                elem_classes=["no-background", "body-text-color"],
-                elem_id="new-conv-button",
-            )
+
+            if not KH_DEMO_MODE:
+                self.btn_conversation_rn = gr.Button(
+                    value="",
+                    icon=f"{ASSETS_DIR}/rename.svg",
+                    min_width=2,
+                    scale=1,
+                    size="sm",
+                    elem_classes=["no-background", "body-text-color"],
+                )
+                self.btn_del = gr.Button(
+                    value="",
+                    icon=f"{ASSETS_DIR}/delete.svg",
+                    min_width=2,
+                    scale=1,
+                    size="sm",
+                    elem_classes=["no-background", "body-text-color"],
+                )
+
+            if not KH_DEMO_MODE:
+                self.btn_new = gr.Button(
+                    value="",
+                    icon=f"{ASSETS_DIR}/new.svg",
+                    min_width=2,
+                    scale=1,
+                    size="sm",
+                    elem_classes=["no-background", "body-text-color"],
+                    elem_id="new-conv-button",
+                )
+            else:
+                self.btn_new = gr.Button(
+                    value="New chat",
+                    min_width=120,
+                    size="sm",
+                    scale=1,
+                    variant="primary",
+                    elem_id="new-conv-button",
+                )
 
         with gr.Row(visible=False) as self._delete_confirm:
             self.btn_del_conf = gr.Button(
@@ -328,7 +343,7 @@ class ConversationControl(BasePage):
 
     def rename_conv(self, conversation_id, new_name, is_renamed, user_id):
         """Rename the conversation"""
-        if not is_renamed:
+        if not is_renamed or KH_DEMO_MODE:
             return (
                 gr.update(),
                 conversation_id,

@@ -8,7 +8,6 @@ from ktem.llms.manager import llms
 from ktem.rerankings.manager import reranking_models_manager as rerankers
 from theflow.settings import settings as flowsettings
 
-KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 KH_OLLAMA_URL = getattr(flowsettings, "KH_OLLAMA_URL", "http://localhost:11434/v1/")
 DEFAULT_OLLAMA_URL = KH_OLLAMA_URL.replace("v1", "api")
 if DEFAULT_OLLAMA_URL.endswith("/"):
@@ -144,17 +143,16 @@ class SetupPage(BasePage):
             outputs=[self.setup_log],
             show_progress="hidden",
         )
-        if not KH_DEMO_MODE:
-            onSkipSetup = gr.on(
-                triggers=[self.btn_skip.click],
-                fn=lambda: None,
-                inputs=[],
-                show_progress="hidden",
-                outputs=[self.radio_model],
-            )
+        onSkipSetup = gr.on(
+            triggers=[self.btn_skip.click],
+            fn=lambda: None,
+            inputs=[],
+            show_progress="hidden",
+            outputs=[self.radio_model],
+        )
 
-            for event in self._app.get_event("onFirstSetupComplete"):
-                onSkipSetup = onSkipSetup.success(**event)
+        for event in self._app.get_event("onFirstSetupComplete"):
+            onSkipSetup = onSkipSetup.success(**event)
 
         onFirstSetupComplete = onFirstSetupComplete.success(
             fn=self.update_default_settings,
@@ -183,10 +181,6 @@ class SetupPage(BasePage):
         google_api_key,
         radio_model_value,
     ):
-        # skip if KH_DEMO_MODE
-        if KH_DEMO_MODE:
-            raise gr.Error(DEMO_MESSAGE)
-
         log_content = ""
         if not radio_model_value:
             gr.Info("Skip setup models.")

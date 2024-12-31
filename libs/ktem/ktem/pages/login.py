@@ -87,9 +87,12 @@ class LoginPage(BasePage):
         )
 
     def login(self, usn, pwd, request: gr.Request):
-        import gradiologin as grlogin
+        try:
+            import gradiologin as grlogin
 
-        user = grlogin.get_user(request)
+            user = grlogin.get_user(request)
+        except (ImportError, AssertionError):
+            user = None
 
         if user:
             user_id = user["sub"]
