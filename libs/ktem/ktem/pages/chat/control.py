@@ -21,6 +21,14 @@ if not os.path.isdir(ASSETS_DIR):
     ASSETS_DIR = "libs/ktem/ktem/assets/icons"
 
 
+logout_js = """
+function () {
+    removeFromStorage('google_api_key');
+    window.location.href = "/logout";
+}
+"""
+
+
 def is_conv_name_valid(name):
     """Check if the conversation name is valid"""
     errors = []
@@ -37,6 +45,7 @@ class ConversationControl(BasePage):
 
     def __init__(self, app):
         self._app = app
+        self.logout_js = logout_js
         self.on_building_ui()
 
     def on_building_ui(self):
@@ -158,7 +167,6 @@ class ConversationControl(BasePage):
                 )
                 self.btn_demo_logout = gr.Button(
                     "Sign-out",
-                    link="/logout",
                     min_width=120,
                     size="sm",
                     scale=1,
@@ -429,7 +437,7 @@ class ConversationControl(BasePage):
 
         gr.Info("Chat suggestions updated.")
 
-    def toggle_demo_login_visibility(self, request: gr.Request):
+    def toggle_demo_login_visibility(self, user_api_key, request: gr.Request):
         try:
             import gradiologin as grlogin
 
@@ -437,7 +445,7 @@ class ConversationControl(BasePage):
         except (ImportError, AssertionError):
             user = None
 
-        if user:
+        if user or user_api_key:
             return [
                 gr.update(visible=True),
                 gr.update(visible=True),

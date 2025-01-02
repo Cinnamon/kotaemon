@@ -441,7 +441,11 @@ div.markmap {
 }
 
 #google-login {
-  width: 250px;
+  max-width: 450px;
+}
+
+#user-api-key-wrapper {
+  max-width: 450px;
 }
 
 #login-row {
