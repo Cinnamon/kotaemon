@@ -41,6 +41,7 @@ if KH_WEB_SEARCH_BACKEND:
     except (ImportError, AttributeError) as e:
         print(f"Error importing {KH_WEB_SEARCH_BACKEND}: {e}")
 
+REASONING_LIMITS = 2 if KH_DEMO_MODE else 10
 DEFAULT_SETTING = "(default)"
 INFO_PANEL_SCALES = {True: 8, False: 4}
 DEFAULT_QUESTION = (
@@ -53,6 +54,17 @@ chat_input_focus_js = """
 function() {
     let chatInput = document.querySelector("#chat-input textarea");
     chatInput.focus();
+}
+"""
+
+clear_bot_message_selection_js = """
+function() {
+    var bot_messages = document.querySelectorAll(
+        "div#main-chat-bot div.message-row.bot-row"
+    );
+    bot_messages.forEach(message => {
+        message.classList.remove("text_selection");
+    });
 }
 """
 
@@ -371,7 +383,7 @@ class ChatPage(BasePage):
                     ):
                         with gr.Row(elem_id="quick-setting-labels"):
                             gr.HTML("Reasoning method")
-                            gr.HTML("Model", visible=False)
+                            gr.HTML("Model", visible=not KH_DEMO_MODE)
                             gr.HTML("Language")
 
                         with gr.Row():
@@ -393,7 +405,7 @@ class ChatPage(BasePage):
                             )
 
                             self.reasoning_type = gr.Dropdown(
-                                choices=reasoning_setting.choices,
+                                choices=reasoning_setting.choices[:REASONING_LIMITS],
                                 value=reasoning_setting.value,
                                 container=False,
                                 show_label=False,
@@ -403,7 +415,7 @@ class ChatPage(BasePage):
                                 value=model_setting.value,
                                 container=False,
                                 show_label=False,
-                                visible=False,
+                                visible=not KH_DEMO_MODE,
                             )
                             self.language = gr.Dropdown(
                                 choices=language_setting.choices,
@@ -461,7 +473,6 @@ class ChatPage(BasePage):
                     self.chat_panel.text_input,
                     self.chat_panel.chatbot,
                     self._app.user_id,
-                    self._user_api_key,
                     self._app.settings_state,
                     self.chat_control.conversation_id,
                     self.chat_control.conversation_rn,
@@ -554,16 +565,6 @@ class ChatPage(BasePage):
         }
         # chat suggestion toggle
         chat_event = chat_event.success(**onSuggestChatEvent)
-        # .success(
-        #     self.chat_control.persist_chat_suggestions,
-        #     inputs=[
-        #         self.chat_control.conversation_id,
-        #         self.followup_questions,
-        #         self._use_suggestion,
-        #         self._app.user_id,
-        #     ],
-        #     show_progress="hidden",
-        # )
 
         # final data persist
         if not KH_DEMO_MODE:
@@ -760,6 +761,9 @@ class ChatPage(BasePage):
             outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
         ).then(
             fn=lambda: True,
+            js=clear_bot_message_selection_js,
+        ).then(
+            fn=lambda: True,
             inputs=None,
             outputs=[self._preview_links],
             js=pdfview_js,
@@ -872,7 +876,6 @@ class ChatPage(BasePage):
         chat_input,
         chat_history,
         user_id,
-        user_api_key,
         settings,
         conv_id,
         conv_name,
@@ -881,7 +884,6 @@ class ChatPage(BasePage):
     ):
         """Submit a message to the chatbot"""
         if KH_DEMO_MODE:
-            print("API key", user_api_key)
             try:
                 import gradiologin as grlogin
 

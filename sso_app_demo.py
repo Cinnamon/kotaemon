@@ -127,24 +127,24 @@ with gr.Blocks(
             variant="primary",
             elem_id="google-login",
         )
-        with gr.Accordion(
-            "Or use your own Gemini API key",
-            elem_id="user-api-key-wrapper",
-            open=False,
-        ):
-            api_key_input = gr.Textbox(
-                placeholder="API Key",
-                label="Enter your Gemini API key",
-            )
-            api_key_save_btn = gr.Button(
-                "Save",
-            )
+        # with gr.Accordion(
+        #     "Or use your own Gemini API key",
+        #     elem_id="user-api-key-wrapper",
+        #     open=False,
+        # ):
+        #     api_key_input = gr.Textbox(
+        #         placeholder="API Key",
+        #         label="Enter your Gemini API key",
+        #     )
+        #     api_key_save_btn = gr.Button(
+        #         "Save",
+        #     )
 
-    api_key_save_btn.click(
-        fn=lambda _: True,
-        inputs=[api_key_input],
-        js=save_api_key_js,
-    )
+    # api_key_save_btn.click(
+    #     fn=lambda _: True,
+    #     inputs=[api_key_input],
+    #     js=save_api_key_js,
+    # )
 
 app = gr.mount_gradio_app(app, login_demo, path="/login-app")
 app = gr.mount_gradio_app(
