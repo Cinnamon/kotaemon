@@ -78,8 +78,9 @@ oauth = add_session_middleware(app)
 
 
 @app.get("/")
-def public():
-    return RedirectResponse(url="/app")
+def public(request: Request):
+    root_url = gr.route_utils.get_root_url(request, "/", None)
+    return RedirectResponse(url=f"{root_url}/app")
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -95,7 +96,8 @@ async def logout(request: Request):
 
 @app.route("/login")
 async def login(request: Request):
-    redirect_uri = request.url_for("auth")
+    root_url = gr.route_utils.get_root_url(request, "/login", None)
+    redirect_uri = f"{root_url}/auth"
     # If your app is running on https, you should ensure that the
     # `redirect_uri` is https, e.g. uncomment the following lines:
     #
