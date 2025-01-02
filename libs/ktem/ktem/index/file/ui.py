@@ -1194,13 +1194,16 @@ class FileIndexPage(BasePage):
         request: gr.Request,
     ):
         if KH_DEMO_MODE:
+            user = None
+            if request is None:
+                raise ValueError("This feature is not available")
+
             try:
                 import gradiologin as grlogin
 
                 user = grlogin.get_user(request)
             except (ImportError, AssertionError):
-                user = None
-
+                pass
             if not user:
                 raise ValueError("Please sign-in to use this feature")
 
