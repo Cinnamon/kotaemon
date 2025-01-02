@@ -247,6 +247,14 @@ function() {
     MINDMAP_HTML_EXPORT_TEMPLATE.replace("\n", "").replace('"', '\\"'),
 )
 
+fetch_api_key_js = """
+function(_, __) {
+    api_key = getStorage('google_api_key', '');
+    console.log('session API key:', api_key);
+    return [api_key, _];
+}
+"""
+
 
 class ChatPage(BasePage):
     def __init__(self, app):
@@ -263,6 +271,7 @@ class ChatPage(BasePage):
         )
         self._info_panel_expanded = gr.State(value=True)
         self._command_state = gr.State(value=None)
+        self._user_api_key = gr.Text(value="", visible=False)
 
     def on_building_ui(self):
         with gr.Row():
@@ -452,6 +461,7 @@ class ChatPage(BasePage):
                     self.chat_panel.text_input,
                     self.chat_panel.chatbot,
                     self._app.user_id,
+                    self._user_api_key,
                     self._app.settings_state,
                     self.chat_control.conversation_id,
                     self.chat_control.conversation_rn,
@@ -590,6 +600,10 @@ class ChatPage(BasePage):
         )
 
         if KH_DEMO_MODE:
+            self.chat_control.btn_demo_logout.click(
+                fn=None,
+                js=self.chat_control.logout_js,
+            )
             self.chat_control.btn_new.click(
                 fn=lambda: self.chat_control.select_conv("", None),
                 outputs=[
@@ -858,6 +872,7 @@ class ChatPage(BasePage):
         chat_input,
         chat_history,
         user_id,
+        user_api_key,
         settings,
         conv_id,
         conv_name,
@@ -866,6 +881,7 @@ class ChatPage(BasePage):
     ):
         """Submit a message to the chatbot"""
         if KH_DEMO_MODE:
+            print("API key", user_api_key)
             try:
                 import gradiologin as grlogin
 
@@ -904,6 +920,7 @@ class ChatPage(BasePage):
                 True,
                 settings,
                 user_id,
+                request=None,
             )
         elif file_names:
             for file_name in file_names:
@@ -1031,7 +1048,13 @@ class ChatPage(BasePage):
     def _on_app_created(self):
         if KH_DEMO_MODE:
             self._app.app.load(
+                fn=lambda x: x,
+                inputs=[self._user_api_key],
+                outputs=[self._user_api_key],
+                js=fetch_api_key_js,
+            ).then(
                 fn=self.chat_control.toggle_demo_login_visibility,
+                inputs=[self._user_api_key],
                 outputs=[
                     self.chat_control.cb_suggest_chat,
                     self.chat_control.btn_new,

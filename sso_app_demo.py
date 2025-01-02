@@ -25,6 +25,30 @@ GOOGLE_CLIENT_SECRET = config("GOOGLE_CLIENT_SECRET", default="")
 SECRET_KEY = config("SECRET_KEY", default="default-secret-key")
 
 
+save_api_key_js = """
+function(api_key) {
+    setStorage('google_api_key', api_key);
+    window.location.href = "/app";
+}
+"""
+
+global_js = """
+function () {
+  // store info in local storage
+  globalThis.setStorage = (key, value) => {
+      localStorage.setItem(key, value)
+  }
+  globalThis.getStorage = (key, value) => {
+    item = localStorage.getItem(key);
+    return item ? item : value;
+  }
+  globalThis.removeFromStorage = (key) => {
+      localStorage.removeItem(key)
+  }
+}
+"""
+
+
 def add_session_middleware(app):
     config_data = {
         "GOOGLE_CLIENT_ID": GOOGLE_CLIENT_ID,
@@ -93,8 +117,9 @@ async def auth(request: Request):
 with gr.Blocks(
     theme=KotaemonTheme(),
     css=gradio_app._css,
+    js=global_js,
 ) as login_demo:
-    with gr.Row(elem_id="login-row"):
+    with gr.Column(elem_id="login-row"):
         gr.Markdown("<h1 style='text-align:center;'>Welcome to Kotaemon</h1>")
         gr.Button(
             "Login with Google",
@@ -102,6 +127,24 @@ with gr.Blocks(
             variant="primary",
             elem_id="google-login",
         )
+        with gr.Accordion(
+            "Or use your own Gemini API key",
+            elem_id="user-api-key-wrapper",
+            open=False,
+        ):
+            api_key_input = gr.Textbox(
+                placeholder="API Key",
+                label="Enter your Gemini API key",
+            )
+            api_key_save_btn = gr.Button(
+                "Save",
+            )
+
+    api_key_save_btn.click(
+        fn=lambda _: True,
+        inputs=[api_key_input],
+        js=save_api_key_js,
+    )
 
 app = gr.mount_gradio_app(app, login_demo, path="/login-app")
 app = gr.mount_gradio_app(
