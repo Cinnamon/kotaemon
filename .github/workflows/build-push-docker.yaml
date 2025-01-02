@@ -54,11 +54,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:latest
-          platforms: arm64,arm
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@v3
+      #   with:
+      #     image: tonistiigi/binfmt:latest
+      #     platforms: arm64,arm
 
       - name: Set up Docker Buildx
         id: buildx
@@ -94,7 +94,7 @@ jobs:
           file: Dockerfile
           context: .
           push: true
-          platforms: linux/amd64, linux/arm64
+          platforms: linux/amd64 #, linux/arm64
           tags: |
             ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
