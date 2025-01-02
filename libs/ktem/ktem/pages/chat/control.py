@@ -445,7 +445,7 @@ class ConversationControl(BasePage):
         except (ImportError, AssertionError):
             user = None
 
-        if user or user_api_key:
+        if user:  # or user_api_key:
             return [
                 gr.update(visible=True),
                 gr.update(visible=True),

@@ -673,7 +673,7 @@ class FileIndexPage(BasePage):
                         fn=self.index_fn_url_with_default_loaders,
                         inputs=[
                             self._app.chat_page.quick_urls,
-                            gr.State(value=True),
+                            gr.State(value=False),
                             self._app.settings_state,
                             self._app.user_id,
                         ],
