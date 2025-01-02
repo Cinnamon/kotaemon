@@ -44,7 +44,8 @@ class Render:
         o = " open" if open else ""
         return (
             f"<details class='evidence' {o}><summary>"
-            f"{header}</summary>{content}</details><br>"
+            f"{header}</summary>{content}"
+            "</details><br>"
         )
 
     @staticmethod
@@ -224,6 +225,9 @@ class Render:
             f" [score: {llm_reranking_score}]",
             doc,
             highlight_text=highlight_text,
+        )
+        rendered_doc_content = (
+            f"<div class='evidence-content'>{rendered_doc_content}</div>"
         )
 
         return Render.collapsible(

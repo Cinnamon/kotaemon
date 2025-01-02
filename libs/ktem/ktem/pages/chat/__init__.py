@@ -70,92 +70,9 @@ function() {
 
 pdfview_js = """
 function() {
-    setTimeout(() => {
-        // Assign text selection event to last bot message
-        var bot_messages = document.querySelectorAll(
-            "div#main-chat-bot div.message-row.bot-row"
-        );
-        var last_bot_message = bot_messages[bot_messages.length - 1];
 
-        // check if the last bot message has class "text_selection"
-        if (last_bot_message.classList.contains("text_selection")) {
-            return;
-        }
 
-        // assign new class to last message
-        last_bot_message.classList.add("text_selection");
-
-        // Get sentences from evidence div
-        var evidences = document.querySelectorAll(
-            "#html-info-panel > div:last-child > div > details.evidence"
-        );
-        const segmenterEn = new Intl.Segmenter('en', { granularity: 'sentence' });
-        // Split sentences and save to all_segments list
-        var all_segments = [];
-        for (evidence of evidences) {
-            var markmap_div = evidence.querySelector("div.markmap");
-            if (markmap_div) {
-                continue;
-            }
-
-            sentence_it = segmenterEn.segment(evidence.innerText)[Symbol.iterator]();
-            while (sentence = sentence_it.next().value) {
-                segment = sentence.segment.trim();
-                if (segment) {
-                    all_segments.push({
-                        id: all_segments.length,
-                        text: segment,
-                    });
-                }
-            }
-        }
-
-        let miniSearch = new MiniSearch({
-            fields: ['text'], // fields to index for full-text search
-            storeFields: ['text'],
-        })
-
-        // Index all documents
-        miniSearch.addAll(all_segments);
-
-        last_bot_message.addEventListener('mouseup', () => {
-            let selection = window.getSelection().toString();
-            let results = miniSearch.search(selection);
-
-            if (results.length == 0) {
-                return;
-            }
-            let matched_text = results[0].text;
-
-            var evidences = document.querySelectorAll(
-                "#html-info-panel > div:last-child > div > details.evidence"
-            );
-
-            // convert all <mark> in evidences to normal text
-            evidences.forEach(evidence => {
-                evidence.querySelectorAll("mark").forEach(mark => {
-                    mark.outerHTML = mark.innerText;
-                });
-            });
-
-            // highlight matched_text in evidences
-            for (evidence of evidences) {
-                if (evidence.innerText.includes(matched_text)) {
-                    // select all p and li elements
-                    paragraphs = evidence.querySelectorAll("p, li");
-                    for (p of paragraphs) {
-                        if (p.innerText.includes(matched_text)) {
-                            p.innerHTML = p.innerText.replace(
-                                matched_text, "<mark>" + matched_text + "</mark>"
-                            );
-                            p.scrollIntoView({behavior: "smooth", block: "center"});
-                            break;
-                        }
-                    }
-                }
-            }
-        });
-    }, 100);
+    setTimeout(fullTextSearch(), 100);
 
     // Get all links and attach click event
     var links = document.getElementsByClassName("pdf-link");
@@ -180,36 +97,6 @@ function() {
 
     if (mindmap_el_script) {
         markmap.autoLoader.renderAll();
-    }
-
-    function spawnDocument(content, options) {
-        let opt = {
-            window: "",
-            closeChild: true,
-            childId: "_blank",
-        };
-        Object.assign(opt, options);
-        // minimal error checking
-        if (
-            content
-            && typeof content.toString == "function"
-            && content.toString().length
-        ) {
-            let child = window.open("", opt.childId, opt.window);
-            child.document.write(content.toString());
-            if (opt.closeChild)
-            child.document.close();
-            return child;
-        }
-    }
-
-    function fillChatInput(event) {
-        let chatInput = document.querySelector("#chat-input textarea");
-        // fill the chat input with the clicked div text
-        chatInput.value = "Explain " + event.target.innerText;
-        var evt = new Event('change');
-        chatInput.dispatchEvent(new Event('input', { bubbles: true }))
-        chatInput.focus();
     }
 
     setTimeout(() => {
@@ -1063,6 +950,10 @@ class ChatPage(BasePage):
                     self.chat_control.btn_demo_logout,
                     self.chat_control.btn_demo_login,
                 ],
+            ).then(
+                fn=None,
+                inputs=None,
+                js=chat_input_focus_js,
             )
 
     def persist_data_source(

@@ -1227,8 +1227,8 @@ class FileIndexPage(BasePage):
 
             exist_ids = []
             to_process_files = []
-            for file_path in output_files:
-                file_path = Path(file_path)
+            for str_file_path in output_files:
+                file_path = Path(str_file_path)
                 exist_id = (
                     self._index.get_indexing_pipeline(settings, user_id)
                     .route(file_path)
@@ -1237,7 +1237,7 @@ class FileIndexPage(BasePage):
                 if exist_id:
                     exist_ids.append(exist_id)
                 else:
-                    to_process_files.append(file_path)
+                    to_process_files.append(str_file_path)
 
             returned_ids = []
             if to_process_files:
