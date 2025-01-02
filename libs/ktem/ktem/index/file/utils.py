@@ -47,10 +47,11 @@ def download_arxiv_pdf(url, output_path):
     if not name:
         raise ValueError("Failed to get paper name")
 
-    response = requests.get(pdf_url)
     output_file_path = os.path.join(output_path, name + ".pdf")
+    if not os.path.exists(output_file_path):
+        response = requests.get(pdf_url)
 
-    with open(output_file_path, "wb") as f:
-        f.write(response.content)
+        with open(output_file_path, "wb") as f:
+            f.write(response.content)
 
     return output_file_path
