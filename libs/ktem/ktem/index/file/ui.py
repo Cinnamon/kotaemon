@@ -1207,7 +1207,7 @@ class FileIndexPage(BasePage):
             if not user:
                 raise ValueError("Please sign-in to use this feature")
 
-        returned_ids = []
+        returned_ids: list[str] = []
         settings = deepcopy(settings)
         settings[f"index.options.{self._index.id}.reader_mode"] = "default"
         settings[f"index.options.{self._index.id}.quick_index_mode"] = True
@@ -1225,12 +1225,30 @@ class FileIndexPage(BasePage):
                 for url in urls_splitted
             ]
 
-            _iter = self.index_fn(output_files, [], reindex, settings, user_id)
-            try:
-                while next(_iter):
-                    pass
-            except StopIteration as e:
-                returned_ids = e.value
+            exist_ids = []
+            to_process_files = []
+            for file_path in output_files:
+                file_path = Path(file_path)
+                exist_id = (
+                    self._index.get_indexing_pipeline(settings, user_id)
+                    .route(file_path)
+                    .get_id_if_exists(file_path)
+                )
+                if exist_id:
+                    exist_ids.append(exist_id)
+                else:
+                    to_process_files.append(file_path)
+
+            returned_ids = []
+            if to_process_files:
+                _iter = self.index_fn(to_process_files, [], reindex, settings, user_id)
+                try:
+                    while next(_iter):
+                        pass
+                except StopIteration as e:
+                    returned_ids = e.value
+
+            returned_ids = exist_ids + returned_ids
         else:
             if urls:
                 _iter = self.index_fn([], urls, reindex, settings, user_id)
