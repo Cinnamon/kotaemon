@@ -25,7 +25,7 @@ if not KH_APP_VERSION:
     except Exception:
         KH_APP_VERSION = "local"
 
-KH_ENABLE_FIRST_SETUP = True
+KH_ENABLE_FIRST_SETUP = config("KH_ENABLE_FIRST_SETUP", default=True, cast=bool)
 KH_DEMO_MODE = config("KH_DEMO_MODE", default=False, cast=bool)
 KH_OLLAMA_URL = config("KH_OLLAMA_URL", default="http://localhost:11434/v1/")
 
@@ -299,6 +299,11 @@ SETTINGS_REASONING = {
     },
 }
 
+KH_RENAME_UI = config("KH_RENAME_UI", default=False, cast=bool)
+KH_UPLOAD_MULTIPLE_PIPELINES = config(
+    "KH_UPLOAD_MULTIPLE_PIPELINES", default=False, cast=bool
+)
+
 USE_NANO_GRAPHRAG = config("USE_NANO_GRAPHRAG", default=False, cast=bool)
 USE_LIGHTRAG = config("USE_LIGHTRAG", default=False, cast=bool)
 USE_MS_GRAPHRAG = config("USE_MS_GRAPHRAG", default=False, cast=bool)
@@ -319,8 +324,12 @@ KH_INDEX_TYPES = [
 
 GRAPHRAG_INDICES = [
     {
-        "name": graph_type.split(".")[-1].replace("Index", "")
-        + " Collection",  # get last name
+        "name": (graph_type.split(".")[-1].replace("Index", "")
+        + " Collection" if (
+            graph_type != "ktem.index.file.graph.NanoGraphRAGIndex" 
+            and not KH_RENAME_UI)
+            else "Semantic Augmentation"
+            ),  # get last name
         "config": {
             "supported_file_types": (
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "

@@ -39,7 +39,10 @@ class ConversationControl(BasePage):
 
     def on_building_ui(self):
         with gr.Row():
-            gr.Markdown("## Conversations")
+            conversation_title = "Conversations" if not flowsettings.KH_RENAME_UI else "Report Explorations"
+            gr.Markdown(
+                f"## {conversation_title}"
+            )
             self.btn_toggle_dark_mode = gr.Button(
                 value="",
                 icon=f"{ASSETS_DIR}/dark_mode.svg",
