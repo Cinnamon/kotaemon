@@ -372,25 +372,21 @@ class ConversationControl(BasePage):
 
     def rename_conv(self, conversation_id, new_name, is_renamed, user_id):
         """Rename the conversation"""
-        if not is_renamed or KH_DEMO_MODE:
+        if not is_renamed or KH_DEMO_MODE or user_id is None or not conversation_id:
             return (
                 gr.update(),
                 conversation_id,
                 gr.update(visible=False),
             )
 
-        if user_id is None:
-            gr.Warning("Please sign in first (Settings → User Settings)")
-            return gr.update(), ""
-
-        if not conversation_id:
-            gr.Warning("No conversation selected.")
-            return gr.update(), ""
-
         errors = is_conv_name_valid(new_name)
         if errors:
             gr.Warning(errors)
-            return gr.update(), conversation_id
+            return (
+                gr.update(),
+                conversation_id,
+                gr.update(visible=False),
+            )
 
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == conversation_id)
