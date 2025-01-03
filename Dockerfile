@@ -35,6 +35,7 @@ RUN bash scripts/download_pdfjs.sh $PDFJS_PREBUILT_DIR
 
 # Copy contents
 COPY . /app
+COPY launch.sh /app/launch.sh
 COPY .env.example /app/.env
 
 # Install pip packages
