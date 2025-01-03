@@ -20,12 +20,14 @@ from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
 
 from ...utils.commands import WEB_SEARCH_COMMAND
+from ...utils.rate_limit import check_rate_limit
 from .utils import download_arxiv_pdf, is_arxiv_url
 
 KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
 DOWNLOAD_MESSAGE = "Start download"
 MAX_FILENAME_LENGTH = 20
+MAX_FILE_COUNT = 200
 
 chat_input_focus_js = """
 function() {
@@ -1194,18 +1196,7 @@ class FileIndexPage(BasePage):
         request: gr.Request,
     ):
         if KH_DEMO_MODE:
-            user = None
-            if request is None:
-                raise ValueError("This feature is not available")
-
-            try:
-                import gradiologin as grlogin
-
-                user = grlogin.get_user(request)
-            except (ImportError, AssertionError):
-                pass
-            if not user:
-                raise ValueError("Please sign-in to use this feature")
+            check_rate_limit("file_upload", request)
 
         returned_ids: list[str] = []
         settings = deepcopy(settings)
@@ -1694,6 +1685,10 @@ class FileSelector(BasePage):
                 statement = statement.where(
                     self._index._resources["Source"].user == user_id
                 )
+
+            if KH_DEMO_MODE:
+                # limit query by MAX_FILE_COUNT
+                statement = statement.limit(MAX_FILE_COUNT)
 
             results = session.execute(statement).all()
             for result in results:

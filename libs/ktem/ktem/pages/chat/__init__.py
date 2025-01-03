@@ -26,6 +26,7 @@ from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 
 from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex, get_urls
 from ...utils.commands import WEB_SEARCH_COMMAND
+from ...utils.rate_limit import check_rate_limit
 from .chat_panel import ChatPanel
 from .chat_suggestion import ChatSuggestion
 from .common import STATE
@@ -70,8 +71,6 @@ function() {
 
 pdfview_js = """
 function() {
-
-
     setTimeout(fullTextSearch(), 100);
 
     // Get all links and attach click event
@@ -94,7 +93,6 @@ function() {
     }
 
     // render the mindmap if the script tag is present
-
     if (mindmap_el_script) {
         markmap.autoLoader.renderAll();
     }
@@ -771,15 +769,8 @@ class ChatPage(BasePage):
     ):
         """Submit a message to the chatbot"""
         if KH_DEMO_MODE:
-            try:
-                import gradiologin as grlogin
-
-                user = grlogin.get_user(request)
-            except (ImportError, AssertionError):
-                user = None
-
-            if not user:
-                raise ValueError("Please sign-in to use this feature")
+            sso_user_id = check_rate_limit("chat", request)
+            print("User ID:", sso_user_id)
 
         if not chat_input:
             raise ValueError("Input is empty")
