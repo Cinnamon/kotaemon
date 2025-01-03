@@ -137,11 +137,12 @@ class UserManagement(BasePage):
             self.state_user_list = gr.State(value=None)
             self.user_list = gr.DataFrame(
                 headers=["id", "name", "admin"],
+                column_widths=[0, 50, 50],
                 interactive=False,
             )
 
             with gr.Group(visible=False) as self._selected_panel:
-                self.selected_user_id = gr.Number(value=-1, visible=False)
+                self.selected_user_id = gr.State(value=-1)
                 self.usn_edit = gr.Textbox(label="Username")
                 with gr.Row():
                     self.pwd_edit = gr.Textbox(label="Change password", type="password")
@@ -347,7 +348,7 @@ class UserManagement(BasePage):
         if not ev.selected:
             return -1
 
-        return int(user_list["id"][ev.index[0]])
+        return user_list["id"][ev.index[0]]
 
     def on_selected_user_change(self, selected_user_id):
         if selected_user_id == -1:
@@ -368,7 +369,7 @@ class UserManagement(BasePage):
             btn_delete_no = gr.update(visible=False)
 
             with Session(engine) as session:
-                statement = select(User).where(User.id == int(selected_user_id))
+                statement = select(User).where(User.id == selected_user_id)
                 user = session.exec(statement).one()
 
             usn_edit = gr.update(value=user.username)
@@ -415,7 +416,7 @@ class UserManagement(BasePage):
                 return pwd, pwd_cnf
 
         with Session(engine) as session:
-            statement = select(User).where(User.id == int(selected_user_id))
+            statement = select(User).where(User.id == selected_user_id)
             user = session.exec(statement).one()
             user.username = usn
             user.username_lower = usn.lower()
@@ -433,7 +434,7 @@ class UserManagement(BasePage):
             return selected_user_id
 
         with Session(engine) as session:
-            statement = select(User).where(User.id == int(selected_user_id))
+            statement = select(User).where(User.id == selected_user_id)
             user = session.exec(statement).one()
             session.delete(user)
             session.commit()
