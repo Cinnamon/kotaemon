@@ -91,7 +91,7 @@ entity_extraction:
   ## parallelization: override the global parallelization settings for this task
   ## async_mode: override the global async_mode settings for this task
   prompt: "prompts/entity_extraction.txt"
-  entity_types: [organization,person,geo,event]
+  entity_types: [disease, treatment, drug, biomarker, clinical_trial, patient_outcome, side_effect, medical_procedure]
   max_gleanings: 1
 
 summarize_descriptions:
@@ -107,7 +107,7 @@ claim_extraction:
   ## async_mode: override the global async_mode settings for this task
   # enabled: true
   prompt: "prompts/claim_extraction.txt"
-  description: "Any claims or facts that could be relevant to information discovery."
+  description: "Extract key oncological claims, findings, and clinical insights that could be relevant to cancer research and treatment."
   max_gleanings: 1
 
 community_reports:
