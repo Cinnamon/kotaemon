@@ -97,8 +97,4 @@ RUN apt-get autoremove \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf ~/.cache
 
-# Download nltk packages as required for unstructured
-RUN python -c "import nltk; nltk.download('punkt')"
-
-ENV GR_FILE_ROOT_PATH="/app"
-ENTRYPOINT ["uvicorn", "sso_app:app", "--host", "0.0.0.0", "--port", "8080"]
+ENTRYPOINT ["sh", "/app/launch.sh"]
