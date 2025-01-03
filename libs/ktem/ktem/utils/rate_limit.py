@@ -16,13 +16,15 @@ def check_rate_limit(limit_type: str, request: gr.Request):
     if request is None:
         raise ValueError("This feature is not available")
 
+    user_id = None
     try:
         import gradiologin as grlogin
 
         user = grlogin.get_user(request)
-        user_id = user.get("email")
+        if user:
+            user_id = user.get("email")
     except (ImportError, AssertionError):
-        user_id = None
+        pass
 
     if not user_id:
         raise ValueError("Please sign-in to use this feature")
