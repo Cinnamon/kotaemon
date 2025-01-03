@@ -18,8 +18,8 @@ llm:
   # deployment_name: <azure_model_deployment_name>
   # tokens_per_minute: 150_000 # set a leaky bucket throttle
   # requests_per_minute: 10_000 # set a leaky bucket throttle
-  # max_retries: 10
-  # max_retry_wait: 10.0
+  max_retries: 3
+  max_retry_wait: 10.0
   # sleep_on_rate_limit_recommendation: true # whether to sleep when azure suggests wait-times
   concurrent_requests: 5 # the number of parallel inflight requests that may be made
   # temperature: 0 # temperature for sampling
