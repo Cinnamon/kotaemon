@@ -31,6 +31,7 @@ from .chat_panel import ChatPanel
 from .chat_suggestion import ChatSuggestion
 from .common import STATE
 from .control import ConversationControl
+from .demo_hint import HintPage
 from .report import ReportIssue
 
 KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
@@ -255,7 +256,10 @@ class ChatPage(BasePage):
                             ),
                         )
 
-                self.report_issue = ReportIssue(self._app)
+                if not KH_DEMO_MODE:
+                    self.report_issue = ReportIssue(self._app)
+                else:
+                    self.hint_page = HintPage(self._app)
 
             with gr.Column(scale=6, elem_id="chat-area"):
                 self.chat_panel = ChatPanel(self._app)
