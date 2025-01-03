@@ -510,6 +510,10 @@ class ChatPage(BasePage):
                     self.state_chat,
                 ]
                 + self._indices_input,
+            ).then(
+                fn=None,
+                inputs=None,
+                js=chat_input_focus_js,
             )
 
         if not KH_DEMO_MODE:
@@ -660,27 +664,28 @@ class ChatPage(BasePage):
             fn=None, inputs=None, outputs=None, js=chat_input_focus_js
         )
 
-        # evidence display on message selection
-        self.chat_panel.chatbot.select(
-            self.message_selected,
-            inputs=[
-                self.state_retrieval_history,
-                self.state_plot_history,
-            ],
-            outputs=[
-                self.info_panel,
-                self.state_plot_panel,
-            ],
-        ).then(
-            fn=self._json_to_plot,
-            inputs=self.state_plot_panel,
-            outputs=self.plot_panel,
-        ).then(
-            fn=lambda: True,
-            inputs=None,
-            outputs=[self._preview_links],
-            js=pdfview_js,
-        )
+        if not KH_DEMO_MODE:
+            # evidence display on message selection
+            self.chat_panel.chatbot.select(
+                self.message_selected,
+                inputs=[
+                    self.state_retrieval_history,
+                    self.state_plot_history,
+                ],
+                outputs=[
+                    self.info_panel,
+                    self.state_plot_panel,
+                ],
+            ).then(
+                fn=self._json_to_plot,
+                inputs=self.state_plot_panel,
+                outputs=self.plot_panel,
+            ).then(
+                fn=lambda: True,
+                inputs=None,
+                outputs=[self._preview_links],
+                js=pdfview_js,
+            )
 
         self.chat_control.cb_is_public.change(
             self.on_set_public_conversation,
