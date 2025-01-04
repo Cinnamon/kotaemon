@@ -139,31 +139,36 @@ if config("AZURE_OPENAI_API_KEY", default="") and config(
             "default": False,
         }
 
-if config("OPENAI_API_KEY", default=""):
+OPENAI_DEFAULT = "<YOUR_OPENAI_KEY>"
+OPENAI_API_KEY = config("OPENAI_API_KEY", default=OPENAI_DEFAULT)
+GOOGLE_API_KEY = config("GOOGLE_API_KEY", default="your-key")
+IS_OPENAI_DEFAULT = len(OPENAI_API_KEY) > 0 and OPENAI_API_KEY != OPENAI_DEFAULT
+
+if OPENAI_API_KEY:
     KH_LLMS["openai"] = {
         "spec": {
             "__type__": "kotaemon.llms.ChatOpenAI",
             "temperature": 0,
             "base_url": config("OPENAI_API_BASE", default="")
             or "https://api.openai.com/v1",
-            "api_key": config("OPENAI_API_KEY", default=""),
+            "api_key": OPENAI_API_KEY,
             "model": config("OPENAI_CHAT_MODEL", default="gpt-4o-mini"),
             "timeout": 20,
         },
-        "default": True,
+        "default": IS_OPENAI_DEFAULT,
     }
     KH_EMBEDDINGS["openai"] = {
         "spec": {
             "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
             "base_url": config("OPENAI_API_BASE", default="https://api.openai.com/v1"),
-            "api_key": config("OPENAI_API_KEY", default=""),
+            "api_key": OPENAI_API_KEY,
             "model": config(
                 "OPENAI_EMBEDDINGS_MODEL", default="text-embedding-3-large"
             ),
             "timeout": 10,
             "context_length": 8191,
         },
-        "default": True,
+        "default": IS_OPENAI_DEFAULT,
     }
 
 if config("LOCAL_MODEL", default=""):
@@ -207,9 +212,9 @@ KH_LLMS["google"] = {
     "spec": {
         "__type__": "kotaemon.llms.chats.LCGeminiChat",
         "model_name": "gemini-1.5-flash",
-        "api_key": config("GOOGLE_API_KEY", default="your-key"),
+        "api_key": GOOGLE_API_KEY,
     },
-    "default": False,
+    "default": not IS_OPENAI_DEFAULT,
 }
 KH_LLMS["groq"] = {
     "spec": {
@@ -243,8 +248,9 @@ KH_EMBEDDINGS["google"] = {
     "spec": {
         "__type__": "kotaemon.embeddings.LCGoogleEmbeddings",
         "model": "models/text-embedding-004",
-        "google_api_key": config("GOOGLE_API_KEY", default="your-key"),
-    }
+        "google_api_key": GOOGLE_API_KEY,
+    },
+    "default": not IS_OPENAI_DEFAULT,
 }
 # KH_EMBEDDINGS["huggingface"] = {
 #     "spec": {
