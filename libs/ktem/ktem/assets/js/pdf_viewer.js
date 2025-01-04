@@ -88,6 +88,13 @@ function onBlockLoad() {
       ? iframe.contentDocument
       : iframe.contentWindow.document;
 
+    var renderedPages = innerDoc.querySelectorAll("div#viewer div.page");
+    if (renderedPages.length == 0) {
+      // if pages are not rendered yet, wait and try again
+      setTimeout(() => compareText(search_phrases, page_label), 2000);
+      return;
+    }
+
     var query_selector =
       "#viewer > div[data-page-number='" +
       page_label +
