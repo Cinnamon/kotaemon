@@ -1295,9 +1295,11 @@ class FileIndexPage(BasePage):
                     file_id_to_name.get(file_id, "-") for file_id in item["files"]
                 ]
                 item["files"] = ", ".join(
-                    f"'{it[:MAX_FILENAME_LENGTH]}..'"
-                    if len(it) > MAX_FILENAME_LENGTH
-                    else f"'{it}'"
+                    (
+                        f"'{it[:MAX_FILENAME_LENGTH]}..'"
+                        if len(it) > MAX_FILENAME_LENGTH
+                        else f"'{it}'"
+                    )
                     for it in file_names
                 )
                 item_count = len(file_names)

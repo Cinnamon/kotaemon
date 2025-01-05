@@ -1,4 +1,5 @@
 """Get config from Pipeline"""
+
 import inspect
 from pathlib import Path
 from typing import Any, Dict, Optional, Type, Union

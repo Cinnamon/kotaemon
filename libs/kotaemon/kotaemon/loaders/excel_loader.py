@@ -3,6 +3,7 @@
 Pandas parser for .xlsx files.
 
 """
+
 from pathlib import Path
 from typing import Any, List, Optional, Union
 

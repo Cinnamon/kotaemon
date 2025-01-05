@@ -22,8 +22,7 @@ class DocTransformer(BaseComponent):
         self,
         documents: list[Document],
         **kwargs,
-    ) -> list[Document]:
-        ...
+    ) -> list[Document]: ...
 
 
 class LlamaIndexDocTransformerMixin:
@@ -119,5 +118,4 @@ class BaseRetrieval(BaseComponent):
     """Define the base interface for retrieval pipeline"""
 
     @abstractmethod
-    def run(self, *args, **kwargs) -> list[RetrievedDocument]:
-        ...
+    def run(self, *args, **kwargs) -> list[RetrievedDocument]: ...

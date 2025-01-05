@@ -6,6 +6,7 @@ Refs:
 1. [RAGxplorer](https://github.com/gabrielchua/RAGxplorer)
 2. [RAGVizExpander](https://github.com/KKenny0/RAGVizExpander)
 """
+
 from typing import List, Tuple
 
 import numpy as np

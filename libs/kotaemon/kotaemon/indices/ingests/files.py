@@ -34,9 +34,9 @@ azure_reader = AzureAIDocumentIntelligenceLoader(
     cache_dir=getattr(flowsettings, "KH_MARKDOWN_OUTPUT_DIR", None),
 )
 docling_reader = DoclingReader()
-adobe_reader.vlm_endpoint = (
-    azure_reader.vlm_endpoint
-) = docling_reader.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
+adobe_reader.vlm_endpoint = azure_reader.vlm_endpoint = docling_reader.vlm_endpoint = (
+    getattr(flowsettings, "KH_VLM_ENDPOINT", "")
+)
 
 
 KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {

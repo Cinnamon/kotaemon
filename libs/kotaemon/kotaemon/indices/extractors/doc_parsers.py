@@ -1,8 +1,7 @@
 from ..base import DocTransformer, LlamaIndexDocTransformerMixin
 
 
-class BaseDocParser(DocTransformer):
-    ...
+class BaseDocParser(DocTransformer): ...  # noqa: E701
 
 
 class TitleExtractor(LlamaIndexDocTransformerMixin, BaseDocParser):

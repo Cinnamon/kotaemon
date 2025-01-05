@@ -9,6 +9,7 @@ sudo apt-get install -y libmagic-dev poppler-utils libreoffice
 pip install xlrd
 
 """
+
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 

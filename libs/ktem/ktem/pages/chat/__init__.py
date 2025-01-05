@@ -951,9 +951,9 @@ class ChatPage(BasePage):
             settings["reasoning.options.simple.create_mindmap"] = session_use_mindmap
 
         if session_use_citation not in (DEFAULT_SETTING, None):
-            settings[
-                "reasoning.options.simple.highlight_citation"
-            ] = session_use_citation
+            settings["reasoning.options.simple.highlight_citation"] = (
+                session_use_citation
+            )
 
         if session_language not in (DEFAULT_SETTING, None):
             settings["reasoning.lang"] = session_language

@@ -8,8 +8,7 @@ class BaseDocumentStore(ABC):
     """A document store is in charged of storing and managing documents"""
 
     @abstractmethod
-    def __init__(self, *args, **kwargs):
-        ...
+    def __init__(self, *args, **kwargs): ...
 
     @abstractmethod
     def add(

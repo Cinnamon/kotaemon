@@ -13,8 +13,7 @@ from kotaemon.base import DocumentWithEmbedding
 
 class BaseVectorStore(ABC):
     @abstractmethod
-    def __init__(self, *args, **kwargs):
-        ...
+    def __init__(self, *args, **kwargs): ...
 
     @abstractmethod
     def add(

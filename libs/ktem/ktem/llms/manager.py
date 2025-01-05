@@ -84,12 +84,10 @@ class LLMManager:
         return key in self._models
 
     @overload
-    def get(self, key: str, default: None) -> Optional[ChatLLM]:
-        ...
+    def get(self, key: str, default: None) -> Optional[ChatLLM]: ...
 
     @overload
-    def get(self, key: str, default: ChatLLM) -> ChatLLM:
-        ...
+    def get(self, key: str, default: ChatLLM) -> ChatLLM: ...
 
     def get(self, key: str, default: Optional[ChatLLM] = None) -> Optional[ChatLLM]:
         """Get model by name with default value"""

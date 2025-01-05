@@ -176,7 +176,7 @@ class SetupPage(BasePage):
             ],
         )
 
-    def update_model(
+    def update_model(  # noqa: C901
         self,
         cohere_api_key,
         openai_api_key,

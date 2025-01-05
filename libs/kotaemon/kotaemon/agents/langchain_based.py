@@ -30,7 +30,7 @@ class LangchainAgent(BaseAgent):
 
         if self.agent_type not in self.AGENT_TYPE_MAP:
             raise NotImplementedError(
-                f"AgentType {self.agent_type } not supported by Langchain wrapper"
+                f"AgentType {self.agent_type} not supported by Langchain wrapper"
             )
         self.update_agent_tools()
 

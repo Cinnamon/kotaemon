@@ -183,7 +183,11 @@ class IndexManagement(BasePage):
             inputs=[self.selected_index_id],
             outputs=[self.selected_index_id],
             show_progress="hidden",
-        ).then(self.list_indices, inputs=[], outputs=[self.index_list],).success(
+        ).then(
+            self.list_indices,
+            inputs=[],
+            outputs=[self.index_list],
+        ).success(
             update_current_module_atime
         )
         self.btn_delete_no.click(

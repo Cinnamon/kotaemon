@@ -1,4 +1,5 @@
 """Simple file vector store index."""
+
 from pathlib import Path
 from typing import Any, Optional, Type
 

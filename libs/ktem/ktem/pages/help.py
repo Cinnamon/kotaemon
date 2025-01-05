@@ -34,8 +34,9 @@ class HelpPage:
         doc_dir: str = settings.KH_DOC_DIR,
         remote_content_url: str = "https://raw.githubusercontent.com/Cinnamon/kotaemon",
         app_version: str | None = settings.KH_APP_VERSION,
-        changelogs_cache_dir: str
-        | Path = (Path(settings.KH_APP_DATA_DIR) / "changelogs"),
+        changelogs_cache_dir: str | Path = (
+            Path(settings.KH_APP_DATA_DIR) / "changelogs"
+        ),
     ):
         self._app = app
         self.doc_dir = Path(doc_dir)

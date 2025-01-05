@@ -127,10 +127,10 @@ class BaseApp:
             if "reasoning" in functionality:
                 for rid, rdec in functionality["reasoning"].items():
                     unique_rid = f"{extension_declaration['id']}/{rid}"
-                    self.default_settings.reasoning.options[
-                        unique_rid
-                    ] = BaseSettingGroup(
-                        settings=rdec["settings"],
+                    self.default_settings.reasoning.options[unique_rid] = (
+                        BaseSettingGroup(
+                            settings=rdec["settings"],
+                        )
                     )
 
     def declare_event(self, name: str):

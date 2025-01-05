@@ -1,4 +1,5 @@
 """Export logs into Excel file"""
+
 import os
 import pickle
 from pathlib import Path

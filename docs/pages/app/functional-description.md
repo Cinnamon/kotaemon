@@ -238,12 +238,12 @@ The chat workflow looks as follow:
   - The user can converse with the bot. The bot answer the user's requests in a
     natural manner.
   - The bot message should be streamed to the UI. The bot don't wait to gather
-    alll the text response, then dump all of them at once.
+    all the text response, then dump all of them at once.
 
 ### Conversation - switch
 
 **Description**: users can jump around between different conversations. They can
-see the list of all conversations, can select an old converation, and continue
+see the list of all conversations, can select an old conversation, and continue
 the chat under the context of the old conversation. The switching workflow is
 like this:
 

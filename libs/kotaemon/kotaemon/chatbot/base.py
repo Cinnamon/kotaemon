@@ -9,8 +9,7 @@ from kotaemon.base.schema import AIMessage, BaseMessage, HumanMessage, SystemMes
 
 class BaseChatBot(BaseComponent):
     @abstractmethod
-    def run(self, messages: List[BaseMessage]) -> LLMInterface:
-        ...
+    def run(self, messages: List[BaseMessage]) -> LLMInterface: ...
 
 
 def session_chat_storage(obj):

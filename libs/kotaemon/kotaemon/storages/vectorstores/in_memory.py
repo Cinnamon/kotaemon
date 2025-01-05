@@ -1,4 +1,5 @@
 """Simple vector store index."""
+
 from typing import Any, Optional, Type
 
 import fsspec
@@ -34,7 +35,6 @@ class InMemoryVectorStore(LlamaIndexVectorStore):
         fs: Optional[fsspec.AbstractFileSystem] = None,
         **kwargs,
     ):
-
         """save a simpleVectorStore to a dictionary.
 
         Args:
@@ -44,7 +44,6 @@ class InMemoryVectorStore(LlamaIndexVectorStore):
         self._client.persist(persist_path=save_path, fs=fs)
 
     def load(self, load_path: str, fs: Optional[fsspec.AbstractFileSystem] = None):
-
         """Create a SimpleKVStore from a load directory.
 
         Args:
