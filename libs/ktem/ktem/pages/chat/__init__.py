@@ -780,6 +780,7 @@ class ChatPage(BasePage):
         if KH_DEMO_MODE:
             self.paper_list.examples.select(
                 self.paper_list.select_example,
+                inputs=[self.paper_list.papers_state],
                 outputs=[self.quick_urls],
                 show_progress="hidden",
             ).then(
