@@ -5,6 +5,7 @@ from ktem.app import BasePage
 from ktem.db.models import IssueReport, engine
 from sqlmodel import Session
 
+from theflow.settings import settings as flowsettings
 
 class ReportIssue(BasePage):
     def __init__(self, app):
@@ -15,17 +16,53 @@ class ReportIssue(BasePage):
         with gr.Accordion(label="Feedback", open=False):
             self.correctness = gr.Radio(
                 choices=[
-                    ("The answer is correct", "correct"),
-                    ("The answer is incorrect", "incorrect"),
+                    (
+                        getattr(
+                            flowsettings,
+                            "KH_FEEDBACK_CORRECT",
+                            "The answer is correct",
+                        ), "correct"
+                    ),
+                    (
+                        getattr(
+                            flowsettings,
+                            "KH_FEEDBACK_INCORRECT",
+                            "The answer is incorrect",
+                        ), "incorrect"
+                    ),
+                    # ("The answer is incorrect", "incorrect"),
                 ],
-                label="Correctness:",
+                label=getattr(
+                            flowsettings,
+                            "KH_FEEDBACK_CORRECTNESS_LABEL",
+                            "Correctness:",
+                        )
             )
             self.issues = gr.CheckboxGroup(
                 choices=[
-                    ("The answer is offensive", "offensive"),
-                    ("The evidence is incorrect", "wrong-evidence"),
+                    (
+                        getattr(
+                            flowsettings,
+                            "KH_FEEDBACK_DATA_SUFFICIENT",
+                            "The answer is correct",
+                        ), "correct"
+                    ),
+                    (
+                        getattr(
+                            flowsettings,
+                            "KH_FEEDBACK_DATA_INSUFFICIENT",
+                            "The answer is incorrect",
+                        ), "incorrect"
+                    ),
+                    # ("The answer is offensive", "offensive"),
+                    # ("The evidence is incorrect", "wrong-evidence"),
                 ],
-                label="Other issue:",
+                label=getattr(
+                            flowsettings,
+                            "KH_FEEDBACK_DATA_LABEL",
+                            "Other issue:",
+                        )
+                # label="Other issue:",
             )
             self.more_detail = gr.Textbox(
                 placeholder=(

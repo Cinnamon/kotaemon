@@ -307,7 +307,14 @@ KH_UPLOAD_MULTIPLE_PIPELINES = config(
     "KH_UPLOAD_MULTIPLE_PIPELINES", default=False, cast=bool
 )
 KH_RENAME_UI_FILES_TAB = config("KH_RENAME_UI_FILES_TAB", default="Files", cast=str)
-KH_CHAT_CUSTOM_PLACEHOLDER = config("KH_CHAT_CUSTOM_PLACEHOLDER", default="", cast=str)
+# KH_CHAT_CUSTOM_PLACEHOLDER = config("KH_CHAT_CUSTOM_PLACEHOLDER", default="", cast=str)
+KH_CHAT_CUSTOM_PLACEHOLDER = config("KH_CHAT_CUSTOM_PLACEHOLDER", default=False, cast=bool)
+KH_FEEDBACK_CORRECTNESS_LABEL = config("KH_FEEDBACK_CORRECTNESS_LABEL", default="", cast=str)
+KH_FEEDBACK_CORRECT = config("KH_FEEDBACK_CORRECT", default="", cast=str)
+KH_FEEDBACK_INCORRECT = config("KH_FEEDBACK_INCORRECT", default="", cast=str)
+KH_FEEDBACK_DATA_LABEL= config("KH_FEEDBACK_DATA_LABEL", default="", cast=str)
+KH_FEEDBACK_DATA_SUFFICIENT= config("KH_FEEDBACK_DATA_SUFFICIENT", default="", cast=str)
+KH_FEEDBACK_DATA_INSUFFICIENT= config("KH_FEEDBACK_DATA_INSUFFICIENT", default="", cast=str)
 
 USE_NANO_GRAPHRAG = config("USE_NANO_GRAPHRAG", default=False, cast=bool)
 USE_LIGHTRAG = config("USE_LIGHTRAG", default=False, cast=bool)

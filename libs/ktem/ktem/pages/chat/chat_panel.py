@@ -13,12 +13,14 @@ class ChatPanel(BasePage):
         self.chatbot = gr.Chatbot(
             label=self._app.app_name,
             placeholder=(
-                getattr(
-                    flowsettings, 
-                    "KH_CHAT_CUSTOM_PLACEHOLDER", 
-                    "This is the beginning of a new conversation.\nIf you are new, "
-                    "visit the Help tab for quick instructions.",
-                )
+                "This is the beginning of a new conversation.\n"
+                "You can visit the Data tab for uploading patient sources." 
+                # getattr(
+                #     flowsettings, 
+                #     "KH_CHAT_CUSTOM_PLACEHOLDER", 
+                #     "This is the beginning of a new conversation.\nIf you are new, "
+                #     "visit the Help tab for quick instructions.",
+                # )
             ),
             show_label=False,
             elem_id="main-chat-bot",
