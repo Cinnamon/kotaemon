@@ -14,6 +14,7 @@ class AboutPage:
         self._app = app
 
         md = """
-Our mission -- democratize patient discovery.
+Democratizing patient discovery...
 """
+        gr.Markdown("## Our mission")
         gr.Markdown(md)

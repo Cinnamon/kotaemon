@@ -111,25 +111,30 @@ class App(BaseApp):
             ) as self._tabs["settings-tab"]:
                 self.settings_page = SettingsPage(self)
 
-            if not KH_REMOVE_HELP_TAB:
-                with gr.Tab(
-                    "Help",
-                    elem_id="help-tab",
-                    id="help-tab",
-                    visible=not self.f_user_management,
-                    elem_classes=["fill-main-area-height", "scrollable"],
-                ) as self._tabs["help-tab"]:
-                    self.help_page = HelpPage(self)
+            # if not KH_REMOVE_HELP_TAB:
+            with gr.Tab(
+                # "Help",
+                "About",
+                elem_id="help-tab",
+                id="help-tab",
+                visible=not self.f_user_management,
+                elem_classes=["fill-main-area-height", "scrollable"],
+            ) as self._tabs["help-tab"]:
+                # self.help_page = HelpPage(self)
+                self.help_page = AboutPage(self)
 
-            if KH_ADD_ABOUT_TAB:
-                with gr.Tab(
-                    "About",
-                    elem_id="about-tab",
-                    id="about-tab",
-                    visible=not self.f_user_management,
-                    elem_classes=["fill-main-area-height", "scrollable"],
-                ) as self._tabs["about-tab"]:
-                    self.about_page = AboutPage(self)
+            # if KH_ADD_ABOUT_TAB:
+            #     with gr.Tab(
+            #         "About",
+            #         elem_id="help-tab",
+            #         id="help-tab",
+            #         # elem_id="about-tab",
+            #     # id="about-tab",
+            #         visible=not self.f_user_management,
+            #         elem_classes=["fill-main-area-height", "scrollable"],
+            #     # ) as self._tabs["about-tab"]:
+            #     ) as self._tabs["help-tab"]:
+            #         self.about_page = AboutPage(self)
 
         if KH_ENABLE_FIRST_SETUP:
             with gr.Column(visible=False) as self.setup_page_wrapper:
