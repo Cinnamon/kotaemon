@@ -11,13 +11,13 @@ class PaperListPage(BasePage):
         self.on_building_ui()
 
     def on_building_ui(self):
+        self.papers_state = gr.State(None)
         with gr.Accordion(
             label="Browse daily top papers",
             open=False,
         ) as self.accordion:
-            self.papers = fetch_papers(top_n=5)
             self.examples = gr.DataFrame(
-                value=DataFrame(self.papers),
+                value=[],
                 headers=["title", "url", "upvotes"],
                 column_widths=[60, 30, 10],
                 interactive=False,
@@ -26,6 +26,16 @@ class PaperListPage(BasePage):
             )
         return self.examples
 
-    def select_example(self, ev: gr.SelectData):
-        print("Selected index", ev.index[0])
-        return self.papers[ev.index[0]]["url"]
+    def load(self):
+        papers = fetch_papers(top_n=5)
+        papers_df = DataFrame(papers)
+        return (papers_df, papers)
+
+    def _on_app_created(self):
+        self._app.app.load(
+            self.load,
+            outputs=[self.examples, self.papers_state],
+        )
+
+    def select_example(self, state, ev: gr.SelectData):
+        return state[ev.index[0]]["url"]
