@@ -31,6 +31,7 @@ from .control import ConversationControl
 from .report import ReportIssue
 
 KH_WEB_SEARCH_BACKEND = getattr(flowsettings, "KH_WEB_SEARCH_BACKEND", None)
+KH_REMOVE_QUICK_UPLOAD_BOX = getattr(flowsettings, "KH_REMOVE_QUICK_UPLOAD_BOX", False)
 WebSearch = None
 if KH_WEB_SEARCH_BACKEND:
     try:
@@ -171,23 +172,24 @@ class ChatPage(BasePage):
                                 self._indices_input.append(gr_index)
                         setattr(self, f"_index_{index.id}", index_ui)
 
-                if len(self._app.index_manager.indices) > 0:
-                    with gr.Accordion(label="Quick Upload") as _:
-                        self.quick_file_upload = File(
-                            file_types=list(KH_DEFAULT_FILE_EXTRACTORS.keys()),
-                            file_count="multiple",
-                            container=True,
-                            show_label=False,
-                            elem_id="quick-file",
-                        )
-                        self.quick_urls = gr.Textbox(
-                            placeholder="Or paste URLs here",
-                            lines=1,
-                            container=False,
-                            show_label=False,
-                            elem_id="quick-url",
-                        )
-                        self.quick_file_upload_status = gr.Markdown()
+                if not KH_REMOVE_QUICK_UPLOAD_BOX:
+                    if len(self._app.index_manager.indices) > 0:
+                        with gr.Accordion(label="Quick Upload") as _:
+                            self.quick_file_upload = File(
+                                file_types=list(KH_DEFAULT_FILE_EXTRACTORS.keys()),
+                                file_count="multiple",
+                                container=True,
+                                show_label=False,
+                                elem_id="quick-file",
+                            )
+                            self.quick_urls = gr.Textbox(
+                                placeholder="Or paste URLs here",
+                                lines=1,
+                                container=False,
+                                show_label=False,
+                                elem_id="quick-url",
+                            )
+                            self.quick_file_upload_status = gr.Markdown()
 
                 self.report_issue = ReportIssue(self._app)
 

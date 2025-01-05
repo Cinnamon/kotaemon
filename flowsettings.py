@@ -299,10 +299,15 @@ SETTINGS_REASONING = {
     },
 }
 
+KH_REMOVE_QUICK_UPLOAD_BOX = config("KH_REMOVE_QUICK_UPLOAD_BOX", default=False, cast=bool)
+KH_REMOVE_HELP_TAB = config("KH_REMOVE_HELP_TAB", default=False, cast=bool)
 KH_RENAME_UI = config("KH_RENAME_UI", default=False, cast=bool)
+KH_RENAME_UI_CONVERSATIONS = config("KH_RENAME_UI_CONVERSATIONS", default="", cast=str)
 KH_UPLOAD_MULTIPLE_PIPELINES = config(
     "KH_UPLOAD_MULTIPLE_PIPELINES", default=False, cast=bool
 )
+KH_RENAME_UI_FILES_TAB = config("KH_RENAME_UI_FILES_TAB", default="Files", cast=str)
+KH_CHAT_CUSTOM_PLACEHOLDER = config("KH_CHAT_CUSTOM_PLACEHOLDER", default="", cast=str)
 
 USE_NANO_GRAPHRAG = config("USE_NANO_GRAPHRAG", default=False, cast=bool)
 USE_LIGHTRAG = config("USE_LIGHTRAG", default=False, cast=bool)

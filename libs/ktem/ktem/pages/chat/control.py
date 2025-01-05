@@ -39,7 +39,7 @@ class ConversationControl(BasePage):
 
     def on_building_ui(self):
         with gr.Row():
-            conversation_title = "Conversations" if not flowsettings.KH_RENAME_UI else "Report Explorations"
+            conversation_title = flowsettings.KH_RENAME_UI_CONVERSATIONS or "Conversations" 
             gr.Markdown(
                 f"## {conversation_title}"
             )
