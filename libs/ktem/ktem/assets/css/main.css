@@ -429,6 +429,10 @@ tbody:not(.row_odd) {
   display: none;
 }
 
+#paper-suggestion table {
+  overflow: hidden;
+}
+
 svg.markmap {
   width: 100%;
   height: 100%;

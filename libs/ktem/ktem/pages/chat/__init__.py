@@ -32,6 +32,7 @@ from .chat_suggestion import ChatSuggestion
 from .common import STATE
 from .control import ConversationControl
 from .demo_hint import HintPage
+from .paper_list import PaperListPage
 from .report import ReportIssue
 
 KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
@@ -56,6 +57,14 @@ chat_input_focus_js = """
 function() {
     let chatInput = document.querySelector("#chat-input textarea");
     chatInput.focus();
+}
+"""
+
+quick_urls_submit_js = """
+function() {
+    let urlInput = document.querySelector("#quick-url-demo textarea");
+    console.log("URL input:", urlInput);
+    urlInput.dispatchEvent(new KeyboardEvent('keypress', {'key': 'Enter'}));
 }
 """
 
@@ -262,6 +271,9 @@ class ChatPage(BasePage):
                     self.hint_page = HintPage(self._app)
 
             with gr.Column(scale=6, elem_id="chat-area"):
+                if KH_DEMO_MODE:
+                    self.paper_list = PaperListPage(self._app)
+
                 self.chat_panel = ChatPanel(self._app)
 
                 with gr.Row():
@@ -764,6 +776,21 @@ class ChatPage(BasePage):
             outputs=None,
             js=chat_input_focus_js,
         )
+
+        if KH_DEMO_MODE:
+            self.paper_list.examples.select(
+                self.paper_list.select_example,
+                outputs=[self.quick_urls],
+                show_progress="hidden",
+            ).then(
+                lambda: gr.update(visible=False),
+                outputs=[self.paper_list.accordion],
+            ).then(
+                fn=None,
+                inputs=None,
+                outputs=None,
+                js=quick_urls_submit_js,
+            )
 
     def submit_msg(
         self,
