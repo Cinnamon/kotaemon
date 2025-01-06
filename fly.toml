@@ -13,7 +13,7 @@ primary_region = 'sin'
   source = "ktem_volume"
 
 [http_service]
-  internal_port = 8080
+  internal_port = 7860
   force_https = true
   auto_stop_machines = 'suspend'
   auto_start_machines = true
