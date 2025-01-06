@@ -340,11 +340,6 @@ class StructuredOutputChatOpenAI(ChatOpenAI):
         """Convert the OpenAI response into StructuredOutputLLMInterface"""
         additional_kwargs = {}
 
-        if 'parsed' in resp['choices'][0]['message']:
-            additional_kwargs['parsed'] = resp["choices"][0]["message"][
-                "parsed"
-            ]
-
         if "tool_calls" in resp["choices"][0]["message"]:
             additional_kwargs["tool_calls"] = resp["choices"][0]["message"][
                 "tool_calls"
@@ -359,7 +354,7 @@ class StructuredOutputChatOpenAI(ChatOpenAI):
             )
 
         output = StructuredOutputLLMInterface(
-            **additional_kwargs, # TODO: clarify how additional_kwargs is used - diff bw BaseChatOpenAI usage and here 
+            parsed = resp["choices"][0]["message"]["parsed"],
             candidates=[(_["message"]["content"] or "") for _ in resp["choices"]],
             content=resp["choices"][0]["message"]["content"] or "",
             total_tokens=resp["usage"]["total_tokens"],
@@ -369,6 +364,7 @@ class StructuredOutputChatOpenAI(ChatOpenAI):
                 AIMessage(content=(_["message"]["content"]) or "")
                 for _ in resp["choices"]
             ],
+            additional_kwargs=additional_kwargs,
             logprobs=logprobs,
             
         )
