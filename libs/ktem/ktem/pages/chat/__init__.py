@@ -523,6 +523,9 @@ class ChatPage(BasePage):
                 ]
                 + self._indices_input,
             ).then(
+                lambda: gr.update(visible=False),
+                outputs=[self.paper_list.accordion],
+            ).then(
                 fn=None,
                 inputs=None,
                 js=chat_input_focus_js,
@@ -639,41 +642,58 @@ class ChatPage(BasePage):
                 show_progress="hidden",
             )
 
-        self.chat_control.conversation.select(
-            self.chat_control.select_conv,
-            inputs=[self.chat_control.conversation, self._app.user_id],
-            outputs=[
-                self.chat_control.conversation_id,
-                self.chat_control.conversation,
-                self.chat_control.conversation_rn,
-                self.chat_panel.chatbot,
-                self.followup_questions,
-                self.info_panel,
-                self.state_plot_panel,
-                self.state_retrieval_history,
-                self.state_plot_history,
-                self.chat_control.cb_is_public,
-                self.state_chat,
-            ]
-            + self._indices_input,
-            show_progress="hidden",
-        ).then(
-            fn=self._json_to_plot,
-            inputs=self.state_plot_panel,
-            outputs=self.plot_panel,
-        ).then(
-            lambda: self.toggle_delete(""),
-            outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
-        ).then(
-            fn=lambda: True,
-            js=clear_bot_message_selection_js,
-        ).then(
-            fn=lambda: True,
-            inputs=None,
-            outputs=[self._preview_links],
-            js=pdfview_js,
-        ).then(
-            fn=None, inputs=None, outputs=None, js=chat_input_focus_js
+        onConvSelect = (
+            self.chat_control.conversation.select(
+                self.chat_control.select_conv,
+                inputs=[self.chat_control.conversation, self._app.user_id],
+                outputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation,
+                    self.chat_control.conversation_rn,
+                    self.chat_panel.chatbot,
+                    self.followup_questions,
+                    self.info_panel,
+                    self.state_plot_panel,
+                    self.state_retrieval_history,
+                    self.state_plot_history,
+                    self.chat_control.cb_is_public,
+                    self.state_chat,
+                ]
+                + self._indices_input,
+                show_progress="hidden",
+            )
+            .then(
+                fn=self._json_to_plot,
+                inputs=self.state_plot_panel,
+                outputs=self.plot_panel,
+            )
+            .then(
+                lambda: self.toggle_delete(""),
+                outputs=[
+                    self.chat_control._new_delete,
+                    self.chat_control._delete_confirm,
+                ],
+            )
+        )
+
+        if KH_DEMO_MODE:
+            onConvSelect = onConvSelect.then(
+                lambda: gr.update(visible=False),
+                outputs=[self.paper_list.accordion],
+            )
+
+        onConvSelect = (
+            onConvSelect.then(
+                fn=lambda: True,
+                js=clear_bot_message_selection_js,
+            )
+            .then(
+                fn=lambda: True,
+                inputs=None,
+                outputs=[self._preview_links],
+                js=pdfview_js,
+            )
+            .then(fn=None, inputs=None, outputs=None, js=chat_input_focus_js)
         )
 
         if not KH_DEMO_MODE:
