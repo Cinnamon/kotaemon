@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: kotaemon_app
+    container_name: kotaemon_app_feature1
     ports:
       - "7860:7860"
     environment:
@@ -13,5 +13,5 @@ services:
       - GRADIO_SERVER_PORT=7860
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
-      - ./your-local-code:/app
+      - .:/app
     restart: always
