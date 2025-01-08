@@ -11,7 +11,7 @@ fi
 if [ "$KH_DEMO_MODE" = "true" ]; then
     echo "KH_DEMO_MODE is true. Launching in demo mode..."
     # Command to launch in demo mode
-    GR_FILE_ROOT_PATH="/app" KH_FEATURE_USER_MANAGEMENT=false USE_LIGHTRAG=false PROMETHEUS_PORT=8000 PROMETHEUS_HOST="0.0.0.0" uvicorn sso_app_demo:app --host "$GRADIO_SERVER_NAME" --port "$GRADIO_SERVER_PORT"
+    GR_FILE_ROOT_PATH="/app" KH_FEATURE_USER_MANAGEMENT=false USE_LIGHTRAG=false uvicorn sso_app_demo:app --host "$GRADIO_SERVER_NAME" --port "$GRADIO_SERVER_PORT"
 else
     python app.py
 fi

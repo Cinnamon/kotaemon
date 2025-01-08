@@ -806,10 +806,10 @@ class ChatPage(BasePage):
         request: gr.Request,
     ):
         """Submit a message to the chatbot"""
+        MetricCounter.MESSAGES.inc()
         if KH_DEMO_MODE:
             sso_user_id = check_rate_limit("chat", request)
             print("User ID:", sso_user_id)
-            MetricCounter.MESSAGES.inc()
 
         if not chat_input:
             raise ValueError("Input is empty")

@@ -1196,9 +1196,9 @@ class FileIndexPage(BasePage):
         user_id,
         request: gr.Request,
     ):
+        MetricCounter.FILE_UPLOAD.inc()
         if KH_DEMO_MODE:
             check_rate_limit("file_upload", request)
-            MetricCounter.FILE_UPLOAD.inc()
 
         returned_ids: list[str] = []
         settings = deepcopy(settings)

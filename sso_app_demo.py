@@ -6,7 +6,6 @@ from decouple import config
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 from ktem.assets import KotaemonTheme
-from prometheus_client import start_http_server
 from starlette.config import Config
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import RedirectResponse
@@ -24,10 +23,6 @@ if GRADIO_TEMP_DIR is None:
 GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", default="")
 GOOGLE_CLIENT_SECRET = config("GOOGLE_CLIENT_SECRET", default="")
 SECRET_KEY = config("SECRET_KEY", default="default-secret-key")
-
-PROMETHEUS_PORT: int = config("PROMETHEUS_PORT", default=8000)
-PROMETHEUS_HOST: int = config("PROMETHEUS_HOST", default="0.0.0.0")
-
 
 save_api_key_js = """
 function(api_key) {
@@ -151,10 +146,6 @@ with gr.Blocks(
     #     inputs=[api_key_input],
     #     js=save_api_key_js,
     # )
-
-print(f"Start prometheus at: {PROMETHEUS_HOST}:{PROMETHEUS_PORT}")
-start_http_server(PROMETHEUS_PORT, PROMETHEUS_HOST)
-
 
 app = gr.mount_gradio_app(app, login_demo, path="/login-app")
 app = gr.mount_gradio_app(
