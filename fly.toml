@@ -24,3 +24,8 @@ primary_region = 'sin'
   memory = '4gb'
   cpu_kind = 'shared'
   cpus = 4
+
+[metrics]
+  port = 8000
+  path = "/metrics"
+
