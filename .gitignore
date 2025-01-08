@@ -5,6 +5,7 @@ activate*
 activate/*
 kotaemon-env*
 .env
+#docker-compose.yml
 
 ### Emacs ###
 # -*- mode: gitignore; -*-
