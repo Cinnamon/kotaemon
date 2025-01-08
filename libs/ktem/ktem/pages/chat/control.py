@@ -159,7 +159,7 @@ class ConversationControl(BasePage):
             with gr.Row():
                 self.btn_demo_login = gr.Button(
                     "Sign-in to create new chat",
-                    link="/login-app",
+                    link="/login-app/",
                     min_width=120,
                     size="sm",
                     scale=1,
