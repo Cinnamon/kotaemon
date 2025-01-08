@@ -13,6 +13,12 @@ from ktem.index.file.ui import File
 from ktem.reasoning.prompt_optimization.suggest_conversation_name import (
     SuggestConvNamePipeline,
 )
+
+from ktem.index.file.graph import NanoGraphRAGIndex
+from ktem.index.file.graph.nano_pipelines import (
+    NanoGraphRAGIndexingPipeline,
+    NanoGraphRAGRetrieverPipeline
+)
 from ktem.reasoning.prompt_optimization.suggest_followup_chat import (
     SuggestFollowupQuesPipeline,
 )
