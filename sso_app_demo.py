@@ -80,7 +80,7 @@ oauth = add_session_middleware(app)
 @app.get("/")
 def public(request: Request):
     root_url = gr.route_utils.get_root_url(request, "/", None)
-    return RedirectResponse(url=f"{root_url}/app")
+    return RedirectResponse(url=f"{root_url}/app/")
 
 
 @app.get("/favicon.ico", include_in_schema=False)
