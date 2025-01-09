@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: kotaemon_app_feature1
+    container_name: kotaemon_app
     ports:
       - "7860:7860"
     environment:
