@@ -13,5 +13,5 @@ services:
       - GRADIO_SERVER_PORT=7860
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
-      - ./your-local-code:/app
+      - .:/app
     restart: always
