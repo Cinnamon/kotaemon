@@ -1,5 +1,4 @@
 import os
-import os.path
 
 import markdown
 from fast_langdetect import detect
@@ -52,7 +51,24 @@ class Render:
     def table(text: str) -> str:
         """Render table from markdown format into HTML"""
         text = replace_mardown_header(text)
-        return markdown.markdown(text, extensions=["markdown.extensions.tables"])
+        return markdown.markdown(
+            text,
+            extensions=[
+                "markdown.extensions.tables",
+                "markdown.extensions.fenced_code",
+            ],
+        )
+
+    @staticmethod
+    def table_preserve_linebreaks(text: str) -> str:
+        """Render table from markdown format into HTML"""
+        return markdown.markdown(
+            text,
+            extensions=[
+                "markdown.extensions.tables",
+                "markdown.extensions.fenced_code",
+            ],
+        ).replace("\n", "<br>")
 
     @staticmethod
     def preview(
@@ -129,6 +145,8 @@ class Render:
         header = f"<i>{get_header(doc)}</i>"
         if doc.metadata.get("type", "") == "image":
             doc_content = Render.image(url=doc.metadata["image_origin"], text=doc.text)
+        elif doc.metadata.get("type", "") == "table_raw":
+            doc_content = Render.table_preserve_linebreaks(doc.text)
         else:
             doc_content = Render.table(doc.text)
 
@@ -169,6 +187,9 @@ class Render:
         if item_type_prefix:
             item_type_prefix += " from "
 
+        if "raw" in item_type_prefix:
+            item_type_prefix = ""
+
         if llm_reranking_score > 0:
             relevant_score = llm_reranking_score
         elif reranking_score > 0:
@@ -193,6 +214,8 @@ class Render:
                 url=doc.metadata["image_origin"],
                 text=text,
             )
+        elif doc.metadata.get("type", "") == "table_raw":
+            rendered_doc_content = Render.table_preserve_linebreaks(doc.text)
         else:
             rendered_doc_content = Render.table(text)
 

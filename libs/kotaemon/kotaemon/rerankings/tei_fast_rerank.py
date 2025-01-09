@@ -29,13 +29,24 @@ class TeiFastReranking(BaseReranking):
         ),
     )
     is_truncated: Optional[bool] = Param(True, help="Whether to truncate the inputs")
+    max_tokens: Optional[int] = Param(
+        512,
+        help=(
+            "This option is used to specify the "
+            "maximum number of tokens supported by the reranker model."
+        ),
+    )
 
     def client(self, query, texts):
+        if self.is_truncated:
+            max_tokens = self.max_tokens  # default is 512 tokens.
+            truncated_texts = [text[:max_tokens] for text in texts]
+
         response = session.post(
             url=self.endpoint_url,
             json={
                 "query": query,
-                "texts": texts,
+                "texts": truncated_texts,
                 "is_truncated": self.is_truncated,  # default is True
             },
         ).json()

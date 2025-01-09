@@ -21,13 +21,17 @@ function run() {
   let chat_column = document.getElementById("main-chat-bot");
   let conv_column = document.getElementById("conv-settings-panel");
 
+  // move setting close button
+  let setting_tab_nav_bar = document.querySelector("#settings-tab .tab-nav");
+  let setting_close_button = document.getElementById("save-setting-btn");
+  setting_tab_nav_bar.appendChild(setting_close_button);
+
   let default_conv_column_min_width = "min(300px, 100%)";
   conv_column.style.minWidth = default_conv_column_min_width
 
   globalThis.toggleChatColumn = (() => {
     /* get flex-grow value of chat_column */
     let flex_grow = conv_column.style.flexGrow;
-    console.log("chat col", flex_grow);
     if (flex_grow == '0') {
       conv_column.style.flexGrow = '1';
       conv_column.style.minWidth = default_conv_column_min_width;
@@ -90,10 +94,24 @@ function run() {
       event.preventDefault(); // Prevent the default link behavior
       var citationId = event.target.getAttribute('id');
 
-      await sleep(100); // Sleep for 500 milliseconds
+      await sleep(100); // Sleep for 100 milliseconds
+
+      // check if modal is open
+      var modal = document.getElementById("pdf-modal");
       var citation = document.querySelector('mark[id="' + citationId + '"]');
-      if (citation) {
-          citation.scrollIntoView({ behavior: 'smooth' });
+
+      if (modal.style.display == "block") {
+          // trigger on click event of PDF Preview link
+          var detail_elem = citation;
+          // traverse up the DOM tree to find the parent element with tag detail
+          while (detail_elem.tagName.toLowerCase() != "details") {
+              detail_elem = detail_elem.parentElement;
+          }
+          detail_elem.getElementsByClassName("pdf-link").item(0).click();
+      } else {
+        if (citation) {
+            citation.scrollIntoView({ behavior: 'smooth' });
+        }
       }
   }
 }

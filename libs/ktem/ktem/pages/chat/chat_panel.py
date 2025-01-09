@@ -25,7 +25,9 @@ class ChatPanel(BasePage):
                 interactive=True,
                 scale=20,
                 file_count="multiple",
-                placeholder="Type a message (or tag a file with @filename)",
+                placeholder=(
+                    "Type a message, search the @web, or tag a file with @filename"
+                ),
                 container=False,
                 show_label=False,
                 elem_id="chat-input",

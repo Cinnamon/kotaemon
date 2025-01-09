@@ -1,4 +1,5 @@
 import asyncio
+import importlib
 import json
 import re
 from copy import deepcopy
@@ -22,11 +23,22 @@ from theflow.settings import settings as flowsettings
 from kotaemon.base import Document
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 
-from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex
+from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex, get_urls
+from ...utils.commands import WEB_SEARCH_COMMAND
 from .chat_panel import ChatPanel
 from .common import STATE
 from .control import ConversationControl
 from .report import ReportIssue
+
+KH_WEB_SEARCH_BACKEND = getattr(flowsettings, "KH_WEB_SEARCH_BACKEND", None)
+WebSearch = None
+if KH_WEB_SEARCH_BACKEND:
+    try:
+        module_name, class_name = KH_WEB_SEARCH_BACKEND.rsplit(".", 1)
+        module = importlib.import_module(module_name)
+        WebSearch = getattr(module, class_name)
+    except (ImportError, AttributeError) as e:
+        print(f"Error importing {class_name} from {module_name}: {e}")
 
 DEFAULT_SETTING = "(default)"
 INFO_PANEL_SCALES = {True: 8, False: 4}
@@ -113,6 +125,7 @@ class ChatPage(BasePage):
             value=getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False)
         )
         self._info_panel_expanded = gr.State(value=True)
+        self._command_state = gr.State(value=None)
 
     def on_building_ui(self):
         with gr.Row():
@@ -140,6 +153,7 @@ class ChatPage(BasePage):
                         # get the file selector choices for the first index
                         if index_id == 0:
                             self.first_selector_choices = index_ui.selector_choices
+                            self.first_indexing_url_fn = None
 
                         if gr_index:
                             if isinstance(gr_index, list):
@@ -284,6 +298,7 @@ class ChatPage(BasePage):
                     self.chat_panel.text_input,
                     self.chat_panel.chatbot,
                     self._app.user_id,
+                    self._app.settings_state,
                     self.chat_control.conversation_id,
                     self.chat_control.conversation_rn,
                     self.first_selector_choices,
@@ -297,6 +312,7 @@ class ChatPage(BasePage):
                     # file selector from the first index
                     self._indices_input[0],
                     self._indices_input[1],
+                    self._command_state,
                 ],
                 concurrency_limit=20,
                 show_progress="hidden",
@@ -313,6 +329,7 @@ class ChatPage(BasePage):
                     self.citation,
                     self.language,
                     self.state_chat,
+                    self._command_state,
                     self._app.user_id,
                 ]
                 + self._indices_input,
@@ -634,6 +651,7 @@ class ChatPage(BasePage):
         chat_input,
         chat_history,
         user_id,
+        settings,
         conv_id,
         conv_name,
         first_selector_choices,
@@ -643,22 +661,50 @@ class ChatPage(BasePage):
             raise ValueError("Input is empty")
 
         chat_input_text = chat_input.get("text", "")
+        file_ids = []
+        used_command = None
 
-        # get all file names with pattern @"filename" in input_str
-        file_names, chat_input_text = get_file_names_regex(chat_input_text)
         first_selector_choices_map = {
             item[0]: item[1] for item in first_selector_choices
         }
-        file_ids = []
 
-        if file_names:
+        # get all file names with pattern @"filename" in input_str
+        file_names, chat_input_text = get_file_names_regex(chat_input_text)
+
+        # check if web search command is in file_names
+        if WEB_SEARCH_COMMAND in file_names:
+            used_command = WEB_SEARCH_COMMAND
+
+        # get all urls in input_str
+        urls, chat_input_text = get_urls(chat_input_text)
+
+        if urls and self.first_indexing_url_fn:
+            print("Detected URLs", urls)
+            file_ids = self.first_indexing_url_fn(
+                "\n".join(urls),
+                True,
+                settings,
+                user_id,
+            )
+        elif file_names:
             for file_name in file_names:
                 file_id = first_selector_choices_map.get(file_name)
                 if file_id:
                     file_ids.append(file_id)
 
+        # add new file ids to the first selector choices
+        first_selector_choices.extend(zip(urls, file_ids))
+
+        # if file_ids is not empty and chat_input_text is empty
+        # set the input to summary
+        if not chat_input_text and file_ids:
+            chat_input_text = "Summary"
+
         if file_ids:
-            selector_output = ["select", file_ids]
+            selector_output = [
+                "select",
+                gr.update(value=file_ids, choices=first_selector_choices),
+            ]
         else:
             selector_output = [gr.update(), gr.update()]
 
@@ -682,13 +728,17 @@ class ChatPage(BasePage):
             conv_update = gr.update()
             new_conv_name = conv_name
 
-        return [
-            {},
-            chat_history,
-            new_conv_id,
-            conv_update,
-            new_conv_name,
-        ] + selector_output
+        return (
+            [
+                {},
+                chat_history,
+                new_conv_id,
+                conv_update,
+                new_conv_name,
+            ]
+            + selector_output
+            + [used_command]
+        )
 
     def toggle_delete(self, conv_id):
         if conv_id:
@@ -852,6 +902,7 @@ class ChatPage(BasePage):
         session_use_citation: str,
         session_language: str,
         state: dict,
+        command_state: str | None,
         user_id: int,
         *selecteds,
     ):
@@ -909,17 +960,26 @@ class ChatPage(BasePage):
 
         # get retrievers
         retrievers = []
-        for index in self._app.index_manager.indices:
-            index_selected = []
-            if isinstance(index.selector, int):
-                index_selected = selecteds[index.selector]
-            if isinstance(index.selector, tuple):
-                for i in index.selector:
-                    index_selected.append(selecteds[i])
-            iretrievers = index.get_retriever_pipelines(
-                settings, user_id, index_selected
-            )
-            retrievers += iretrievers
+
+        if command_state == WEB_SEARCH_COMMAND:
+            # set retriever for web search
+            if not WebSearch:
+                raise ValueError("Web search back-end is not available.")
+
+            web_search = WebSearch()
+            retrievers.append(web_search)
+        else:
+            for index in self._app.index_manager.indices:
+                index_selected = []
+                if isinstance(index.selector, int):
+                    index_selected = selecteds[index.selector]
+                if isinstance(index.selector, tuple):
+                    for i in index.selector:
+                        index_selected.append(selecteds[i])
+                iretrievers = index.get_retriever_pipelines(
+                    settings, user_id, index_selected
+                )
+                retrievers += iretrievers
 
         # prepare states
         reasoning_state = {
@@ -941,7 +1001,8 @@ class ChatPage(BasePage):
         use_mind_map,
         use_citation,
         language,
-        state,
+        chat_state,
+        command_state,
         user_id,
         *selecteds,
     ):
@@ -951,7 +1012,7 @@ class ChatPage(BasePage):
 
         # if chat_input is empty, assume regen mode
         if chat_output:
-            state["app"]["regen"] = True
+            chat_state["app"]["regen"] = True
 
         queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
 
@@ -963,7 +1024,8 @@ class ChatPage(BasePage):
             use_mind_map,
             use_citation,
             language,
-            state,
+            chat_state,
+            command_state,
             user_id,
             *selecteds,
         )
@@ -980,7 +1042,7 @@ class ChatPage(BasePage):
             refs,
             plot_gr,
             plot,
-            state,
+            chat_state,
         )
 
         for response in pipeline.stream(chat_input, conversation_id, chat_history):
@@ -1007,14 +1069,14 @@ class ChatPage(BasePage):
                 plot = response.content
                 plot_gr = self._json_to_plot(plot)
 
-            state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
+            chat_state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
 
             yield (
                 chat_history + [(chat_input, text or msg_placeholder)],
                 refs,
                 plot_gr,
                 plot,
-                state,
+                chat_state,
             )
 
         if not text:
@@ -1027,7 +1089,7 @@ class ChatPage(BasePage):
                 refs,
                 plot_gr,
                 plot,
-                state,
+                chat_state,
             )
 
     def check_and_suggest_name_conv(self, chat_history):

@@ -152,6 +152,7 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
     def replace_citation_with_link(self, answer: str):
         # Define the regex pattern to match 【number】
         pattern = r"【\d+】"
+        alternate_pattern = r"\[\d+\]"
 
         # Regular expression to match merged citations
         multi_pattern = r"【([\d,\s]+)】"
@@ -166,7 +167,9 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
         answer = re.sub(multi_pattern, split_citations, answer)
 
         # Find all citations in the answer
-        matches = re.finditer(pattern, answer)
+        matches = list(re.finditer(pattern, answer))
+        if not matches:
+            matches = list(re.finditer(alternate_pattern, answer))
 
         matched_citations = set()
         for match in matches:
@@ -174,11 +177,12 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
             matched_citations.add(citation)
 
         for citation in matched_citations:
+            citation_id = citation[1:-1]
             answer = answer.replace(
                 citation,
                 (
                     "<a href='#' class='citation' "
-                    f"id='mark-{citation[1:-1]}'>{citation}</a>"
+                    f"id='mark-{citation_id}'>【{citation_id}】</a>"
                 ),
             )
 

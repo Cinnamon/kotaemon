@@ -19,6 +19,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
 
+from ...utils.commands import WEB_SEARCH_COMMAND
+
 DOWNLOAD_MESSAGE = "Press again to download"
 MAX_FILENAME_LENGTH = 20
 
@@ -38,6 +40,13 @@ function(file_list) {
             value: '"' + file_list[i][0] + '"',
         });
     }
+
+    // manually push web search tag
+    values.push({
+        key: "web_search",
+        value: '"web_search"',
+    });
+
     var tribute = new Tribute({
         values: values,
         noMatchTemplate: "",
@@ -46,7 +55,9 @@ function(file_list) {
     input_box = document.querySelector('#chat-input textarea');
     tribute.attach(input_box);
 }
-"""
+""".replace(
+    "web_search", WEB_SEARCH_COMMAND
+)
 
 
 class File(gr.File):
@@ -683,6 +694,11 @@ class FileIndexPage(BasePage):
             if self._index.id == 1:
                 self.quick_upload_state = gr.State(value=[])
                 print("Setting up quick upload event")
+
+                # override indexing function from chat page
+                self._app.chat_page.first_indexing_url_fn = (
+                    self.index_fn_url_with_default_loaders
+                )
                 quickUploadedEvent = (
                     self._app.chat_page.quick_file_upload.upload(
                         fn=lambda: gr.update(
