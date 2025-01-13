@@ -1,16 +1,39 @@
 from typing import Any
+from uuid import uuid4
 
+from ktem.db.engine import engine
+from sqlalchemy.orm import Session
 from ..base import BaseFileIndexIndexing, BaseFileIndexRetriever
 from .graph_index import GraphRAGIndex
 from .lightrag_pipelines import LightRAGIndexingPipeline, LightRAGRetrieverPipeline
 
 
 class LightRAGIndex(GraphRAGIndex):
+    def __init__(self, app, id: int, name: str, config: dict):
+        super().__init__(app, id, name, config)
+        self._collection_graph_id = None
+
     def _setup_indexing_cls(self):
         self._indexing_pipeline_cls = LightRAGIndexingPipeline
 
     def _setup_retriever_cls(self):
         self._retriever_pipeline_cls = [LightRAGRetrieverPipeline]
+
+    def _get_or_create_collection_graph_id(self):
+        if not self._collection_graph_id:
+            # Try to find existing graph ID for this collection
+            with Session(engine) as session:
+                result = (
+                    session.query(self._resources["Index"].target_id)
+                    .filter(self._resources["Index"].relation_type == "graph")
+                    .first()
+                )
+                if result:
+                    self._collection_graph_id = result[0]
+                else:
+                    self._collection_graph_id = str(uuid4())
+        return self._collection_graph_id
+
 
     def get_indexing_pipeline(self, settings, user_id) -> BaseFileIndexIndexing:
         pipeline = super().get_indexing_pipeline(settings, user_id)
@@ -23,6 +46,8 @@ class LightRAGIndex(GraphRAGIndex):
         }
         # set the prompts
         pipeline.prompts = striped_settings
+        # set collection graph id
+        pipeline.collection_graph_id = self._get_or_create_collection_graph_id()
         return pipeline
 
     def get_retriever_pipelines(
