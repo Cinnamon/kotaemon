@@ -33,7 +33,7 @@ git checkout -b descriptive-name-for-your-changes
 4. **Setup the development environment**: If you are working on the code, make sure to install the necessary dependencies for development
 
 ```sh
-pip install -e "libs/kotaemon[dev]
+pip install -e "libs/kotaemon[dev]"
 ```
 
 5. **Make your changes**: Ensure your code follows the project's coding style and passes all test cases.

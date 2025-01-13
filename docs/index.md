@@ -28,6 +28,7 @@ Download the `kotaemon-app.zip` file from the [latest release](https://github.co
    - Linux: `run_linux.sh`. Please run the script using `bash run_linux.sh` in your terminal.
 2. After the installation, the installer will ask to launch the ktem's UI, answer to continue.
 3. If launched, the application will be open automatically in your browser.
+4. Default login information is: `username: admin / password: admin`. You should change this credential right after the first login on the UI.
 
 ## Launch
 
