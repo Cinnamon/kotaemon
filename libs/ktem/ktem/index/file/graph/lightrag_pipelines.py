@@ -247,7 +247,7 @@ class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
     def store_file_id_with_graph_id(self, file_ids: list[str | None]):
         # Use the collection-wide graph ID for LightRAG
         graph_id = self.collection_graph_id
-        
+
         # Record all files under this graph_id
         with Session(engine) as session:
             for file_id in file_ids:
@@ -349,7 +349,10 @@ class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
         process_doc_count = 0
         yield Document(
             channel="debug",
-            text=f"[GraphRAG] {'Updating' if is_incremental else 'Creating'} index: {process_doc_count} / {total_docs} documents.",
+            text=(
+                f"[GraphRAG] {'Updating' if is_incremental else 'Creating'} index: "
+                f"{process_doc_count} / {total_docs} documents."
+            ),
         )
 
         for doc_id in range(0, len(all_docs), INDEX_BATCHSIZE):
