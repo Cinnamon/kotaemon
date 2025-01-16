@@ -159,12 +159,19 @@ class ConversationControl(BasePage):
             with gr.Row():
                 self.btn_demo_login = gr.Button(
                     "Sign-in to create new chat",
-                    link="/login-app/",
                     min_width=120,
                     size="sm",
                     scale=1,
                     variant="primary",
                 )
+                _js_redirect = """
+                () => {
+                    url = '/login' + window.location.search;
+                    window.open(url, '_blank');
+                }
+                """
+                self.btn_demo_login.click(None, js=_js_redirect)
+
                 self.btn_demo_logout = gr.Button(
                     "Sign-out",
                     min_width=120,
