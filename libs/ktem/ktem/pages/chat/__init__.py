@@ -271,76 +271,72 @@ class ChatPage(BasePage):
                     self.hint_page = HintPage(self._app)
 
             with gr.Column(scale=6, elem_id="chat-area"):
+                self.chat_panel = ChatPanel(self._app)
+
                 if KH_DEMO_MODE:
                     self.paper_list = PaperListPage(self._app)
 
-                self.chat_panel = ChatPanel(self._app)
+                with gr.Accordion(
+                    label="Chat settings",
+                    elem_id="chat-settings-expand",
+                    open=False,
+                    visible=not KH_DEMO_MODE,
+                ) as self.chat_settings:
+                    with gr.Row(elem_id="quick-setting-labels"):
+                        gr.HTML("Reasoning method")
+                        gr.HTML("Model", visible=not KH_DEMO_MODE)
+                        gr.HTML("Language")
 
-                with gr.Row():
-                    with gr.Accordion(
-                        label="Chat settings",
-                        elem_id="chat-settings-expand",
-                        open=False,
-                    ):
-                        with gr.Row(elem_id="quick-setting-labels"):
-                            gr.HTML("Reasoning method")
-                            gr.HTML("Model", visible=not KH_DEMO_MODE)
-                            gr.HTML("Language")
+                    with gr.Row():
+                        reasoning_setting = (
+                            self._app.default_settings.reasoning.settings["use"]
+                        )
+                        model_setting = self._app.default_settings.reasoning.options[
+                            "simple"
+                        ].settings["llm"]
+                        language_setting = (
+                            self._app.default_settings.reasoning.settings["lang"]
+                        )
+                        citation_setting = self._app.default_settings.reasoning.options[
+                            "simple"
+                        ].settings["highlight_citation"]
 
-                        with gr.Row():
-                            reasoning_setting = (
-                                self._app.default_settings.reasoning.settings["use"]
-                            )
-                            model_setting = (
-                                self._app.default_settings.reasoning.options[
-                                    "simple"
-                                ].settings["llm"]
-                            )
-                            language_setting = (
-                                self._app.default_settings.reasoning.settings["lang"]
-                            )
-                            citation_setting = (
-                                self._app.default_settings.reasoning.options[
-                                    "simple"
-                                ].settings["highlight_citation"]
-                            )
+                        self.reasoning_type = gr.Dropdown(
+                            choices=reasoning_setting.choices[:REASONING_LIMITS],
+                            value=reasoning_setting.value,
+                            container=False,
+                            show_label=False,
+                        )
+                        self.model_type = gr.Dropdown(
+                            choices=model_setting.choices,
+                            value=model_setting.value,
+                            container=False,
+                            show_label=False,
+                            visible=not KH_DEMO_MODE,
+                        )
+                        self.language = gr.Dropdown(
+                            choices=language_setting.choices,
+                            value=language_setting.value,
+                            container=False,
+                            show_label=False,
+                        )
 
-                            self.reasoning_type = gr.Dropdown(
-                                choices=reasoning_setting.choices[:REASONING_LIMITS],
-                                value=reasoning_setting.value,
-                                container=False,
-                                show_label=False,
-                            )
-                            self.model_type = gr.Dropdown(
-                                choices=model_setting.choices,
-                                value=model_setting.value,
-                                container=False,
-                                show_label=False,
-                                visible=not KH_DEMO_MODE,
-                            )
-                            self.language = gr.Dropdown(
-                                choices=language_setting.choices,
-                                value=language_setting.value,
-                                container=False,
-                                show_label=False,
-                            )
+                        self.citation = gr.Dropdown(
+                            choices=citation_setting.choices,
+                            value=citation_setting.value,
+                            container=False,
+                            show_label=False,
+                            interactive=True,
+                            elem_id="citation-dropdown",
+                        )
 
-                            self.citation = gr.Dropdown(
-                                choices=citation_setting.choices,
-                                value=citation_setting.value,
-                                container=False,
-                                show_label=False,
-                                interactive=True,
-                                elem_id="citation-dropdown",
-                            )
-
-                            self.use_mindmap = gr.State(value=True)
-                            self.use_mindmap_check = gr.Checkbox(
-                                label="Mindmap (on)",
-                                container=False,
-                                elem_id="use-mindmap-checkbox",
-                                value=True,
-                            )
+                        self.use_mindmap = gr.State(value=True)
+                        self.use_mindmap_check = gr.Checkbox(
+                            label="Mindmap (on)",
+                            container=False,
+                            elem_id="use-mindmap-checkbox",
+                            value=True,
+                        )
 
             with gr.Column(
                 scale=INFO_PANEL_SCALES[False], elem_id="chat-info-panel"
@@ -523,8 +519,8 @@ class ChatPage(BasePage):
                 ]
                 + self._indices_input,
             ).then(
-                lambda: gr.update(visible=False),
-                outputs=[self.paper_list.accordion],
+                lambda: (gr.update(visible=False), gr.update(visible=True)),
+                outputs=[self.paper_list.accordion, self.chat_settings],
             ).then(
                 fn=None,
                 inputs=None,
@@ -678,8 +674,8 @@ class ChatPage(BasePage):
 
         if KH_DEMO_MODE:
             onConvSelect = onConvSelect.then(
-                lambda: gr.update(visible=False),
-                outputs=[self.paper_list.accordion],
+                lambda: (gr.update(visible=False), gr.update(visible=True)),
+                outputs=[self.paper_list.accordion, self.chat_settings],
             )
 
         onConvSelect = (
@@ -804,8 +800,8 @@ class ChatPage(BasePage):
                 outputs=[self.quick_urls],
                 show_progress="hidden",
             ).then(
-                lambda: gr.update(visible=False),
-                outputs=[self.paper_list.accordion],
+                lambda: (gr.update(visible=False), gr.update(visible=True)),
+                outputs=[self.paper_list.accordion, self.chat_settings],
             ).then(
                 fn=None,
                 inputs=None,
