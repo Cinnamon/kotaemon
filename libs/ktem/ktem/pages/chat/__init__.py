@@ -26,6 +26,7 @@ from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 
 from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex, get_urls
 from ...utils.commands import WEB_SEARCH_COMMAND
+from ...utils.hf_papers import get_recommended_papers
 from ...utils.rate_limit import check_rate_limit
 from .chat_panel import ChatPanel
 from .chat_suggestion import ChatSuggestion
@@ -65,6 +66,36 @@ function() {
     let urlInput = document.querySelector("#quick-url-demo textarea");
     console.log("URL input:", urlInput);
     urlInput.dispatchEvent(new KeyboardEvent('keypress', {'key': 'Enter'}));
+}
+"""
+
+recommended_papers_js = """
+function() {
+    // Get all links and attach click event
+    var links = document.querySelectorAll("#related-papers a");
+
+    function submitPaper(event) {
+        event.preventDefault();
+        var target = event.currentTarget;
+        var url = target.getAttribute("href");
+        console.log("URL:", url);
+
+        let newChatButton = document.querySelector("#new-conv-button");
+        newChatButton.click();
+
+        setTimeout(() => {
+            let urlInput = document.querySelector("#quick-url-demo textarea");
+            // Fill the URL input
+            urlInput.value = url;
+            urlInput.dispatchEvent(new Event("input", { bubbles: true }));
+            urlInput.dispatchEvent(new KeyboardEvent('keypress', {'key': 'Enter'}));
+            }, 500
+        );
+    }
+
+    for (var i = 0; i < links.length; i++) {
+        links[i].onclick = submitPaper;
+    }
 }
 """
 
@@ -268,13 +299,16 @@ class ChatPage(BasePage):
                 if not KH_DEMO_MODE:
                     self.report_issue = ReportIssue(self._app)
                 else:
+                    with gr.Accordion(label="Related papers", open=False):
+                        self.related_papers = gr.Markdown(elem_id="related-papers")
+
                     self.hint_page = HintPage(self._app)
 
             with gr.Column(scale=6, elem_id="chat-area"):
-                self.chat_panel = ChatPanel(self._app)
-
                 if KH_DEMO_MODE:
                     self.paper_list = PaperListPage(self._app)
+
+                self.chat_panel = ChatPanel(self._app)
 
                 with gr.Accordion(
                     label="Chat settings",
@@ -360,6 +394,19 @@ class ChatPage(BasePage):
         return plot
 
     def on_register_events(self):
+        # first index paper recommendation
+        if KH_DEMO_MODE and len(self._indices_input) > 0:
+            self._indices_input[1].change(
+                self.get_recommendations,
+                inputs=[self.first_selector_choices, self._indices_input[1]],
+                outputs=[self.related_papers],
+            ).then(
+                fn=None,
+                inputs=None,
+                outputs=None,
+                js=recommended_papers_js,
+            )
+
         chat_event = (
             gr.on(
                 triggers=[
@@ -915,6 +962,17 @@ class ChatPage(BasePage):
             + selector_output
             + [used_command]
         )
+
+    def get_recommendations(self, first_selector_choices, file_ids):
+        first_selector_choices_map = {
+            item[1]: item[0] for item in first_selector_choices
+        }
+        file_names = [first_selector_choices_map[file_id] for file_id in file_ids]
+        if not file_names:
+            return ""
+
+        first_file_name = file_names[0].split(".")[0].replace("_", " ")
+        return get_recommended_papers(first_file_name)
 
     def toggle_delete(self, conv_id):
         if conv_id:

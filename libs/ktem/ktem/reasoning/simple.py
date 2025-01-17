@@ -435,7 +435,14 @@ class FullQAPipeline(BaseReasoning):
             },
             "system_prompt": {
                 "name": "System Prompt",
-                "value": "This is a question answering system",
+                "value": dedent(
+                    """This is a question answering system.
+                    Organize the answer in bullet points if applicable.
+                    When asked for paper summary, provide a brief summary of the paper
+                    with the following sections:
+                    Background, Hypothesis, Method, Results, Conclusion & Future Work.
+                """
+                ),
             },
             "qa_prompt": {
                 "name": "QA Prompt (contains {context}, {question}, {lang})",
