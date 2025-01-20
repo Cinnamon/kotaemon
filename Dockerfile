@@ -92,6 +92,11 @@ RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
     pip install "docling<=2.5.2"
 
+# Install ollama
+RUN --mount=type=ssh  \
+    --mount=type=cache,target=/root/.cache/pip  \
+    curl -fsSL https://ollama.com/install.sh | sh
+
 # Clean up
 RUN apt-get autoremove \
     && apt-get clean \

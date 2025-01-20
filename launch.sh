@@ -13,5 +13,6 @@ if [ "$KH_DEMO_MODE" = "true" ]; then
     # Command to launch in demo mode
     GR_FILE_ROOT_PATH="/app" KH_FEATURE_USER_MANAGEMENT=false USE_LIGHTRAG=false uvicorn sso_app_demo:app --host "$GRADIO_SERVER_NAME" --port "$GRADIO_SERVER_PORT"
 else
+    ollama serve &
     python app.py
 fi
