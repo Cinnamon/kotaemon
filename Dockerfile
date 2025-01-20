@@ -97,6 +97,9 @@ RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
     curl -fsSL https://ollama.com/install.sh | sh
 
+RUN nohup bash -c "ollama serve &" && sleep 4 && ollama pull llama3.1:8b
+RUN nohup bash -c "ollama serve &" && sleep 4 && ollama pull nomic-embed-text
+
 # Clean up
 RUN apt-get autoremove \
     && apt-get clean \
