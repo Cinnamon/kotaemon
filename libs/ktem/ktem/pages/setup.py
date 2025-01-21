@@ -265,12 +265,12 @@ class SetupPage(BasePage):
                 )
         elif radio_model_value == "ollama":
             llms.update(
-                name="ollama-long-context",
+                name="ollama",
                 spec={
-                    "__type__": "kotaemon.llms.LCOllamaChat",
-                    "base_url": KH_OLLAMA_URL.replace("v1/", ""),
+                    "__type__": "kotaemon.llms.ChatOpenAI",
+                    "base_url": KH_OLLAMA_URL,
                     "model": config("LOCAL_MODEL", default="qwen2.5:7b"),
-                    "num_ctx": 8192,
+                    "api_key": "ollama",
                 },
                 default=True,
             )
