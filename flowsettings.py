@@ -181,6 +181,16 @@ if config("LOCAL_MODEL", default=""):
         },
         "default": False,
     }
+    KH_LLMS["ollama-long-context"] = {
+        "spec": {
+            "__type__": "kotaemon.llms.LCOllamaChat",
+            "base_url": KH_OLLAMA_URL.replace("v1/", ""),
+            "model": config("LOCAL_MODEL", default="qwen2.5:7b"),
+            "num_ctx": 8192,
+        },
+        "default": False,
+    }
+
     KH_EMBEDDINGS["ollama"] = {
         "spec": {
             "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
@@ -190,7 +200,6 @@ if config("LOCAL_MODEL", default=""):
         },
         "default": False,
     }
-
     KH_EMBEDDINGS["fast_embed"] = {
         "spec": {
             "__type__": "kotaemon.embeddings.FastEmbedEmbeddings",
