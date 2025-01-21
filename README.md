@@ -255,7 +255,7 @@ This file contains the configuration of your application. You can use the exampl
 KH_DOCSTORE=(Elasticsearch | LanceDB | SimpleFileDocumentStore)
 
 # setup your preferred vectorstore (for vector-based search)
-KH_VECTORSTORE=(ChromaDB | LanceDB | InMemory | Qdrant)
+KH_VECTORSTORE=(ChromaDB | LanceDB | InMemory | Milvus | Qdrant)
 
 # Enable / disable multimodal QA
 KH_REASONINGS_USE_MULTIMODAL=True
