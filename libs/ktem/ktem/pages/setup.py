@@ -2,6 +2,7 @@ import json
 
 import gradio as gr
 import requests
+from decouple import config
 from ktem.app import BasePage
 from ktem.embeddings.manager import embedding_models_manager as embeddings
 from ktem.llms.manager import llms
@@ -268,7 +269,7 @@ class SetupPage(BasePage):
                 spec={
                     "__type__": "kotaemon.llms.ChatOpenAI",
                     "base_url": KH_OLLAMA_URL,
-                    "model": "llama3.1:8b",
+                    "model": config("LOCAL_MODEL", default="qwen2.5:7b"),
                     "api_key": "ollama",
                 },
                 default=True,
@@ -278,7 +279,9 @@ class SetupPage(BasePage):
                 spec={
                     "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
                     "base_url": KH_OLLAMA_URL,
-                    "model": "nomic-embed-text",
+                    "model": config(
+                        "LOCAL_MODEL_EMBEDDINGS", default="nomic-embed-text"
+                    ),
                     "api_key": "ollama",
                 },
                 default=True,

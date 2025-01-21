@@ -176,7 +176,7 @@ if config("LOCAL_MODEL", default=""):
         "spec": {
             "__type__": "kotaemon.llms.ChatOpenAI",
             "base_url": KH_OLLAMA_URL,
-            "model": config("LOCAL_MODEL", default="llama3.1:8b"),
+            "model": config("LOCAL_MODEL", default="qwen2.5:7b"),
             "api_key": "ollama",
         },
         "default": False,
