@@ -9,8 +9,11 @@ developers in mind.
 
 <a href="https://trendshift.io/repositories/11607" target="_blank"><img src="https://trendshift.io/api/badge/repositories/11607" alt="Cinnamon%2Fkotaemon | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-[Live Demo](https://huggingface.co/spaces/cin-model/kotaemon-demo) |
+[Live Demo #1](https://huggingface.co/spaces/cin-model/kotaemon) |
+[Live Demo #2](https://huggingface.co/spaces/cin-model/kotaemon-demo) |
 [Online Install](https://cinnamon.github.io/kotaemon/online_install/) |
+[Colab Notebook (Local RAG)](https://colab.research.google.com/drive/1eTfieec_UOowNizTJA1NjawBJH9y_1nn)
+
 [User Guide](https://cinnamon.github.io/kotaemon/) |
 [Developer Guide](https://cinnamon.github.io/kotaemon/development/) |
 [Feedback](https://github.com/Cinnamon/kotaemon/issues) |
