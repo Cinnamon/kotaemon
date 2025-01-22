@@ -120,6 +120,13 @@ documents and developers who want to build their own RAG pipeline.
      ghcr.io/cinnamon/kotaemon:main-full
      ```
 
+   - To use the `full` version with bundled **Ollama** for _local / private RAG_.
+
+     ```bash
+     # change image name to
+     ghcr.io/cinnamon/kotaemon:feat-ollama_docker-full
+     ```
+
 2. We currently support and test two platforms: `linux/amd64` and `linux/arm64` (for newer Mac). You can specify the platform by passing `--platform` in the `docker run` command. For example:
 
    ```bash
