@@ -237,12 +237,13 @@ def build_graphrag(working_dir, llm_func, embedding_func):
 class NanoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
     """GraphRAG specific indexing pipeline"""
 
-    prompts: dict[str, str] = {}
+    prompts: dict[str, list] = {}
 
     @classmethod
     def get_user_settings(cls) -> dict:
         try:
             from nano_graphrag.prompt import PROMPTS
+            content: list
 
             blacklist_keywords = ["default", "response", "process"]
             return {
@@ -262,6 +263,7 @@ class NanoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
 
     def call_graphrag_index(self, graph_id: str, docs: list[Document]):
         from nano_graphrag.prompt import PROMPTS
+        content: list
 
         # modify the prompt if it is set in the settings
         for prompt_name, content in self.prompts.items():
