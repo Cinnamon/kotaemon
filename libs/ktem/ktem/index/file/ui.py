@@ -1045,6 +1045,14 @@ class FileIndexPage(BasePage):
             self.list_file,
             inputs=[self._app.user_id, self.filter],
             outputs=[self.file_list_state, self.file_list],
+        ).then(
+            self.list_group,
+            inputs=[self._app.user_id, self.file_list_state],
+            outputs=[self.group_list_state, self.group_list],
+        ).then(
+            self.list_file_names,
+            inputs=[self.file_list_state],
+            outputs=[self.group_files],
         )
 
     def _may_extract_zip(self, files, zip_dir: str):
