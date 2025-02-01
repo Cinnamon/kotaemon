@@ -70,6 +70,15 @@ function run() {
   );
   chat_setting_panel.insertBefore(citation_dropdown, mindmap_checkbox);
 
+  // move share conv checkbox
+  let report_div = document.querySelector(
+    "#report-accordion > div:nth-child(3) > div:nth-child(1)"
+  );
+  let share_conv_checkbox = document.getElementById("is-public-checkbox");
+  if (share_conv_checkbox) {
+    report_div.insertBefore(share_conv_checkbox, report_div.querySelector("button"));
+  }
+
   // create slider toggle
   const is_public_checkbox = document.getElementById("suggest-chat-checkbox");
   const label_element = is_public_checkbox.getElementsByTagName("label")[0];

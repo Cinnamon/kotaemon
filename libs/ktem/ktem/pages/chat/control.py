@@ -16,6 +16,7 @@ from .common import STATE
 logger = logging.getLogger(__name__)
 
 KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
+KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
 ASSETS_DIR = "assets/icons"
 if not os.path.isdir(ASSETS_DIR):
     ASSETS_DIR = "libs/ktem/ktem/assets/icons"
@@ -110,12 +111,10 @@ class ConversationControl(BasePage):
             )
             self.cb_is_public = gr.Checkbox(
                 value=False,
-                label="Shared",
-                min_width=10,
-                scale=4,
+                label="Share this conversation",
                 elem_id="is-public-checkbox",
                 container=False,
-                visible=False,
+                visible=not KH_DEMO_MODE and not KH_SSO_ENABLED,
             )
 
             if not KH_DEMO_MODE:

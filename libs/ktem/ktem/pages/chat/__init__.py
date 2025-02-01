@@ -37,6 +37,7 @@ from .paper_list import PaperListPage
 from .report import ReportIssue
 
 KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
+KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
 KH_WEB_SEARCH_BACKEND = getattr(flowsettings, "KH_WEB_SEARCH_BACKEND", None)
 WebSearch = None
 if KH_WEB_SEARCH_BACKEND:
@@ -318,7 +319,9 @@ class ChatPage(BasePage):
                 ) as self.chat_settings:
                     with gr.Row(elem_id="quick-setting-labels"):
                         gr.HTML("Reasoning method")
-                        gr.HTML("Model", visible=not KH_DEMO_MODE)
+                        gr.HTML(
+                            "Model", visible=not KH_DEMO_MODE and not KH_SSO_ENABLED
+                        )
                         gr.HTML("Language")
 
                     with gr.Row():
@@ -346,7 +349,7 @@ class ChatPage(BasePage):
                             value=model_setting.value,
                             container=False,
                             show_label=False,
-                            visible=not KH_DEMO_MODE,
+                            visible=not KH_DEMO_MODE and not KH_SSO_ENABLED,
                         )
                         self.language = gr.Dropdown(
                             choices=language_setting.choices,
