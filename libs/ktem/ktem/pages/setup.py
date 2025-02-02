@@ -113,8 +113,17 @@ class SetupPage(BasePage):
                 (
                     "#### Setup Ollama\n\n"
                     "Download and install Ollama from "
-                    "https://ollama.com/"
+                    "https://ollama.com/. Check out latest models at "
+                    "https://ollama.com/library. "
                 )
+            )
+            self.ollama_model_name = gr.Textbox(
+                label="LLM model name",
+                value=config("LOCAL_MODEL", default="qwen2.5:7b"),
+            )
+            self.ollama_emb_model_name = gr.Textbox(
+                label="Embedding model name",
+                value=config("LOCAL_MODEL_EMBEDDINGS", default="nomic-embed-text"),
             )
 
         self.setup_log = gr.HTML(
@@ -139,6 +148,8 @@ class SetupPage(BasePage):
                 self.cohere_api_key,
                 self.openai_api_key,
                 self.google_api_key,
+                self.ollama_model_name,
+                self.ollama_emb_model_name,
                 self.radio_model,
             ],
             outputs=[self.setup_log],
@@ -180,6 +191,8 @@ class SetupPage(BasePage):
         cohere_api_key,
         openai_api_key,
         google_api_key,
+        ollama_model_name,
+        ollama_emb_model_name,
         radio_model_value,
     ):
         log_content = ""
@@ -269,7 +282,7 @@ class SetupPage(BasePage):
                 spec={
                     "__type__": "kotaemon.llms.ChatOpenAI",
                     "base_url": KH_OLLAMA_URL,
-                    "model": config("LOCAL_MODEL", default="qwen2.5:7b"),
+                    "model": ollama_model_name,
                     "api_key": "ollama",
                 },
                 default=True,
@@ -279,9 +292,7 @@ class SetupPage(BasePage):
                 spec={
                     "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
                     "base_url": KH_OLLAMA_URL,
-                    "model": config(
-                        "LOCAL_MODEL_EMBEDDINGS", default="nomic-embed-text"
-                    ),
+                    "model": ollama_emb_model_name,
                     "api_key": "ollama",
                 },
                 default=True,

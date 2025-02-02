@@ -17,11 +17,7 @@ else
         echo "KH_SSO_ENABLED is true. Launching in SSO mode..."
         GR_FILE_ROOT_PATH="/app" KH_SSO_ENABLED=true uvicorn sso_app:app --host "$GRADIO_SERVER_NAME" --port "$GRADIO_SERVER_PORT"
     else
-        # Check if ollama command exists
-        if command -v ollama &> /dev/null; then
-            echo "ollama command found. Starting ollama server..."
-            ollama serve &
-        fi
+        ollama serve &
         python app.py
     fi
 fi
