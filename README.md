@@ -96,18 +96,7 @@ documents and developers who want to build their own RAG pipeline.
 
 ### With Docker (recommended)
 
-1. We support both `lite` & `full` version of Docker images. With `full`, the extra packages of `unstructured` will be installed as well, it can support additional file types (`.doc`, `.docx`, ...) but the cost is larger docker image size. For most users, the `lite` image should work well in most cases.
-
-   - To use the `lite` version.
-
-     ```bash
-     docker run \
-     -e GRADIO_SERVER_NAME=0.0.0.0 \
-     -e GRADIO_SERVER_PORT=7860 \
-     -v ./ktem_app_data:/app/ktem_app_data \
-     -p 7860:7860 -it --rm \
-     ghcr.io/cinnamon/kotaemon:main-lite
-     ```
+1. We support both `lite` & `full` version of Docker images. With `full` version, the extra packages of `unstructured` will be installed, which can support additional file types (`.doc`, `.docx`, ...) but the cost is larger docker image size. For most users, the `lite` image should work well in most cases.
 
    - To use the `full` version.
 
@@ -124,8 +113,15 @@ documents and developers who want to build their own RAG pipeline.
 
      ```bash
      # change image name to
-     ghcr.io/cinnamon/kotaemon:feat-ollama_docker-full
+     docker run <...> ghcr.io/cinnamon/kotaemon:main-ollama
      ```
+
+   - To use the `lite` version.
+
+   ```bash
+    # change image name to
+    docker run <...> ghcr.io/cinnamon/kotaemon:main-lite
+   ```
 
 2. We currently support and test two platforms: `linux/amd64` and `linux/arm64` (for newer Mac). You can specify the platform by passing `--platform` in the `docker run` command. For example:
 
