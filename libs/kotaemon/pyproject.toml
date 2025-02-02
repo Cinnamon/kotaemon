@@ -46,7 +46,7 @@ dependencies = [
     "openpyxl>=3.1.2,<3.2",
     "opentelemetry-exporter-otlp-proto-grpc>=1.25.0", # https://github.com/chroma-core/chroma/issues/2571
     "pandas>=2.2.2,<2.3",
-    "plotly",
+    "plotly<6.0.0",
     "PyMuPDF>=1.23,<=1.24.11",
     "pypdf>=4.2.0,<4.3",
     "python-decouple", # for theflow
