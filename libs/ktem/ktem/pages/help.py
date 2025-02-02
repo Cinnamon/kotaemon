@@ -3,7 +3,11 @@ from pathlib import Path
 
 import gradio as gr
 import requests
+from decouple import config
 from theflow.settings import settings
+
+KH_DEMO_MODE = getattr(settings, "KH_DEMO_MODE", False)
+HF_SPACE_URL = config("HF_SPACE_URL", default="")
 
 
 def get_remote_doc(url: str) -> str:
@@ -59,6 +63,22 @@ class HelpPage:
                     about_md = f"Version: {self.app_version}\n\n{about_md}"
                 gr.Markdown(about_md)
 
+        if KH_DEMO_MODE:
+            with gr.Accordion("Create Your Own Space"):
+                gr.Markdown(
+                    "This is a demo with limited functionality. "
+                    "Use **Create space** button to install Kotaemon "
+                    "in your own space with all features "
+                    "(including upload and manage your private "
+                    "documents securely)."
+                )
+                gr.Button(
+                    value="Create Your Own Space",
+                    link=HF_SPACE_URL,
+                    variant="primary",
+                    size="lg",
+                )
+
         user_guide_md_dir = self.doc_dir / "usage.md"
         if user_guide_md_dir.exists():
             with (self.doc_dir / "usage.md").open(encoding="utf-8") as fi:
@@ -68,7 +88,7 @@ class HelpPage:
                 f"{self.remote_content_url}/v{self.app_version}/docs/usage.md"
             )
         if user_guide_md:
-            with gr.Accordion("User Guide"):
+            with gr.Accordion("User Guide", open=not KH_DEMO_MODE):
                 gr.Markdown(user_guide_md)
 
         if self.app_version:

@@ -358,3 +358,40 @@ class LCCohereChat(LCChatMixin, ChatLLM):  # type: ignore
             raise ImportError("Please install langchain-cohere")
 
         return ChatCohere
+
+
+class LCOllamaChat(LCChatMixin, ChatLLM):  # type: ignore
+    base_url: str = Param(
+        help="Base Ollama URL. (default: http://localhost:11434/api/)",  # noqa
+        required=True,
+    )
+    model: str = Param(
+        help="Model name to use (https://ollama.com/library)",
+        required=True,
+    )
+    num_ctx: int = Param(
+        help="The size of the context window (default: 8192)",
+        required=True,
+    )
+
+    def __init__(
+        self,
+        model: str | None = None,
+        base_url: str | None = None,
+        num_ctx: int | None = None,
+        **params,
+    ):
+        super().__init__(
+            base_url=base_url,
+            model=model,
+            num_ctx=num_ctx,
+            **params,
+        )
+
+    def _get_lc_class(self):
+        try:
+            from langchain_ollama import ChatOllama
+        except ImportError:
+            raise ImportError("Please install langchain-ollama")
+
+        return ChatOllama

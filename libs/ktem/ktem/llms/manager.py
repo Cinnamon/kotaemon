@@ -60,6 +60,7 @@ class LLMManager:
             LCAnthropicChat,
             LCCohereChat,
             LCGeminiChat,
+            LCOllamaChat,
             LlamaCppChat,
         )
 
@@ -69,6 +70,7 @@ class LLMManager:
             LCAnthropicChat,
             LCGeminiChat,
             LCCohereChat,
+            LCOllamaChat,
             LlamaCppChat,
         ]
 

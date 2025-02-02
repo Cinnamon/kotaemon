@@ -1,5 +1,6 @@
 import logging
 import threading
+from textwrap import dedent
 from typing import Generator
 
 from ktem.embeddings.manager import embedding_models_manager as embeddings
@@ -8,7 +9,6 @@ from ktem.reasoning.prompt_optimization import (
     DecomposeQuestionPipeline,
     RewriteQuestionPipeline,
 )
-from ktem.utils.plantuml import PlantUML
 from ktem.utils.render import Render
 from ktem.utils.visualize_cited import CreateCitationVizPipeline
 from plotly.io import to_json
@@ -165,21 +165,23 @@ class FullQAPipeline(BaseReasoning):
         mindmap = answer.metadata["mindmap"]
         if mindmap:
             mindmap_text = mindmap.text
-            uml_renderer = PlantUML()
-
-            try:
-                mindmap_svg = uml_renderer.process(mindmap_text)
-            except Exception as e:
-                print("Failed to process mindmap:", e)
-                mindmap_svg = "<svg></svg>"
-
-            # post-process the mindmap SVG
-            mindmap_svg = (
-                mindmap_svg.replace("sans-serif", "Quicksand, sans-serif")
-                .replace("#181818", "#cecece")
-                .replace("background:#FFFFF", "background:none")
-                .replace("stroke-width:1", "stroke-width:2")
-            )
+            mindmap_svg = dedent(
+                """
+                <div class="markmap">
+                <script type="text/template">
+                ---
+                markmap:
+                    colorFreezeLevel: 2
+                    activeNode:
+                        placement: center
+                    initialExpandLevel: 4
+                    maxWidth: 200
+                ---
+                {}
+                </script>
+                </div>
+                """
+            ).format(mindmap_text)
 
             mindmap_content = Document(
                 channel="info",
@@ -323,7 +325,7 @@ class FullQAPipeline(BaseReasoning):
     def prepare_pipeline_instance(cls, settings, retrievers):
         return cls(
             retrievers=retrievers,
-            rewrite_pipeline=RewriteQuestionPipeline(),
+            rewrite_pipeline=None,
         )
 
     @classmethod
@@ -411,8 +413,8 @@ class FullQAPipeline(BaseReasoning):
                 "value": "highlight",
                 "component": "radio",
                 "choices": [
-                    ("highlight (verbose)", "highlight"),
-                    ("inline (concise)", "inline"),
+                    ("citation: highlight", "highlight"),
+                    ("citation: inline", "inline"),
                     ("no citation", "off"),
                 ],
             },
@@ -433,7 +435,7 @@ class FullQAPipeline(BaseReasoning):
             },
             "system_prompt": {
                 "name": "System Prompt",
-                "value": "This is a question answering system",
+                "value": ("This is a question answering system."),
             },
             "qa_prompt": {
                 "name": "QA Prompt (contains {context}, {question}, {lang})",

@@ -28,6 +28,7 @@ jobs:
         target:
           - lite
           - full
+          - ollama
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main

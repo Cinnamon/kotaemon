@@ -13,7 +13,7 @@ from ktem.settings import BaseSettingGroup, SettingGroup, SettingReasoningGroup
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
 
-BASE_PATH = os.environ.get("GRADIO_ROOT_PATH", "")
+BASE_PATH = os.environ.get("GR_FILE_ROOT_PATH", "")
 
 
 class BaseApp:
@@ -57,7 +57,7 @@ class BaseApp:
             self._pdf_view_js = self._pdf_view_js.replace(
                 "PDFJS_PREBUILT_DIR",
                 pdf_js_dist_dir,
-            ).replace("GRADIO_ROOT_PATH", BASE_PATH)
+            ).replace("GR_FILE_ROOT_PATH", BASE_PATH)
         with (dir_assets / "js" / "svg-pan-zoom.min.js").open() as fi:
             self._svg_js = fi.read()
 
@@ -79,7 +79,7 @@ class BaseApp:
         self.default_settings.index.finalize()
         self.settings_state = gr.State(self.default_settings.flatten())
 
-        self.user_id = gr.State(1 if not self.f_user_management else None)
+        self.user_id = gr.State("default" if not self.f_user_management else None)
 
     def initialize_indices(self):
         """Create the index manager, start indices, and register to app settings"""
@@ -173,15 +173,25 @@ class BaseApp:
         """Called when the app is created"""
 
     def make(self):
+        markmap_js = """
+        <script>
+            window.markmap = {
+                /** @type AutoLoaderOptions */
+                autoLoader: {
+                    toolbar: true, // Enable toolbar
+                },
+            };
+        </script>
+        """
         external_js = (
             "<script type='module' "
             "src='https://cdn.skypack.dev/pdfjs-viewer-element'>"
             "</script>"
-            "<script>"
-            f"{self._svg_js}"
-            "</script>"
             "<script type='module' "
             "src='https://cdnjs.cloudflare.com/ajax/libs/tributejs/5.1.3/tribute.min.js'>"  # noqa
+            f"{markmap_js}"
+            "<script src='https://cdn.jsdelivr.net/npm/markmap-autoloader@0.16'></script>"  # noqa
+            "<script src='https://cdn.jsdelivr.net/npm/minisearch@7.1.1/dist/umd/index.min.js'></script>"  # noqa
             "</script>"
             "<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/tributejs/5.1.3/tribute.css'/>"  # noqa
         )

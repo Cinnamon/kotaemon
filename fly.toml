@@ -1,0 +1,26 @@
+# fly.toml app configuration file generated for kotaemon on 2024-12-24T20:56:32+07:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'kotaemon'
+primary_region = 'sin'
+
+[build]
+
+[mounts]
+  destination = "/app/ktem_app_data"
+  source = "ktem_volume"
+
+[http_service]
+  internal_port = 7860
+  force_https = true
+  auto_stop_machines = 'suspend'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '4gb'
+  cpu_kind = 'shared'
+  cpus = 4

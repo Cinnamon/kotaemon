@@ -1,5 +1,4 @@
 import asyncio
-import importlib
 import json
 import re
 from copy import deepcopy
@@ -10,6 +9,7 @@ from ktem.app import BasePage
 from ktem.components import reasonings
 from ktem.db.models import Conversation, engine
 from ktem.index.file.ui import File
+from ktem.reasoning.prompt_optimization.mindmap import MINDMAP_HTML_EXPORT_TEMPLATE
 from ktem.reasoning.prompt_optimization.suggest_conversation_name import (
     SuggestConvNamePipeline,
 )
@@ -19,29 +19,41 @@ from ktem.reasoning.prompt_optimization.suggest_followup_chat import (
 from plotly.io import from_json
 from sqlmodel import Session, select
 from theflow.settings import settings as flowsettings
+from theflow.utils.modules import import_dotted_string
 
 from kotaemon.base import Document
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 
 from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex, get_urls
 from ...utils.commands import WEB_SEARCH_COMMAND
+from ...utils.hf_papers import get_recommended_papers
+from ...utils.rate_limit import check_rate_limit
 from .chat_panel import ChatPanel
+from .chat_suggestion import ChatSuggestion
 from .common import STATE
 from .control import ConversationControl
+from .demo_hint import HintPage
+from .paper_list import PaperListPage
 from .report import ReportIssue
 
+KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
+KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
 KH_WEB_SEARCH_BACKEND = getattr(flowsettings, "KH_WEB_SEARCH_BACKEND", None)
 WebSearch = None
 if KH_WEB_SEARCH_BACKEND:
     try:
-        module_name, class_name = KH_WEB_SEARCH_BACKEND.rsplit(".", 1)
-        module = importlib.import_module(module_name)
-        WebSearch = getattr(module, class_name)
+        WebSearch = import_dotted_string(KH_WEB_SEARCH_BACKEND, safe=False)
     except (ImportError, AttributeError) as e:
-        print(f"Error importing {class_name} from {module_name}: {e}")
+        print(f"Error importing {KH_WEB_SEARCH_BACKEND}: {e}")
 
+REASONING_LIMITS = 2 if KH_DEMO_MODE else 10
 DEFAULT_SETTING = "(default)"
 INFO_PANEL_SCALES = {True: 8, False: 4}
+DEFAULT_QUESTION = (
+    "What is the summary of this document?"
+    if not KH_DEMO_MODE
+    else "What is the summary of this paper?"
+)
 
 chat_input_focus_js = """
 function() {
@@ -50,8 +62,59 @@ function() {
 }
 """
 
+quick_urls_submit_js = """
+function() {
+    let urlInput = document.querySelector("#quick-url-demo textarea");
+    console.log("URL input:", urlInput);
+    urlInput.dispatchEvent(new KeyboardEvent('keypress', {'key': 'Enter'}));
+}
+"""
+
+recommended_papers_js = """
+function() {
+    // Get all links and attach click event
+    var links = document.querySelectorAll("#related-papers a");
+
+    function submitPaper(event) {
+        event.preventDefault();
+        var target = event.currentTarget;
+        var url = target.getAttribute("href");
+        console.log("URL:", url);
+
+        let newChatButton = document.querySelector("#new-conv-button");
+        newChatButton.click();
+
+        setTimeout(() => {
+            let urlInput = document.querySelector("#quick-url-demo textarea");
+            // Fill the URL input
+            urlInput.value = url;
+            urlInput.dispatchEvent(new Event("input", { bubbles: true }));
+            urlInput.dispatchEvent(new KeyboardEvent('keypress', {'key': 'Enter'}));
+            }, 500
+        );
+    }
+
+    for (var i = 0; i < links.length; i++) {
+        links[i].onclick = submitPaper;
+    }
+}
+"""
+
+clear_bot_message_selection_js = """
+function() {
+    var bot_messages = document.querySelectorAll(
+        "div#main-chat-bot div.message-row.bot-row"
+    );
+    bot_messages.forEach(message => {
+        message.classList.remove("text_selection");
+    });
+}
+"""
+
 pdfview_js = """
 function() {
+    setTimeout(fullTextSearch(), 100);
+
     // Get all links and attach click event
     var links = document.getElementsByClassName("pdf-link");
     for (var i = 0; i < links.length; i++) {
@@ -64,49 +127,70 @@ function() {
         links[i].onclick = scrollToCitation;
     }
 
-    var mindmap_el = document.getElementById('mindmap');
+    var markmap_div = document.querySelector("div.markmap");
+    var mindmap_el_script = document.querySelector('div.markmap script');
 
-    if (mindmap_el) {
-        var output = svgPanZoom(mindmap_el);
-        const svg = mindmap_el.cloneNode(true);
-
-        function on_svg_export(event) {
-            event.preventDefault(); // Prevent the default link behavior
-            // convert to a valid XML source
-            const as_text = new XMLSerializer().serializeToString(svg);
-            // store in a Blob
-            const blob = new Blob([as_text], { type: "image/svg+xml" });
-            // create an URI pointing to that blob
-            const url = URL.createObjectURL(blob);
-            const win = open(url);
-            // so the Garbage Collector can collect the blob
-            win.onload = (evt) => URL.revokeObjectURL(url);
-        }
-
-        var link = document.getElementById("mindmap-toggle");
-        if (link) {
-            link.onclick = function(event) {
-                event.preventDefault(); // Prevent the default link behavior
-                var div = document.getElementById("mindmap-wrapper");
-                if (div) {
-                    var currentHeight = div.style.height;
-                    if (currentHeight === '400px') {
-                        var contentHeight = div.scrollHeight;
-                        div.style.height = contentHeight + 'px';
-                    } else {
-                        div.style.height = '400px'
-                    }
-                }
-            };
-        }
-
-        var link = document.getElementById("mindmap-export");
-        if (link) {
-            link.addEventListener('click', on_svg_export);
-        }
+    if (mindmap_el_script) {
+        markmap_div_html = markmap_div.outerHTML;
     }
 
+    // render the mindmap if the script tag is present
+    if (mindmap_el_script) {
+        markmap.autoLoader.renderAll();
+    }
+
+    setTimeout(() => {
+        var mindmap_el = document.querySelector('svg.markmap');
+
+        var text_nodes = document.querySelectorAll("svg.markmap div");
+        for (var i = 0; i < text_nodes.length; i++) {
+            text_nodes[i].onclick = fillChatInput;
+        }
+
+        if (mindmap_el) {
+            function on_svg_export(event) {
+                html = "{html_template}";
+                html = html.replace("{markmap_div}", markmap_div_html);
+                spawnDocument(html, {window: "width=1000,height=1000"});
+            }
+
+            var link = document.getElementById("mindmap-toggle");
+            if (link) {
+                link.onclick = function(event) {
+                    event.preventDefault(); // Prevent the default link behavior
+                    var div = document.querySelector("div.markmap");
+                    if (div) {
+                        var currentHeight = div.style.height;
+                        if (currentHeight === '400px' || (currentHeight === '')) {
+                            div.style.height = '650px';
+                        } else {
+                            div.style.height = '400px'
+                        }
+                    }
+                };
+            }
+
+            if (markmap_div_html) {
+                var link = document.getElementById("mindmap-export");
+                if (link) {
+                    link.addEventListener('click', on_svg_export);
+                }
+            }
+        }
+    }, 250);
+
     return [links.length]
+}
+""".replace(
+    "{html_template}",
+    MINDMAP_HTML_EXPORT_TEMPLATE.replace("\n", "").replace('"', '\\"'),
+)
+
+fetch_api_key_js = """
+function(_, __) {
+    api_key = getStorage('google_api_key', '');
+    console.log('session API key:', api_key);
+    return [api_key, _];
 }
 """
 
@@ -126,6 +210,7 @@ class ChatPage(BasePage):
         )
         self._info_panel_expanded = gr.State(value=True)
         self._command_state = gr.State(value=None)
+        self._user_api_key = gr.Text(value="", visible=False)
 
     def on_building_ui(self):
         with gr.Row():
@@ -146,7 +231,17 @@ class ChatPage(BasePage):
                         continue
 
                     index_ui.unrender()  # need to rerender later within Accordion
-                    with gr.Accordion(label=index.name, open=index_id < 1):
+                    is_first_index = index_id == 0
+                    index_name = index.name
+
+                    if KH_DEMO_MODE and is_first_index:
+                        index_name = "Select from Paper Collection"
+
+                    with gr.Accordion(
+                        label=index_name,
+                        open=is_first_index,
+                        elem_id=f"index-{index_id}",
+                    ):
                         index_ui.render()
                         gr_index = index_ui.as_gradio_component()
 
@@ -171,100 +266,114 @@ class ChatPage(BasePage):
                                 self._indices_input.append(gr_index)
                         setattr(self, f"_index_{index.id}", index_ui)
 
+                self.chat_suggestion = ChatSuggestion(self._app)
+
                 if len(self._app.index_manager.indices) > 0:
-                    with gr.Accordion(label="Quick Upload") as _:
-                        self.quick_file_upload = File(
-                            file_types=list(KH_DEFAULT_FILE_EXTRACTORS.keys()),
-                            file_count="multiple",
-                            container=True,
-                            show_label=False,
-                            elem_id="quick-file",
-                        )
+                    quick_upload_label = (
+                        "Quick Upload" if not KH_DEMO_MODE else "Or input new paper URL"
+                    )
+
+                    with gr.Accordion(label=quick_upload_label) as _:
+                        self.quick_file_upload_status = gr.Markdown()
+                        if not KH_DEMO_MODE:
+                            self.quick_file_upload = File(
+                                file_types=list(KH_DEFAULT_FILE_EXTRACTORS.keys()),
+                                file_count="multiple",
+                                container=True,
+                                show_label=False,
+                                elem_id="quick-file",
+                            )
                         self.quick_urls = gr.Textbox(
-                            placeholder="Or paste URLs here",
+                            placeholder=(
+                                "Or paste URLs"
+                                if not KH_DEMO_MODE
+                                else "Paste Arxiv URLs\n(https://arxiv.org/abs/xxx)"
+                            ),
                             lines=1,
                             container=False,
                             show_label=False,
-                            elem_id="quick-url",
+                            elem_id=(
+                                "quick-url" if not KH_DEMO_MODE else "quick-url-demo"
+                            ),
                         )
-                        self.quick_file_upload_status = gr.Markdown()
 
-                self.report_issue = ReportIssue(self._app)
+                if not KH_DEMO_MODE:
+                    self.report_issue = ReportIssue(self._app)
+                else:
+                    with gr.Accordion(label="Related papers", open=False):
+                        self.related_papers = gr.Markdown(elem_id="related-papers")
+
+                    self.hint_page = HintPage(self._app)
 
             with gr.Column(scale=6, elem_id="chat-area"):
+                if KH_DEMO_MODE:
+                    self.paper_list = PaperListPage(self._app)
+
                 self.chat_panel = ChatPanel(self._app)
 
-                with gr.Row():
-                    with gr.Accordion(
-                        label="Chat settings",
-                        elem_id="chat-settings-expand",
-                        open=False,
-                    ):
-                        with gr.Row(elem_id="quick-setting-labels"):
-                            gr.HTML("Reasoning method")
-                            gr.HTML("Model")
-                            gr.HTML("Language")
-                            gr.HTML("Suggestion")
+                with gr.Accordion(
+                    label="Chat settings",
+                    elem_id="chat-settings-expand",
+                    open=False,
+                    visible=not KH_DEMO_MODE,
+                ) as self.chat_settings:
+                    with gr.Row(elem_id="quick-setting-labels"):
+                        gr.HTML("Reasoning method")
+                        gr.HTML(
+                            "Model", visible=not KH_DEMO_MODE and not KH_SSO_ENABLED
+                        )
+                        gr.HTML("Language")
 
-                        with gr.Row():
-                            reasoning_type_values = [
-                                (DEFAULT_SETTING, DEFAULT_SETTING)
-                            ] + self._app.default_settings.reasoning.settings[
-                                "use"
-                            ].choices
-                            self.reasoning_type = gr.Dropdown(
-                                choices=reasoning_type_values,
-                                value=DEFAULT_SETTING,
-                                container=False,
-                                show_label=False,
-                            )
-                            self.model_type = gr.Dropdown(
-                                choices=self._app.default_settings.reasoning.options[
-                                    "simple"
-                                ]
-                                .settings["llm"]
-                                .choices,
-                                value="",
-                                container=False,
-                                show_label=False,
-                            )
-                            self.language = gr.Dropdown(
-                                choices=[
-                                    (DEFAULT_SETTING, DEFAULT_SETTING),
-                                ]
-                                + self._app.default_settings.reasoning.settings[
-                                    "lang"
-                                ].choices,
-                                value=DEFAULT_SETTING,
-                                container=False,
-                                show_label=False,
-                            )
-                            self.use_chat_suggestion = gr.Checkbox(
-                                label="Chat suggestion",
-                                container=False,
-                                elem_id="use-suggestion-checkbox",
-                            )
+                    with gr.Row():
+                        reasoning_setting = (
+                            self._app.default_settings.reasoning.settings["use"]
+                        )
+                        model_setting = self._app.default_settings.reasoning.options[
+                            "simple"
+                        ].settings["llm"]
+                        language_setting = (
+                            self._app.default_settings.reasoning.settings["lang"]
+                        )
+                        citation_setting = self._app.default_settings.reasoning.options[
+                            "simple"
+                        ].settings["highlight_citation"]
 
-                            self.citation = gr.Dropdown(
-                                choices=[
-                                    (DEFAULT_SETTING, DEFAULT_SETTING),
-                                ]
-                                + self._app.default_settings.reasoning.options["simple"]
-                                .settings["highlight_citation"]
-                                .choices,
-                                value=DEFAULT_SETTING,
-                                container=False,
-                                show_label=False,
-                                interactive=True,
-                                elem_id="citation-dropdown",
-                            )
+                        self.reasoning_type = gr.Dropdown(
+                            choices=reasoning_setting.choices[:REASONING_LIMITS],
+                            value=reasoning_setting.value,
+                            container=False,
+                            show_label=False,
+                        )
+                        self.model_type = gr.Dropdown(
+                            choices=model_setting.choices,
+                            value=model_setting.value,
+                            container=False,
+                            show_label=False,
+                            visible=not KH_DEMO_MODE and not KH_SSO_ENABLED,
+                        )
+                        self.language = gr.Dropdown(
+                            choices=language_setting.choices,
+                            value=language_setting.value,
+                            container=False,
+                            show_label=False,
+                        )
 
-                            self.use_mindmap = gr.State(value=DEFAULT_SETTING)
-                            self.use_mindmap_check = gr.Checkbox(
-                                label="Mindmap (default)",
-                                container=False,
-                                elem_id="use-mindmap-checkbox",
-                            )
+                        self.citation = gr.Dropdown(
+                            choices=citation_setting.choices,
+                            value=citation_setting.value,
+                            container=False,
+                            show_label=False,
+                            interactive=True,
+                            elem_id="citation-dropdown",
+                        )
+
+                        self.use_mindmap = gr.State(value=True)
+                        self.use_mindmap_check = gr.Checkbox(
+                            label="Mindmap (on)",
+                            container=False,
+                            elem_id="use-mindmap-checkbox",
+                            value=True,
+                        )
 
             with gr.Column(
                 scale=INFO_PANEL_SCALES[False], elem_id="chat-info-panel"
@@ -276,6 +385,9 @@ class ChatPage(BasePage):
                     self.plot_panel = gr.Plot(visible=False)
                     self.info_panel = gr.HTML(elem_id="html-info-panel")
 
+        self.followup_questions = self.chat_suggestion.examples
+        self.followup_questions_ui = self.chat_suggestion.accordion
+
     def _json_to_plot(self, json_dict: dict | None):
         if json_dict:
             plot = from_json(json_dict)
@@ -285,8 +397,18 @@ class ChatPage(BasePage):
         return plot
 
     def on_register_events(self):
-        self.followup_questions = self.chat_control.chat_suggestion.examples
-        self.followup_questions_ui = self.chat_control.chat_suggestion.accordion
+        # first index paper recommendation
+        if KH_DEMO_MODE and len(self._indices_input) > 0:
+            self._indices_input[1].change(
+                self.get_recommendations,
+                inputs=[self.first_selector_choices, self._indices_input[1]],
+                outputs=[self.related_papers],
+            ).then(
+                fn=None,
+                inputs=None,
+                outputs=None,
+                js=recommended_papers_js,
+            )
 
         chat_event = (
             gr.on(
@@ -374,51 +496,44 @@ class ChatPage(BasePage):
             )
         )
 
-        # chat suggestion toggle
-        chat_event = chat_event.success(
-            fn=self.suggest_chat_conv,
-            inputs=[
+        onSuggestChatEvent = {
+            "fn": self.suggest_chat_conv,
+            "inputs": [
                 self._app.settings_state,
+                self.language,
                 self.chat_panel.chatbot,
                 self._use_suggestion,
             ],
-            outputs=[
+            "outputs": [
                 self.followup_questions_ui,
                 self.followup_questions,
             ],
-            show_progress="hidden",
-        )
-        # .success(
-        #     self.chat_control.persist_chat_suggestions,
-        #     inputs=[
-        #         self.chat_control.conversation_id,
-        #         self.followup_questions,
-        #         self._use_suggestion,
-        #         self._app.user_id,
-        #     ],
-        #     show_progress="hidden",
-        # )
+            "show_progress": "hidden",
+        }
+        # chat suggestion toggle
+        chat_event = chat_event.success(**onSuggestChatEvent)
 
         # final data persist
-        chat_event = chat_event.then(
-            fn=self.persist_data_source,
-            inputs=[
-                self.chat_control.conversation_id,
-                self._app.user_id,
-                self.info_panel,
-                self.state_plot_panel,
-                self.state_retrieval_history,
-                self.state_plot_history,
-                self.chat_panel.chatbot,
-                self.state_chat,
-            ]
-            + self._indices_input,
-            outputs=[
-                self.state_retrieval_history,
-                self.state_plot_history,
-            ],
-            concurrency_limit=20,
-        )
+        if not KH_DEMO_MODE:
+            chat_event = chat_event.then(
+                fn=self.persist_data_source,
+                inputs=[
+                    self.chat_control.conversation_id,
+                    self._app.user_id,
+                    self.info_panel,
+                    self.state_plot_panel,
+                    self.state_retrieval_history,
+                    self.state_plot_history,
+                    self.chat_panel.chatbot,
+                    self.state_chat,
+                ]
+                + self._indices_input,
+                outputs=[
+                    self.state_retrieval_history,
+                    self.state_plot_history,
+                ],
+                concurrency_limit=20,
+            )
 
         self.chat_control.btn_info_expand.click(
             fn=lambda is_expanded: (
@@ -432,163 +547,223 @@ class ChatPage(BasePage):
             fn=None, inputs=None, js="function() {toggleChatColumn();}"
         )
 
-        self.chat_panel.chatbot.like(
-            fn=self.is_liked,
-            inputs=[self.chat_control.conversation_id],
-            outputs=None,
-        )
-        self.chat_control.btn_new.click(
-            self.chat_control.new_conv,
-            inputs=self._app.user_id,
-            outputs=[self.chat_control.conversation_id, self.chat_control.conversation],
-            show_progress="hidden",
-        ).then(
-            self.chat_control.select_conv,
-            inputs=[self.chat_control.conversation, self._app.user_id],
-            outputs=[
-                self.chat_control.conversation_id,
-                self.chat_control.conversation,
-                self.chat_control.conversation_rn,
-                self.chat_panel.chatbot,
-                self.followup_questions,
-                self.info_panel,
-                self.state_plot_panel,
-                self.state_retrieval_history,
-                self.state_plot_history,
-                self.chat_control.cb_is_public,
-                self.state_chat,
-            ]
-            + self._indices_input,
-            show_progress="hidden",
-        ).then(
-            fn=self._json_to_plot,
-            inputs=self.state_plot_panel,
-            outputs=self.plot_panel,
-        ).then(
-            fn=None,
-            inputs=None,
-            js=chat_input_focus_js,
+        if KH_DEMO_MODE:
+            self.chat_control.btn_demo_logout.click(
+                fn=None,
+                js=self.chat_control.logout_js,
+            )
+            self.chat_control.btn_new.click(
+                fn=lambda: self.chat_control.select_conv("", None),
+                outputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation,
+                    self.chat_control.conversation_rn,
+                    self.chat_panel.chatbot,
+                    self.followup_questions,
+                    self.info_panel,
+                    self.state_plot_panel,
+                    self.state_retrieval_history,
+                    self.state_plot_history,
+                    self.chat_control.cb_is_public,
+                    self.state_chat,
+                ]
+                + self._indices_input,
+            ).then(
+                lambda: (gr.update(visible=False), gr.update(visible=True)),
+                outputs=[self.paper_list.accordion, self.chat_settings],
+            ).then(
+                fn=None,
+                inputs=None,
+                js=chat_input_focus_js,
+            )
+
+        if not KH_DEMO_MODE:
+            self.chat_control.btn_new.click(
+                self.chat_control.new_conv,
+                inputs=self._app.user_id,
+                outputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation,
+                ],
+                show_progress="hidden",
+            ).then(
+                self.chat_control.select_conv,
+                inputs=[self.chat_control.conversation, self._app.user_id],
+                outputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation,
+                    self.chat_control.conversation_rn,
+                    self.chat_panel.chatbot,
+                    self.followup_questions,
+                    self.info_panel,
+                    self.state_plot_panel,
+                    self.state_retrieval_history,
+                    self.state_plot_history,
+                    self.chat_control.cb_is_public,
+                    self.state_chat,
+                ]
+                + self._indices_input,
+                show_progress="hidden",
+            ).then(
+                fn=self._json_to_plot,
+                inputs=self.state_plot_panel,
+                outputs=self.plot_panel,
+            ).then(
+                fn=None,
+                inputs=None,
+                js=chat_input_focus_js,
+            )
+
+            self.chat_control.btn_del.click(
+                lambda id: self.toggle_delete(id),
+                inputs=[self.chat_control.conversation_id],
+                outputs=[
+                    self.chat_control._new_delete,
+                    self.chat_control._delete_confirm,
+                ],
+            )
+            self.chat_control.btn_del_conf.click(
+                self.chat_control.delete_conv,
+                inputs=[self.chat_control.conversation_id, self._app.user_id],
+                outputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation,
+                ],
+                show_progress="hidden",
+            ).then(
+                self.chat_control.select_conv,
+                inputs=[self.chat_control.conversation, self._app.user_id],
+                outputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation,
+                    self.chat_control.conversation_rn,
+                    self.chat_panel.chatbot,
+                    self.followup_questions,
+                    self.info_panel,
+                    self.state_plot_panel,
+                    self.state_retrieval_history,
+                    self.state_plot_history,
+                    self.chat_control.cb_is_public,
+                    self.state_chat,
+                ]
+                + self._indices_input,
+                show_progress="hidden",
+            ).then(
+                fn=self._json_to_plot,
+                inputs=self.state_plot_panel,
+                outputs=self.plot_panel,
+            ).then(
+                lambda: self.toggle_delete(""),
+                outputs=[
+                    self.chat_control._new_delete,
+                    self.chat_control._delete_confirm,
+                ],
+            )
+            self.chat_control.btn_del_cnl.click(
+                lambda: self.toggle_delete(""),
+                outputs=[
+                    self.chat_control._new_delete,
+                    self.chat_control._delete_confirm,
+                ],
+            )
+            self.chat_control.btn_conversation_rn.click(
+                lambda: gr.update(visible=True),
+                outputs=[
+                    self.chat_control.conversation_rn,
+                ],
+            )
+            self.chat_control.conversation_rn.submit(
+                self.chat_control.rename_conv,
+                inputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation_rn,
+                    gr.State(value=True),
+                    self._app.user_id,
+                ],
+                outputs=[
+                    self.chat_control.conversation,
+                    self.chat_control.conversation,
+                    self.chat_control.conversation_rn,
+                ],
+                show_progress="hidden",
+            )
+
+        onConvSelect = (
+            self.chat_control.conversation.select(
+                self.chat_control.select_conv,
+                inputs=[self.chat_control.conversation, self._app.user_id],
+                outputs=[
+                    self.chat_control.conversation_id,
+                    self.chat_control.conversation,
+                    self.chat_control.conversation_rn,
+                    self.chat_panel.chatbot,
+                    self.followup_questions,
+                    self.info_panel,
+                    self.state_plot_panel,
+                    self.state_retrieval_history,
+                    self.state_plot_history,
+                    self.chat_control.cb_is_public,
+                    self.state_chat,
+                ]
+                + self._indices_input,
+                show_progress="hidden",
+            )
+            .then(
+                fn=self._json_to_plot,
+                inputs=self.state_plot_panel,
+                outputs=self.plot_panel,
+            )
+            .then(
+                lambda: self.toggle_delete(""),
+                outputs=[
+                    self.chat_control._new_delete,
+                    self.chat_control._delete_confirm,
+                ],
+            )
         )
 
-        self.chat_control.btn_del.click(
-            lambda id: self.toggle_delete(id),
-            inputs=[self.chat_control.conversation_id],
-            outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
-        )
-        self.chat_control.btn_del_conf.click(
-            self.chat_control.delete_conv,
-            inputs=[self.chat_control.conversation_id, self._app.user_id],
-            outputs=[self.chat_control.conversation_id, self.chat_control.conversation],
-            show_progress="hidden",
-        ).then(
-            self.chat_control.select_conv,
-            inputs=[self.chat_control.conversation, self._app.user_id],
-            outputs=[
-                self.chat_control.conversation_id,
-                self.chat_control.conversation,
-                self.chat_control.conversation_rn,
-                self.chat_panel.chatbot,
-                self.followup_questions,
-                self.info_panel,
-                self.state_plot_panel,
-                self.state_retrieval_history,
-                self.state_plot_history,
-                self.chat_control.cb_is_public,
-                self.state_chat,
-            ]
-            + self._indices_input,
-            show_progress="hidden",
-        ).then(
-            fn=self._json_to_plot,
-            inputs=self.state_plot_panel,
-            outputs=self.plot_panel,
-        ).then(
-            lambda: self.toggle_delete(""),
-            outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
-        )
-        self.chat_control.btn_del_cnl.click(
-            lambda: self.toggle_delete(""),
-            outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
-        )
-        self.chat_control.btn_conversation_rn.click(
-            lambda: gr.update(visible=True),
-            outputs=[
-                self.chat_control.conversation_rn,
-            ],
-        )
-        self.chat_control.conversation_rn.submit(
-            self.chat_control.rename_conv,
-            inputs=[
-                self.chat_control.conversation_id,
-                self.chat_control.conversation_rn,
-                gr.State(value=True),
-                self._app.user_id,
-            ],
-            outputs=[
-                self.chat_control.conversation,
-                self.chat_control.conversation,
-                self.chat_control.conversation_rn,
-            ],
-            show_progress="hidden",
+        if KH_DEMO_MODE:
+            onConvSelect = onConvSelect.then(
+                lambda: (gr.update(visible=False), gr.update(visible=True)),
+                outputs=[self.paper_list.accordion, self.chat_settings],
+            )
+
+        onConvSelect = (
+            onConvSelect.then(
+                fn=lambda: True,
+                js=clear_bot_message_selection_js,
+            )
+            .then(
+                fn=lambda: True,
+                inputs=None,
+                outputs=[self._preview_links],
+                js=pdfview_js,
+            )
+            .then(fn=None, inputs=None, outputs=None, js=chat_input_focus_js)
         )
 
-        self.chat_control.conversation.select(
-            self.chat_control.select_conv,
-            inputs=[self.chat_control.conversation, self._app.user_id],
-            outputs=[
-                self.chat_control.conversation_id,
-                self.chat_control.conversation,
-                self.chat_control.conversation_rn,
-                self.chat_panel.chatbot,
-                self.followup_questions,
-                self.info_panel,
-                self.state_plot_panel,
-                self.state_retrieval_history,
-                self.state_plot_history,
-                self.chat_control.cb_is_public,
-                self.state_chat,
-            ]
-            + self._indices_input,
-            show_progress="hidden",
-        ).then(
-            fn=self._json_to_plot,
-            inputs=self.state_plot_panel,
-            outputs=self.plot_panel,
-        ).then(
-            lambda: self.toggle_delete(""),
-            outputs=[self.chat_control._new_delete, self.chat_control._delete_confirm],
-        ).then(
-            fn=lambda: True,
-            inputs=None,
-            outputs=[self._preview_links],
-            js=pdfview_js,
-        ).then(
-            fn=None, inputs=None, outputs=None, js=chat_input_focus_js
-        )
-
-        # evidence display on message selection
-        self.chat_panel.chatbot.select(
-            self.message_selected,
-            inputs=[
-                self.state_retrieval_history,
-                self.state_plot_history,
-            ],
-            outputs=[
-                self.info_panel,
-                self.state_plot_panel,
-            ],
-        ).then(
-            fn=self._json_to_plot,
-            inputs=self.state_plot_panel,
-            outputs=self.plot_panel,
-        ).then(
-            fn=lambda: True,
-            inputs=None,
-            outputs=[self._preview_links],
-            js=pdfview_js,
-        ).then(
-            fn=None, inputs=None, outputs=None, js=chat_input_focus_js
-        )
+        if not KH_DEMO_MODE:
+            # evidence display on message selection
+            self.chat_panel.chatbot.select(
+                self.message_selected,
+                inputs=[
+                    self.state_retrieval_history,
+                    self.state_plot_history,
+                ],
+                outputs=[
+                    self.info_panel,
+                    self.state_plot_panel,
+                ],
+            ).then(
+                fn=self._json_to_plot,
+                inputs=self.state_plot_panel,
+                outputs=self.plot_panel,
+            ).then(
+                fn=lambda: True,
+                inputs=None,
+                outputs=[self._preview_links],
+                js=pdfview_js,
+            )
 
         self.chat_control.cb_is_public.change(
             self.on_set_public_conversation,
@@ -597,22 +772,30 @@ class ChatPage(BasePage):
             show_progress="hidden",
         )
 
-        self.report_issue.report_btn.click(
-            self.report_issue.report,
-            inputs=[
-                self.report_issue.correctness,
-                self.report_issue.issues,
-                self.report_issue.more_detail,
-                self.chat_control.conversation_id,
-                self.chat_panel.chatbot,
-                self._app.settings_state,
-                self._app.user_id,
-                self.info_panel,
-                self.state_chat,
-            ]
-            + self._indices_input,
-            outputs=None,
-        )
+        if not KH_DEMO_MODE:
+            # user feedback events
+            self.chat_panel.chatbot.like(
+                fn=self.is_liked,
+                inputs=[self.chat_control.conversation_id],
+                outputs=None,
+            )
+            self.report_issue.report_btn.click(
+                self.report_issue.report,
+                inputs=[
+                    self.report_issue.correctness,
+                    self.report_issue.issues,
+                    self.report_issue.more_detail,
+                    self.chat_control.conversation_id,
+                    self.chat_panel.chatbot,
+                    self._app.settings_state,
+                    self._app.user_id,
+                    self.info_panel,
+                    self.state_chat,
+                ]
+                + self._indices_input,
+                outputs=None,
+            )
+
         self.reasoning_type.change(
             self.reasoning_changed,
             inputs=[self.reasoning_type],
@@ -624,11 +807,25 @@ class ChatPage(BasePage):
             outputs=[self.use_mindmap, self.use_mindmap_check],
             show_progress="hidden",
         )
-        self.use_chat_suggestion.change(
-            lambda x: (x, gr.update(visible=x)),
-            inputs=[self.use_chat_suggestion],
+
+        def toggle_chat_suggestion(current_state):
+            return current_state, gr.update(visible=current_state)
+
+        def raise_error_on_state(state):
+            if not state:
+                raise ValueError("Chat suggestion disabled")
+
+        self.chat_control.cb_suggest_chat.change(
+            fn=toggle_chat_suggestion,
+            inputs=[self.chat_control.cb_suggest_chat],
             outputs=[self._use_suggestion, self.followup_questions_ui],
             show_progress="hidden",
+        ).then(
+            fn=raise_error_on_state,
+            inputs=[self._use_suggestion],
+            show_progress="hidden",
+        ).success(
+            **onSuggestChatEvent
         )
         self.chat_control.conversation_id.change(
             lambda: gr.update(visible=False),
@@ -636,7 +833,7 @@ class ChatPage(BasePage):
         )
 
         self.followup_questions.select(
-            self.chat_control.chat_suggestion.select_example,
+            self.chat_suggestion.select_example,
             outputs=[self.chat_panel.text_input],
             show_progress="hidden",
         ).then(
@@ -645,6 +842,22 @@ class ChatPage(BasePage):
             outputs=None,
             js=chat_input_focus_js,
         )
+
+        if KH_DEMO_MODE:
+            self.paper_list.examples.select(
+                self.paper_list.select_example,
+                inputs=[self.paper_list.papers_state],
+                outputs=[self.quick_urls],
+                show_progress="hidden",
+            ).then(
+                lambda: (gr.update(visible=False), gr.update(visible=True)),
+                outputs=[self.paper_list.accordion, self.chat_settings],
+            ).then(
+                fn=None,
+                inputs=None,
+                outputs=None,
+                js=quick_urls_submit_js,
+            )
 
     def submit_msg(
         self,
@@ -655,8 +868,13 @@ class ChatPage(BasePage):
         conv_id,
         conv_name,
         first_selector_choices,
+        request: gr.Request,
     ):
         """Submit a message to the chatbot"""
+        if KH_DEMO_MODE:
+            sso_user_id = check_rate_limit("chat", request)
+            print("User ID:", sso_user_id)
+
         if not chat_input:
             raise ValueError("Input is empty")
 
@@ -685,6 +903,7 @@ class ChatPage(BasePage):
                 True,
                 settings,
                 user_id,
+                request=None,
             )
         elif file_names:
             for file_name in file_names:
@@ -698,7 +917,11 @@ class ChatPage(BasePage):
         # if file_ids is not empty and chat_input_text is empty
         # set the input to summary
         if not chat_input_text and file_ids:
-            chat_input_text = "Summary"
+            chat_input_text = DEFAULT_QUESTION
+
+        # if start of conversation and no query is specified
+        if not chat_input_text and not chat_history:
+            chat_input_text = DEFAULT_QUESTION
 
         if file_ids:
             selector_output = [
@@ -716,13 +939,16 @@ class ChatPage(BasePage):
                 raise gr.Error("Empty chat")
 
         if not conv_id:
-            id_, update = self.chat_control.new_conv(user_id)
-            with Session(engine) as session:
-                statement = select(Conversation).where(Conversation.id == id_)
-                name = session.exec(statement).one().name
-                new_conv_id = id_
-                conv_update = update
-                new_conv_name = name
+            if not KH_DEMO_MODE:
+                id_, update = self.chat_control.new_conv(user_id)
+                with Session(engine) as session:
+                    statement = select(Conversation).where(Conversation.id == id_)
+                    name = session.exec(statement).one().name
+                    new_conv_id = id_
+                    conv_update = update
+                    new_conv_name = name
+            else:
+                new_conv_id, new_conv_name, conv_update = None, None, gr.update()
         else:
             new_conv_id = conv_id
             conv_update = gr.update()
@@ -739,6 +965,17 @@ class ChatPage(BasePage):
             + selector_output
             + [used_command]
         )
+
+    def get_recommendations(self, first_selector_choices, file_ids):
+        first_selector_choices_map = {
+            item[1]: item[0] for item in first_selector_choices
+        }
+        file_names = [first_selector_choices_map[file_id] for file_id in file_ids]
+        if not file_names:
+            return ""
+
+        first_file_name = file_names[0].split(".")[0].replace("_", " ")
+        return get_recommended_papers(first_file_name)
 
     def toggle_delete(self, conv_id):
         if conv_id:
@@ -789,15 +1026,39 @@ class ChatPage(BasePage):
                         self.chat_control.conversation,
                         self.chat_control.conversation_rn,
                         self.chat_panel.chatbot,
+                        self.followup_questions,
                         self.info_panel,
                         self.state_plot_panel,
                         self.state_retrieval_history,
                         self.state_plot_history,
                         self.chat_control.cb_is_public,
+                        self.state_chat,
                     ]
                     + self._indices_input,
                     "show_progress": "hidden",
                 },
+            )
+
+    def _on_app_created(self):
+        if KH_DEMO_MODE:
+            self._app.app.load(
+                fn=lambda x: x,
+                inputs=[self._user_api_key],
+                outputs=[self._user_api_key],
+                js=fetch_api_key_js,
+            ).then(
+                fn=self.chat_control.toggle_demo_login_visibility,
+                inputs=[self._user_api_key],
+                outputs=[
+                    self.chat_control.cb_suggest_chat,
+                    self.chat_control.btn_new,
+                    self.chat_control.btn_demo_logout,
+                    self.chat_control.btn_demo_login,
+                ],
+            ).then(
+                fn=None,
+                inputs=None,
+                js=chat_input_focus_js,
             )
 
     def persist_data_source(
@@ -1106,13 +1367,24 @@ class ChatPage(BasePage):
 
         return new_name, renamed
 
-    def suggest_chat_conv(self, settings, chat_history, use_suggestion):
+    def suggest_chat_conv(
+        self,
+        settings,
+        session_language,
+        chat_history,
+        use_suggestion,
+    ):
+        target_language = (
+            session_language
+            if session_language not in (DEFAULT_SETTING, None)
+            else settings["reasoning.lang"]
+        )
         if use_suggestion:
             suggest_pipeline = SuggestFollowupQuesPipeline()
             suggest_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
-                settings["reasoning.lang"], "English"
+                target_language, "English"
             )
-            suggested_questions = []
+            suggested_questions = [[each] for each in ChatSuggestion.CHAT_SAMPLES]
 
             if len(chat_history) >= 1:
                 suggested_resp = suggest_pipeline(chat_history).text

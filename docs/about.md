@@ -4,8 +4,8 @@ An open-source tool for chatting with your documents. Built with both end users 
 developers in mind.
 
 [Source Code](https://github.com/Cinnamon/kotaemon) |
-[Live Demo](https://huggingface.co/spaces/cin-model/kotaemon-demo)
+[HF Space](https://huggingface.co/spaces/cin-model/kotaemon-demo)
 
-[User Guide](https://cinnamon.github.io/kotaemon/) |
+[Installation Guide](https://cinnamon.github.io/kotaemon/) |
 [Developer Guide](https://cinnamon.github.io/kotaemon/development/) |
 [Feedback](https://github.com/Cinnamon/kotaemon/issues)

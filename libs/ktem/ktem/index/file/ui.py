@@ -20,13 +20,27 @@ from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
 
 from ...utils.commands import WEB_SEARCH_COMMAND
+from ...utils.rate_limit import check_rate_limit
+from .utils import download_arxiv_pdf, is_arxiv_url
 
-DOWNLOAD_MESSAGE = "Press again to download"
+KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
+KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
+DOWNLOAD_MESSAGE = "Start download"
 MAX_FILENAME_LENGTH = 20
+MAX_FILE_COUNT = 200
 
 chat_input_focus_js = """
 function() {
     let chatInput = document.querySelector("#chat-input textarea");
+    chatInput.focus();
+}
+"""
+
+chat_input_focus_js_with_submit = """
+function() {
+    let chatInput = document.querySelector("#chat-input textarea");
+    let chatInputSubmit = document.querySelector("#chat-input button.submit-button");
+    chatInputSubmit.click();
     chatInput.focus();
 }
 """
@@ -53,6 +67,7 @@ function(file_list) {
         allowSpaces: true,
     })
     input_box = document.querySelector('#chat-input textarea');
+    tribute.detach(input_box);
     tribute.attach(input_box);
 }
 """.replace(
@@ -128,7 +143,9 @@ class FileIndexPage(BasePage):
         # TODO: on_building_ui is not correctly named if it's always called in
         # the constructor
         self.public_events = [f"onFileIndex{index.id}Changed"]
-        self.on_building_ui()
+
+        if not KH_DEMO_MODE:
+            self.on_building_ui()
 
     def upload_instruction(self) -> str:
         msgs = []
@@ -201,10 +218,10 @@ class FileIndexPage(BasePage):
 
         with gr.Accordion("Advance options", open=False):
             with gr.Row():
-                self.download_all_button = gr.DownloadButton(
-                    "Download all files",
-                    visible=True,
-                )
+                if not KH_SSO_ENABLED:
+                    self.download_all_button = gr.DownloadButton(
+                        "Download all files",
+                    )
                 self.delete_all_button = gr.Button(
                     "Delete all files",
                     variant="stop",
@@ -249,13 +266,13 @@ class FileIndexPage(BasePage):
             )
 
         with gr.Column(visible=False) as self._group_info_panel:
+            self.selected_group_id = gr.State(value=None)
             self.group_label = gr.Markdown()
             self.group_name = gr.Textbox(
                 label="Group name",
                 placeholder="Group name",
                 lines=1,
                 max_lines=1,
-                interactive=False,
             )
             self.group_files = gr.Dropdown(
                 label="Attached files",
@@ -290,7 +307,7 @@ class FileIndexPage(BasePage):
                         )
                         gr.Markdown("(separated by new line)")
 
-                    with gr.Accordion("Advanced indexing options", open=True):
+                    with gr.Accordion("Advanced indexing options", open=False):
                         with gr.Row():
                             self.reindex = gr.Checkbox(
                                 value=False, label="Force reindex file", container=False
@@ -324,6 +341,9 @@ class FileIndexPage(BasePage):
 
     def on_subscribe_public_events(self):
         """Subscribe to the declared public event of the app"""
+        if KH_DEMO_MODE:
+            return
+
         self._app.subscribe_event(
             name=f"onFileIndex{self._index.id}Changed",
             definition={
@@ -500,6 +520,34 @@ class FileIndexPage(BasePage):
 
         return not is_zipped_state, new_button
 
+    def download_single_file_simple(self, is_zipped_state, file_html, file_id):
+        with Session(engine) as session:
+            source = session.execute(
+                select(self._index._resources["Source"]).where(
+                    self._index._resources["Source"].id == file_id
+                )
+            ).first()
+        if source:
+            target_file_name = Path(source[0].name)
+
+        # create a temporary file with a path to export
+        output_file_path = os.path.join(
+            flowsettings.KH_ZIP_OUTPUT_DIR, target_file_name.stem + ".html"
+        )
+        with open(output_file_path, "w") as f:
+            f.write(file_html)
+
+        if is_zipped_state:
+            new_button = gr.DownloadButton(label="Download", value=None)
+        else:
+            # export the file path
+            new_button = gr.DownloadButton(
+                label=DOWNLOAD_MESSAGE,
+                value=output_file_path,
+            )
+
+        return not is_zipped_state, new_button
+
     def download_all_files(self):
         if self._index.config.get("private", False):
             raise gr.Error("This feature is not available for private collection.")
@@ -543,8 +591,145 @@ class FileIndexPage(BasePage):
                 gr.update(visible=True),
             ]
 
+    def on_register_quick_uploads(self):
+        try:
+            # quick file upload event registration of first Index only
+            if self._index.id == 1:
+                self.quick_upload_state = gr.State(value=[])
+                print("Setting up quick upload event")
+
+                # override indexing function from chat page
+                self._app.chat_page.first_indexing_url_fn = (
+                    self.index_fn_url_with_default_loaders
+                )
+
+                if not KH_DEMO_MODE:
+                    quickUploadedEvent = (
+                        self._app.chat_page.quick_file_upload.upload(
+                            fn=lambda: gr.update(
+                                value="Please wait for the indexing process "
+                                "to complete before adding your question."
+                            ),
+                            outputs=self._app.chat_page.quick_file_upload_status,
+                        )
+                        .then(
+                            fn=self.index_fn_file_with_default_loaders,
+                            inputs=[
+                                self._app.chat_page.quick_file_upload,
+                                gr.State(value=False),
+                                self._app.settings_state,
+                                self._app.user_id,
+                            ],
+                            outputs=self.quick_upload_state,
+                            concurrency_limit=10,
+                        )
+                        .success(
+                            fn=lambda: [
+                                gr.update(value=None),
+                                gr.update(value="select"),
+                            ],
+                            outputs=[
+                                self._app.chat_page.quick_file_upload,
+                                self._app.chat_page._indices_input[0],
+                            ],
+                        )
+                    )
+                    for event in self._app.get_event(
+                        f"onFileIndex{self._index.id}Changed"
+                    ):
+                        quickUploadedEvent = quickUploadedEvent.then(**event)
+
+                    quickUploadedEvent = (
+                        quickUploadedEvent.success(
+                            fn=lambda x: x,
+                            inputs=self.quick_upload_state,
+                            outputs=self._app.chat_page._indices_input[1],
+                        )
+                        .then(
+                            fn=lambda: gr.update(value="Indexing completed."),
+                            outputs=self._app.chat_page.quick_file_upload_status,
+                        )
+                        .then(
+                            fn=self.list_file,
+                            inputs=[self._app.user_id, self.filter],
+                            outputs=[self.file_list_state, self.file_list],
+                            concurrency_limit=20,
+                        )
+                        .then(
+                            fn=lambda: True,
+                            inputs=None,
+                            outputs=None,
+                            js=chat_input_focus_js_with_submit,
+                        )
+                    )
+
+                quickURLUploadedEvent = (
+                    self._app.chat_page.quick_urls.submit(
+                        fn=lambda: gr.update(
+                            value="Please wait for the indexing process "
+                            "to complete before adding your question."
+                        ),
+                        outputs=self._app.chat_page.quick_file_upload_status,
+                    )
+                    .then(
+                        fn=self.index_fn_url_with_default_loaders,
+                        inputs=[
+                            self._app.chat_page.quick_urls,
+                            gr.State(value=False),
+                            self._app.settings_state,
+                            self._app.user_id,
+                        ],
+                        outputs=self.quick_upload_state,
+                        concurrency_limit=10,
+                    )
+                    .success(
+                        fn=lambda: [
+                            gr.update(value=None),
+                            gr.update(value="select"),
+                        ],
+                        outputs=[
+                            self._app.chat_page.quick_urls,
+                            self._app.chat_page._indices_input[0],
+                        ],
+                    )
+                )
+                for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
+                    quickURLUploadedEvent = quickURLUploadedEvent.then(**event)
+
+                quickURLUploadedEvent = quickURLUploadedEvent.success(
+                    fn=lambda x: x,
+                    inputs=self.quick_upload_state,
+                    outputs=self._app.chat_page._indices_input[1],
+                ).then(
+                    fn=lambda: gr.update(value="Indexing completed."),
+                    outputs=self._app.chat_page.quick_file_upload_status,
+                )
+
+                if not KH_DEMO_MODE:
+                    quickURLUploadedEvent = quickURLUploadedEvent.then(
+                        fn=self.list_file,
+                        inputs=[self._app.user_id, self.filter],
+                        outputs=[self.file_list_state, self.file_list],
+                        concurrency_limit=20,
+                    )
+
+                quickURLUploadedEvent = quickURLUploadedEvent.then(
+                    fn=lambda: True,
+                    inputs=None,
+                    outputs=None,
+                    js=chat_input_focus_js_with_submit,
+                )
+
+        except Exception as e:
+            print(e)
+
     def on_register_events(self):
         """Register all events to the app"""
+        self.on_register_quick_uploads()
+
+        if KH_DEMO_MODE:
+            return
+
         onDeleted = (
             self.delete_button.click(
                 fn=self.delete_event,
@@ -606,12 +791,13 @@ class FileIndexPage(BasePage):
             ],
         )
 
-        self.download_all_button.click(
-            fn=self.download_all_files,
-            inputs=[],
-            outputs=self.download_all_button,
-            show_progress="hidden",
-        )
+        if not KH_SSO_ENABLED:
+            self.download_all_button.click(
+                fn=self.download_all_files,
+                inputs=[],
+                outputs=self.download_all_button,
+                show_progress="hidden",
+            )
 
         self.delete_all_button.click(
             self.show_delete_all_confirm,
@@ -659,12 +845,20 @@ class FileIndexPage(BasePage):
             ],
         )
 
-        self.download_single_button.click(
-            fn=self.download_single_file,
-            inputs=[self.is_zipped_state, self.selected_file_id],
-            outputs=[self.is_zipped_state, self.download_single_button],
-            show_progress="hidden",
-        )
+        if not KH_SSO_ENABLED:
+            self.download_single_button.click(
+                fn=self.download_single_file,
+                inputs=[self.is_zipped_state, self.selected_file_id],
+                outputs=[self.is_zipped_state, self.download_single_button],
+                show_progress="hidden",
+            )
+        else:
+            self.download_single_button.click(
+                fn=self.download_single_file_simple,
+                inputs=[self.is_zipped_state, self.chunks, self.selected_file_id],
+                outputs=[self.is_zipped_state, self.download_single_button],
+                show_progress="hidden",
+            )
 
         onUploaded = (
             self.upload_button.click(
@@ -688,121 +882,6 @@ class FileIndexPage(BasePage):
                 outputs=[self.urls],
             )
         )
-
-        try:
-            # quick file upload event registration of first Index only
-            if self._index.id == 1:
-                self.quick_upload_state = gr.State(value=[])
-                print("Setting up quick upload event")
-
-                # override indexing function from chat page
-                self._app.chat_page.first_indexing_url_fn = (
-                    self.index_fn_url_with_default_loaders
-                )
-                quickUploadedEvent = (
-                    self._app.chat_page.quick_file_upload.upload(
-                        fn=lambda: gr.update(
-                            value="Please wait for the indexing process "
-                            "to complete before adding your question."
-                        ),
-                        outputs=self._app.chat_page.quick_file_upload_status,
-                    )
-                    .then(
-                        fn=self.index_fn_file_with_default_loaders,
-                        inputs=[
-                            self._app.chat_page.quick_file_upload,
-                            gr.State(value=False),
-                            self._app.settings_state,
-                            self._app.user_id,
-                        ],
-                        outputs=self.quick_upload_state,
-                    )
-                    .success(
-                        fn=lambda: [
-                            gr.update(value=None),
-                            gr.update(value="select"),
-                        ],
-                        outputs=[
-                            self._app.chat_page.quick_file_upload,
-                            self._app.chat_page._indices_input[0],
-                        ],
-                    )
-                )
-                for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
-                    quickUploadedEvent = quickUploadedEvent.then(**event)
-
-                quickURLUploadedEvent = (
-                    self._app.chat_page.quick_urls.submit(
-                        fn=lambda: gr.update(
-                            value="Please wait for the indexing process "
-                            "to complete before adding your question."
-                        ),
-                        outputs=self._app.chat_page.quick_file_upload_status,
-                    )
-                    .then(
-                        fn=self.index_fn_url_with_default_loaders,
-                        inputs=[
-                            self._app.chat_page.quick_urls,
-                            gr.State(value=True),
-                            self._app.settings_state,
-                            self._app.user_id,
-                        ],
-                        outputs=self.quick_upload_state,
-                    )
-                    .success(
-                        fn=lambda: [
-                            gr.update(value=None),
-                            gr.update(value="select"),
-                        ],
-                        outputs=[
-                            self._app.chat_page.quick_urls,
-                            self._app.chat_page._indices_input[0],
-                        ],
-                    )
-                )
-                for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
-                    quickURLUploadedEvent = quickURLUploadedEvent.then(**event)
-
-                quickUploadedEvent.success(
-                    fn=lambda x: x,
-                    inputs=self.quick_upload_state,
-                    outputs=self._app.chat_page._indices_input[1],
-                ).then(
-                    fn=lambda: gr.update(value="Indexing completed."),
-                    outputs=self._app.chat_page.quick_file_upload_status,
-                ).then(
-                    fn=self.list_file,
-                    inputs=[self._app.user_id, self.filter],
-                    outputs=[self.file_list_state, self.file_list],
-                    concurrency_limit=20,
-                ).then(
-                    fn=lambda: True,
-                    inputs=None,
-                    outputs=None,
-                    js=chat_input_focus_js,
-                )
-
-                quickURLUploadedEvent.success(
-                    fn=lambda x: x,
-                    inputs=self.quick_upload_state,
-                    outputs=self._app.chat_page._indices_input[1],
-                ).then(
-                    fn=lambda: gr.update(value="Indexing completed."),
-                    outputs=self._app.chat_page.quick_file_upload_status,
-                ).then(
-                    fn=self.list_file,
-                    inputs=[self._app.user_id, self.filter],
-                    outputs=[self.file_list_state, self.file_list],
-                    concurrency_limit=20,
-                ).then(
-                    fn=lambda: True,
-                    inputs=None,
-                    outputs=None,
-                    js=chat_input_focus_js,
-                )
-
-        except Exception as e:
-            print(e)
 
         uploadedEvent = onUploaded.then(
             fn=self.list_file,
@@ -844,7 +923,12 @@ class FileIndexPage(BasePage):
         self.group_list.select(
             fn=self.interact_group_list,
             inputs=[self.group_list_state],
-            outputs=[self.group_label, self.group_name, self.group_files],
+            outputs=[
+                self.group_label,
+                self.selected_group_id,
+                self.group_name,
+                self.group_files,
+            ],
             show_progress="hidden",
         ).then(
             fn=lambda: (
@@ -875,8 +959,9 @@ class FileIndexPage(BasePage):
                 gr.update(visible=False),
                 gr.update(value="### Add new group"),
                 gr.update(visible=True),
-                gr.update(value="", interactive=True),
+                gr.update(value=""),
                 gr.update(value=[]),
+                None,
             ],
             outputs=[
                 self.group_add_button,
@@ -884,12 +969,13 @@ class FileIndexPage(BasePage):
                 self._group_info_panel,
                 self.group_name,
                 self.group_files,
+                self.selected_group_id,
             ],
         )
 
         self.group_chat_button.click(
             fn=self.set_group_id_selector,
-            inputs=[self.group_name],
+            inputs=[self.selected_group_id],
             outputs=[
                 self._index.get_selector_component_ui().selector,
                 self._index.get_selector_component_ui().mode,
@@ -897,44 +983,53 @@ class FileIndexPage(BasePage):
             ],
         )
 
+        onGroupClosedEvent = {
+            "fn": lambda: [
+                gr.update(visible=True),
+                gr.update(visible=False),
+                gr.update(visible=False),
+                gr.update(visible=False),
+                gr.update(visible=False),
+                None,
+            ],
+            "outputs": [
+                self.group_add_button,
+                self._group_info_panel,
+                self.group_close_button,
+                self.group_delete_button,
+                self.group_chat_button,
+                self.selected_group_id,
+            ],
+        }
+        self.group_close_button.click(**onGroupClosedEvent)
         onGroupSaved = (
             self.group_save_button.click(
                 fn=self.save_group,
-                inputs=[self.group_name, self.group_files, self._app.user_id],
+                inputs=[
+                    self.selected_group_id,
+                    self.group_name,
+                    self.group_files,
+                    self._app.user_id,
+                ],
             )
             .then(
                 self.list_group,
                 inputs=[self._app.user_id, self.file_list_state],
                 outputs=[self.group_list_state, self.group_list],
             )
-            .then(
-                fn=lambda: gr.update(visible=False),
-                outputs=[self._group_info_panel],
+            .then(**onGroupClosedEvent)
+        )
+        onGroupDeleted = (
+            self.group_delete_button.click(
+                fn=self.delete_group,
+                inputs=[self.selected_group_id],
             )
-        )
-        self.group_close_button.click(
-            fn=lambda: [
-                gr.update(visible=True),
-                gr.update(visible=False),
-                gr.update(visible=False),
-                gr.update(visible=False),
-                gr.update(visible=False),
-            ],
-            outputs=[
-                self.group_add_button,
-                self._group_info_panel,
-                self.group_close_button,
-                self.group_delete_button,
-                self.group_chat_button,
-            ],
-        )
-        onGroupDeleted = self.group_delete_button.click(
-            fn=self.delete_group,
-            inputs=[self.group_name],
-        ).then(
-            self.list_group,
-            inputs=[self._app.user_id, self.file_list_state],
-            outputs=[self.group_list_state, self.group_list],
+            .then(
+                self.list_group,
+                inputs=[self._app.user_id, self.file_list_state],
+                outputs=[self.group_list_state, self.group_list],
+            )
+            .then(**onGroupClosedEvent)
         )
 
         for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
@@ -943,10 +1038,21 @@ class FileIndexPage(BasePage):
 
     def _on_app_created(self):
         """Called when the app is created"""
+        if KH_DEMO_MODE:
+            return
+
         self._app.app.load(
             self.list_file,
             inputs=[self._app.user_id, self.filter],
             outputs=[self.file_list_state, self.file_list],
+        ).then(
+            self.list_group,
+            inputs=[self._app.user_id, self.file_list_state],
+            outputs=[self.group_list_state, self.group_list],
+        ).then(
+            self.list_file_names,
+            inputs=[self.file_list_state],
+            outputs=[self.group_files],
         )
 
     def _may_extract_zip(self, files, zip_dir: str):
@@ -1089,19 +1195,67 @@ class FileIndexPage(BasePage):
 
         return exist_ids + returned_ids
 
-    def index_fn_url_with_default_loaders(self, urls, reindex: bool, settings, user_id):
-        returned_ids = []
+    def index_fn_url_with_default_loaders(
+        self,
+        urls,
+        reindex: bool,
+        settings,
+        user_id,
+        request: gr.Request,
+    ):
+        if KH_DEMO_MODE:
+            check_rate_limit("file_upload", request)
+
+        returned_ids: list[str] = []
         settings = deepcopy(settings)
         settings[f"index.options.{self._index.id}.reader_mode"] = "default"
         settings[f"index.options.{self._index.id}.quick_index_mode"] = True
 
-        if urls:
-            _iter = self.index_fn([], urls, reindex, settings, user_id)
-            try:
-                while next(_iter):
-                    pass
-            except StopIteration as e:
-                returned_ids = e.value
+        if KH_DEMO_MODE:
+            urls_splitted = urls.split("\n")
+            if not all(is_arxiv_url(url) for url in urls_splitted):
+                raise ValueError("All URLs must be valid arXiv URLs")
+
+            output_files = [
+                download_arxiv_pdf(
+                    url,
+                    output_path=os.environ.get("GRADIO_TEMP_DIR", "/tmp"),
+                )
+                for url in urls_splitted
+            ]
+
+            exist_ids = []
+            to_process_files = []
+            for str_file_path in output_files:
+                file_path = Path(str_file_path)
+                exist_id = (
+                    self._index.get_indexing_pipeline(settings, user_id)
+                    .route(file_path)
+                    .get_id_if_exists(file_path)
+                )
+                if exist_id:
+                    exist_ids.append(exist_id)
+                else:
+                    to_process_files.append(str_file_path)
+
+            returned_ids = []
+            if to_process_files:
+                _iter = self.index_fn(to_process_files, [], reindex, settings, user_id)
+                try:
+                    while next(_iter):
+                        pass
+                except StopIteration as e:
+                    returned_ids = e.value
+
+            returned_ids = exist_ids + returned_ids
+        else:
+            if urls:
+                _iter = self.index_fn([], urls, reindex, settings, user_id)
+                try:
+                    while next(_iter):
+                        pass
+                except StopIteration as e:
+                    returned_ids = e.value
 
         return returned_ids
 
@@ -1254,6 +1408,7 @@ class FileIndexPage(BasePage):
         return gr.update(choices=file_names)
 
     def list_group(self, user_id, file_list):
+        # supply file_list to display the file names in the group
         if file_list:
             file_id_to_name = {item["id"]: item["name"] for item in file_list}
         else:
@@ -1319,27 +1474,42 @@ class FileIndexPage(BasePage):
 
         return results, group_list
 
-    def set_group_id_selector(self, selected_group_name):
+    def set_group_id_selector(self, selected_group_id):
         FileGroup = self._index._resources["FileGroup"]
 
         # check if group_name exist
         with Session(engine) as session:
             current_group = (
-                session.query(FileGroup).filter_by(name=selected_group_name).first()
+                session.query(FileGroup).filter_by(id=selected_group_id).first()
             )
 
         file_ids = [json.dumps(current_group.data["files"])]
         return [file_ids, "select", gr.Tabs(selected="chat-tab")]
 
-    def save_group(self, group_name, group_files, user_id):
+    def save_group(self, group_id, group_name, group_files, user_id):
         FileGroup = self._index._resources["FileGroup"]
         current_group = None
 
         # check if group_name exist
         with Session(engine) as session:
-            current_group = session.query(FileGroup).filter_by(name=group_name).first()
+            if group_id:
+                current_group = session.query(FileGroup).filter_by(id=group_id).first()
+                # update current group with new info
+                current_group.name = group_name
+                current_group.data["files"] = group_files  # Update the files
+                session.commit()
+            else:
+                current_group = (
+                    session.query(FileGroup)
+                    .filter_by(
+                        name=group_name,
+                        user=user_id,
+                    )
+                    .first()
+                )
+                if current_group:
+                    raise gr.Error(f"Group {group_name} already exists")
 
-            if not current_group:
                 current_group = FileGroup(
                     name=group_name,
                     data={"files": group_files},  # type: ignore
@@ -1347,34 +1517,31 @@ class FileIndexPage(BasePage):
                 )
                 session.add(current_group)
                 session.commit()
-            else:
-                # update current group with new info
-                current_group.name = group_name
-                current_group.data["files"] = group_files  # Update the files
-                session.commit()
 
             group_id = current_group.id
 
         gr.Info(f"Group {group_name} has been saved")
         return group_id
 
-    def delete_group(self, group_name):
+    def delete_group(self, group_id):
+        if not group_id:
+            raise gr.Error("No group is selected")
+
         FileGroup = self._index._resources["FileGroup"]
-        group_id = None
         with Session(engine) as session:
             group = session.execute(
-                select(FileGroup).where(FileGroup.name == group_name)
+                select(FileGroup).where(FileGroup.id == group_id)
             ).first()
             if group:
                 item = group[0]
-                group_id = item.id
+                group_name = item.name
                 session.delete(item)
                 session.commit()
                 gr.Info(f"Group {group_name} has been deleted")
             else:
-                raise gr.Error(f"Group {group_name} not found")
+                raise gr.Error("No group found")
 
-        return group_id
+        return None
 
     def interact_file_list(self, list_files, ev: gr.SelectData):
         if ev.value == "-" and ev.index[0] == 0:
@@ -1394,9 +1561,11 @@ class FileIndexPage(BasePage):
             raise gr.Error("No group is selected")
 
         selected_item = list_groups[selected_id]
+        selected_group_id = selected_item["id"]
         return (
             "### Group Information",
-            gr.update(value=selected_item["name"], interactive=False),
+            selected_group_id,
+            selected_item["name"],
             selected_item["files"],
         )
 
@@ -1524,6 +1693,10 @@ class FileSelector(BasePage):
                 statement = statement.where(
                     self._index._resources["Source"].user == user_id
                 )
+
+            if KH_DEMO_MODE:
+                # limit query by MAX_FILE_COUNT
+                statement = statement.limit(MAX_FILE_COUNT)
 
             results = session.execute(statement).all()
             for result in results:

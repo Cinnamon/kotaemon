@@ -35,6 +35,7 @@ RUN bash scripts/download_pdfjs.sh $PDFJS_PREBUILT_DIR
 
 # Copy contents
 COPY . /app
+COPY launch.sh /app/launch.sh
 COPY .env.example /app/.env
 
 # Install pip packages
@@ -54,7 +55,7 @@ RUN apt-get autoremove \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf ~/.cache
 
-CMD ["python", "app.py"]
+ENTRYPOINT ["sh", "/app/launch.sh"]
 
 # Full version
 FROM lite AS full
@@ -97,7 +98,17 @@ RUN apt-get autoremove \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf ~/.cache
 
-# Download nltk packages as required for unstructured
-# RUN python -c "from unstructured.nlp.tokenize import _download_nltk_packages_if_not_present; _download_nltk_packages_if_not_present()"
+ENTRYPOINT ["sh", "/app/launch.sh"]
 
-CMD ["python", "app.py"]
+# Ollama-bundled version
+FROM full AS ollama
+
+# Install ollama
+RUN --mount=type=ssh  \
+    --mount=type=cache,target=/root/.cache/pip  \
+    curl -fsSL https://ollama.com/install.sh | sh
+
+# RUN nohup bash -c "ollama serve &" && sleep 4 && ollama pull qwen2.5:7b
+RUN nohup bash -c "ollama serve &" && sleep 4 && ollama pull nomic-embed-text
+
+ENTRYPOINT ["sh", "/app/launch.sh"]

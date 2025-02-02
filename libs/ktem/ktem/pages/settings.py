@@ -5,6 +5,10 @@ from ktem.app import BasePage
 from ktem.components import reasonings
 from ktem.db.models import Settings, User, engine
 from sqlmodel import Session, select
+from theflow.settings import settings as flowsettings
+
+KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
+
 
 signout_js = """
 function(u, c, pw, pwc) {
@@ -80,38 +84,44 @@ class SettingsPage(BasePage):
 
         # render application page if there are application settings
         self._render_app_tab = False
-        if self._default_settings.application.settings:
+
+        if not KH_SSO_ENABLED and self._default_settings.application.settings:
             self._render_app_tab = True
 
         # render index page if there are index settings (general and/or specific)
         self._render_index_tab = False
-        if self._default_settings.index.settings:
-            self._render_index_tab = True
-        else:
-            for sig in self._default_settings.index.options.values():
-                if sig.settings:
-                    self._render_index_tab = True
-                    break
+
+        if not KH_SSO_ENABLED:
+            if self._default_settings.index.settings:
+                self._render_index_tab = True
+            else:
+                for sig in self._default_settings.index.options.values():
+                    if sig.settings:
+                        self._render_index_tab = True
+                        break
 
         # render reasoning page if there are reasoning settings
         self._render_reasoning_tab = False
-        if len(self._default_settings.reasoning.settings) > 1:
-            self._render_reasoning_tab = True
-        else:
-            for sig in self._default_settings.reasoning.options.values():
-                if sig.settings:
-                    self._render_reasoning_tab = True
-                    break
+
+        if not KH_SSO_ENABLED:
+            if len(self._default_settings.reasoning.settings) > 1:
+                self._render_reasoning_tab = True
+            else:
+                for sig in self._default_settings.reasoning.options.values():
+                    if sig.settings:
+                        self._render_reasoning_tab = True
+                        break
 
         self.on_building_ui()
 
     def on_building_ui(self):
-        self.setting_save_btn = gr.Button(
-            "Save & Close",
-            variant="primary",
-            elem_classes=["right-button"],
-            elem_id="save-setting-btn",
-        )
+        if not KH_SSO_ENABLED:
+            self.setting_save_btn = gr.Button(
+                "Save & Close",
+                variant="primary",
+                elem_classes=["right-button"],
+                elem_id="save-setting-btn",
+            )
         if self._app.f_user_management:
             with gr.Tab("User settings"):
                 self.user_tab()
@@ -175,21 +185,22 @@ class SettingsPage(BasePage):
             )
 
     def on_register_events(self):
-        self.setting_save_btn.click(
-            self.save_setting,
-            inputs=[self._user_id] + self.components(),
-            outputs=self._settings_state,
-        ).then(
-            lambda: gr.Tabs(selected="chat-tab"),
-            outputs=self._app.tabs,
-        )
+        if not KH_SSO_ENABLED:
+            self.setting_save_btn.click(
+                self.save_setting,
+                inputs=[self._user_id] + self.components(),
+                outputs=self._settings_state,
+            ).then(
+                lambda: gr.Tabs(selected="chat-tab"),
+                outputs=self._app.tabs,
+            )
         self._components["reasoning.use"].change(
             self.change_reasoning_mode,
             inputs=[self._components["reasoning.use"]],
             outputs=list(self._reasoning_mode.values()),
             show_progress="hidden",
         )
-        if self._app.f_user_management:
+        if self._app.f_user_management and not KH_SSO_ENABLED:
             self.password_change_btn.click(
                 self.change_password,
                 inputs=[
@@ -223,15 +234,21 @@ class SettingsPage(BasePage):
     def user_tab(self):
         # user management
         self.current_name = gr.Markdown("Current user: ___")
-        self.signout = gr.Button("Logout")
 
-        self.password_change = gr.Textbox(
-            label="New password", interactive=True, type="password"
-        )
-        self.password_change_confirm = gr.Textbox(
-            label="Confirm password", interactive=True, type="password"
-        )
-        self.password_change_btn = gr.Button("Change password", interactive=True)
+        if KH_SSO_ENABLED:
+            import gradiologin as grlogin
+
+            self.sso_signout = grlogin.LogoutButton("Logout")
+        else:
+            self.signout = gr.Button("Logout")
+
+            self.password_change = gr.Textbox(
+                label="New password", interactive=True, type="password"
+            )
+            self.password_change_confirm = gr.Textbox(
+                label="Confirm password", interactive=True, type="password"
+            )
+            self.password_change_btn = gr.Button("Change password", interactive=True)
 
     def change_password(self, user_id, password, password_confirm):
         from ktem.pages.resources.user import validate_password
