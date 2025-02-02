@@ -4259,10 +4259,10 @@ documents and developers who want to build their own RAG pipeline.
 <h3 id="with-docker-recommended">With Docker (recommended)<a class="headerlink" href="#with-docker-recommended" title="Permanent link">¶</a></h3>
 <ol>
 <li>
-<p>We support both <code>lite</code> &amp; <code>full</code> version of Docker images. With <code>full</code>, the extra packages of <code>unstructured</code> will be installed as well, it can support additional file types (<code>.doc</code>, <code>.docx</code>, ...) but the cost is larger docker image size. For most users, the <code>lite</code> image should work well in most cases.</p>
+<p>We support both <code>lite</code> &amp; <code>full</code> version of Docker images. With <code>full</code> version, the extra packages of <code>unstructured</code> will be installed, which can support additional file types (<code>.doc</code>, <code>.docx</code>, ...) but the cost is larger docker image size. For most users, the <code>lite</code> image should work well in most cases.</p>
 <ul>
 <li>
-<p>To use the <code>lite</code> version.</p>
+<p>To use the <code>full</code> version.</p>
 <div class="language-bash highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-1-1">1</a></span>
 <span class="normal"><a href="#__codelineno-1-2">2</a></span>
 <span class="normal"><a href="#__codelineno-1-3">3</a></span>
@@ -4273,45 +4273,44 @@ documents and developers who want to build their own RAG pipeline.
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3"></a>-e<span class="w"> </span><span class="nv">GRADIO_SERVER_PORT</span><span class="o">=</span><span class="m">7860</span><span class="w"> </span><span class="se">\</span>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4"></a>-v<span class="w"> </span>./ktem_app_data:/app/ktem_app_data<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5"></a>-p<span class="w"> </span><span class="m">7860</span>:7860<span class="w"> </span>-it<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6"></a>ghcr.io/cinnamon/kotaemon:main-lite
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6"></a>ghcr.io/cinnamon/kotaemon:main-full
 </span></code></pre></div></td></tr></table></div>
 </li>
 </ul>
 <ul>
 <li>
-<p>To use the <code>full</code> version.</p>
+<p>To use the <code>full</code> version with bundled <strong>Ollama</strong> for <em>local / private RAG</em>.</p>
 <div class="language-bash highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-2-1">1</a></span>
-<span class="normal"><a href="#__codelineno-2-2">2</a></span>
-<span class="normal"><a href="#__codelineno-2-3">3</a></span>
-<span class="normal"><a href="#__codelineno-2-4">4</a></span>
-<span class="normal"><a href="#__codelineno-2-5">5</a></span>
-<span class="normal"><a href="#__codelineno-2-6">6</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1"></a>docker<span class="w"> </span>run<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2"></a>-e<span class="w"> </span><span class="nv">GRADIO_SERVER_NAME</span><span class="o">=</span><span class="m">0</span>.0.0.0<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3"></a>-e<span class="w"> </span><span class="nv">GRADIO_SERVER_PORT</span><span class="o">=</span><span class="m">7860</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4"></a>-v<span class="w"> </span>./ktem_app_data:/app/ktem_app_data<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5"></a>-p<span class="w"> </span><span class="m">7860</span>:7860<span class="w"> </span>-it<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6"></a>ghcr.io/cinnamon/kotaemon:main-full
+<span class="normal"><a href="#__codelineno-2-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="c1"># change image name to</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2"></a>docker<span class="w"> </span>run<span class="w"> </span>&lt;...&gt;<span class="w"> </span>ghcr.io/cinnamon/kotaemon:main-ollama
 </span></code></pre></div></td></tr></table></div>
 </li>
 </ul>
+<ul>
+<li>To use the <code>lite</code> version.</li>
+</ul>
+<div class="language-bash highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-3-1">1</a></span>
+<span class="normal"><a href="#__codelineno-3-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="w"> </span><span class="c1"># change image name to</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2"></a><span class="w"> </span>docker<span class="w"> </span>run<span class="w"> </span>&lt;...&gt;<span class="w"> </span>ghcr.io/cinnamon/kotaemon:main-lite
+</span></code></pre></div></td></tr></table></div>
 </li>
 <li>
 <p>We currently support and test two platforms: <code>linux/amd64</code> and <code>linux/arm64</code> (for newer Mac). You can specify the platform by passing <code>--platform</code> in the <code>docker run</code> command. For example:</p>
-<div class="language-bash highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-3-1">1</a></span>
-<span class="normal"><a href="#__codelineno-3-2">2</a></span>
-<span class="normal"><a href="#__codelineno-3-3">3</a></span>
-<span class="normal"><a href="#__codelineno-3-4">4</a></span>
-<span class="normal"><a href="#__codelineno-3-5">5</a></span>
-<span class="normal"><a href="#__codelineno-3-6">6</a></span>
-<span class="normal"><a href="#__codelineno-3-7">7</a></span>
-<span class="normal"><a href="#__codelineno-3-8">8</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="c1"># To run docker with platform linux/arm64</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2"></a>docker<span class="w"> </span>run<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3"></a>-e<span class="w"> </span><span class="nv">GRADIO_SERVER_NAME</span><span class="o">=</span><span class="m">0</span>.0.0.0<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4"></a>-e<span class="w"> </span><span class="nv">GRADIO_SERVER_PORT</span><span class="o">=</span><span class="m">7860</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5"></a>-v<span class="w"> </span>./ktem_app_data:/app/ktem_app_data<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6"></a>-p<span class="w"> </span><span class="m">7860</span>:7860<span class="w"> </span>-it<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7"></a>--platform<span class="w"> </span>linux/arm64<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8"></a>ghcr.io/cinnamon/kotaemon:main-lite
+<div class="language-bash highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-4-1">1</a></span>
+<span class="normal"><a href="#__codelineno-4-2">2</a></span>
+<span class="normal"><a href="#__codelineno-4-3">3</a></span>
+<span class="normal"><a href="#__codelineno-4-4">4</a></span>
+<span class="normal"><a href="#__codelineno-4-5">5</a></span>
+<span class="normal"><a href="#__codelineno-4-6">6</a></span>
+<span class="normal"><a href="#__codelineno-4-7">7</a></span>
+<span class="normal"><a href="#__codelineno-4-8">8</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1"></a><span class="c1"># To run docker with platform linux/arm64</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2"></a>docker<span class="w"> </span>run<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3"></a>-e<span class="w"> </span><span class="nv">GRADIO_SERVER_NAME</span><span class="o">=</span><span class="m">0</span>.0.0.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4"></a>-e<span class="w"> </span><span class="nv">GRADIO_SERVER_PORT</span><span class="o">=</span><span class="m">7860</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5"></a>-v<span class="w"> </span>./ktem_app_data:/app/ktem_app_data<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6"></a>-p<span class="w"> </span><span class="m">7860</span>:7860<span class="w"> </span>-it<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7"></a>--platform<span class="w"> </span>linux/arm64<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8"></a>ghcr.io/cinnamon/kotaemon:main-lite
 </span></code></pre></div></td></tr></table></div>
 </li>
 <li>
@@ -4325,25 +4324,25 @@ documents and developers who want to build their own RAG pipeline.
 <ol>
 <li>
 <p>Clone and install required packages on a fresh python environment.</p>
-<div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-4-1"> 1</a></span>
-<span class="normal"><a href="#__codelineno-4-2"> 2</a></span>
-<span class="normal"><a href="#__codelineno-4-3"> 3</a></span>
-<span class="normal"><a href="#__codelineno-4-4"> 4</a></span>
-<span class="normal"><a href="#__codelineno-4-5"> 5</a></span>
-<span class="normal"><a href="#__codelineno-4-6"> 6</a></span>
-<span class="normal"><a href="#__codelineno-4-7"> 7</a></span>
-<span class="normal"><a href="#__codelineno-4-8"> 8</a></span>
-<span class="normal"><a href="#__codelineno-4-9"> 9</a></span>
-<span class="normal"><a href="#__codelineno-4-10">10</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1"></a><span class="c1"># optional (setup env)</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2"></a>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>kotaemon<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.10
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3"></a>conda<span class="w"> </span>activate<span class="w"> </span>kotaemon
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4"></a>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5"></a><span class="c1"># clone this repo</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/Cinnamon/kotaemon
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7"></a><span class="nb">cd</span><span class="w"> </span>kotaemon
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8"></a>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">"libs/kotaemon[all]"</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">"libs/ktem"</span>
+<div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-5-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-5-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-5-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-5-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-5-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-5-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-5-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-5-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-5-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-5-10">10</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1"></a><span class="c1"># optional (setup env)</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2"></a>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>kotaemon<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.10
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3"></a>conda<span class="w"> </span>activate<span class="w"> </span>kotaemon
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5"></a><span class="c1"># clone this repo</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/Cinnamon/kotaemon
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7"></a><span class="nb">cd</span><span class="w"> </span>kotaemon
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8"></a>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">"libs/kotaemon[all]"</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">"libs/ktem"</span>
 </span></code></pre></div></td></tr></table></div>
 </li>
 <li>
@@ -4358,7 +4357,7 @@ documents and developers who want to build their own RAG pipeline.
 <ol>
 <li>
 <p>Start the web server:</p>
-<div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-5-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1"></a>python<span class="w"> </span>app.py
+<div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-6-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1"></a>python<span class="w"> </span>app.py
 </span></code></pre></div></td></tr></table></div>
 <ul>
 <li>The app will be automatically launched in your browser.</li>
@@ -4406,7 +4405,7 @@ We recommend most users to use NanoGraphRAG implementation for straightforward i
 
 - **Non-Docker Installation**: If you are not using Docker, install GraphRAG with the following command:
 
-  <div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-6-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"graphrag&lt;=0.3.6"</span><span class="w"> </span>future
+  <div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-7-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"graphrag&lt;=0.3.6"</span><span class="w"> </span>future
 </span></code></pre></div></td></tr></table></div>
 
 - **Setting Up API KEY**: To use the GraphRAG retriever feature, ensure you set the `GRAPHRAG_API_KEY` environment variable. You can do this directly in your environment or by adding it to a `.env` file.
@@ -4447,37 +4446,37 @@ We recommend most users to use NanoGraphRAG implementation for straightforward i
 
 <summary>Notable settings</summary>
 
-<div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-7-1"> 1</a></span>
-<span class="normal"><a href="#__codelineno-7-2"> 2</a></span>
-<span class="normal"><a href="#__codelineno-7-3"> 3</a></span>
-<span class="normal"><a href="#__codelineno-7-4"> 4</a></span>
-<span class="normal"><a href="#__codelineno-7-5"> 5</a></span>
-<span class="normal"><a href="#__codelineno-7-6"> 6</a></span>
-<span class="normal"><a href="#__codelineno-7-7"> 7</a></span>
-<span class="normal"><a href="#__codelineno-7-8"> 8</a></span>
-<span class="normal"><a href="#__codelineno-7-9"> 9</a></span>
-<span class="normal"><a href="#__codelineno-7-10">10</a></span>
-<span class="normal"><a href="#__codelineno-7-11">11</a></span>
-<span class="normal"><a href="#__codelineno-7-12">12</a></span>
-<span class="normal"><a href="#__codelineno-7-13">13</a></span>
-<span class="normal"><a href="#__codelineno-7-14">14</a></span>
-<span class="normal"><a href="#__codelineno-7-15">15</a></span>
-<span class="normal"><a href="#__codelineno-7-16">16</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1"></a><span class="c1"># setup your preferred document store (with full-text search capabilities)</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2"></a><span class="n">KH_DOCSTORE</span><span class="o">=</span><span class="p">(</span><span class="n">Elasticsearch</span> <span class="o">|</span> <span class="n">LanceDB</span> <span class="o">|</span> <span class="n">SimpleFileDocumentStore</span><span class="p">)</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3"></a>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4"></a><span class="c1"># setup your preferred vectorstore (for vector-based search)</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5"></a><span class="n">KH_VECTORSTORE</span><span class="o">=</span><span class="p">(</span><span class="n">ChromaDB</span> <span class="o">|</span> <span class="n">LanceDB</span> <span class="o">|</span> <span class="n">InMemory</span> <span class="o">|</span> <span class="n">Qdrant</span><span class="p">)</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6"></a>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7"></a><span class="c1"># Enable / disable multimodal QA</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8"></a><span class="n">KH_REASONINGS_USE_MULTIMODAL</span><span class="o">=</span><span class="kc">True</span>
-</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9"></a>
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10"></a><span class="c1"># Setup your new reasoning pipeline or modify existing one.</span>
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11"></a><span class="n">KH_REASONINGS</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12"></a>    <span class="s2">"ktem.reasoning.simple.FullQAPipeline"</span><span class="p">,</span>
-</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13"></a>    <span class="s2">"ktem.reasoning.simple.FullDecomposeQAPipeline"</span><span class="p">,</span>
-</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14"></a>    <span class="s2">"ktem.reasoning.react.ReactAgentPipeline"</span><span class="p">,</span>
-</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15"></a>    <span class="s2">"ktem.reasoning.rewoo.RewooAgentPipeline"</span><span class="p">,</span>
-</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16"></a><span class="p">]</span>
+<div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-8-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-8-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-8-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-8-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-8-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-8-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-8-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-8-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-8-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-8-10">10</a></span>
+<span class="normal"><a href="#__codelineno-8-11">11</a></span>
+<span class="normal"><a href="#__codelineno-8-12">12</a></span>
+<span class="normal"><a href="#__codelineno-8-13">13</a></span>
+<span class="normal"><a href="#__codelineno-8-14">14</a></span>
+<span class="normal"><a href="#__codelineno-8-15">15</a></span>
+<span class="normal"><a href="#__codelineno-8-16">16</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1"></a><span class="c1"># setup your preferred document store (with full-text search capabilities)</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2"></a><span class="n">KH_DOCSTORE</span><span class="o">=</span><span class="p">(</span><span class="n">Elasticsearch</span> <span class="o">|</span> <span class="n">LanceDB</span> <span class="o">|</span> <span class="n">SimpleFileDocumentStore</span><span class="p">)</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4"></a><span class="c1"># setup your preferred vectorstore (for vector-based search)</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5"></a><span class="n">KH_VECTORSTORE</span><span class="o">=</span><span class="p">(</span><span class="n">ChromaDB</span> <span class="o">|</span> <span class="n">LanceDB</span> <span class="o">|</span> <span class="n">InMemory</span> <span class="o">|</span> <span class="n">Milvus</span> <span class="o">|</span> <span class="n">Qdrant</span><span class="p">)</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6"></a>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7"></a><span class="c1"># Enable / disable multimodal QA</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8"></a><span class="n">KH_REASONINGS_USE_MULTIMODAL</span><span class="o">=</span><span class="kc">True</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9"></a>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10"></a><span class="c1"># Setup your new reasoning pipeline or modify existing one.</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11"></a><span class="n">KH_REASONINGS</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12"></a>    <span class="s2">"ktem.reasoning.simple.FullQAPipeline"</span><span class="p">,</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13"></a>    <span class="s2">"ktem.reasoning.simple.FullDecomposeQAPipeline"</span><span class="p">,</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14"></a>    <span class="s2">"ktem.reasoning.react.ReactAgentPipeline"</span><span class="p">,</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15"></a>    <span class="s2">"ktem.reasoning.rewoo.RewooAgentPipeline"</span><span class="p">,</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16"></a><span class="p">]</span>
 </span></code></pre></div></td></tr></table></div>
 
 </details>
@@ -4499,13 +4498,13 @@ We recommend most users to use NanoGraphRAG implementation for straightforward i
     please feel free to edit them to fit your case. Otherwise, the default parameter should
     work for most people.
 
-    <div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-8-1">1</a></span>
-<span class="normal"><a href="#__codelineno-8-2">2</a></span>
-<span class="normal"><a href="#__codelineno-8-3">3</a></span>
-<span class="normal"><a href="#__codelineno-8-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1"></a><span class="nv">OPENAI_API_BASE</span><span class="o">=</span>https://api.openai.com/v1
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2"></a><span class="nv">OPENAI_API_KEY</span><span class="o">=</span>&lt;your<span class="w"> </span>OpenAI<span class="w"> </span>API<span class="w"> </span>key<span class="w"> </span>here&gt;
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3"></a><span class="nv">OPENAI_CHAT_MODEL</span><span class="o">=</span>gpt-3.5-turbo
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4"></a><span class="nv">OPENAI_EMBEDDINGS_MODEL</span><span class="o">=</span>text-embedding-ada-002
+    <div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-9-1">1</a></span>
+<span class="normal"><a href="#__codelineno-9-2">2</a></span>
+<span class="normal"><a href="#__codelineno-9-3">3</a></span>
+<span class="normal"><a href="#__codelineno-9-4">4</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1"></a><span class="nv">OPENAI_API_BASE</span><span class="o">=</span>https://api.openai.com/v1
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2"></a><span class="nv">OPENAI_API_KEY</span><span class="o">=</span>&lt;your<span class="w"> </span>OpenAI<span class="w"> </span>API<span class="w"> </span>key<span class="w"> </span>here&gt;
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3"></a><span class="nv">OPENAI_CHAT_MODEL</span><span class="o">=</span>gpt-3.5-turbo
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4"></a><span class="nv">OPENAI_EMBEDDINGS_MODEL</span><span class="o">=</span>text-embedding-ada-002
 </span></code></pre></div></td></tr></table></div>
 
   - **Azure OpenAI**
@@ -4514,15 +4513,15 @@ We recommend most users to use NanoGraphRAG implementation for straightforward i
     key. Your might also need to provide your developments' name for the chat model and the
     embedding model depending on how you set up Azure development.
 
-    <div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-9-1">1</a></span>
-<span class="normal"><a href="#__codelineno-9-2">2</a></span>
-<span class="normal"><a href="#__codelineno-9-3">3</a></span>
-<span class="normal"><a href="#__codelineno-9-4">4</a></span>
-<span class="normal"><a href="#__codelineno-9-5">5</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1"></a><span class="nv">AZURE_OPENAI_ENDPOINT</span><span class="o">=</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2"></a><span class="nv">AZURE_OPENAI_API_KEY</span><span class="o">=</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3"></a><span class="nv">OPENAI_API_VERSION</span><span class="o">=</span><span class="m">2024</span>-02-15-preview
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4"></a><span class="nv">AZURE_OPENAI_CHAT_DEPLOYMENT</span><span class="o">=</span>gpt-35-turbo
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5"></a><span class="nv">AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT</span><span class="o">=</span>text-embedding-ada-002
+    <div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-10-1">1</a></span>
+<span class="normal"><a href="#__codelineno-10-2">2</a></span>
+<span class="normal"><a href="#__codelineno-10-3">3</a></span>
+<span class="normal"><a href="#__codelineno-10-4">4</a></span>
+<span class="normal"><a href="#__codelineno-10-5">5</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1"></a><span class="nv">AZURE_OPENAI_ENDPOINT</span><span class="o">=</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2"></a><span class="nv">AZURE_OPENAI_API_KEY</span><span class="o">=</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3"></a><span class="nv">OPENAI_API_VERSION</span><span class="o">=</span><span class="m">2024</span>-02-15-preview
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4"></a><span class="nv">AZURE_OPENAI_CHAT_DEPLOYMENT</span><span class="o">=</span>gpt-35-turbo
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5"></a><span class="nv">AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT</span><span class="o">=</span>text-embedding-ada-002
 </span></code></pre></div></td></tr></table></div>
 
   - **Local Models**
@@ -4533,9 +4532,9 @@ We recommend most users to use NanoGraphRAG implementation for straightforward i
 
       - Pull your model, for example:
 
-        <div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-10-1">1</a></span>
-<span class="normal"><a href="#__codelineno-10-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1"></a>ollama<span class="w"> </span>pull<span class="w"> </span>llama3.1:8b
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2"></a>ollama<span class="w"> </span>pull<span class="w"> </span>nomic-embed-text
+        <div class="language-shell highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-11-1">1</a></span>
+<span class="normal"><a href="#__codelineno-11-2">2</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1"></a>ollama<span class="w"> </span>pull<span class="w"> </span>llama3.1:8b
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2"></a>ollama<span class="w"> </span>pull<span class="w"> </span>nomic-embed-text
 </span></code></pre></div></td></tr></table></div>
 
       - Set the model names on web UI and make it as default:
