@@ -29,6 +29,8 @@ jobs:
           - lite
           - full
           - ollama
+      # The maximum number of jobs that can run simultaneously
+      max-parallel: 1
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
