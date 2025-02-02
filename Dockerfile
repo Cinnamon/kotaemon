@@ -55,7 +55,7 @@ RUN apt-get autoremove \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf ~/.cache
 
-CMD ["python", "app.py"]
+ENTRYPOINT ["sh", "/app/launch.sh"]
 
 # Full version
 FROM lite AS full
@@ -92,6 +92,17 @@ RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
     pip install "docling<=2.5.2"
 
+# Clean up
+RUN apt-get autoremove \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf ~/.cache
+
+ENTRYPOINT ["sh", "/app/launch.sh"]
+
+# Ollama-bundled version
+FROM full AS ollama
+
 # Install ollama
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
@@ -99,11 +110,5 @@ RUN --mount=type=ssh  \
 
 # RUN nohup bash -c "ollama serve &" && sleep 4 && ollama pull qwen2.5:7b
 RUN nohup bash -c "ollama serve &" && sleep 4 && ollama pull nomic-embed-text
-
-# Clean up
-RUN apt-get autoremove \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm -rf ~/.cache
 
 ENTRYPOINT ["sh", "/app/launch.sh"]

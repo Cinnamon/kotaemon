@@ -13,6 +13,15 @@ if [ "$KH_DEMO_MODE" = "true" ]; then
     # Command to launch in demo mode
     GR_FILE_ROOT_PATH="/app" KH_FEATURE_USER_MANAGEMENT=false USE_LIGHTRAG=false uvicorn sso_app_demo:app --host "$GRADIO_SERVER_NAME" --port "$GRADIO_SERVER_PORT"
 else
-    ollama serve &
-    python app.py
+    if [ "$KH_SSO_ENABLED" = "true" ]; then
+        echo "KH_SSO_ENABLED is true. Launching in SSO mode..."
+        GR_FILE_ROOT_PATH="/app" KH_SSO_ENABLED=true uvicorn sso_app:app --host "$GRADIO_SERVER_NAME" --port "$GRADIO_SERVER_PORT"
+    else
+        # Check if ollama command exists
+        if command -v ollama &> /dev/null; then
+            echo "ollama command found. Starting ollama server..."
+            ollama serve &
+        fi
+        python app.py
+    fi
 fi
