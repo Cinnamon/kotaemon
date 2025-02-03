@@ -241,13 +241,12 @@ def build_graphrag(working_dir, llm_func, embedding_func):
 class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
     """GraphRAG specific indexing pipeline"""
 
-    prompts: dict[str, list] = {}
+    prompts: dict[str, str] = {}
 
     @classmethod
     def get_user_settings(cls) -> dict:
         try:
             from lightrag.prompt import PROMPTS
-            content: list
 
             blacklist_keywords = ["default", "response", "process"]
             return {
@@ -260,6 +259,7 @@ class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
                 if all(
                     keyword not in prompt_name.lower() for keyword in blacklist_keywords
                 )
+                and isinstance(content, str)
             }
         except ImportError as e:
             print(e)
@@ -267,7 +267,6 @@ class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
 
     def call_graphrag_index(self, graph_id: str, docs: list[Document]):
         from lightrag.prompt import PROMPTS
-        content: list
 
         # modify the prompt if it is set in the settings
         for prompt_name, content in self.prompts.items():
