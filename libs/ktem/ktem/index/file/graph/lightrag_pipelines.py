@@ -259,6 +259,7 @@ class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
                 if all(
                     keyword not in prompt_name.lower() for keyword in blacklist_keywords
                 )
+                and isinstance(content, str)
             }
         except ImportError as e:
             print(e)
