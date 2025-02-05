@@ -318,6 +318,7 @@ SETTINGS_REASONING = {
 }
 
 USE_NANO_GRAPHRAG = config("USE_NANO_GRAPHRAG", default=False, cast=bool)
+USE_MINIRAG = config("USE_MINIRAG", default=False, cast=bool)
 USE_LIGHTRAG = config("USE_LIGHTRAG", default=True, cast=bool)
 USE_MS_GRAPHRAG = config("USE_MS_GRAPHRAG", default=True, cast=bool)
 
@@ -329,6 +330,8 @@ if USE_NANO_GRAPHRAG:
     GRAPHRAG_INDEX_TYPES.append("ktem.index.file.graph.NanoGraphRAGIndex")
 if USE_LIGHTRAG:
     GRAPHRAG_INDEX_TYPES.append("ktem.index.file.graph.LightRAGIndex")
+if USE_MINIRAG:
+    GRAPHRAG_INDEX_TYPES.append("ktem.index.file.graph.MiniRAGIndex")
 
 KH_INDEX_TYPES = [
     "ktem.index.file.FileIndex",
