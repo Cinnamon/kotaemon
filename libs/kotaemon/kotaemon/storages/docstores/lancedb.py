@@ -98,6 +98,9 @@ class LanceDBDocumentStore(BaseDocumentStore):
         if not isinstance(ids, list):
             ids = [ids]
 
+        if len(ids) == 0:
+            return []
+
         id_filter = ", ".join([f"'{_id}'" for _id in ids])
         try:
             document_collection = self.db_connection.open_table(self.collection_name)
