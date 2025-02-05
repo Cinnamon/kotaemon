@@ -3,6 +3,7 @@ import threading
 from textwrap import dedent
 from typing import Generator
 
+from decouple import config
 from ktem.embeddings.manager import embedding_models_manager as embeddings
 from ktem.llms.manager import llms
 from ktem.reasoning.prompt_optimization import (
@@ -29,6 +30,7 @@ from kotaemon.indices.qa.citation_qa import (
 )
 from kotaemon.indices.qa.citation_qa_inline import AnswerWithInlineCitation
 from kotaemon.indices.qa.format_context import PrepareEvidencePipeline
+from kotaemon.indices.qa.utils import replace_think_tag_with_details
 from kotaemon.llms import ChatLLM
 
 from ..utils import SUPPORTED_LANGUAGE_MAP
@@ -313,6 +315,13 @@ class FullQAPipeline(BaseReasoning):
             **kwargs,
         )
 
+        # check <think> tag from reasoning models
+        processed_answer = replace_think_tag_with_details(answer.text)
+        if processed_answer != answer.text:
+            # clear the chat message and render again
+            yield Document(channel="chat", content=None)
+            yield Document(channel="chat", content=processed_answer)
+
         # show the evidence
         if scoring_thread:
             scoring_thread.join()
@@ -410,7 +419,11 @@ class FullQAPipeline(BaseReasoning):
             },
             "highlight_citation": {
                 "name": "Citation style",
-                "value": "highlight",
+                "value": (
+                    "highlight"
+                    if not config("USE_LOW_LLM_REQUESTS", default=False, cast=bool)
+                    else "off"
+                ),
                 "component": "radio",
                 "choices": [
                     ("citation: highlight", "highlight"),

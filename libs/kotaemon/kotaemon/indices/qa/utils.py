@@ -80,3 +80,18 @@ def find_start_end_phrase(
         final_match = None
 
     return final_match, matched_length
+
+
+def replace_think_tag_with_details(text):
+    text = text.replace(
+        "<think>",
+        '<details><summary><span style="color:grey">Thought</span></summary><blockquote>',  # noqa
+    )
+    text = text.replace("</think>", "</blockquote></details>")
+    return text
+
+
+def strip_think_tag(text):
+    if "</think>" in text:
+        text = text.split("</think>")[1]
+    return text

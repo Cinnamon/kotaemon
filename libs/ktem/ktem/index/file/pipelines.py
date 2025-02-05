@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Generator, Optional, Sequence
 
 import tiktoken
+from decouple import config
 from ktem.db.models import engine
 from ktem.embeddings.manager import embedding_models_manager
 from ktem.llms.manager import llms
@@ -270,7 +271,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             },
             "use_llm_reranking": {
                 "name": "Use LLM relevant scoring",
-                "value": True,
+                "value": not config("USE_LOW_LLM_REQUESTS", default=False, cast=bool),
                 "choices": [True, False],
                 "component": "checkbox",
             },
