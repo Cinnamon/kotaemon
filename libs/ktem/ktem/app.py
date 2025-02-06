@@ -50,7 +50,7 @@ class BaseApp:
         with (dir_assets / "js" / "main.js").open() as fi:
             self._js = fi.read()
             self._js = self._js.replace("KH_APP_VERSION", self.app_version)
-        with (dir_assets / "js" / "pdf_viewer.js").open() as fi:
+        with (dir_assets / "js" / "pdf_viewer.js").open(encoding="utf-8") as fi:
             self._pdf_view_js = fi.read()
             # workaround for Windows path
             pdf_js_dist_dir = str(PDFJS_PREBUILT_DIR).replace("\\", "\\\\")
