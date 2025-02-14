@@ -275,7 +275,7 @@ GOTO :eof
 SET THEFLOW_TEMP_PATH=flow_tmp
 SET PDFJS_PREBUILT_DIR=%target_pdf_js_dir%
 ECHO Starting Kotaemon UI... (prebuilt PDF.js is at %PDFJS_PREBUILT_DIR%)
-CALL python "%CD%\app.py" || ( ECHO. && ECHO Will exit now... && GOTO :exit_func_with_error )
+CALL python -Xutf8 "%CD%\app.py" || ( ECHO. && ECHO Will exit now... && GOTO :exit_func_with_error )
 GOTO :eof
 
 :print_highlight
