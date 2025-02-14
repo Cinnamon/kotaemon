@@ -1317,39 +1317,42 @@ class ChatPage(BasePage):
             chat_state,
         )
 
-        for response in pipeline.stream(chat_input, conversation_id, chat_history):
+        try:
+            for response in pipeline.stream(chat_input, conversation_id, chat_history):
 
-            if not isinstance(response, Document):
-                continue
+                if not isinstance(response, Document):
+                    continue
 
-            if response.channel is None:
-                continue
+                if response.channel is None:
+                    continue
 
-            if response.channel == "chat":
-                if response.content is None:
-                    text = ""
-                else:
-                    text += response.content
+                if response.channel == "chat":
+                    if response.content is None:
+                        text = ""
+                    else:
+                        text += response.content
 
-            if response.channel == "info":
-                if response.content is None:
-                    refs = ""
-                else:
-                    refs += response.content
+                if response.channel == "info":
+                    if response.content is None:
+                        refs = ""
+                    else:
+                        refs += response.content
 
-            if response.channel == "plot":
-                plot = response.content
-                plot_gr = self._json_to_plot(plot)
+                if response.channel == "plot":
+                    plot = response.content
+                    plot_gr = self._json_to_plot(plot)
 
-            chat_state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
+                chat_state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
 
-            yield (
-                chat_history + [(chat_input, text or msg_placeholder)],
-                refs,
-                plot_gr,
-                plot,
-                chat_state,
-            )
+                yield (
+                    chat_history + [(chat_input, text or msg_placeholder)],
+                    refs,
+                    plot_gr,
+                    plot,
+                    chat_state,
+                )
+        except ValueError as e:
+            print(e)
 
         if not text:
             empty_msg = getattr(
