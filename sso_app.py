@@ -20,7 +20,6 @@ GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", default="")
 GOOGLE_CLIENT_SECRET = config("GOOGLE_CLIENT_SECRET", default="")
 
 # for authentication with Open ID by keycloak
-
 KEYCLOAK_SERVER_URL = config("KEYCLOAK_SERVER_URL")
 KEYCLOAK_REALM = config("KEYCLOAK_REALM")
 KEYCLOAK_CLIENT_ID = config("KEYCLOAK_CLIENT_ID")
