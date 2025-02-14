@@ -33,13 +33,13 @@ demo = gradio_app.make()
 
 app = FastAPI()
 
-if AUTHENTICATION_METHOD=="KEYCLOAK":   
+if AUTHENTICATION_METHOD == "KEYCLOAK":
     # for authentication with Open ID by keycloak
     grlogin.register(
         name="keycloak",
         server_metadata_url=(
-        f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}/"
-        ".well-known/openid-configuration"
+            f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}/"
+            ".well-known/openid-configuration"
         ),
         client_id=KEYCLOAK_CLIENT_ID,
         client_secret=KEYCLOAK_CLIENT_SECRET,
@@ -47,17 +47,20 @@ if AUTHENTICATION_METHOD=="KEYCLOAK":
             "scope": "openid email profile",
         },
     )
-    
-else :
+
+else:
     # for authentication with Google
     grlogin.register(
         name="google",
-        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+        server_metadata_url=(
+            "https://accounts.google.com/.well-known/openid-configuration"
+        ),
         client_id=GOOGLE_CLIENT_ID,
         client_secret=GOOGLE_CLIENT_SECRET,
+        client_kwargs={
+            "scope": "openid email profile",
+        },
     )
-
-
 
 
 @app.get("/favicon.ico", include_in_schema=False)
