@@ -8,7 +8,7 @@ from theflow.settings import settings as flowsettings
 
 KH_APP_DATA_DIR = getattr(flowsettings, "KH_APP_DATA_DIR", ".")
 GRADIO_TEMP_DIR = os.getenv("GRADIO_TEMP_DIR", None)
-AUTHENTICATION_METHOD = config("AUTHENTICATION_METHOD")
+AUTHENTICATION_METHOD = config("AUTHENTICATION_METHOD", "GOOGLE")
 
 # override GRADIO_TEMP_DIR if it's not set
 if GRADIO_TEMP_DIR is None:
@@ -20,10 +20,10 @@ GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", default="")
 GOOGLE_CLIENT_SECRET = config("GOOGLE_CLIENT_SECRET", default="")
 
 # for authentication with Open ID by keycloak
-KEYCLOAK_SERVER_URL = config("KEYCLOAK_SERVER_URL")
-KEYCLOAK_REALM = config("KEYCLOAK_REALM")
-KEYCLOAK_CLIENT_ID = config("KEYCLOAK_CLIENT_ID")
-KEYCLOAK_CLIENT_SECRET = config("KEYCLOAK_CLIENT_SECRET")
+KEYCLOAK_SERVER_URL = config("KEYCLOAK_SERVER_URL", default="")
+KEYCLOAK_REALM = config("KEYCLOAK_REALM", default="")
+KEYCLOAK_CLIENT_ID = config("KEYCLOAK_CLIENT_ID", default="")
+KEYCLOAK_CLIENT_SECRET = config("KEYCLOAK_CLIENT_SECRET", default="")
 
 from ktem.main import App  # noqa
 
