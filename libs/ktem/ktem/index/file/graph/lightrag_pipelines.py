@@ -245,6 +245,9 @@ class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
     collection_graph_id: str
 
     def store_file_id_with_graph_id(self, file_ids: list[str | None]):
+        if not settings.USE_GLOBAL_GRAPHRAG:
+            return super().store_file_id_with_graph_id(file_ids)
+
         # Use the collection-wide graph ID for LightRAG
         graph_id = self.collection_graph_id
 
