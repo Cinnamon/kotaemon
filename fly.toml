@@ -1,16 +1,22 @@
-# fly.toml app configuration file generated for kotaemon on 2024-12-24T20:56:32+07:00
+# fly.toml app configuration file generated for kotaemon-kan-test on 2025-01-06T22:43:53+07:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'kotaemon'
+app = 'kotaemon-kan-test'
 primary_region = 'sin'
 
 [build]
 
-[mounts]
-  destination = "/app/ktem_app_data"
-  source = "ktem_volume"
+[env]
+  KH_FEATURE_USER_MANAGEMENT = false
+  PROMETHEUS_ENABLE = true
+  PROMETHEUS_PORT = 8000
+  PROMETHEUS_HOST = '0.0.0.0'
+
+[[mounts]]
+  source = 'ktem_volume'
+  destination = '/app/ktem_app_data'
 
 [http_service]
   internal_port = 7860
@@ -19,6 +25,10 @@ primary_region = 'sin'
   auto_start_machines = true
   min_machines_running = 0
   processes = ['app']
+
+[metrics]
+port = 8000
+path = "/metrics"
 
 [[vm]]
   memory = '4gb'
