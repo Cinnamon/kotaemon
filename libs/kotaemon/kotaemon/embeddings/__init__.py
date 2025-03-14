@@ -10,6 +10,7 @@ from .langchain_based import (
 )
 from .openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
 from .tei_endpoint_embed import TeiEndpointEmbeddings
+from .voyageai import VoyageAIEmbeddings
 
 __all__ = [
     "BaseEmbeddings",
@@ -23,4 +24,5 @@ __all__ = [
     "OpenAIEmbeddings",
     "AzureOpenAIEmbeddings",
     "FastEmbedEmbeddings",
+    "VoyageAIEmbeddings"
 ]
