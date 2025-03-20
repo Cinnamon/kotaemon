@@ -277,7 +277,7 @@ KH_EMBEDDINGS["mistral"] = {
         "model": "mistral-embed",
         "api_key": config("MISTRAL_API_KEY", default="your-key")
     },
-    "default": True,
+    "default": False,
 }
 # KH_EMBEDDINGS["huggingface"] = {
 #     "spec": {
