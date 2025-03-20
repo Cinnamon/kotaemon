@@ -243,6 +243,15 @@ KH_LLMS["cohere"] = {
     },
     "default": False,
 }
+KH_LLMS["mistral"] = {
+    "spec": {
+        "__type__": "kotaemon.llms.ChatOpenAI",
+        "base_url": "https://api.mistral.ai/v1",
+        "model": "ministral-8b-latest",
+        "api_key": config("MISTRAL_API_KEY", default="your-key"),
+    },
+    "default": False,
+}
 
 # additional embeddings configurations
 KH_EMBEDDINGS["cohere"] = {
