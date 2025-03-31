@@ -51,6 +51,7 @@ dependencies = [
     "plotly<6.0.0",
     "PyMuPDF>=1.23,<=1.24.11",
     "pypdf>=4.2.0,<4.3",
+    "pylance",
     "python-decouple", # for theflow
     "python-docx>=1.1.0,<1.2",
     "python-dotenv>=1.0.1,<1.1",
