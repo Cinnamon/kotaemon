@@ -57,6 +57,7 @@ dependencies = [
     "trogon>=0.5.0,<0.6",
     "umap-learn==0.5.5",
     "tavily-python>=0.4.0",
+    "pydantic<=2.10.6",
 ]
 readme = "README.md"
 authors = [

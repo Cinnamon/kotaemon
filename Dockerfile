@@ -92,6 +92,10 @@ RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
     pip install "docling<=2.5.2"
 
+
+# Download NLTK data from LlamaIndex
+RUN python -c "from llama_index.core.readers.base import BaseReader"
+
 # Clean up
 RUN apt-get autoremove \
     && apt-get clean \
