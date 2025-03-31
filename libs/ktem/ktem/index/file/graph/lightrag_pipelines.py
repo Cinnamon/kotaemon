@@ -29,7 +29,10 @@ from .visualize import create_knowledge_graph, visualize_graph
 
 try:
     from lightrag import LightRAG, QueryParam
+    
+    # newer verisons of LightRAG needs to be initialized before using
     from lightrag.kg.shared_storage import initialize_pipeline_status
+
     from lightrag.operate import (
         _find_most_related_edges_from_entities,
         _find_most_related_text_unit_from_entities,
@@ -236,9 +239,11 @@ def build_graphrag(working_dir, llm_func, embedding_func):
         llm_model_func=llm_func,
         embedding_func=embedding_func,
     )
-    print("## DEBUG kotaemon ####################")
+
+    # newer verisons of LightRAG needs to be initialized before using
     asyncio.run(graphrag_func.initialize_storages())
     asyncio.run(initialize_pipeline_status())
+
     return graphrag_func
 
 
