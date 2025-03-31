@@ -43,6 +43,8 @@ dependencies = [
     "llama-index-vector-stores-chroma>=0.1.9",
     "llama-index-vector-stores-lancedb",
     "openai>=1.23.6,<2",
+    "matplotlib",
+    "matplotlib-inline",
     "openpyxl>=3.1.2,<3.2",
     "opentelemetry-exporter-otlp-proto-grpc>=1.25.0", # https://github.com/chroma-core/chroma/issues/2571
     "pandas>=2.2.2,<2.3",
