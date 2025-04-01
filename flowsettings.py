@@ -172,6 +172,25 @@ if OPENAI_API_KEY:
         "default": IS_OPENAI_DEFAULT,
     }
 
+VOYAGE_API_KEY = config("VOYAGE_API_KEY", default="")
+if VOYAGE_API_KEY:
+    KH_EMBEDDINGS["voyageai"] = {
+        "spec": {
+            "__type__": "kotaemon.embeddings.VoyageAIEmbeddings",
+            "api_key": VOYAGE_API_KEY,
+            "model": config("VOYAGE_EMBEDDINGS_MODEL", default="voyage-3-large"),
+        },
+        "default": False,
+    }
+    KH_RERANKINGS["voyageai"] = {
+        "spec": {
+            "__type__": "kotaemon.rerankings.VoyageAIReranking",
+            "model_name": "rerank-2",
+            "api_key": VOYAGE_API_KEY,
+        },
+        "default": False,
+    }
+
 if config("LOCAL_MODEL", default=""):
     KH_LLMS["ollama"] = {
         "spec": {
