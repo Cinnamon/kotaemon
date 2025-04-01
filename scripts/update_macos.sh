@@ -40,7 +40,7 @@ function update_latest() {
 
     if [ -f "pyproject.toml" ]; then
         echo "Source files detected. Please perform git pull manually."
-        deactivate_environment
+        deactivate_conda_env
         exit 1
     else
         echo "Installing version: $app_version"
@@ -51,7 +51,7 @@ function update_latest() {
         if [ $? -ne 0 ]; then
             echo
             echo "Update failed. You may need to run the update again."
-            deactivate_environment
+            deactivate_conda_env
             exit 1
         fi
     fi
