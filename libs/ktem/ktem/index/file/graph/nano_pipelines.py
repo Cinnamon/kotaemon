@@ -239,6 +239,7 @@ class NanoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
 
     prompts: dict[str, str] = {}
     collection_graph_id: str
+    index_batch_size: int = INDEX_BATCHSIZE
 
     def store_file_id_with_graph_id(self, file_ids: list[str | None]):
         if not settings.USE_GLOBAL_GRAPHRAG:
@@ -279,18 +280,31 @@ class NanoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
             from nano_graphrag.prompt import PROMPTS
 
             blacklist_keywords = ["default", "response", "process"]
-            return {
-                prompt_name: {
-                    "name": f"Prompt for '{prompt_name}'",
-                    "value": content,
-                    "component": "text",
+            settings_dict = {
+                "batch_size": {
+                    "name": (
+                        "Index batch size " "(reduce if you have rate limit issues)"
+                    ),
+                    "value": INDEX_BATCHSIZE,
+                    "component": "number",
                 }
-                for prompt_name, content in PROMPTS.items()
-                if all(
-                    keyword not in prompt_name.lower() for keyword in blacklist_keywords
-                )
-                and isinstance(content, str)
             }
+            settings_dict.update(
+                {
+                    prompt_name: {
+                        "name": f"Prompt for '{prompt_name}'",
+                        "value": content,
+                        "component": "text",
+                    }
+                    for prompt_name, content in PROMPTS.items()
+                    if all(
+                        keyword not in prompt_name.lower()
+                        for keyword in blacklist_keywords
+                    )
+                    and isinstance(content, str)
+                }
+            )
+            return settings_dict
         except ImportError as e:
             print(e)
             return {}
@@ -355,8 +369,8 @@ class NanoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
             ),
         )
 
-        for doc_id in range(0, len(all_docs), INDEX_BATCHSIZE):
-            cur_docs = all_docs[doc_id : doc_id + INDEX_BATCHSIZE]
+        for doc_id in range(0, len(all_docs), self.index_batch_size):
+            cur_docs = all_docs[doc_id : doc_id + self.index_batch_size]
             combined_doc = "\n".join(cur_docs)
 
             # Use insert for incremental updates

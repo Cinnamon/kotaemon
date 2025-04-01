@@ -52,6 +52,10 @@ class LightRAGIndex(GraphRAGIndex):
         pipeline.prompts = striped_settings
         # set collection graph id
         pipeline.collection_graph_id = self._get_or_create_collection_graph_id()
+        # set index batch size
+        pipeline.index_batch_size = striped_settings.get(
+            "batch_size", pipeline.index_batch_size
+        )
         return pipeline
 
     def get_retriever_pipelines(

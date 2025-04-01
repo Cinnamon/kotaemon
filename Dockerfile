@@ -86,7 +86,7 @@ RUN --mount=type=ssh  \
 ENV USE_LIGHTRAG=true
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
-    pip install aioboto3 nano-vectordb ollama xxhash "lightrag-hku<=0.0.8"
+    pip install aioboto3 nano-vectordb ollama xxhash "lightrag-hku<=1.3.0"
 
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
