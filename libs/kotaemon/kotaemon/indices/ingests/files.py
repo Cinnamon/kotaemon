@@ -17,6 +17,7 @@ from kotaemon.loaders import (
     HtmlReader,
     MathpixPDFReader,
     MhtmlReader,
+    MP3Reader,
     OCRReader,
     PandasExcelReader,
     PDFThumbnailReader,
@@ -53,6 +54,7 @@ KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
     ".tiff": unstructured,
     ".tif": unstructured,
     ".pdf": PDFThumbnailReader(),
+    ".mp3": MP3Reader(),
     ".txt": TxtReader(),
     ".md": TxtReader(),
 }
