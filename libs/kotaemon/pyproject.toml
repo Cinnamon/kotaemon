@@ -26,6 +26,7 @@ dependencies = [
     "click>=8.1.7,<9",
     "cohere>=5.3.2,<6",
     "cookiecutter>=2.6.0,<2.7",
+    "docling==2.28.4",
     "fast_langdetect",
     "fastapi<=0.112.1",
     "gradio>=4.31.0,<4.40",
