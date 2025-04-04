@@ -8,7 +8,9 @@ from kotaemon.base import Document, Param
 
 from .azureai_document_intelligence_loader import crop_image
 from .base import BaseReader
-from .utils.adobe import generate_single_figure_caption, make_markdown_table
+# from .utils.adobe import generate_single_figure_caption, make_markdown_table
+from .utils.adobe import make_markdown_table
+from .utils.figure_caption import generate_single_figure_caption
 
 
 class DoclingReader(BaseReader):
@@ -73,13 +75,16 @@ class DoclingReader(BaseReader):
 
         metadata = extra_info or {}
 
+        print("Converting document with docling...")
         result = self.converter_.convert(file_path)
+        print("Finished converting document with docling.")
         result_dict = result.document.export_to_dict()
 
         file_path = Path(file_path)
         file_name = file_path.name
 
         # extract the figures
+        print("Extracting the figures...")
         figures = []
         gen_caption_count = 0
         for figure_obj in result_dict.get("pictures", []):
@@ -127,7 +132,6 @@ class DoclingReader(BaseReader):
             img_bytes = BytesIO()
             img.save(img_bytes, format="PNG")
             img_base64 = base64.b64encode(img_bytes.getvalue()).decode("utf-8")
-            img_base64 = f"data:image/png;base64,{img_base64}"
 
             # generate the generative caption
             if gen_caption_count >= self.max_figure_to_caption:
@@ -135,13 +139,15 @@ class DoclingReader(BaseReader):
             else:
                 gen_caption_count += 1
                 gen_caption = generate_single_figure_caption(
-                    img_base64, self.vlm_endpoint
+                    figure=img_base64, vlm_endpoint="http://ollama:11434/api/generate"
                 )
+                print("gen_caption", gen_caption)
 
             # join the extractive and generative captions
             caption = "\n".join(extractive_captions + [gen_caption])
 
             # store the image into document
+            img_base64 = f"data:image/png;base64,{img_base64}"
             figure_metadata = {
                 "image_origin": img_base64,
                 "type": "image",
@@ -159,6 +165,7 @@ class DoclingReader(BaseReader):
             )
 
         # extract the tables
+        print("Extracting the tables...")
         tables = []
         for table_obj in result_dict.get("tables", []):
             # convert the tables into markdown format
