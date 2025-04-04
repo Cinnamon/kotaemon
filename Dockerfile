@@ -1,5 +1,9 @@
 # Lite version
-FROM python:3.10-slim AS lite
+FROM pytorchlightning/pytorch_lightning:base-cuda-py3.10-torch2.0-cuda11.7.1 AS lite
+
+RUN --mount=type=ssh \
+    --mount=type=cache,target=/root/.cache/pip \
+    pip install watchdog
 
 # Common dependencies
 RUN apt-get update -qqy && \
@@ -13,6 +17,28 @@ RUN apt-get update -qqy && \
         unzip \
         curl \
         cargo
+
+# Install build tools for compiling SQLite
+RUN apt-get update && apt-get install -y \
+    make \
+    wget \
+    libreadline-dev \
+    libsqlite3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build and install SQLite with FTS5 support
+RUN wget https://www.sqlite.org/2025/sqlite-autoconf-3490100.tar.gz && \
+    tar xzf sqlite-autoconf-3490100.tar.gz && \
+    cd sqlite-autoconf-3490100 && \
+    ./configure --prefix=/usr/local --enable-fts5 && \
+    make -j"$(nproc)" && \
+    make install && \
+    cd .. && \
+    rm -rf sqlite-autoconf-3490100*
+
+# Ensure the new SQLite is picked up by dynamic linker and Python
+ENV LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
+ENV PATH="/usr/local/bin:$PATH"
 
 # Setup args
 ARG TARGETPLATFORM
@@ -72,9 +98,13 @@ RUN apt-get update -qqy && \
         libmagic-dev
 
 # Install torch and torchvision for unstructured
+# RUN --mount=type=ssh  \
+#     --mount=type=cache,target=/root/.cache/pip  \
+#     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
-    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 # Install additional pip packages
 RUN --mount=type=ssh  \
@@ -83,14 +113,14 @@ RUN --mount=type=ssh  \
     && pip install unstructured[all-docs]
 
 # Install lightRAG
-ENV USE_LIGHTRAG=true
-RUN --mount=type=ssh  \
-    --mount=type=cache,target=/root/.cache/pip  \
-    pip install aioboto3 nano-vectordb ollama xxhash "lightrag-hku<=1.3.0"
+# ENV USE_LIGHTRAG=true
+# RUN --mount=type=ssh  \
+#     --mount=type=cache,target=/root/.cache/pip  \
+#     pip install aioboto3 nano-vectordb ollama xxhash "lightrag-hku<=1.3.0"
 
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/pip  \
-    pip install "docling<=2.5.2"
+    pip install "docling<=2.28.4"
 
 
 # Download NLTK data from LlamaIndex

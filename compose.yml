@@ -1,0 +1,41 @@
+
+
+name: kotaemon-stack
+services:
+    kotaemon-local:
+        build:
+            context: .
+            target: full
+            # target: lite
+        networks:
+            - rag
+        runtime: nvidia
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: all
+                          capabilities:
+                              - gpu
+        container_name: kotaemon
+        environment:
+            - GRADIO_SERVER_NAME=0.0.0.0
+            - GRADIO_SERVER_PORT=7860
+            - CUDA_VISIBLE_DEVICES=0
+            - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
+        volumes:
+            - ./ktem_app_data:/app/ktem_app_data
+            - ./:/app
+            - prebuilt-assets:/app/libs/ktem/ktem/assets/prebuilt
+        ports:
+            - 7860:7860
+        stdin_open: true
+        tty: true
+        image: kotaemon-local
+networks:
+    rag:
+        external: true
+        name: rag
+volumes:
+    prebuilt-assets:
