@@ -124,7 +124,7 @@ class DoclingReader(BaseReader):
             else:
                 gen_caption_count += 1
                 gen_caption = generate_single_figure_caption(
-                    img_base64, self.vlm_endpoint
+                    figure=img_base64, vlm_endpoint=self.vlm_endpoint
                 )
 
             # join the extractive and generative captions
