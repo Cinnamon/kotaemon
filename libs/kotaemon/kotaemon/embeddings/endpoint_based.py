@@ -4,7 +4,7 @@ from kotaemon.base import Document, DocumentWithEmbedding
 
 from .base import BaseEmbeddings
 
-
+# I don't think this is even used anymore
 class EndpointEmbeddings(BaseEmbeddings):
     """
     An Embeddings component that uses an OpenAI API compatible endpoint.

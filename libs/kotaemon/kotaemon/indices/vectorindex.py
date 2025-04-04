@@ -237,6 +237,7 @@ class VectorRetrieval(BaseRetrieval):
             print(f"Got {len(ds_docs)} from docstore")
 
         # use additional reranker to re-order the document list
+        # NOTE: This is where reranking is happening
         if self.rerankers and text:
             for reranker in self.rerankers:
                 # if reranker is LLMReranking, limit the document with top_k items only

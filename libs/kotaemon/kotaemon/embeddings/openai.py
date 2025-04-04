@@ -27,6 +27,7 @@ def split_text_by_chunk_size(text: str, chunk_size: int) -> list[list[int]]:
     Returns:
         list of chunks (as tokens)
     """
+    # NOTE: tiktoken is meant for OpenAI models, hence it won't work with non-openAI models such as Qwen2.5.
     encoding = tiktoken.get_encoding("cl100k_base")
     tokens = iter(encoding.encode(text))
     result = []
@@ -94,6 +95,7 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
         splitted_indices = {}
         for idx, text in enumerate(input_doc):
             if self.context_length:
+                # NOTE: This is where the text is split into chunks and tokenized
                 chunks = split_text_by_chunk_size(text.text or " ", self.context_length)
                 splitted_indices[idx] = (len(input_), len(input_) + len(chunks))
                 input_.extend(chunks)
@@ -101,6 +103,7 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
                 splitted_indices[idx] = (len(input_), len(input_) + 1)
                 input_.append(text.text)
 
+        # NOTE: This is where the input is provided
         resp = self.openai_response(client, input=input_, **kwargs).dict()
         output_ = list(sorted(resp["data"], key=lambda x: x["index"]))
 
@@ -129,6 +132,7 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
     ) -> list[DocumentWithEmbedding]:
         input_ = self.prepare_input(text)
         client = self.prepare_client(async_version=True)
+        # NOTE: This is the asynchronous sister function where input is provided
         resp = await self.openai_response(
             client, input=[_.text if _.text else " " for _ in input_], **kwargs
         ).dict()
