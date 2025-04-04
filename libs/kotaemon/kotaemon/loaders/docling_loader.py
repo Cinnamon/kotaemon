@@ -45,10 +45,21 @@ class DoclingReader(BaseReader):
     def converter_(self):
         try:
             from docling.document_converter import DocumentConverter
+            from docling.datamodel.pipeline_options import AcceleratorDevice, AcceleratorOptions, PdfPipelineOptions
+            from docling.datamodel.base_models import InputFormat
+            from docling.document_converter import DocumentConverter, PdfFormatOption
+            from docling.pipeline.standard_pdf_pipeline import StandardPdfPipeline
         except ImportError:
             raise ImportError("Please install docling: 'pip install docling'")
 
-        return DocumentConverter()
+        path = StandardPdfPipeline.download_models_hf()
+        pipeline_options = PdfPipelineOptions(artifacts_path=path)
+        pipeline_options.accelerator_options = AcceleratorOptions(num_threads=8, device=AcceleratorDevice.CUDA)
+        return DocumentConverter(format_options={
+            InputFormat.PDF: PdfFormatOption(
+                pipeline_options=pipeline_options,
+            )
+        })
 
     def run(
         self, file_path: str | Path, extra_info: Optional[dict] = None, **kwargs
