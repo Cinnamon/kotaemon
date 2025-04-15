@@ -243,6 +243,15 @@ KH_LLMS["cohere"] = {
     },
     "default": False,
 }
+KH_LLMS["mistral"] = {
+    "spec": {
+        "__type__": "kotaemon.llms.ChatOpenAI",
+        "base_url": "https://api.mistral.ai/v1",
+        "model": "ministral-8b-latest",
+        "api_key": config("MISTRAL_API_KEY", default="your-key"),
+    },
+    "default": False,
+}
 
 # additional embeddings configurations
 KH_EMBEDDINGS["cohere"] = {
@@ -261,6 +270,14 @@ KH_EMBEDDINGS["google"] = {
         "google_api_key": GOOGLE_API_KEY,
     },
     "default": not IS_OPENAI_DEFAULT,
+}
+KH_EMBEDDINGS["mistral"] = {
+    "spec": {
+        "__type__": "kotaemon.embeddings.LCMistralEmbeddings",
+        "model": "mistral-embed",
+        "api_key": config("MISTRAL_API_KEY", default="your-key"),
+    },
+    "default": False,
 }
 # KH_EMBEDDINGS["huggingface"] = {
 #     "spec": {

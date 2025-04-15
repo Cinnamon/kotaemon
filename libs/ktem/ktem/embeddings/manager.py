@@ -59,6 +59,7 @@ class EmbeddingManager:
             LCCohereEmbeddings,
             LCGoogleEmbeddings,
             LCHuggingFaceEmbeddings,
+            LCMistralEmbeddings,
             OpenAIEmbeddings,
             TeiEndpointEmbeddings,
         )
@@ -70,6 +71,7 @@ class EmbeddingManager:
             LCCohereEmbeddings,
             LCHuggingFaceEmbeddings,
             LCGoogleEmbeddings,
+            LCMistralEmbeddings,
             TeiEndpointEmbeddings,
         ]
 

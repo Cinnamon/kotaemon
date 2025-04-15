@@ -36,6 +36,7 @@ dependencies = [
     "langchain-google-genai>=1.0.3,<2.0.0",
     "langchain-anthropic",
     "langchain-ollama",
+    "langchain-mistralai",
     "langchain-cohere>=0.2.4,<0.3.0",
     "llama-hub>=0.0.79,<0.1.0",
     "llama-index>=0.10.40,<0.11.0",
