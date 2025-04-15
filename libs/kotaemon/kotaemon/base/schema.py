@@ -143,6 +143,11 @@ class LLMInterface(AIMessage):
     logprobs: list[float] = []
 
 
+class StructuredOutputLLMInterface(LLMInterface):
+    parsed: Any
+    refusal: str = ""
+
+
 class ExtractorOutput(Document):
     """
     Represents the output of an extractor.

@@ -8,6 +8,7 @@ from .schema import (
     HumanMessage,
     LLMInterface,
     RetrievedDocument,
+    StructuredOutputLLMInterface,
     SystemMessage,
 )
 
@@ -21,6 +22,7 @@ __all__ = [
     "HumanMessage",
     "RetrievedDocument",
     "LLMInterface",
+    "StructuredOutputLLMInterface",
     "ExtractorOutput",
     "Param",
     "Node",
