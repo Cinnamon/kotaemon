@@ -26,5 +26,5 @@ __all__ = [
     "OpenAIEmbeddings",
     "AzureOpenAIEmbeddings",
     "FastEmbedEmbeddings",
-    "VoyageAIEmbeddings"
+    "VoyageAIEmbeddings",
 ]

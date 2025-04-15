@@ -69,6 +69,7 @@ def if_llama_cpp_not_installed():
     else:
         return False
 
+
 def if_voyageai_not_installed():
     try:
         import voyageai  # noqa: F401

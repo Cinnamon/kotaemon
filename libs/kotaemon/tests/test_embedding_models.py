@@ -11,14 +11,14 @@ from kotaemon.embeddings import (
     LCCohereEmbeddings,
     LCHuggingFaceEmbeddings,
     OpenAIEmbeddings,
-VoyageAIEmbeddings
+    VoyageAIEmbeddings,
 )
 
 from .conftest import (
     skip_when_cohere_not_installed,
     skip_when_fastembed_not_installed,
     skip_when_sentence_bert_not_installed,
-    skip_when_voyageai_not_installed
+    skip_when_voyageai_not_installed,
 )
 
 with open(Path(__file__).parent / "resources" / "embedding_openai_batch.json") as f:
@@ -158,6 +158,7 @@ def test_fastembed_embeddings():
     output = model("Hello World")
     assert_embedding_result(output)
 
+
 @skip_when_voyageai_not_installed
 @patch(
     "voyageai.Client.embed",
@@ -173,5 +174,3 @@ def test_voyageai_embeddings():
     assert isinstance(output, list) and all(
         isinstance(doc, DocumentWithEmbedding) for doc in output
     )
-
-
