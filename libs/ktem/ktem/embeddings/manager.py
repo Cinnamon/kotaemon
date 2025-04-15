@@ -62,6 +62,7 @@ class EmbeddingManager:
             LCMistralEmbeddings,
             OpenAIEmbeddings,
             TeiEndpointEmbeddings,
+            VoyageAIEmbeddings,
         )
 
         self._vendors = [
@@ -73,6 +74,7 @@ class EmbeddingManager:
             LCGoogleEmbeddings,
             LCMistralEmbeddings,
             TeiEndpointEmbeddings,
+            VoyageAIEmbeddings,
         ]
 
     def __getitem__(self, key: str) -> BaseEmbeddings:
