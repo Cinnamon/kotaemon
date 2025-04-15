@@ -275,7 +275,7 @@ KH_EMBEDDINGS["mistral"] = {
     "spec": {
         "__type__": "kotaemon.embeddings.LCMistralEmbeddings",
         "model": "mistral-embed",
-        "api_key": config("MISTRAL_API_KEY", default="your-key")
+        "api_key": config("MISTRAL_API_KEY", default="your-key"),
     },
     "default": False,
 }

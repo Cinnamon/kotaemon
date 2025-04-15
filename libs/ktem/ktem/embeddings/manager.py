@@ -58,8 +58,8 @@ class EmbeddingManager:
             FastEmbedEmbeddings,
             LCCohereEmbeddings,
             LCGoogleEmbeddings,
-            LCMistralEmbeddings,
             LCHuggingFaceEmbeddings,
+            LCMistralEmbeddings,
             OpenAIEmbeddings,
             TeiEndpointEmbeddings,
         )

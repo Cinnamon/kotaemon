@@ -287,6 +287,7 @@ class LCMistralEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
             from langchain_mistralai import MistralAIEmbeddings
         except ImportError:
             raise ImportError(
-                "Please install langchain_mistralai: `pip install -U langchain_mistralai`"
+                "Please install langchain_mistralai: "
+                "`pip install -U langchain_mistralai`"
             )
         return MistralAIEmbeddings

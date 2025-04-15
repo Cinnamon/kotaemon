@@ -5,8 +5,8 @@ from .langchain_based import (
     LCAzureOpenAIEmbeddings,
     LCCohereEmbeddings,
     LCGoogleEmbeddings,
-    LCMistralEmbeddings,
     LCHuggingFaceEmbeddings,
+    LCMistralEmbeddings,
     LCOpenAIEmbeddings,
 )
 from .openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
