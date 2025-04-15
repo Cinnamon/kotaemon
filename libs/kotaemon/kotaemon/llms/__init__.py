@@ -6,7 +6,6 @@ from .chats import (
     AzureChatOpenAI,
     ChatLLM,
     ChatOpenAI,
-    StructuredOutputChatOpenAI,
     EndpointChatLLM,
     LCAnthropicChat,
     LCAzureChatOpenAI,
@@ -14,6 +13,7 @@ from .chats import (
     LCCohereChat,
     LCGeminiChat,
     LlamaCppChat,
+    StructuredOutputChatOpenAI,
 )
 from .completions import LLM, AzureOpenAI, LlamaCpp, OpenAI
 from .cot import ManualSequentialChainOfThought, Thought

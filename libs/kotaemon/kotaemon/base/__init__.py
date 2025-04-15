@@ -7,8 +7,8 @@ from .schema import (
     ExtractorOutput,
     HumanMessage,
     LLMInterface,
-    StructuredOutputLLMInterface,
     RetrievedDocument,
+    StructuredOutputLLMInterface,
     SystemMessage,
 )
 

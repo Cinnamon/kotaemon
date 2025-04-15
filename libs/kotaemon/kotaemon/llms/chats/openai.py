@@ -1,11 +1,18 @@
 from typing import TYPE_CHECKING, AsyncGenerator, Iterator, Optional, Type
 
+from pydantic import BaseModel
 from theflow.utils.modules import import_dotted_string
 
-from kotaemon.base import AIMessage, BaseMessage, HumanMessage, LLMInterface, Param, StructuredOutputLLMInterface
+from kotaemon.base import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    LLMInterface,
+    Param,
+    StructuredOutputLLMInterface,
+)
 
 from .base import ChatLLM
-from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from openai.types.chat.chat_completion_message_param import (
@@ -329,12 +336,14 @@ class ChatOpenAI(BaseChatOpenAI):
     async def aopenai_response(self, client, **kwargs):
         params = self.prepare_params(**kwargs)
         return await client.chat.completions.create(**params)
-    
+
 
 class StructuredOutputChatOpenAI(ChatOpenAI):
     """OpenAI chat model that returns structured output"""
-    response_schema: Type[BaseModel] = Param(help="class that subclasses pydantics BaseModel", required = True)
-    
+
+    response_schema: Type[BaseModel] = Param(
+        help="class that subclasses pydantics BaseModel", required=True
+    )
 
     def prepare_output(self, resp: dict) -> StructuredOutputLLMInterface:
         """Convert the OpenAI response into StructuredOutputLLMInterface"""
@@ -354,7 +363,7 @@ class StructuredOutputChatOpenAI(ChatOpenAI):
             )
 
         output = StructuredOutputLLMInterface(
-            parsed = resp["choices"][0]["message"]["parsed"],
+            parsed=resp["choices"][0]["message"]["parsed"],
             candidates=[(_["message"]["content"] or "") for _ in resp["choices"]],
             content=resp["choices"][0]["message"]["content"] or "",
             total_tokens=resp["usage"]["total_tokens"],
@@ -366,11 +375,10 @@ class StructuredOutputChatOpenAI(ChatOpenAI):
             ],
             additional_kwargs=additional_kwargs,
             logprobs=logprobs,
-            
         )
 
         return output
-    
+
     def prepare_params(self, **kwargs):
         if "tools_pydantic" in kwargs:
             kwargs.pop("tools_pydantic")
@@ -395,23 +403,21 @@ class StructuredOutputChatOpenAI(ChatOpenAI):
         params.update(kwargs)
 
         # doesn't do streaming
-        params.pop('stream')
+        params.pop("stream")
 
         return params
-    
+
     def openai_response(self, client, **kwargs):
         """Get the openai response"""
         params = self.prepare_params(**kwargs)
 
         return client.beta.chat.completions.parse(**params)
-    
 
     async def aopenai_response(self, client, **kwargs):
         """Get the openai response"""
         params = self.prepare_params(**kwargs)
-       
-        return await client.beta.chat.completions.parse(**params)
 
+        return await client.beta.chat.completions.parse(**params)
 
 
 class AzureChatOpenAI(BaseChatOpenAI):

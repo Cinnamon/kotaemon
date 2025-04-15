@@ -142,9 +142,10 @@ class LLMInterface(AIMessage):
     messages: list[AIMessage] = Field(default_factory=list)
     logprobs: list[float] = []
 
+
 class StructuredOutputLLMInterface(LLMInterface):
     parsed: Any
-    refusal: str = ''
+    refusal: str = ""
 
 
 class ExtractorOutput(Document):
