@@ -381,6 +381,16 @@ class FileIndex(BaseIndex):
         embedding_choices = list(embedding_models_manager.options().keys())
 
         return {
+            "project_system_prompt": {
+                "name": "Project System Prompt (Overrides Reasoning)",
+                "value": "",
+                "component": "text",
+                "info": (
+                    "Custom system prompt for this project. If set, this overrides "
+                    "the global system prompt defined in Reasoning Settings. "
+                    "Requires app restart after changing."
+                ),
+            },
             "embedding": {
                 "name": "Embedding model",
                 "value": embedding_default,

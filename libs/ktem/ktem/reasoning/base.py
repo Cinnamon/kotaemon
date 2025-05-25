@@ -38,6 +38,7 @@ class BaseReasoning(BaseComponent):
         user_settings: dict,
         state: dict,
         retrievers: Optional[list["BaseComponent"]] = None,
+        override_system_prompt: Optional[str] = None,
     ) -> "BaseReasoning":
         """Get the reasoning pipeline for the app to execute
 

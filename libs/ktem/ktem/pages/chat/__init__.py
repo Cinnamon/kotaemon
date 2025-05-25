@@ -1259,7 +1259,54 @@ class ChatPage(BasePage):
             "pipeline": deepcopy(state.get(reasoning_id, {})),
         }
 
-        pipeline = reasoning_cls.get_pipeline(settings, reasoning_state, retrievers)
+        # Determine Active Project and Fetch Project Prompt
+        active_project_id = None
+        project_system_prompt = None
+        if retrievers:  # Only proceed if there are retrievers
+            for index_idx, index in enumerate(self._app.index_manager.indices):
+                if index.selector is not None:
+                    current_selection = None
+                    if isinstance(index.selector, int):
+                        current_selection = selecteds[index.selector]
+                    elif isinstance(index.selector, tuple):
+                        # Assuming the first element of the tuple is the relevant one for selection check
+                        # or that any selection within the tuple counts.
+                        # This might need refinement based on how `index.default_selector` is structured for tuples.
+                        current_selection = selecteds[index.selector[0]] if index.selector else None
+
+                    # Check if the current selection is not the default "Search All" or empty
+                    # This heuristic might need adjustment based on actual default values.
+                    # A common default might be an empty list/tuple or a specific "all" marker.
+                    is_specific_selection = False
+                    if current_selection: # Handles empty list/tuple case
+                        if hasattr(index, 'default_selector'):
+                            if isinstance(index.default_selector, list) and not index.default_selector: # common default for multi-select
+                                is_specific_selection = bool(current_selection)
+                            elif current_selection != index.default_selector:
+                                is_specific_selection = True
+                        else: # If no default_selector, any selection is specific
+                            is_specific_selection = True
+                    
+                    if is_specific_selection:
+                        active_project_id = index.id
+                        break
+        
+        if active_project_id:
+            try:
+                project_config = self._app.index_manager.info()[str(active_project_id)].config
+                project_system_prompt = project_config.get("project_system_prompt")
+                if project_system_prompt:
+                    print(f"Using project-specific system prompt from project ID {active_project_id}")
+            except KeyError:
+                print(f"Could not find config for project ID {active_project_id}")
+
+
+        pipeline = reasoning_cls.get_pipeline(
+            settings, 
+            reasoning_state, 
+            retrievers, 
+            override_system_prompt=project_system_prompt
+        )
 
         return pipeline, reasoning_state
 

@@ -338,7 +338,7 @@ class FullQAPipeline(BaseReasoning):
         )
 
     @classmethod
-    def get_pipeline(cls, settings, states, retrievers):
+    def get_pipeline(cls, settings, states, retrievers, override_system_prompt=None):
         """Get the reasoning pipeline
 
         Args:
@@ -374,7 +374,11 @@ class FullQAPipeline(BaseReasoning):
         answer_pipeline.enable_mindmap = settings[f"{prefix}.create_mindmap"]
         answer_pipeline.enable_citation_viz = settings[f"{prefix}.create_citation_viz"]
         answer_pipeline.use_multimodal = settings[f"{prefix}.use_multimodal"]
-        answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
+        answer_pipeline.system_prompt = (
+            override_system_prompt
+            if override_system_prompt
+            else settings[f"{prefix}.system_prompt"]
+        )
         answer_pipeline.qa_template = settings[f"{prefix}.qa_prompt"]
         answer_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
             settings["reasoning.lang"], "English"
