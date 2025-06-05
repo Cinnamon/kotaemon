@@ -168,7 +168,7 @@ class VectorRetrieval(BaseRetrieval):
         if self.retrieval_mode == "vector":
             emb = self.embedding(text)[0].embedding
             _, scores, ids = self.vector_store.query(
-                embedding=emb, top_k=top_k_first_round, **kwargs
+                embedding=emb, top_k=top_k_first_round, doc_ids=scope, **kwargs
             )
             docs = self.doc_store.get(ids)
             result = [
@@ -197,7 +197,7 @@ class VectorRetrieval(BaseRetrieval):
 
                 assert self.doc_store is not None
                 _, vs_scores, vs_ids = self.vector_store.query(
-                    embedding=emb, top_k=top_k_first_round, **kwargs
+                    embedding=emb, top_k=top_k_first_round, doc_ids=scope, **kwargs
                 )
                 if vs_ids:
                     vs_docs = self.doc_store.get(vs_ids)
