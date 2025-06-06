@@ -2,6 +2,7 @@ import html
 import json
 import os
 import shutil
+import stat
 import tempfile
 import zipfile
 from copy import deepcopy
@@ -1059,17 +1060,53 @@ class FileIndexPage(BasePage):
         """Handle zip files"""
         zip_files = [file for file in files if file.endswith(".zip")]
         remaining_files = [file for file in files if not file.endswith("zip")]
+        errors = []
 
         # Clean-up <zip_dir> before unzip to remove old files
         shutil.rmtree(zip_dir, ignore_errors=True)
 
+        # Unzip
+        unsafe_zip_files = []
         for zip_file in zip_files:
             # Prepare new zip output dir, separated for each files
             basename = os.path.splitext(os.path.basename(zip_file))[0]
             zip_out_dir = os.path.join(zip_dir, basename)
             os.makedirs(zip_out_dir, exist_ok=True)
+
             with zipfile.ZipFile(zip_file, "r") as zip_ref:
-                zip_ref.extractall(zip_out_dir)
+                # Check for symlinks and path traversal attacks at zip level
+                is_safe = False
+
+                for member in zip_ref.infolist():
+                    # Disallow symlinks
+                    if stat.S_ISLNK(member.external_attr >> 16):
+                        # Skipping zip file with symlink
+                        is_safe = False
+                        break
+
+                    # Check for path traversal attacks
+                    target_path = os.path.join(zip_out_dir, member.filename)
+                    abs_zip_out_dir = os.path.abspath(zip_out_dir)
+                    abs_target_path = os.path.abspath(target_path)
+
+                    if not (
+                        abs_target_path.startswith(abs_zip_out_dir + os.sep)
+                        or abs_target_path == abs_zip_out_dir
+                    ):
+                        # Skip zip file with path traversal file
+                        is_safe = False
+                        break
+
+                if is_safe:
+                    zip_ref.extractall(zip_out_dir)
+                else:
+                    unsafe_zip_files.append(zip_file)
+
+        if unsafe_zip_files:
+            str_error = ", ".join(unsafe_zip_files)
+            errors.append(
+                f"Unsafe zip files (contains symlinks or path traversal): {str_error}"
+            )
 
         n_zip_file = 0
         for root, dirs, files in os.walk(zip_dir):
@@ -1084,7 +1121,7 @@ class FileIndexPage(BasePage):
         if n_zip_file > 0:
             print(f"Update zip files: {n_zip_file}")
 
-        return remaining_files
+        return remaining_files, errors
 
     def index_fn(
         self, files, urls, reindex: bool, settings, user_id
@@ -1100,20 +1137,22 @@ class FileIndexPage(BasePage):
         """
         if urls:
             files = [it.strip() for it in urls.split("\n")]
-            errors = []
+            errors = self.validate_urls(files)
         else:
             if not files:
                 gr.Info("No uploaded file")
                 yield "", ""
                 return
+            files, unzip_errors = self._may_extract_zip(
+                files, flowsettings.KH_ZIP_INPUT_DIR
+            )
+            errors = self.validate_files(files)
+            errors.extend(unzip_errors)
 
-            files = self._may_extract_zip(files, flowsettings.KH_ZIP_INPUT_DIR)
-
-            errors = self.validate(files)
-            if errors:
-                gr.Warning(", ".join(errors))
-                yield "", ""
-                return
+        if errors:
+            gr.Warning(", ".join(errors))
+            yield "", ""
+            return
 
         gr.Info(f"Start indexing {len(files)} files...")
 
@@ -1569,7 +1608,7 @@ class FileIndexPage(BasePage):
             selected_item["files"],
         )
 
-    def validate(self, files: list[str]):
+    def validate_files(self, files: list[str]):
         """Validate if the files are valid"""
         paths = [Path(file) for file in files]
         errors = []
@@ -1596,6 +1635,14 @@ class FileIndexPage(BasePage):
                     f"Maximum number of files ({max_number_of_files}) will be exceeded"
                 )
 
+        return errors
+
+    def validate_urls(self, urls: list[str]):
+        """Validate if the urls are valid"""
+        errors = []
+        for url in urls:
+            if not url.startswith("http") and not url.startswith("https"):
+                errors.append(f"Invalid url `{url}`")
         return errors
 
 
