@@ -1075,7 +1075,7 @@ class FileIndexPage(BasePage):
 
             with zipfile.ZipFile(zip_file, "r") as zip_ref:
                 # Check for symlinks and path traversal attacks at zip level
-                is_safe = False
+                is_safe = True
 
                 for member in zip_ref.infolist():
                     # Disallow symlinks
