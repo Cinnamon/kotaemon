@@ -283,6 +283,11 @@ class VectorRetrieval(BaseRetrieval):
         additional_docs = []
 
         for thumbnail_doc in linked_thumbnail_docs:
+            # 안전하게 text_doc 가져오기 - KeyError 방지
+            if thumbnail_doc.doc_id not in text_thumbnail_docs:
+                print(f"Warning: thumbnail doc_id {thumbnail_doc.doc_id} not found in text_thumbnail_docs")
+                continue
+                
             text_doc = text_thumbnail_docs[thumbnail_doc.doc_id]
             doc_dict = thumbnail_doc.to_dict()
             doc_dict["_id"] = text_doc.doc_id

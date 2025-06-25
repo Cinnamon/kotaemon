@@ -191,43 +191,6 @@ if VOYAGE_API_KEY:
         "default": False,
     }
 
-if config("LOCAL_MODEL", default=""):
-    KH_LLMS["ollama"] = {
-        "spec": {
-            "__type__": "kotaemon.llms.ChatOpenAI",
-            "base_url": KH_OLLAMA_URL,
-            "model": config("LOCAL_MODEL", default="qwen2.5:7b"),
-            "api_key": "ollama",
-        },
-        "default": False,
-    }
-    KH_LLMS["ollama-long-context"] = {
-        "spec": {
-            "__type__": "kotaemon.llms.LCOllamaChat",
-            "base_url": KH_OLLAMA_URL.replace("v1/", ""),
-            "model": config("LOCAL_MODEL", default="qwen2.5:7b"),
-            "num_ctx": 8192,
-        },
-        "default": False,
-    }
-
-    KH_EMBEDDINGS["ollama"] = {
-        "spec": {
-            "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
-            "base_url": KH_OLLAMA_URL,
-            "model": config("LOCAL_MODEL_EMBEDDINGS", default="nomic-embed-text"),
-            "api_key": "ollama",
-        },
-        "default": False,
-    }
-    KH_EMBEDDINGS["fast_embed"] = {
-        "spec": {
-            "__type__": "kotaemon.embeddings.FastEmbedEmbeddings",
-            "model_name": "BAAI/bge-base-en-v1.5",
-        },
-        "default": False,
-    }
-
 # additional LLM configurations
 KH_LLMS["claude"] = {
     "spec": {
@@ -254,20 +217,40 @@ KH_LLMS["groq"] = {
     },
     "default": False,
 }
-KH_LLMS["cohere"] = {
+
+# Always add Ollama models for convenience (even if LOCAL_MODEL env var is not set)
+KH_LLMS["ollama"] = {
     "spec": {
-        "__type__": "kotaemon.llms.chats.LCCohereChat",
-        "model_name": "command-r-plus-08-2024",
-        "api_key": config("COHERE_API_KEY", default="your-key"),
+        "__type__": "kotaemon.llms.ChatOpenAI",
+        "base_url": KH_OLLAMA_URL,
+        "model": config("LOCAL_MODEL", default="gemma2:2b"),
+        "api_key": "ollama",
     },
     "default": False,
 }
-KH_LLMS["mistral"] = {
+KH_LLMS["ollama-long-context"] = {
     "spec": {
-        "__type__": "kotaemon.llms.ChatOpenAI",
-        "base_url": "https://api.mistral.ai/v1",
-        "model": "ministral-8b-latest",
-        "api_key": config("MISTRAL_API_KEY", default="your-key"),
+        "__type__": "kotaemon.llms.LCOllamaChat",
+        "base_url": KH_OLLAMA_URL.replace("v1/", ""),
+        "model": config("LOCAL_MODEL", default="gemma2:2b"),
+        "num_ctx": 8192,
+    },
+    "default": False,
+}
+
+KH_EMBEDDINGS["ollama"] = {
+    "spec": {
+        "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
+        "base_url": KH_OLLAMA_URL,
+        "model": config("LOCAL_MODEL_EMBEDDINGS", default="nomic-embed-text"),
+        "api_key": "ollama",
+    },
+    "default": False,
+}
+KH_EMBEDDINGS["fast_embed"] = {
+    "spec": {
+        "__type__": "kotaemon.embeddings.FastEmbedEmbeddings",
+        "model_name": "BAAI/bge-base-en-v1.5",
     },
     "default": False,
 }

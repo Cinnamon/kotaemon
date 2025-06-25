@@ -493,23 +493,56 @@ class FileIndexPage(BasePage):
             ).first()
         if source:
             target_file_name = Path(source[0].name)
+        else:
+            # 파일을 찾을 수 없는 경우 에러 처리
+            raise gr.Error("File not found in database")
+            
         zip_files = []
-        for file_name in os.listdir(flowsettings.KH_CHUNKS_OUTPUT_DIR):
-            if target_file_name.stem in file_name:
-                zip_files.append(
-                    os.path.join(flowsettings.KH_CHUNKS_OUTPUT_DIR, file_name)
-                )
-        for file_name in os.listdir(flowsettings.KH_MARKDOWN_OUTPUT_DIR):
-            if target_file_name.stem in file_name:
-                zip_files.append(
-                    os.path.join(flowsettings.KH_MARKDOWN_OUTPUT_DIR, file_name)
-                )
+        file_stem = target_file_name.stem
+        
+        # chunks_cache_dir에서 파일 찾기 (안전한 디렉토리 접근)
+        try:
+            chunks_dir = flowsettings.KH_CHUNKS_OUTPUT_DIR
+            if os.path.exists(chunks_dir):
+                for file_name in os.listdir(chunks_dir):
+                    if file_stem in file_name and file_name.endswith('.md'):
+                        zip_files.append(os.path.join(chunks_dir, file_name))
+        except Exception as e:
+            print(f"Error accessing chunks directory: {e}")
+        
+        # markdown_cache_dir에서 파일 찾기 (안전한 디렉토리 접근)
+        try:
+            markdown_dir = flowsettings.KH_MARKDOWN_OUTPUT_DIR
+            if os.path.exists(markdown_dir):
+                for file_name in os.listdir(markdown_dir):
+                    if file_stem in file_name and file_name.endswith('.md'):
+                        zip_files.append(os.path.join(markdown_dir, file_name))
+        except Exception as e:
+            print(f"Error accessing markdown directory: {e}")
+        
+        # 파일이 없는 경우 처리
+        if not zip_files:
+            print(f"No files found for stem: {file_stem}")
+            # 빈 zip 파일 생성 대신 오리지널 파일 제공 시도
+            original_file_path = Path(flowsettings.KH_FILESTORAGE_PATH) / source[0].path
+            if os.path.exists(original_file_path):
+                zip_files = [str(original_file_path)]
+            else:
+                raise gr.Error(f"No processed files found for {target_file_name.name}")
+        
         zip_file_path = os.path.join(
             flowsettings.KH_ZIP_OUTPUT_DIR, target_file_name.stem
         )
-        with zipfile.ZipFile(f"{zip_file_path}.zip", "w") as zipMe:
-            for file in zip_files:
-                zipMe.write(file, arcname=os.path.basename(file))
+        
+        # zip 파일 생성
+        try:
+            with zipfile.ZipFile(f"{zip_file_path}.zip", "w") as zipMe:
+                for file in zip_files:
+                    if os.path.exists(file):
+                        zipMe.write(file, arcname=os.path.basename(file))
+        except Exception as e:
+            print(f"Error creating zip file: {e}")
+            raise gr.Error("Failed to create download file")
 
         if is_zipped_state:
             new_button = gr.DownloadButton(label="Download", value=None)
