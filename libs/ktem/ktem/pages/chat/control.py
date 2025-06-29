@@ -107,7 +107,7 @@ class ConversationControl(BasePage):
                 scale=6,
                 elem_id="suggest-chat-checkbox",
                 container=False,
-                visible=not KH_DEMO_MODE,
+                visible=False,
             )
             self.cb_is_public = gr.Checkbox(
                 value=False,
