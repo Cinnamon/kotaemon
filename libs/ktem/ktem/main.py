@@ -160,7 +160,7 @@ class App(BaseApp):
                     if k == "login-tab":
                         tabs_update.append(gr.update(visible=False))
                     elif k == "resources-tab":
-                        tabs_update.append(gr.update(visible=is_admin))
+                        tabs_update.append(gr.update(visible=False))
                     else:
                         tabs_update.append(gr.update(visible=True))
 
