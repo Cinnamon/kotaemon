@@ -275,7 +275,7 @@ class ChatPage(BasePage):
                         "Quick Upload" if not KH_DEMO_MODE else "Or input new paper URL"
                     )
 
-                    with gr.Accordion(label=quick_upload_label) as _:
+                    with gr.Accordion(label=quick_upload_label, visible=False) as _:
                         self.quick_file_upload_status = gr.Markdown()
                         if not KH_DEMO_MODE:
                             self.quick_file_upload = File(
