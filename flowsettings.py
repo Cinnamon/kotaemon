@@ -400,5 +400,5 @@ KH_INDICES = [
         },
         "index_type": "ktem.index.file.FileIndex",
     },
-    *GRAPHRAG_INDICES,
+    # *GRAPHRAG_INDICES,
 ]
