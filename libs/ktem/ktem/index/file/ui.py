@@ -1651,7 +1651,7 @@ class FileSelector(BasePage):
             visible=True,
             include_time=False
         )
-        self.apply_date_filter_button = gr.Button(
+        self.apply_filter_button = gr.Button(
             "Apply",
             visible=True,
         )
@@ -1683,7 +1683,7 @@ class FileSelector(BasePage):
         #         self.selector_user_id
         #     ],
         # )
-        self.apply_date_filter_button.click(
+        self.apply_filter_button.click(
             fn=self.get_filtered_files_and_list,
             inputs=[
                 self.start_date_picker,
