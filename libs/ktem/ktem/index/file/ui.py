@@ -1058,6 +1058,15 @@ class FileIndexPage(BasePage):
 
     def _may_extract_zip(self, files, zip_dir: str):
         """Handle zip files"""
+
+        def _is_symlink(info: zipfile.ZipInfo) -> bool:
+            return stat.S_ISLNK(info.external_attr >> 16)
+
+        def _is_safe_path(base_dir: str, target_path: str) -> bool:
+            abs_base = os.path.abspath(base_dir)
+            abs_target = os.path.abspath(target_path)
+            return abs_target.startswith(abs_base + os.sep)
+
         zip_files = [file for file in files if file.endswith(".zip")]
         remaining_files = [file for file in files if not file.endswith("zip")]
         errors = []
@@ -1079,21 +1088,14 @@ class FileIndexPage(BasePage):
 
                 for member in zip_ref.infolist():
                     # Disallow symlinks
-                    if stat.S_ISLNK(member.external_attr >> 16):
+                    if _is_symlink(member):
                         # Skipping zip file with symlink
                         is_safe = False
                         break
 
-                    # Check for path traversal attacks
                     target_path = os.path.join(zip_out_dir, member.filename)
-                    abs_zip_out_dir = os.path.abspath(zip_out_dir)
-                    abs_target_path = os.path.abspath(target_path)
-
-                    if not (
-                        abs_target_path.startswith(abs_zip_out_dir + os.sep)
-                        or abs_target_path == abs_zip_out_dir
-                    ):
-                        # Skip zip file with path traversal file
+                    if not _is_safe_path(zip_out_dir, target_path):
+                        # Skipping zip file with path traversal
                         is_safe = False
                         break
 
