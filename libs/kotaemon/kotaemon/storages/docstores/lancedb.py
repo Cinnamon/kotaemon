@@ -114,10 +114,11 @@ class LanceDBDocumentStore(BaseDocumentStore):
         except (ValueError, FileNotFoundError):
             docs = []
 
-        # return the documents using the order of original ids (which were ordered by score)
+        # return the documents using the order of original
+        # ids (which were ordered by score)
         doc_dict = {
             doc["id"]: Document(
-                d_=doc["id"],
+                id_=doc["id"],
                 text=doc["text"] if doc["text"] else "<empty>",
                 metadata=json.loads(doc["attributes"]),
             )
