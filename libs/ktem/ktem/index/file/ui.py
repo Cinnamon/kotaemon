@@ -1622,6 +1622,7 @@ class FileSelector(BasePage):
                 ("Search By Date", "date"),
             ],
             container=False,
+            visible=False
         )
         self.selector = gr.Dropdown(
             label="Files",
@@ -1635,20 +1636,20 @@ class FileSelector(BasePage):
         self.start_date_picker = gr.DateTime(
             label="Start Date",
             value=start_date,
-            visible=False,
+            visible=True,
             include_time=False
         )
         self.end_date_picker = gr.DateTime(
             label="End Date",
             value=end_date,
-            visible=False,
+            visible=True,
             include_time=False
         )
         self.apply_date_filter_button = gr.Button(
             "Apply Date Filter",
-            visible=False,
+            visible=True,
         )
-        self.filtered_file_list = gr.Markdown(visible=False)
+        self.filtered_file_list = gr.Markdown(visible=True)
         self.filtered_file_ids = gr.State(value=filtered_files_ids)
         self.selector_user_id = gr.State(value=user_id)
         self.selector_choices = gr.JSON(
@@ -1657,31 +1658,31 @@ class FileSelector(BasePage):
         )
 
     def on_register_events(self):
-        self.mode.change(
-            fn=lambda mode, user_id: (
-                gr.update(visible=mode == "select"), 
-                gr.update(visible=mode == "date"),
-                gr.update(visible=mode == "date"),
-                gr.update(visible=mode == "date"),
-                gr.update(visible=mode == "date"),
-                user_id
-            ),
-            inputs=[self.mode, self._app.user_id],
-            outputs=[
-                self.selector,
-                self.start_date_picker,
-                self.end_date_picker,
-                self.apply_date_filter_button,
-                self.filtered_file_list,
-                self.selector_user_id
-            ],
-        )
+        # self.mode.change(
+        #     fn=lambda mode, user_id: (
+        #         gr.update(visible=mode == "select"), 
+        #         gr.update(visible=mode == "date"),
+        #         gr.update(visible=mode == "date"),
+        #         gr.update(visible=mode == "date"),
+        #         gr.update(visible=mode == "date"),
+        #         user_id
+        #     ),
+        #     inputs=[self.mode, self._app.user_id],
+        #     outputs=[
+        #         self.selector,
+        #         self.start_date_picker,
+        #         self.end_date_picker,
+        #         self.apply_date_filter_button,
+        #         self.filtered_file_list,
+        #         self.selector_user_id
+        #     ],
+        # )
         self.apply_date_filter_button.click(
             fn=self.get_filtered_files_and_list,
             inputs=[
                 self.start_date_picker,
                 self.end_date_picker,
-                self.selector_user_id
+                self._app.user_id
             ],
             outputs=[self.filtered_file_ids, self.filtered_file_list],
         )
@@ -1722,11 +1723,9 @@ class FileSelector(BasePage):
                 )
             
             #Querying by date (for Apply Date Filter)
-            if mode == "date":
-                if start_date:
-                    statement = statement.where(self._index._resources["Source"].date_created >= start_date)
-                if end_date:
-                    statement = statement.where(self._index._resources["Source"].date_created <= end_date)
+            if start_date and end_date:
+                statement = statement.where(self._index._resources["Source"].date_created >= start_date)
+                statement = statement.where(self._index._resources["Source"].date_created <= end_date)
 
             results = session.execute(statement).all()
 
@@ -1803,7 +1802,7 @@ class FileSelector(BasePage):
         elif isinstance(end, datetime.date) and not isinstance(end, datetime.datetime):
             end = datetime.datetime.combine(end, datetime.time(23, 59, 59))
 
-        file_ids = self.get_selected_ids(["date", [], start, end, [], user_id])
+        file_ids = self.get_selected_ids(["filter", [], start, end, [], user_id])
         file_list_str = self.format_file_list(file_ids)
         return file_ids, file_list_str
 
