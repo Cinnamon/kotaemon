@@ -1655,6 +1655,10 @@ class FileSelector(BasePage):
             "Apply",
             visible=True,
         )
+        self.clear_button = gr.Button(
+            "Clear",
+            visible=True,
+        )
         self.filtered_file_list = gr.Markdown(visible=True)
         self.filtered_file_ids = gr.State(value=filtered_files_ids)
         self.selector_user_id = gr.State(value=user_id)
@@ -1692,6 +1696,11 @@ class FileSelector(BasePage):
                 self.search_keyword_input
             ],
             outputs=[self.filtered_file_ids, self.filtered_file_list],
+        )
+        self.clear_button.click(
+            fn=self.get_all_files,
+            inputs=[self._app.user_id],
+            outputs=[self.filtered_file_ids, self.filtered_file_list, self.search_keyword_input],
         )
         # attach special event for the first index
         if self._index.id == 1:
@@ -1828,6 +1837,12 @@ class FileSelector(BasePage):
         file_list_str = self.format_file_list(file_ids)
         return file_ids, file_list_str
 
+    def get_all_files(self, user_id):
+        # Show all files for the user (no filters)
+        file_ids = self.get_selected_ids(["all", [], "", "", [], user_id, ""])
+        file_list_str = self.format_file_list(file_ids)
+        return file_ids, file_list_str, ""
+
     def _on_app_created(self):
         self._app.app.load(
             self.load_files,
@@ -1846,11 +1861,6 @@ class FileSelector(BasePage):
             },
         )
 
-        def set_all_files_on_load(user_id):
-            file_ids = self.get_selected_ids(["all", [], "", "", [], user_id, ""])
-            file_list_str = self.format_file_list(file_ids)
-            return file_ids, file_list_str
-
         if self._app.f_user_management:
             for event_name in ["onSignIn", "onSignOut"]:
                 self._app.subscribe_event(
@@ -1866,7 +1876,7 @@ class FileSelector(BasePage):
                 self._app.subscribe_event(
                     name="onSignIn",
                     definition={
-                        "fn": set_all_files_on_load,
+                        "fn": self.get_all_files,
                         "inputs": [self._app.user_id],
                         "outputs": [self.filtered_file_ids, self.filtered_file_list],
                         "show_progress": "hidden",
