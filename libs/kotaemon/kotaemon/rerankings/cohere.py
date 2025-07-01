@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+
 from decouple import config
 
 from kotaemon.base import Document, Param
@@ -25,7 +26,9 @@ class CohereReranking(BaseReranking):
         required=True,
     )
     base_url: str = Param(
-        None, help="Rerank API base url. Default is https://api.cohere.com", required=False
+        None,
+        help="Rerank API base url. Default is https://api.cohere.com",
+        required=False,
     )
 
     def run(self, documents: list[Document], query: str) -> list[Document]:
@@ -42,7 +45,9 @@ class CohereReranking(BaseReranking):
             print("Cohere API key not found. Skipping rerankings.")
             return documents
 
-        cohere_client = cohere.Client(self.cohere_api_key, base_url=self.base_url or os.getenv("CO_API_URL"))
+        cohere_client = cohere.Client(
+            self.cohere_api_key, base_url=self.base_url or os.getenv("CO_API_URL")
+        )
         compressed_docs: list[Document] = []
 
         if not documents:  # to avoid empty api call
