@@ -7,7 +7,7 @@ from ktem.db.engine import engine
 from ktem.index.base import BaseIndex
 from sqlalchemy import JSON, Column, DateTime, Integer, String, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.ext.mutable import MutableDict, MutableList
 from theflow.settings import settings as flowsettings
 from theflow.utils.modules import import_dotted_string
 from tzlocal import get_localzone
@@ -80,6 +80,7 @@ class FileIndex(BaseIndex):
                     "date_created": Column(
                         DateTime(timezone=True), default=datetime.now(get_localzone())
                     ),
+                    "keywords": Column(MutableList.as_mutable(JSON), default=list),
                     "user": Column(String, default=""),
                     "note": Column(
                         MutableDict.as_mutable(JSON),  # type: ignore
@@ -105,6 +106,7 @@ class FileIndex(BaseIndex):
                     "date_created": Column(
                         DateTime(timezone=True), default=datetime.now(get_localzone())
                     ),
+                    "keywords": Column(MutableList.as_mutable(JSON), default=list),
                     "user": Column(String, default=""),
                     "note": Column(
                         MutableDict.as_mutable(JSON),  # type: ignore

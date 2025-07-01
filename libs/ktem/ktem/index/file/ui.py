@@ -16,7 +16,7 @@ from gradio.utils import NamedString
 from ktem.app import BasePage
 from ktem.db.engine import engine
 from ktem.utils.render import Render
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
 
@@ -1610,11 +1610,11 @@ class FileSelector(BasePage):
 
     def default(self):
         if self._app.f_user_management:
-            return "all", [], "", "", [], -1
-        return "all", [], "", "", [], 1
+            return "all", [], "", "", [], -1, ""
+        return "all", [], "", "", [], 1, ""
 
     def on_building_ui(self):
-        default_mode, default_selector, start_date, end_date, filtered_files_ids, user_id = self.default()
+        default_mode, default_selector, start_date, end_date, filtered_files_ids, user_id, keyword = self.default()
 
         self.mode = gr.Radio(
             value=default_mode,
@@ -1633,6 +1633,12 @@ class FileSelector(BasePage):
             interactive=True,
             visible=False,
         )
+        self.search_keyword_input = gr.Textbox(
+            label="Search Keyword",
+            value=keyword,
+            visible=True,
+            placeholder="Search keyword"
+        )
         self.start_date_picker = gr.DateTime(
             label="Start Date",
             value=start_date,
@@ -1646,7 +1652,7 @@ class FileSelector(BasePage):
             include_time=False
         )
         self.apply_date_filter_button = gr.Button(
-            "Apply Date Filter",
+            "Apply",
             visible=True,
         )
         self.filtered_file_list = gr.Markdown(visible=True)
@@ -1682,7 +1688,8 @@ class FileSelector(BasePage):
             inputs=[
                 self.start_date_picker,
                 self.end_date_picker,
-                self._app.user_id
+                self._app.user_id,
+                self.search_keyword_input
             ],
             outputs=[self.filtered_file_ids, self.filtered_file_list],
         )
@@ -1703,12 +1710,16 @@ class FileSelector(BasePage):
             self.end_date_picker, 
             self.filtered_file_ids,
             self.selector_user_id,
+            self.search_keyword_input
         ]
 
     def get_selected_ids(self, components):
-        mode, selected, start_date, end_date, filtered_file_ids, user_id = components
+        mode, selected, start_date, end_date, filtered_file_ids, user_id, keyword = components
         if user_id is None:
             return []
+        
+        if mode == "select":
+            return selected
         
         # Use filtered_file_ids if provided
         if len(filtered_file_ids) > 0:
@@ -1722,10 +1733,21 @@ class FileSelector(BasePage):
                     self._index._resources["Source"].user == user_id
                 )
             
-            #Querying by date (for Apply Date Filter)
+            # Querying by date (for Apply Date Filter)
             if start_date and end_date:
                 statement = statement.where(self._index._resources["Source"].date_created >= start_date)
                 statement = statement.where(self._index._resources["Source"].date_created <= end_date)
+
+            # Querying by keyword
+            if keyword:
+                statement = statement.where(
+                    text(
+                        f"""EXISTS (
+                            SELECT 1 FROM json_each({self._index._resources['Source'].keywords.key})
+                            WHERE value = :keyword
+                        )"""
+                    )
+                ).params(keyword=keyword)
 
             results = session.execute(statement).all()
 
@@ -1786,7 +1808,7 @@ class FileSelector(BasePage):
             files = session.query(Source).filter(Source.id.in_(file_ids)).all()
             return "\n".join(f"- {file.name}" for file in files)
         
-    def get_filtered_files_and_list(self, start, end, user_id):
+    def get_filtered_files_and_list(self, start, end, user_id, keyword):
         # Convert float timestamps to datetime
         if isinstance(start, (float, int)):
             start = datetime.datetime.fromtimestamp(start)
@@ -1802,7 +1824,7 @@ class FileSelector(BasePage):
         elif isinstance(end, datetime.date) and not isinstance(end, datetime.datetime):
             end = datetime.datetime.combine(end, datetime.time(23, 59, 59))
 
-        file_ids = self.get_selected_ids(["filter", [], start, end, [], user_id])
+        file_ids = self.get_selected_ids(["filter", [], start, end, [], user_id, keyword])
         file_list_str = self.format_file_list(file_ids)
         return file_ids, file_list_str
 
@@ -1825,7 +1847,7 @@ class FileSelector(BasePage):
         )
 
         def set_all_files_on_load(user_id):
-            file_ids = self.get_selected_ids(["all", [], "", "", [], user_id])
+            file_ids = self.get_selected_ids(["all", [], "", "", [], user_id, ""])
             file_list_str = self.format_file_list(file_ids)
             return file_ids, file_list_str
 

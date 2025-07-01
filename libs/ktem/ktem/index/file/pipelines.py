@@ -12,6 +12,7 @@ from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
 from typing import Generator, Optional, Sequence
+from keybert import KeyBERT
 
 import tiktoken
 from decouple import config
@@ -76,6 +77,16 @@ def dev_settings():
 
 _default_token_func = tiktoken.encoding_for_model("gpt-3.5-turbo").encode
 
+kw_model = KeyBERT()
+
+def extract_keywords_long(text, chunk_size=1000, top_n=5):
+    chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+    all_keywords = []
+    for chunk in chunks:
+        keywords = kw_model.extract_keywords(chunk, top_n=top_n)
+        all_keywords.extend(keywords)
+    # Deduplicate
+    return list(set([kw for kw, _ in all_keywords]))
 
 class DocumentRetrievalPipeline(BaseFileIndexRetriever):
     """Retrieve relevant document
@@ -374,6 +385,13 @@ class IndexPipeline(BaseComponent):
         else:
             all_chunks = text_docs
 
+        file_keywords_set = set()
+        for chunk in all_chunks:
+            if hasattr(chunk, "text"):
+                chunk_keywords = extract_keywords_long(chunk.text)
+                chunk.metadata["keywords"] = ", ".join(chunk_keywords)
+                file_keywords_set.update(chunk_keywords)
+
         # add the thumbnails doc_id to the chunks
         for chunk in all_chunks:
             page_label = chunk.metadata.get("page_label", None)
@@ -419,7 +437,7 @@ class IndexPipeline(BaseComponent):
             yield from insert_chunks_to_vectorstore()
 
         print("indexing step took", time.time() - s_time)
-        return n_chunks
+        return n_chunks, list(file_keywords_set)
 
     def handle_chunks_docstore(self, chunks, file_id):
         """Run chunks"""
@@ -646,7 +664,16 @@ class IndexPipeline(BaseComponent):
         yield Document(f" => Converting {file_name} to text", channel="debug")
         docs = self.loader.load_data(file_path, extra_info=extra_info)
         yield Document(f" => Converted {file_name} to text", channel="debug")
-        yield from self.handle_docs(docs, file_id, file_name)
+
+        n_chunks, file_keywords = yield from self.handle_docs(docs, file_id, file_name)
+
+        # --- Update the Source record with file-level keywords ---
+        with Session(engine) as session:
+            source = session.get(self.Source, file_id)
+            if source:
+                source.keywords = file_keywords
+                session.add(source)
+                session.commit()
 
         self.finish(file_id, file_path)
 

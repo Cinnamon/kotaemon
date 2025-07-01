@@ -14,7 +14,7 @@ from sqlalchemy import (
     select,
 )
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import Session
 from tzlocal import get_localzone
 
@@ -44,6 +44,7 @@ def _init_resource(private: bool = True, id: int = 1):
                 "date_created": Column(
                     DateTime(timezone=True), default=datetime.now(get_localzone())
                 ),
+                "keywords": Column(MutableList.as_mutable(JSON), default=list),
                 "user": Column(Integer, default=1),
                 "note": Column(
                     MutableDict.as_mutable(JSON),  # type: ignore
@@ -69,6 +70,7 @@ def _init_resource(private: bool = True, id: int = 1):
                 "date_created": Column(
                     DateTime(timezone=True), default=datetime.now(get_localzone())
                 ),
+                "keywords": Column(MutableList.as_mutable(JSON), default=list),
                 "user": Column(Integer, default=1),
                 "note": Column(
                     MutableDict.as_mutable(JSON),  # type: ignore
