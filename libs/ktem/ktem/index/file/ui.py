@@ -2,7 +2,6 @@ import html
 import json
 import os
 import shutil
-import stat
 import tempfile
 import zipfile
 from copy import deepcopy
@@ -1058,19 +1057,14 @@ class FileIndexPage(BasePage):
 
     def _may_extract_zip(self, files, zip_dir: str):
         """Handle zip files"""
-
-        def _is_symlink(info: zipfile.ZipInfo) -> bool:
-            return stat.S_ISLNK(info.external_attr >> 16)
-
         zip_files = [file for file in files if file.endswith(".zip")]
         remaining_files = [file for file in files if not file.endswith("zip")]
-        errors = []
+        errors: list[str] = []
 
         # Clean-up <zip_dir> before unzip to remove old files
         shutil.rmtree(zip_dir, ignore_errors=True)
 
         # Unzip
-        unsafe_zip_files = []
         for zip_file in zip_files:
             # Prepare new zip output dir, separated for each files
             basename = os.path.splitext(os.path.basename(zip_file))[0]
@@ -1078,26 +1072,7 @@ class FileIndexPage(BasePage):
             os.makedirs(zip_out_dir, exist_ok=True)
 
             with zipfile.ZipFile(zip_file, "r") as zip_ref:
-                # Check for symlinks and path traversal attacks at zip level
-                is_safe = True
-
-                for member in zip_ref.infolist():
-                    # Disallow symlinks
-                    if _is_symlink(member):
-                        # Skipping zip file with symlink
-                        is_safe = False
-                        break
-
-                if is_safe:
-                    zip_ref.extractall(zip_out_dir)
-                else:
-                    unsafe_zip_files.append(zip_file)
-
-        if unsafe_zip_files:
-            str_error = ", ".join(unsafe_zip_files)
-            errors.append(
-                f"Unsafe zip files (contains symlinks or path traversal): {str_error}"
-            )
+                zip_ref.extractall(zip_out_dir)
 
         n_zip_file = 0
         for root, dirs, files in os.walk(zip_dir):
