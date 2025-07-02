@@ -80,6 +80,9 @@ class FileIndex(BaseIndex):
                     "date_created": Column(
                         DateTime(timezone=True), default=datetime.now(get_localzone())
                     ),
+                    "date_from_file_name": Column(DateTime(timezone=True)),
+                    "date_from_content": Column(DateTime(timezone=True)),
+                    "company": Column(MutableList.as_mutable(JSON), default=list),
                     "keywords": Column(MutableList.as_mutable(JSON), default=list),
                     "user": Column(String, default=""),
                     "note": Column(
@@ -106,6 +109,9 @@ class FileIndex(BaseIndex):
                     "date_created": Column(
                         DateTime(timezone=True), default=datetime.now(get_localzone())
                     ),
+                    "date_from_file_name": Column(DateTime(timezone=True)),
+                    "date_from_content": Column(DateTime(timezone=True)),
+                    "company": Column(MutableList.as_mutable(JSON), default=list),
                     "keywords": Column(MutableList.as_mutable(JSON), default=list),
                     "user": Column(String, default=""),
                     "note": Column(

@@ -16,7 +16,7 @@ from gradio.utils import NamedString
 from ktem.app import BasePage
 from ktem.db.engine import engine
 from ktem.utils.render import Render
-from sqlalchemy import select, text
+from sqlalchemy import select, text, func
 from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
 
@@ -1610,11 +1610,11 @@ class FileSelector(BasePage):
 
     def default(self):
         if self._app.f_user_management:
-            return "all", [], "", "", [], -1, ""
-        return "all", [], "", "", [], 1, ""
+            return "all", [], "", "", [], -1, "", ""
+        return "all", [], "", "", [], 1, "", ""
 
     def on_building_ui(self):
-        default_mode, default_selector, start_date, end_date, filtered_files_ids, user_id, keyword = self.default()
+        default_mode, default_selector, start_date, end_date, filtered_files_ids, user_id, keyword, company = self.default()
 
         self.mode = gr.Radio(
             value=default_mode,
@@ -1638,6 +1638,12 @@ class FileSelector(BasePage):
             value=keyword,
             visible=True,
             placeholder="Search keyword"
+        )
+        self.search_company_input = gr.Textbox(
+            label="Search Company",
+            value=company,
+            visible=True,
+            placeholder="Search company name"
         )
         self.start_date_picker = gr.DateTime(
             label="Start Date",
@@ -1693,7 +1699,8 @@ class FileSelector(BasePage):
                 self.start_date_picker,
                 self.end_date_picker,
                 self._app.user_id,
-                self.search_keyword_input
+                self.search_keyword_input,
+                self.search_company_input,
             ],
             outputs=[self.filtered_file_ids, self.filtered_file_list],
         )
@@ -1719,11 +1726,12 @@ class FileSelector(BasePage):
             self.end_date_picker, 
             self.filtered_file_ids,
             self.selector_user_id,
-            self.search_keyword_input
+            self.search_keyword_input,
+            self.search_company_input
         ]
 
     def get_selected_ids(self, components):
-        mode, selected, start_date, end_date, filtered_file_ids, user_id, keyword = components
+        mode, selected, start_date, end_date, filtered_file_ids, user_id, keyword, company = components
         if user_id is None:
             return []
         
@@ -1736,27 +1744,44 @@ class FileSelector(BasePage):
 
         file_ids = []
         with Session(engine) as session:
-            statement = select(self._index._resources["Source"].id)
+            Source = self._index._resources["Source"]
+            # Use coalesce to prioritize date_from_file_name, then date_from_file, then date_created
+            date_column = func.coalesce(
+                Source.date_from_file_name,
+                Source.date_from_content,
+                Source.date_created
+            )
+
+            statement = select(Source.id)
             if self._index.config.get("private", False):
-                statement = statement.where(
-                    self._index._resources["Source"].user == user_id
-                )
+                statement = statement.where(Source.user == user_id)
             
             # Querying by date (for Apply Date Filter)
             if start_date and end_date:
-                statement = statement.where(self._index._resources["Source"].date_created >= start_date)
-                statement = statement.where(self._index._resources["Source"].date_created <= end_date)
+                statement = statement.where(date_column >= start_date)
+                statement = statement.where(date_column <= end_date)
 
             # Querying by keyword
             if keyword:
                 statement = statement.where(
                     text(
                         f"""EXISTS (
-                            SELECT 1 FROM json_each({self._index._resources['Source'].keywords.key})
-                            WHERE value = :keyword
+                            SELECT 1 FROM json_each({Source.keywords.key})
+                            WHERE LOWER(value) = LOWER(:keyword)
                         )"""
                     )
                 ).params(keyword=keyword)
+
+            # Querying by company
+            if company:
+                statement = statement.where(
+                    text(
+                        f"""EXISTS (
+                            SELECT 1 FROM json_each({Source.company.key})
+                            WHERE LOWER(value) LIKE LOWER(:company)
+                        )"""
+                    )
+                ).params(company=f"%{company}%")
 
             results = session.execute(statement).all()
 
@@ -1817,7 +1842,7 @@ class FileSelector(BasePage):
             files = session.query(Source).filter(Source.id.in_(file_ids)).all()
             return "\n".join(f"- {file.name}" for file in files)
         
-    def get_filtered_files_and_list(self, start, end, user_id, keyword):
+    def get_filtered_files_and_list(self, start, end, user_id, keyword, company):
         # Convert float timestamps to datetime
         if isinstance(start, (float, int)):
             start = datetime.datetime.fromtimestamp(start)
@@ -1833,13 +1858,13 @@ class FileSelector(BasePage):
         elif isinstance(end, datetime.date) and not isinstance(end, datetime.datetime):
             end = datetime.datetime.combine(end, datetime.time(23, 59, 59))
 
-        file_ids = self.get_selected_ids(["filter", [], start, end, [], user_id, keyword])
+        file_ids = self.get_selected_ids(["filter", [], start, end, [], user_id, keyword, company])
         file_list_str = self.format_file_list(file_ids)
         return file_ids, file_list_str
 
     def get_all_files(self, user_id):
         # Show all files for the user (no filters)
-        file_ids = self.get_selected_ids(["all", [], "", "", [], user_id, ""])
+        file_ids = self.get_selected_ids(["all", [], "", "", [], user_id, "", ""])
         file_list_str = self.format_file_list(file_ids)
         return file_ids, file_list_str, ""
 
