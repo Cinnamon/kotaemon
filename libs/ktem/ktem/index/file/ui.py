@@ -1712,7 +1712,8 @@ class FileSelector(BasePage):
                 self.start_date_picker, 
                 self.end_date_picker,
                 self.filtered_file_list, 
-                self.search_keyword_input
+                self.search_keyword_input,
+                self.search_company_input
             ],
         )
         # attach special event for the first index
@@ -1914,7 +1915,8 @@ class FileSelector(BasePage):
                             self.start_date_picker, 
                             self.end_date_picker,
                             self.filtered_file_list, 
-                            self.search_keyword_input
+                            self.search_keyword_input,
+                            self.search_company_input
                         ],
                         "show_progress": "hidden",
                     },
