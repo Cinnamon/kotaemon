@@ -96,7 +96,6 @@ class App(BaseApp):
                             ) as self._tabs[f"{index.id}-tab"]:
                                 page = index.get_index_page_ui()
                                 setattr(self, f"_index_{index.id}", page)
-
                 with gr.Tab(
                         "User",
                         elem_id="settings-tab",
@@ -158,7 +157,6 @@ class App(BaseApp):
 
             # Ganti icon sesuai tab aktif
             def update_icons(tab_id, reset):
-                print(f"update_icons dipanggil dengan tab_id: {tab_id}")
                 # Jika dipanggil dari self.tabs.select, set active_tab ke 'other' agar tombol reset
                 if reset == "from_select":
                     return (
@@ -195,6 +193,17 @@ class App(BaseApp):
                 outputs=[help_button, user_button, active_tab],
                 show_progress="hidden"
             )
+            if not KH_DEMO_MODE:
+                if not KH_SSO_ENABLED:
+                    with gr.Tab(
+                        "Resources",
+                        elem_id="resources-tab",
+                        id="resources-tab",
+                        visible=False,
+                        elem_classes=["fill-main-area-height", "scrollable"],
+                    ) as self._tabs["resources-tab"]:
+                        self.resources_page = ResourcesTab(self)
+
 
         if KH_ENABLE_FIRST_SETUP:
             with gr.Column(visible=False) as self.setup_page_wrapper:

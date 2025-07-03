@@ -103,25 +103,26 @@ class SettingsPage(BasePage):
         # render reasoning page if there are reasoning settings
         self._render_reasoning_tab = False
 
-        # if not KH_SSO_ENABLED:
-        #     if len(self._default_settings.reasoning.settings) > 1:
-        #         self._render_reasoning_tab = True
-        #     else:
-        #         for sig in self._default_settings.reasoning.options.values():
-        #             if sig.settings:
-        #                 self._render_reasoning_tab = True
-        #                 break
+        if not KH_SSO_ENABLED:
+            if len(self._default_settings.reasoning.settings) > 1:
+                self._render_reasoning_tab = True
+            else:
+                for sig in self._default_settings.reasoning.options.values():
+                    if sig.settings:
+                        self._render_reasoning_tab = True
+                        break
 
         self.on_building_ui()
 
     def on_building_ui(self):
         # if not KH_SSO_ENABLED:
-        #     self.setting_save_btn = gr.Button(
-        #         "Save & Close",
-        #         variant="primary",
-        #         elem_classes=["right-button"],
-        #         elem_id="save-setting-btn",
-        #     )
+            # self.setting_save_btn = gr.Button(
+            #     "Save & Close",
+            #     variant="primary",
+            #     visible="False",
+            #     elem_classes=["right-button"],
+            #     elem_id="save-setting-btn",
+            # )
         if self._app.f_user_management:
             with gr.Column("User settings"):
                 self.user_tab()
@@ -311,7 +312,7 @@ class SettingsPage(BasePage):
                             self._embeddings.append(obj)
 
     def reasoning_tab(self):
-        with gr.Tab("Reasoning settings", visible=self._render_reasoning_tab):
+        with gr.Tab("Reasoning settings", visible=False):
             with gr.Group():
                 for n, si in self._default_settings.reasoning.settings.items():
                     if n == "use":
