@@ -80,7 +80,7 @@ button.selected {
 #resources-tab {
   /* Other view should not be too wide */
   border: none !important;
-  max-width: max(70vw, 1200px) !important;
+  /* max-width: max(70vw, 1200px) !important; */
   margin: 0 auto !important;
 }
 
@@ -456,3 +456,68 @@ div.markmap {
   display: grid;
   place-items: center;
 }
+
+//filter files; files page //hamam
+.datepick-file .timebox .time {
+  width: 100px !important;
+}
+.text-end {
+  text-align: end;
+}
+.row-justify-between {
+    justify-content: space-between !important;
+}
+.gradio-tabs {
+    display: flex !important;
+    justify-content: space-between !important;
+}
+
+/* Optional: Remove bottom border for cleaner look */
+.right-align-tab {
+    border-bottom: none !important;
+}
+
+/* Styling the additional tab button*/
+.additional-tab-button-col {
+  position: absolute;
+  top: 0px;
+  right: -30px;
+  max-width: 200px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+.additional-tab-button {
+  border-radius: 50%;
+  max-width: 130px !important;
+}
+
+/* menyembunyikan help dan settings tab-bar-button berdasarkan elem_id */
+#help-tab-button,
+#settings-tab-button {
+    display: none !important;
+    /* width: 30px !important; */
+    color: #FFF;
+}
+
+#help-tab-button-icon {
+  max-width: 65px !important;
+}
+#user-tab-button-icon {
+    display: flex !important;
+    flex-direction: row-reverse !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px;
+}
+.additional-tab-button-active {
+  color: #10b981 !important; /* Emerald/green, bisa diganti sesuai kebutuhan */
+}
+
+#toggle-dark-button {
+  position: fixed;
+  bottom: 6px;
+  right: 30px;
+}
+

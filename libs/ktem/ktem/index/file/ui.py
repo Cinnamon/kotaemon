@@ -30,6 +30,11 @@ DOWNLOAD_MESSAGE = "Start download"
 MAX_FILENAME_LENGTH = 20
 MAX_FILE_COUNT = 200
 
+ASSETS_DIR = "assets/icons"
+if not os.path.isdir(ASSETS_DIR):
+    ASSETS_DIR = "libs/ktem/ktem/assets/icons"
+
+
 chat_input_focus_js = """
 function() {
     let chatInput = document.querySelector("#chat-input textarea");
@@ -163,16 +168,53 @@ class FileIndexPage(BasePage):
             return "\n".join(msgs)
 
         return ""
-
+    
+    #new filter //hamam
     def render_file_list(self):
-        self.filter = gr.Textbox(
-            value="",
-            label="Filter by name:",
-            info=(
-                "(1) Case-insensitive. "
-                "(2) Search with empty string to show all files."
-            ),
-        )
+        gr.Markdown("## List Files")
+        with gr.Row():
+            self.filter = gr.Textbox(
+                value="",
+                placeholder="File Name",
+                show_label=False,
+                scale=9,
+                interactive=True
+            )
+            self.company_filter = gr.Textbox(
+                value="",
+                placeholder="Company",
+                scale=9,
+                show_label=False,
+            )
+            self.date_start_filter = gr.DateTime(
+                include_time=False,
+                show_label=False,
+                scale=10,
+                elem_classes="datepick-file",
+            )
+            self.date_end_filter = gr.DateTime(
+                include_time=False,
+                show_label=False,
+                scale=10,
+                elem_classes="datepick-file",
+            )
+            self.btn_sch = gr.Button(
+                value="",
+                icon=f"{ASSETS_DIR}/search.svg",
+                min_width=2,
+                scale=1,
+                size="sm",
+                elem_classes=["no-background", "body-text-color"],
+            )
+            self.btn_del = gr.Button(
+                value="",
+                icon=f"{ASSETS_DIR}/filter-off.svg",
+                min_width=2,
+                scale=1,
+                size="sm",
+                elem_classes=["no-background", "body-text-color"],
+            )
+            
         self.file_list_state = gr.State(value=None)
         self.file_list = gr.DataFrame(
             headers=[
@@ -189,8 +231,25 @@ class FileIndexPage(BasePage):
             elem_id="file_list_view",
         )
 
+       # new file action //hamam
         with gr.Row():
+            with gr.Column():
+                pass 
+            with gr.Column(): 
+                with gr.Row():
+                    self.show_selected_button = gr.DownloadButton(
+                        "Show",
+                        variant="primary",
+                        interactive=False
+                    )
+                    self.delete_selected_button = gr.Button(
+                        "Delete",
+                        variant="stop",
+                        interactive=False
+                    )
+        #end //hamam
 
+        with gr.Row():
             self.chat_button = gr.Button(
                 "Go to Chat",
                 visible=False,
@@ -210,28 +269,28 @@ class FileIndexPage(BasePage):
                 visible=False,
             )
 
-        with gr.Row() as self.selection_info:
+        with gr.Row(visible=False) as self.selection_info:
             self.selected_file_id = gr.State(value=None)
             with gr.Column(scale=2):
                 self.selected_panel = gr.Markdown(self.selected_panel_false)
 
         self.chunks = gr.HTML(visible=False)
 
-        with gr.Accordion("Advance options", open=False):
-            with gr.Row():
-                if not KH_SSO_ENABLED:
-                    self.download_all_button = gr.DownloadButton(
-                        "Download all files",
-                    )
-                self.delete_all_button = gr.Button(
-                    "Delete all files",
-                    variant="stop",
-                    visible=True,
-                )
-                self.delete_all_button_confirm = gr.Button(
-                    "Confirm delete", variant="stop", visible=False
-                )
-                self.delete_all_button_cancel = gr.Button("Cancel", visible=False)
+        # with gr.Accordion("Advance options", open=False):
+        #     with gr.Row():
+        #         if not KH_SSO_ENABLED:
+        #             self.download_all_button = gr.DownloadButton(
+        #                 "Download all files",
+        #             )
+        #         self.delete_all_button = gr.Button(
+        #             "Delete all files",
+        #             variant="stop",
+        #             visible=True,
+        #         )
+        #         self.delete_all_button_confirm = gr.Button(
+        #             "Confirm delete", variant="stop", visible=False
+        #         )
+        #         self.delete_all_button_cancel = gr.Button("Cancel", visible=False)
 
     def render_group_list(self):
         self.group_list_state = gr.State(value=None)
@@ -288,12 +347,13 @@ class FileIndexPage(BasePage):
         """Build the UI of the app"""
         with gr.Row():
             with gr.Column(scale=1):
+                gr.Markdown("## File Upload")
                 with gr.Column() as self.upload:
-                    with gr.Tab("Upload Files"):
+                    with gr.Column("Upload Files"):
                         self.files = File(
                             file_types=self._supported_file_types,
                             file_count="multiple",
-                            container=True,
+                            container=False,
                             show_label=False,
                         )
 
@@ -301,21 +361,21 @@ class FileIndexPage(BasePage):
                         if msg:
                             gr.Markdown(msg)
 
-                    with gr.Tab("Use Web Links"):
-                        self.urls = gr.Textbox(
-                            label="Input web URLs",
-                            lines=8,
-                        )
-                        gr.Markdown("(separated by new line)")
+                    # with gr.Tab("Use Web Links"):
+                    #     self.urls = gr.Textbox(
+                    #         label="Input web URLs",
+                    #         lines=8,
+                    #     )
+                    #     gr.Markdown("(separated by new line)")
 
-                    with gr.Accordion("Advanced indexing options", open=False):
-                        with gr.Row():
-                            self.reindex = gr.Checkbox(
-                                value=False, label="Force reindex file", container=False
-                            )
+                    # with gr.Accordion("Advanced indexing options", open=False):
+                    #     with gr.Row():
+                    #         self.reindex = gr.Checkbox(
+                    #             value=False, label="Force reindex file", container=False
+                    #         )
 
                     self.upload_button = gr.Button(
-                        "Upload and Index", variant="primary"
+                        "Upload", variant="primary"
                     )
 
             with gr.Column(scale=4):
@@ -334,10 +394,10 @@ class FileIndexPage(BasePage):
                         elem_classes=["right-button"],
                     )
 
-                with gr.Tab("Files"):
+                with gr.Column("Files"):
                     self.render_file_list()
 
-                with gr.Tab("Groups"):
+                with gr.Tab("Groups", visible=False):
                     self.render_group_list()
 
     def on_subscribe_public_events(self):
@@ -438,11 +498,13 @@ class FileIndexPage(BasePage):
                         )
                     )
         return (
-            gr.update(value="".join(chunks), visible=file_id is not None),
-            gr.update(visible=file_id is not None),
-            gr.update(visible=file_id is not None),
-            gr.update(visible=file_id is not None),
-            gr.update(visible=file_id is not None),
+            # gr.update(value="".join(chunks), visible=file_id is not None),
+            # gr.update(visible=file_id is not None),
+            # gr.update(visible=file_id is not None),
+            # gr.update(visible=file_id is not None),
+            # gr.update(visible=file_id is not None),
+            gr.update(interactive=file_id is not None),
+            gr.update(interactive=file_id is not None),
         )
 
     def delete_event(self, file_id):
@@ -763,6 +825,40 @@ class FileIndexPage(BasePage):
         )
         for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
             onDeleted = onDeleted.then(**event)
+        
+        
+        #deleting selected file
+        onDeleteSelected = (
+            self.delete_selected_button.click(
+                fn=self.delete_event,
+                inputs=[self.selected_file_id],
+                outputs=None,
+            )
+            .then(
+                fn=lambda: (None, self.selected_panel_false),
+                inputs=[],
+                outputs=[self.selected_file_id, self.selected_panel],
+                show_progress="hidden",
+            )
+            .then(
+                fn=self.list_file,
+                inputs=[self._app.user_id, self.filter],
+                outputs=[self.file_list_state, self.file_list],
+            )
+            .then(
+                fn=self.file_selected,
+                inputs=[self.selected_file_id],
+                outputs=[
+                    self.delete_selected_button,
+                    self.show_selected_button,
+                ],
+                show_progress="hidden",
+            )
+        )
+        for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
+            onDeleteSelected = onDeleteSelected.then(**event)
+        #end
+        
 
         self.deselect_button.click(
             fn=lambda: (None, self.selected_panel_false),
@@ -792,59 +888,59 @@ class FileIndexPage(BasePage):
             ],
         )
 
-        if not KH_SSO_ENABLED:
-            self.download_all_button.click(
-                fn=self.download_all_files,
-                inputs=[],
-                outputs=self.download_all_button,
-                show_progress="hidden",
-            )
+        # if not KH_SSO_ENABLED:
+        #     self.download_all_button.click(
+        #         fn=self.download_all_files,
+        #         inputs=[],
+        #         outputs=self.download_all_button,
+        #         show_progress="hidden",
+        #     )
 
-        self.delete_all_button.click(
-            self.show_delete_all_confirm,
-            [self.file_list],
-            [
-                self.delete_all_button,
-                self.delete_all_button_confirm,
-                self.delete_all_button_cancel,
-            ],
-        )
-        self.delete_all_button_cancel.click(
-            lambda: [
-                gr.update(visible=True),
-                gr.update(visible=False),
-                gr.update(visible=False),
-            ],
-            None,
-            [
-                self.delete_all_button,
-                self.delete_all_button_confirm,
-                self.delete_all_button_cancel,
-            ],
-        )
+        # self.delete_all_button.click(
+        #     self.show_delete_all_confirm,
+        #     [self.file_list],
+        #     [
+        #         self.delete_all_button,
+        #         self.delete_all_button_confirm,
+        #         self.delete_all_button_cancel,
+        #     ],
+        # )
+        # self.delete_all_button_cancel.click(
+        #     lambda: [
+        #         gr.update(visible=True),
+        #         gr.update(visible=False),
+        #         gr.update(visible=False),
+        #     ],
+        #     None,
+        #     [
+        #         self.delete_all_button,
+        #         self.delete_all_button_confirm,
+        #         self.delete_all_button_cancel,
+        #     ],
+        # )
 
-        self.delete_all_button_confirm.click(
-            fn=self.delete_all_files,
-            inputs=[self.file_list],
-            outputs=[],
-            show_progress="hidden",
-        ).then(
-            fn=self.list_file,
-            inputs=[self._app.user_id, self.filter],
-            outputs=[self.file_list_state, self.file_list],
-        ).then(
-            lambda: [
-                gr.update(visible=True),
-                gr.update(visible=False),
-                gr.update(visible=False),
-            ],
-            None,
-            [
-                self.delete_all_button,
-                self.delete_all_button_confirm,
-                self.delete_all_button_cancel,
-            ],
-        )
+        # self.delete_all_button_confirm.click(
+        #     fn=self.delete_all_files,
+        #     inputs=[self.file_list],
+        #     outputs=[],
+        #     show_progress="hidden",
+        # ).then(
+        #     fn=self.list_file,
+        #     inputs=[self._app.user_id, self.filter],
+        #     outputs=[self.file_list_state, self.file_list],
+        # ).then(
+        #     lambda: [
+        #         gr.update(visible=True),
+        #         gr.update(visible=False),
+        #         gr.update(visible=False),
+        #     ],
+        #     None,
+        #     [
+        #         self.delete_all_button,
+        #         self.delete_all_button_confirm,
+        #         self.delete_all_button_cancel,
+        #     ],
+        # )
 
         if not KH_SSO_ENABLED:
             self.download_single_button.click(
@@ -870,8 +966,6 @@ class FileIndexPage(BasePage):
                 fn=self.index_fn,
                 inputs=[
                     self.files,
-                    self.urls,
-                    self.reindex,
                     self._app.settings_state,
                     self._app.user_id,
                 ],
@@ -880,7 +974,7 @@ class FileIndexPage(BasePage):
             )
             .then(
                 fn=lambda: gr.update(value=""),
-                outputs=[self.urls],
+                # outputs=[self.urls],
             )
         )
 
@@ -912,11 +1006,13 @@ class FileIndexPage(BasePage):
             fn=self.file_selected,
             inputs=[self.selected_file_id],
             outputs=[
-                self.chunks,
-                self.deselect_button,
-                self.delete_button,
-                self.download_single_button,
-                self.chat_button,
+                # self.chunks,
+                # self.deselect_button,
+                # self.delete_button,
+                # self.download_single_button,
+                # self.chat_button,
+                self.show_selected_button,
+                self.delete_selected_button,
             ],
             show_progress="hidden",
         )
@@ -935,6 +1031,7 @@ class FileIndexPage(BasePage):
             fn=lambda: (
                 gr.update(visible=True),
                 gr.update(visible=False),
+                gr.update(visible=True),
                 gr.update(visible=True),
                 gr.update(visible=True),
                 gr.update(visible=True),
@@ -1123,7 +1220,7 @@ class FileIndexPage(BasePage):
 
         outputs, debugs = [], []
         # stream the output
-        output_stream = indexing_pipeline.stream(files, reindex=reindex)
+        output_stream = indexing_pipeline.stream(files)
         try:
             while True:
                 response = next(output_stream)
@@ -1157,7 +1254,7 @@ class FileIndexPage(BasePage):
         return results
 
     def index_fn_file_with_default_loaders(
-        self, files, reindex: bool, settings, user_id
+        self, files, settings, user_id
     ) -> list["str"]:
         """Function for quick upload with default loaders
 
@@ -1187,7 +1284,7 @@ class FileIndexPage(BasePage):
         settings[f"index.options.{self._index.id}.reader_mode"] = "default"
         settings[f"index.options.{self._index.id}.quick_index_mode"] = True
         if to_process_files:
-            _iter = self.index_fn(to_process_files, [], reindex, settings, user_id)
+            _iter = self.index_fn(to_process_files, [], settings, user_id)
             try:
                 while next(_iter):
                     pass
@@ -1198,8 +1295,6 @@ class FileIndexPage(BasePage):
 
     def index_fn_url_with_default_loaders(
         self,
-        urls,
-        reindex: bool,
         settings,
         user_id,
         request: gr.Request,
@@ -1213,7 +1308,7 @@ class FileIndexPage(BasePage):
         settings[f"index.options.{self._index.id}.quick_index_mode"] = True
 
         if KH_DEMO_MODE:
-            urls_splitted = urls.split("\n")
+            urls_splitted = urls.split("")
             if not all(is_arxiv_url(url) for url in urls_splitted):
                 raise ValueError("All URLs must be valid arXiv URLs")
 
@@ -1249,19 +1344,19 @@ class FileIndexPage(BasePage):
                     returned_ids = e.value
 
             returned_ids = exist_ids + returned_ids
-        else:
-            if urls:
-                _iter = self.index_fn([], urls, reindex, settings, user_id)
-                try:
-                    while next(_iter):
-                        pass
-                except StopIteration as e:
-                    returned_ids = e.value
+        # else:
+        #     if urls:
+        #         _iter = self.index_fn([], urls, reindex, settings, user_id)
+        #         try:
+        #             while next(_iter):
+        #                 pass
+        #         except StopIteration as e:
+        #             returned_ids = e.value
 
         return returned_ids
 
     def index_files_from_dir(
-        self, folder_path, reindex, settings, user_id
+        self, folder_path, settings, user_id
     ) -> Generator[tuple[str, str], None, None]:
         """This should be constructable by users
 
@@ -1331,7 +1426,7 @@ class FileIndexPage(BasePage):
             for p in exclude_patterns:
                 files = [f for f in files if not fnmatch.fnmatch(name=f, pat=p)]
 
-        yield from self.index_fn(files, [], reindex, settings, user_id)
+        yield from self.index_fn(files, [], settings, user_id)
 
     def format_size_human_readable(self, num: float | str, suffix="B"):
         try:

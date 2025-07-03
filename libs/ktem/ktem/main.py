@@ -1,4 +1,5 @@
 import gradio as gr
+import os
 from decouple import config
 from ktem.app import BaseApp
 from ktem.pages.chat import ChatPage
@@ -12,6 +13,10 @@ KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
 KH_ENABLE_FIRST_SETUP = getattr(flowsettings, "KH_ENABLE_FIRST_SETUP", False)
 KH_APP_DATA_EXISTS = getattr(flowsettings, "KH_APP_DATA_EXISTS", True)
+
+ASSETS_DIR = "assets/icons"
+if not os.path.isdir(ASSETS_DIR):
+    ASSETS_DIR = "libs/ktem/ktem/assets/icons"
 
 # override first setup setting
 if config("KH_FIRST_SETUP", default=False, cast=bool):
@@ -43,82 +48,153 @@ class App(BaseApp):
         """Render the UI"""
         self._tabs = {}
 
-        with gr.Tabs() as self.tabs:
-            if self.f_user_management:
-                from ktem.pages.login import LoginPage
+        with gr.Row():
+            with gr.Tabs() as self.tabs:
+                if self.f_user_management:
+                    from ktem.pages.login import LoginPage
 
-                with gr.Tab(
-                    "Welcome", elem_id="login-tab", id="login-tab"
-                ) as self._tabs["login-tab"]:
-                    self.login_page = LoginPage(self)
-
-            with gr.Tab(
-                "Chat",
-                elem_id="chat-tab",
-                id="chat-tab",
-                visible=not self.f_user_management,
-            ) as self._tabs["chat-tab"]:
-                self.chat_page = ChatPage(self)
-
-            if len(self.index_manager.indices) == 1:
-                for index in self.index_manager.indices:
                     with gr.Tab(
-                        f"{index.name}",
-                        elem_id="indices-tab",
-                        elem_classes=[
-                            "fill-main-area-height",
-                            "scrollable",
-                            "indices-tab",
-                        ],
-                        id="indices-tab",
-                        visible=not self.f_user_management and not KH_DEMO_MODE,
-                    ) as self._tabs[f"{index.id}-tab"]:
-                        page = index.get_index_page_ui()
-                        setattr(self, f"_index_{index.id}", page)
-            elif len(self.index_manager.indices) > 1:
+                        "Welcome", elem_id="login-tab", id="login-tab"
+                    ) as self._tabs["login-tab"]:
+                        self.login_page = LoginPage(self)
+
                 with gr.Tab(
-                    "Files",
-                    elem_id="indices-tab",
-                    elem_classes=["fill-main-area-height", "scrollable", "indices-tab"],
-                    id="indices-tab",
-                    visible=not self.f_user_management and not KH_DEMO_MODE,
-                ) as self._tabs["indices-tab"]:
+                    "Chat",
+                    elem_id="chat-tab",
+                    id="chat-tab",
+                    visible=not self.f_user_management,
+                ) as self._tabs["chat-tab"]:
+                    self.chat_page = ChatPage(self)
+
+                if len(self.index_manager.indices) == 1:
                     for index in self.index_manager.indices:
                         with gr.Tab(
-                            index.name,
-                            elem_id=f"{index.id}-tab",
+                            f"{index.name}",
+                            elem_id="indices-tab",
+                            elem_classes=[
+                                "fill-main-area-height",
+                                "scrollable",
+                                "indices-tab",
+                            ],
+                            id="indices-tab",
+                            visible=not self.f_user_management and not KH_DEMO_MODE,
                         ) as self._tabs[f"{index.id}-tab"]:
                             page = index.get_index_page_ui()
                             setattr(self, f"_index_{index.id}", page)
-
-            if not KH_DEMO_MODE:
-                if not KH_SSO_ENABLED:
+                elif len(self.index_manager.indices) > 1:
                     with gr.Tab(
-                        "Resources",
-                        elem_id="resources-tab",
-                        id="resources-tab",
-                        visible=not self.f_user_management,
-                        elem_classes=["fill-main-area-height", "scrollable"],
-                    ) as self._tabs["resources-tab"]:
-                        self.resources_page = ResourcesTab(self)
+                        "Files",
+                        elem_id="indices-tab",
+                        elem_classes=["fill-main-area-height", "scrollable", "indices-tab"],
+                        id="indices-tab",
+                        visible=not self.f_user_management and not KH_DEMO_MODE,
+                    ) as self._tabs["indices-tab"]:
+                        for index in self.index_manager.indices:
+                            with gr.Tab(
+                                index.name,
+                                elem_id=f"{index.id}-tab",
+                            ) as self._tabs[f"{index.id}-tab"]:
+                                page = index.get_index_page_ui()
+                                setattr(self, f"_index_{index.id}", page)
 
                 with gr.Tab(
-                    "Settings",
-                    elem_id="settings-tab",
-                    id="settings-tab",
-                    visible=not self.f_user_management,
-                    elem_classes=["fill-main-area-height", "scrollable"],
-                ) as self._tabs["settings-tab"]:
-                    self.settings_page = SettingsPage(self)
+                        "User",
+                        elem_id="settings-tab",
+                        id="settings-tab",
+                        visible=False,  # pastikan tab user tidak muncul
+                        elem_classes=["fill-main-area-height", "scrollable"],
+                    ) as self._tabs["settings-tab"]:
+                        self.settings_page = SettingsPage(self)
 
-            with gr.Tab(
-                "Help",
-                elem_id="help-tab",
-                id="help-tab",
-                visible=not self.f_user_management,
-                elem_classes=["fill-main-area-height", "scrollable"],
-            ) as self._tabs["help-tab"]:
-                self.help_page = HelpPage(self)
+                with gr.Tab(
+                    "Help",
+                    elem_id="help-tab",
+                    id="help-tab",
+                    visible=False,  # pastikan tab help tidak muncul
+                    elem_classes=["fill-main-area-height", "scrollable"],
+                ) as self._tabs["help-tab"]:
+                    self.help_page = HelpPage(self)
+
+        with gr.Column(
+            elem_classes=["additional-tab-button-col"]
+        ):
+            gr.HTML('<link rel="stylesheet" href="/file/libs/ktem/ktem/assets/css/body-text-color-active.css">')
+            # State untuk tab aktif
+            active_tab = gr.State(value="other")
+            # Tombol untuk mengubah tab ke 'help-tab'
+            help_button = gr.Button(
+                "",
+                elem_id="help-tab-button-icon",
+                icon=f"{ASSETS_DIR}/info-circle.svg",
+                visible=True,
+                size="lg",
+                variant="secondary",
+                elem_classes=["additional-tab-button", "no-background", "body-text-color"]
+            )
+            # Tombol untuk mengubah tab ke 'settings-tab'
+            user_button = gr.Button(
+                "User",
+                elem_id="user-tab-button-icon",
+                icon=f"{ASSETS_DIR}/user.svg",
+                visible=True,
+                size="lg",
+                variant="secondary",
+                elem_classes=["additional-tab-button", "no-background", "body-text-color"]
+            )
+
+            def set_tab(tab_id):
+                return gr.update(selected=tab_id), tab_id
+
+            # Saat user_button di-click, pindahkan tab ke 'settings-tab' dan update state
+            user_button.click(
+                fn=lambda: set_tab("settings-tab"),
+                outputs=[self.tabs, active_tab]
+            )
+            # Saat help_button di-click, pindahkan tab ke 'help-tab' dan update state
+            help_button.click(
+                fn=lambda: set_tab("help-tab"),
+                outputs=[self.tabs, active_tab]
+            )
+
+            # Ganti icon sesuai tab aktif
+            def update_icons(tab_id, reset):
+                print(f"update_icons dipanggil dengan tab_id: {tab_id}")
+                # Jika dipanggil dari self.tabs.select, set active_tab ke 'other' agar tombol reset
+                if reset == "from_select":
+                    return (
+                        gr.update(icon=f"{ASSETS_DIR}/info-circle.svg"),
+                        gr.update(icon=f"{ASSETS_DIR}/user.svg", elem_classes=["additional-tab-button", "no-background", "body-text-color"]),
+                        "other"
+                    )
+                # Ubah warna text dan icon sesuai tab aktif
+                help_active = tab_id == "help-tab"
+                user_active = tab_id == "settings-tab"
+                return (
+                    gr.update(
+                        icon=f"{ASSETS_DIR}/info-circle-active.svg" if help_active else f"{ASSETS_DIR}/info-circle.svg"
+                    ),
+                    gr.update(
+                        icon=f"{ASSETS_DIR}/user-active.svg" if user_active else f"{ASSETS_DIR}/user.svg",
+                        elem_classes=[
+                            "additional-tab-button", "no-background", "body-text-color", ("additional-tab-button-active" if user_active else "")
+                        ]
+                    ),
+                    tab_id
+                )
+            active_tab.change(
+                fn=lambda tab_id: update_icons(tab_id, None)[:2],
+                inputs=active_tab,
+                outputs=[help_button, user_button],
+                show_progress="hidden"
+            )
+
+            # Update tombol setiap kali tab berubah (tanpa reset_state)
+            self.tabs.select(
+                fn=lambda tab_id: update_icons(tab_id, "from_select"),
+                inputs=[active_tab],
+                outputs=[help_button, user_button, active_tab],
+                show_progress="hidden"
+            )
 
         if KH_ENABLE_FIRST_SETUP:
             with gr.Column(visible=False) as self.setup_page_wrapper:
