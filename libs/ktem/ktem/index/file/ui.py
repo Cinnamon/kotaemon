@@ -218,16 +218,14 @@ class FileIndexPage(BasePage):
         self.file_list_state = gr.State(value=None)
         self.file_list = gr.DataFrame(
             headers=[
-                "id",
                 "name",
+                "company",
                 "size",
-                "tokens",
-                "loader",
-                "date_created",
+                "date",
             ],
-            column_widths=["0%", "50%", "8%", "7%", "15%", "20%"],
+            column_widths=["20%", "30%", "7%", "7%"],
             interactive=False,
-            wrap=False,
+            wrap=True,
             elem_id="file_list_view",
         )
 
@@ -240,12 +238,14 @@ class FileIndexPage(BasePage):
                     self.show_selected_button = gr.DownloadButton(
                         "Show",
                         variant="primary",
-                        interactive=False
+                        interactive=False,
+                        visible=True,
                     )
                     self.delete_selected_button = gr.Button(
                         "Delete",
                         variant="stop",
-                        interactive=False
+                        interactive=False,
+                        visible=True,
                     )
         #end //hamam
 
@@ -296,14 +296,14 @@ class FileIndexPage(BasePage):
         self.group_list_state = gr.State(value=None)
         self.group_list = gr.DataFrame(
             headers=[
-                "id",
                 "name",
-                "files",
-                "date_created",
+                "company",
+                "size",
+                "date",
             ],
-            column_widths=["0%", "25%", "55%", "20%"],
+            column_widths=["20%", "30%", "7%", "7%"],
             interactive=False,
-            wrap=False,
+            wrap=True,
         )
 
         with gr.Row():
@@ -455,50 +455,50 @@ class FileIndexPage(BasePage):
 
     def file_selected(self, file_id):
         chunks = []
-        if file_id is not None:
+        # if file_id is not None:
             # get the chunks
 
-            Index = self._index._resources["Index"]
-            with Session(engine) as session:
-                matches = session.execute(
-                    select(Index).where(
-                        Index.source_id == file_id,
-                        Index.relation_type == "document",
-                    )
-                )
-                doc_ids = [doc.target_id for (doc,) in matches]
-                docs = self._index._docstore.get(doc_ids)
-                docs = sorted(
-                    docs, key=lambda x: x.metadata.get("page_label", float("inf"))
-                )
+            # Index = self._index._resources["Index"]
+            # with Session(engine) as session:
+            #     matches = session.execute(
+            #         select(Index).where(
+            #             Index.source_id == file_id,
+            #             Index.relation_type == "document",
+            #         )
+            #     )
+            #     doc_ids = [doc.target_id for (doc,) in matches]
+            #     docs = self._index._docstore.get(doc_ids)
+            #     docs = sorted(
+            #         docs, key=lambda x: x.metadata.get("page_label", float("inf"))
+            #     )
 
-                for idx, doc in enumerate(docs):
-                    title = html.escape(
-                        f"{doc.text[:50]}..." if len(doc.text) > 50 else doc.text
-                    )
-                    doc_type = doc.metadata.get("type", "text")
-                    content = ""
-                    if doc_type == "text":
-                        content = html.escape(doc.text)
-                    elif doc_type == "table":
-                        content = Render.table(doc.text)
-                    elif doc_type == "image":
-                        content = Render.image(
-                            url=doc.metadata.get("image_origin", ""), text=doc.text
-                        )
+            #     for idx, doc in enumerate(docs):
+            #         title = html.escape(
+            #             f"{doc.text[:50]}..." if len(doc.text) > 50 else doc.text
+            #         )
+            #         doc_type = doc.metadata.get("type", "text")
+            #         content = ""
+            #         if doc_type == "text":
+            #             content = html.escape(doc.text)
+            #         elif doc_type == "table":
+            #             content = Render.table(doc.text)
+            #         elif doc_type == "image":
+            #             content = Render.image(
+            #                 url=doc.metadata.get("image_origin", ""), text=doc.text
+            #             )
 
-                    header_prefix = f"[{idx+1}/{len(docs)}]"
-                    if doc.metadata.get("page_label"):
-                        header_prefix += f" [Page {doc.metadata['page_label']}]"
+            #         header_prefix = f"[{idx+1}/{len(docs)}]"
+            #         if doc.metadata.get("page_label"):
+            #             header_prefix += f" [Page {doc.metadata['page_label']}]"
 
-                    chunks.append(
-                        Render.collapsible(
-                            header=f"{header_prefix} {title}",
-                            content=content,
-                        )
-                    )
+            #         chunks.append(
+            #             Render.collapsible(
+            #                 header=f"{header_prefix} {title}",
+            #                 content=content,
+            #             )
+            #         )
         return (
-            gr.update(value="".join(chunks), visible=file_id is not None),
+            gr.update(value="".join(chunks), visible=False),
             gr.update(visible=False),
             gr.update(visible=False),
             gr.update(visible=False),
@@ -846,12 +846,9 @@ class FileIndexPage(BasePage):
                 outputs=[self.file_list_state, self.file_list],
             )
             .then(
-                fn=self.file_selected,
-                inputs=[self.selected_file_id],
-                outputs=[
-                    self.delete_selected_button,
-                    self.show_selected_button,
-                ],
+                fn=lambda: [gr.update(interactive=False, visible=True), gr.update(interactive=False, visible=True)],
+                inputs=[],
+                outputs=[self.delete_selected_button, self.show_selected_button],
                 show_progress="hidden",
             )
         )
@@ -1450,12 +1447,10 @@ class FileIndexPage(BasePage):
             return [], pd.DataFrame.from_records(
                 [
                     {
-                        "id": "-",
                         "name": "-",
+                        "company": "-",
                         "size": "-",
-                        "tokens": "-",
-                        "loader": "-",
-                        "date_created": "-",
+                        "date": "-",
                     }
                 ]
             )
@@ -1467,19 +1462,21 @@ class FileIndexPage(BasePage):
                 statement = statement.where(Source.user == user_id)
             if name_pattern:
                 statement = statement.where(Source.name.ilike(f"%{name_pattern}%"))
-            results = [
-                {
-                    "id": each[0].id,
-                    "name": each[0].name,
-                    "size": self.format_size_human_readable(each[0].size),
-                    "tokens": self.format_size_human_readable(
-                        each[0].note.get("tokens", "-"), suffix=""
-                    ),
-                    "loader": each[0].note.get("loader", "-"),
-                    "date_created": each[0].date_created.strftime("%Y-%m-%d %H:%M:%S"),
-                }
-                for each in session.execute(statement).all()
-            ]
+
+            results = []
+            for each in session.execute(statement).all():
+                item = each[0]
+                note = getattr(item, 'note', {}) or {}
+                date_val = note.get('date_from_file_name') or note.get('date_from_content') or item.date_created.strftime("%Y-%m-%d")
+                company_val = "-"
+                if hasattr(item, 'company') and isinstance(item.company, list) and len(item.company) > 0:
+                    company_val = " ".join(f"- {str(c)}" for c in item.company if c)
+                results.append({
+                    "name": item.name,
+                    "company": company_val,
+                    "size": self.format_size_human_readable(item.size),
+                    "date": date_val,
+                })
 
         if results:
             file_list = pd.DataFrame.from_records(results)
@@ -1487,12 +1484,10 @@ class FileIndexPage(BasePage):
             file_list = pd.DataFrame.from_records(
                 [
                     {
-                        "id": "-",
                         "name": "-",
+                        "company": "-",
                         "size": "-",
-                        "tokens": "-",
-                        "loader": "-",
-                        "date_created": "-",
+                        "date": "-",
                     }
                 ]
             )
@@ -1519,10 +1514,10 @@ class FileIndexPage(BasePage):
             return [], pd.DataFrame.from_records(
                 [
                     {
-                        "id": "-",
                         "name": "-",
-                        "files": "-",
-                        "date_created": "-",
+                        "company": "-",
+                        "size": "-",
+                        "date": "-",
                     }
                 ]
             )
@@ -1564,10 +1559,10 @@ class FileIndexPage(BasePage):
             group_list = pd.DataFrame.from_records(
                 [
                     {
-                        "id": "-",
                         "name": "-",
-                        "files": "-",
-                        "date_created": "-",
+                        "company": "-",
+                        "size": "-",
+                        "date": "-",
                     }
                 ]
             )

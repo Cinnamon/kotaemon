@@ -127,6 +127,11 @@ class App(BaseApp):
         if KH_ENABLE_FIRST_SETUP:
             with gr.Column(visible=False) as self.setup_page_wrapper:
                 self.setup_page = SetupPage(self)
+                # Hide help and user button while setup page is shown
+                if hasattr(self, "help_button") and self.help_button is not None:
+                    self.help_button.visible = False
+                if hasattr(self, "user_button") and self.user_button is not None:
+                    self.user_button.visible = False
         with gr.Column(
             elem_classes=["additional-tab-button-col"]
         ):
@@ -215,14 +220,14 @@ class App(BaseApp):
             def toggle_login_visibility(user_id):
                 # Update tab visibility
                 if not user_id:
-                    # Hide help/user button if on login page, dan tambahkan force-hide pada user button
+                    # Hide help/user button if on login page
                     return (
                         [
                             gr.update(visible=True) if k == "login-tab" else gr.update(visible=False)
                             for k in self._tabs.keys()
                         ]
                         + [gr.update(selected="login-tab")]
-                        + [gr.update(visible=False), gr.update(visible=False, elem_classes=["additional-tab-button", "no-background", "body-text-color", "force-hide"])]
+                        + [gr.update(visible=False), gr.update(visible=False, icon=f"{ASSETS_DIR}/user.svg", elem_classes=["additional-tab-button", "no-background", "body-text-color", "force-hide"])]
                     )
 
                 with Session(engine) as session:
@@ -234,7 +239,7 @@ class App(BaseApp):
                                 for k in self._tabs.keys()
                             ]
                             + [gr.update(selected="login-tab")]
-                            + [gr.update(visible=False), gr.update(visible=False, elem_classes=["additional-tab-button", "no-background", "body-text-color", "force-hide"])]
+                            + [gr.update(visible=False), gr.update(visible=False, icon=f"{ASSETS_DIR}/user.svg", elem_classes=["additional-tab-button", "no-background", "body-text-color", "force-hide"])]
                         )
 
                     is_admin = user.admin
