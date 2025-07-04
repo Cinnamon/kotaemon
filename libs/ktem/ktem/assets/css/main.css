@@ -192,12 +192,6 @@ mark {
   display: block !important;
 }
 
-#toggle-dark-button {
-  position: fixed;
-  top: 6px;
-  right: 30px;
-}
-
 #info-expand-button {
   position: absolute;
   top: 6px;
@@ -481,7 +475,7 @@ div.markmap {
 .additional-tab-button-col {
   position: absolute;
   top: 0px;
-  right: -30px;
+  right: -40px;
   max-width: 200px !important;
   display: flex !important;
   flex-direction: row !important;
@@ -504,12 +498,16 @@ div.markmap {
 #help-tab-button-icon {
   max-width: 65px !important;
 }
+
 #user-tab-button-icon {
-    display: flex !important;
+    display: flex;
     flex-direction: row-reverse !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 10px;
+}
+.force-hide {
+  display: none !important;
 }
 .additional-tab-button-active {
   color: #10b981 !important; /* Emerald/green, bisa diganti sesuai kebutuhan */
@@ -517,7 +515,7 @@ div.markmap {
 
 #toggle-dark-button {
   position: fixed;
-  bottom: 6px;
-  right: 30px;
+  bottom: 16px;
+  right: -30px;
 }
 

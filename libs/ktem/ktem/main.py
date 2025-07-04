@@ -109,48 +109,60 @@ class App(BaseApp):
                     "Help",
                     elem_id="help-tab",
                     id="help-tab",
-                    visible=False,  # pastikan tab help tidak muncul
+                    visible=False,
                     elem_classes=["fill-main-area-height", "scrollable"],
                 ) as self._tabs["help-tab"]:
                     self.help_page = HelpPage(self)
-
+                    
+                if not KH_DEMO_MODE:
+                    if not KH_SSO_ENABLED:
+                        with gr.Tab(
+                            "Resources",
+                            elem_id="resources-tab",
+                            id="resources-tab",
+                            visible=False,
+                            elem_classes=["fill-main-area-height", "scrollable"],
+                        ) as self._tabs["resources-tab"]:
+                            self.resources_page = ResourcesTab(self)
+        if KH_ENABLE_FIRST_SETUP:
+            with gr.Column(visible=False) as self.setup_page_wrapper:
+                self.setup_page = SetupPage(self)
         with gr.Column(
             elem_classes=["additional-tab-button-col"]
         ):
-            gr.HTML('<link rel="stylesheet" href="/file/libs/ktem/ktem/assets/css/body-text-color-active.css">')
             # State untuk tab aktif
             active_tab = gr.State(value="other")
             # Tombol untuk mengubah tab ke 'help-tab'
-            help_button = gr.Button(
+            self.help_button = gr.Button(
                 "",
                 elem_id="help-tab-button-icon",
                 icon=f"{ASSETS_DIR}/info-circle.svg",
-                visible=True,
+                visible=False,
                 size="lg",
                 variant="secondary",
                 elem_classes=["additional-tab-button", "no-background", "body-text-color"]
             )
             # Tombol untuk mengubah tab ke 'settings-tab'
-            user_button = gr.Button(
+            self.user_button = gr.Button(
                 "User",
                 elem_id="user-tab-button-icon",
                 icon=f"{ASSETS_DIR}/user.svg",
-                visible=True,
+                visible=False,
                 size="lg",
                 variant="secondary",
-                elem_classes=["additional-tab-button", "no-background", "body-text-color"]
+                elem_classes=["additional-tab-button", "no-background", "body-text-color", "force-hide"]
             )
 
             def set_tab(tab_id):
                 return gr.update(selected=tab_id), tab_id
 
             # Saat user_button di-click, pindahkan tab ke 'settings-tab' dan update state
-            user_button.click(
+            self.user_button.click(
                 fn=lambda: set_tab("settings-tab"),
                 outputs=[self.tabs, active_tab]
             )
             # Saat help_button di-click, pindahkan tab ke 'help-tab' dan update state
-            help_button.click(
+            self.help_button.click(
                 fn=lambda: set_tab("help-tab"),
                 outputs=[self.tabs, active_tab]
             )
@@ -182,7 +194,7 @@ class App(BaseApp):
             active_tab.change(
                 fn=lambda tab_id: update_icons(tab_id, None)[:2],
                 inputs=active_tab,
-                outputs=[help_button, user_button],
+                outputs=[self.help_button, self.user_button],
                 show_progress="hidden"
             )
 
@@ -190,24 +202,9 @@ class App(BaseApp):
             self.tabs.select(
                 fn=lambda tab_id: update_icons(tab_id, "from_select"),
                 inputs=[active_tab],
-                outputs=[help_button, user_button, active_tab],
+                outputs=[self.help_button, self.user_button, active_tab],
                 show_progress="hidden"
             )
-            if not KH_DEMO_MODE:
-                if not KH_SSO_ENABLED:
-                    with gr.Tab(
-                        "Resources",
-                        elem_id="resources-tab",
-                        id="resources-tab",
-                        visible=False,
-                        elem_classes=["fill-main-area-height", "scrollable"],
-                    ) as self._tabs["resources-tab"]:
-                        self.resources_page = ResourcesTab(self)
-
-
-        if KH_ENABLE_FIRST_SETUP:
-            with gr.Column(visible=False) as self.setup_page_wrapper:
-                self.setup_page = SetupPage(self)
 
     def on_subscribe_public_events(self):
         if self.f_user_management:
@@ -216,26 +213,28 @@ class App(BaseApp):
             from sqlmodel import Session, select
 
             def toggle_login_visibility(user_id):
+                # Update tab visibility
                 if not user_id:
-                    return list(
-                        (
-                            gr.update(visible=True)
-                            if k == "login-tab"
-                            else gr.update(visible=False)
-                        )
-                        for k in self._tabs.keys()
-                    ) + [gr.update(selected="login-tab")]
+                    # Hide help/user button if on login page, dan tambahkan force-hide pada user button
+                    return (
+                        [
+                            gr.update(visible=True) if k == "login-tab" else gr.update(visible=False)
+                            for k in self._tabs.keys()
+                        ]
+                        + [gr.update(selected="login-tab")]
+                        + [gr.update(visible=False), gr.update(visible=False, elem_classes=["additional-tab-button", "no-background", "body-text-color", "force-hide"])]
+                    )
 
                 with Session(engine) as session:
                     user = session.exec(select(User).where(User.id == user_id)).first()
                     if user is None:
-                        return list(
-                            (
-                                gr.update(visible=True)
-                                if k == "login-tab"
-                                else gr.update(visible=False)
-                            )
-                            for k in self._tabs.keys()
+                        return (
+                            [
+                                gr.update(visible=True) if k == "login-tab" else gr.update(visible=False)
+                                for k in self._tabs.keys()
+                            ]
+                            + [gr.update(selected="login-tab")]
+                            + [gr.update(visible=False), gr.update(visible=False, elem_classes=["additional-tab-button", "no-background", "body-text-color", "force-hide"])]
                         )
 
                     is_admin = user.admin
@@ -250,7 +249,9 @@ class App(BaseApp):
                         tabs_update.append(gr.update(visible=True))
 
                 tabs_update.append(gr.update(selected="chat-tab"))
-
+                # Show help/user button after login
+                tabs_update.append(gr.update(visible=True))
+                tabs_update.append(gr.update(visible=True, elem_classes=["additional-tab-button", "no-background", "body-text-color"]))
                 return tabs_update
 
             self.subscribe_event(
@@ -258,7 +259,7 @@ class App(BaseApp):
                 definition={
                     "fn": toggle_login_visibility,
                     "inputs": [self.user_id],
-                    "outputs": list(self._tabs.values()) + [self.tabs],
+                    "outputs": list(self._tabs.values()) + [self.tabs, self.help_button, self.user_button],
                     "show_progress": "hidden",
                 },
             )
@@ -268,7 +269,7 @@ class App(BaseApp):
                 definition={
                     "fn": toggle_login_visibility,
                     "inputs": [self.user_id],
-                    "outputs": list(self._tabs.values()) + [self.tabs],
+                    "outputs": list(self._tabs.values()) + [self.tabs, self.help_button, self.user_button],
                     "show_progress": "hidden",
                 },
             )
