@@ -361,7 +361,7 @@ class FileIndexPage(BasePage):
                         if msg:
                             gr.Markdown(msg)
 
-                    with gr.Tab("Use Web Links", visible=False):
+                    with gr.Column("Use Web Links", visible=False):
                         self.urls = gr.Textbox(
                             label="Input web URLs",
                             lines=8,
@@ -508,6 +508,7 @@ class FileIndexPage(BasePage):
         )
 
     def delete_event(self, file_id):
+        import os
         file_name = ""
         with Session(engine) as session:
             source = session.execute(
@@ -517,6 +518,35 @@ class FileIndexPage(BasePage):
             ).first()
             if source:
                 file_name = source[0].name
+                # Hapus file fisik jika ada
+                # Coba cari di folder gradio_tmp dan folder chunks/markdown jika perlu
+                try:
+                    # Folder utama gradio_tmp
+                    gradio_tmp_dir = getattr(flowsettings, "KH_GRADIO_TMP_DIR", None)
+                    if gradio_tmp_dir:
+                        file_path = os.path.join(gradio_tmp_dir, file_name)
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
+                    # Folder chunks
+                    chunks_dir = getattr(flowsettings, "KH_CHUNKS_OUTPUT_DIR", None)
+                    if chunks_dir:
+                        for f in os.listdir(chunks_dir):
+                            if file_name in f:
+                                try:
+                                    os.remove(os.path.join(chunks_dir, f))
+                                except Exception:
+                                    pass
+                    # Folder markdown
+                    markdown_dir = getattr(flowsettings, "KH_MARKDOWN_OUTPUT_DIR", None)
+                    if markdown_dir:
+                        for f in os.listdir(markdown_dir):
+                            if file_name in f:
+                                try:
+                                    os.remove(os.path.join(markdown_dir, f))
+                                except Exception:
+                                    pass
+                except Exception as e:
+                    print(f"[WARNING] Failed to remove file: {e}")
                 session.delete(source[0])
 
             vs_ids, ds_ids = [], []
@@ -793,6 +823,7 @@ class FileIndexPage(BasePage):
         if KH_DEMO_MODE:
             return
 
+        import pandas as pd
         onDeleted = (
             self.delete_button.click(
                 fn=self.delete_event,
@@ -811,14 +842,26 @@ class FileIndexPage(BasePage):
                 outputs=[self.file_list_state, self.file_list],
             )
             .then(
-                fn=self.file_selected,
-                inputs=[self.selected_file_id],
+                fn=lambda: [
+                    gr.update(value=None),  # clear selection/focus on DataFrame
+                    gr.update(value=""),
+                    gr.update(visible=False),
+                    gr.update(visible=False),
+                    gr.update(visible=False),
+                    gr.update(visible=False),
+                    gr.update(visible=False),
+                    gr.update(selected=None),  # only clear selection, not value
+                ],
+                inputs=[],
                 outputs=[
                     self.chunks,
+                    self.selected_panel,
                     self.deselect_button,
                     self.delete_button,
                     self.download_single_button,
                     self.chat_button,
+                    self.selected_file_id,
+                    self.file_list,
                 ],
                 show_progress="hidden",
             )
@@ -846,9 +889,13 @@ class FileIndexPage(BasePage):
                 outputs=[self.file_list_state, self.file_list],
             )
             .then(
-                fn=lambda: [gr.update(interactive=False, visible=True), gr.update(interactive=False, visible=True)],
+                fn=lambda: [
+                    gr.update(interactive=False, visible=True),
+                    gr.update(interactive=False, visible=True),
+                    gr.update(selected=None),  # only clear selection, not value
+                ],
                 inputs=[],
-                outputs=[self.delete_selected_button, self.show_selected_button],
+                outputs=[self.delete_selected_button, self.show_selected_button, self.file_list],
                 show_progress="hidden",
             )
         )
@@ -998,7 +1045,7 @@ class FileIndexPage(BasePage):
 
         self.file_list.select(
             fn=self.interact_file_list,
-            inputs=[self.file_list],
+            inputs=[self.file_list_state],
             outputs=[self.selected_file_id, self.selected_panel],
             show_progress="hidden",
         ).then(
@@ -1472,6 +1519,7 @@ class FileIndexPage(BasePage):
                 if hasattr(item, 'company') and isinstance(item.company, list) and len(item.company) > 0:
                     company_val = " ".join(f"- {str(c)}" for c in item.company if c)
                 results.append({
+                    "id": item.id,  # simpan id di state
                     "name": item.name,
                     "company": company_val,
                     "size": self.format_size_human_readable(item.size),
@@ -1479,7 +1527,13 @@ class FileIndexPage(BasePage):
                 })
 
         if results:
-            file_list = pd.DataFrame.from_records(results)
+            # Hide 'id' from DataFrame shown in Gradio, but keep it in results (state)
+            file_list = pd.DataFrame.from_records(
+                [
+                    {k: v for k, v in item.items() if k != "id"}
+                    for item in results
+                ]
+            )
         else:
             file_list = pd.DataFrame.from_records(
                 [
@@ -1646,8 +1700,9 @@ class FileIndexPage(BasePage):
         if not ev.selected:
             return None, self.selected_panel_false
 
-        return list_files["id"][ev.index[0]], self.selected_panel_true.format(
-            name=list_files["name"][ev.index[0]]
+        idx = ev.index[0]
+        return list_files[idx]["id"], self.selected_panel_true.format(
+            name=list_files[idx]["name"]
         )
 
     def interact_group_list(self, list_groups, ev: gr.SelectData):
