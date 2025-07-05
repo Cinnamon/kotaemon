@@ -155,15 +155,10 @@ class FileIndexPage(BasePage):
     # new dataframe filter
     def filter_file_list(self, file_list_state, name, company, date_start, date_end):
         import pandas as pd
-        
-        print(f"Filtering file list with parameters: name: {name}, company: {company}, start: {date_start}, end: {date_end}")
 
         if file_list_state is None or not isinstance(file_list_state, list):
-            print("File list state is empty or not a list, returning empty DataFrame.")
             return gr.update()
         df = pd.DataFrame(file_list_state)
-        print(f"Initial DataFrame:\n{df.head()}")  # Debugging line
-        # Convert 'date' column to datetime for safe comparison
         if 'date' in df.columns:
             df['date'] = pd.to_datetime(df['date'], errors='coerce')
         if name:
@@ -171,17 +166,17 @@ class FileIndexPage(BasePage):
         if company:
             df = df[df['company'].str.contains(company, case=False, na=False)]
         if date_start:
-            print(f"Filtering from start date: {date_start}")
             date_start_dt = pd.to_datetime(date_start, errors='coerce')
-            print(f"date_start_dt: {date_start_dt}")
             df = df[df['date'] >= date_start_dt]
         if date_end:
             date_end_dt = pd.to_datetime(date_end, errors='coerce')
             df = df[df['date'] <= date_end_dt]
-        # Hide 'id' if ada
+            
         if 'id' in df.columns:
             df = df.drop(columns=['id'])
-            
+
+        if 'date' in df.columns:
+            df['date'] = df['date'].dt.strftime('%Y-%m-%d')            
         
         return gr.update(value=df)
         
