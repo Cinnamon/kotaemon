@@ -190,7 +190,7 @@ class FileIndexPage(BasePage):
     def clear_filters_and_refresh(self, file_list_state):
         # Kosongkan semua filter dan refresh
         print("Clearing filters...")  # Debug
-        return self.filter_file_list(file_list_state, "", "", None, None), "", "", None, None
+        return self.filter_file_list(file_list_state, "", "", "", ""), "", "", "", ""
 
     def upload_instruction(self) -> str:
         msgs = []
