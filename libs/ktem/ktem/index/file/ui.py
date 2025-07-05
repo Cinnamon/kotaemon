@@ -156,15 +156,11 @@ class FileIndexPage(BasePage):
     # new dataframe filter
     def filter_file_list(self, file_list_state, name, company, date_start, date_end):
         import pandas as pd
-        
-        print(f"Filtering file list with parameters: name: {name}, company: {company}, start: {date_start}, end: {date_end}")
+
 
         if file_list_state is None or not isinstance(file_list_state, list):
-            print("File list state is empty or not a list, returning empty DataFrame.")
             return gr.update()
         df = pd.DataFrame(file_list_state)
-        print(f"Initial DataFrame:\n{df.head()}")  # Debugging line
-        # Convert 'date' column to datetime for safe comparison
         if 'date' in df.columns:
             df['date'] = pd.to_datetime(df['date'], errors='coerce')
         if name:
@@ -182,6 +178,10 @@ class FileIndexPage(BasePage):
         # Hide 'id' if ada
         if 'id' in df.columns:
             df = df.drop(columns=['id'])
+        
+        # Format date column to show only date (not datetime)
+        if 'date' in df.columns:
+            df['date'] = df['date'].dt.strftime('%Y-%m-%d')
             
         
         return gr.update(value=df)
