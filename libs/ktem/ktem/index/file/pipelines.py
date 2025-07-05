@@ -555,9 +555,10 @@ class IndexPipeline(BaseComponent):
             file_hash = sha256(fi.read()).hexdigest()
 
         shutil.copy(file_path, self.FSPath / file_hash)
+        rel_path = os.path.relpath(file_path, start=os.getcwd())
         source = self.Source(
             name=file_path.name,
-            path=file_hash,
+            path=rel_path,
             size=file_path.stat().st_size,
             user=self.user_id,  # type: ignore
         )

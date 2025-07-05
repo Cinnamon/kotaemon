@@ -37,6 +37,7 @@ from .control import ConversationControl
 from .demo_hint import HintPage
 from .paper_list import PaperListPage
 from .report import ReportIssue
+from .file_list import FileList
 
 KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
@@ -196,11 +197,28 @@ function(_, __) {
 }
 """
 
+pdflistview_js = """
+function() {
+    // Get all links and attach click event
+    var links = document.getElementsByClassName("pdf-file");
+
+    for (var i = 0; i < links.length; i++) {
+        links[i].onclick = openModalExpanded;
+    }
+
+    return [links.length]
+}
+"""
+
 
 class ChatPage(BasePage):
     def __init__(self, app):
         self._app = app
         self._indices_input = []
+
+        self.file_ids = []
+        self.indexFileSelector = ""
+        self.file_list_container = None
 
         self.on_building_ui()
 
@@ -247,6 +265,10 @@ class ChatPage(BasePage):
                         index_ui.render()
                         gr_index = index_ui.as_gradio_component()
 
+                        if index_id == 0:
+                            self.file_ids = index_ui.filtered_file_ids
+                            self.indexFileSelector = index
+
                         # get the file selector choices for the first index
                         if index_id == 0:
                             self.first_selector_choices = index_ui.selector_choices
@@ -267,6 +289,8 @@ class ChatPage(BasePage):
                                 index.default_selector = index_ui.default()
                                 self._indices_input.append(gr_index)
                         setattr(self, f"_index_{index.id}", index_ui)
+
+                self.file_list_container = FileList(self._app, self.indexFileSelector)
 
                 self.chat_suggestion = ChatSuggestion(self._app)
 
@@ -398,6 +422,7 @@ class ChatPage(BasePage):
 
         self.followup_questions = self.chat_suggestion.examples
         self.followup_questions_ui = self.chat_suggestion.accordion
+        self.modal_show = gr.HTML("<div id='pdf-modal-show'></div>")
 
     def _json_to_plot(self, json_dict: dict | None):
         if json_dict:
@@ -420,6 +445,17 @@ class ChatPage(BasePage):
                 outputs=None,
                 js=recommended_papers_js,
             )
+        
+        self.file_ids.change(
+            fn=self.file_list_container.update,
+            inputs=[self.file_ids],
+            outputs=[self.file_list_container.container],
+        ).then(
+            fn=None,
+            inputs=None,
+            outputs=None,
+            js=pdflistview_js,
+        )
 
         chat_event = (
             gr.on(

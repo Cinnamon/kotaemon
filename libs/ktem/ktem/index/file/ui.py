@@ -30,6 +30,11 @@ DOWNLOAD_MESSAGE = "Start download"
 MAX_FILENAME_LENGTH = 20
 MAX_FILE_COUNT = 200
 
+ASSETS_DIR = "assets/icons"
+if not os.path.isdir(ASSETS_DIR):
+    ASSETS_DIR = "libs/ktem/ktem/assets/icons"
+
+
 chat_input_focus_js = """
 function() {
     let chatInput = document.querySelector("#chat-input textarea");
@@ -163,34 +168,88 @@ class FileIndexPage(BasePage):
             return "\n".join(msgs)
 
         return ""
-
+    
+    #new filter
     def render_file_list(self):
-        self.filter = gr.Textbox(
-            value="",
-            label="Filter by name:",
-            info=(
-                "(1) Case-insensitive. "
-                "(2) Search with empty string to show all files."
-            ),
-        )
+        gr.Markdown("## List Files")
+        with gr.Row():
+            self.filter = gr.Textbox(
+                value="",
+                placeholder="File Name",
+                show_label=False,
+                scale=9,
+                interactive=True
+            )
+            self.company_filter = gr.Textbox(
+                value="",
+                placeholder="Company",
+                scale=9,
+                show_label=False,
+            )
+            self.date_start_filter = gr.DateTime(
+                include_time=False,
+                show_label=False,
+                scale=10,
+                elem_classes="datepick-file",
+            )
+            self.date_end_filter = gr.DateTime(
+                include_time=False,
+                show_label=False,
+                scale=10,
+                elem_classes="datepick-file",
+            )
+            self.btn_sch = gr.Button(
+                value="",
+                icon=f"{ASSETS_DIR}/search.svg",
+                min_width=2,
+                scale=1,
+                size="sm",
+                elem_classes=["no-background", "body-text-color"],
+            )
+            self.btn_del = gr.Button(
+                value="",
+                icon=f"{ASSETS_DIR}/filter-off.svg",
+                min_width=2,
+                scale=1,
+                size="sm",
+                elem_classes=["no-background", "body-text-color"],
+            )
+            
         self.file_list_state = gr.State(value=None)
         self.file_list = gr.DataFrame(
             headers=[
-                "id",
                 "name",
+                "company",
                 "size",
-                "tokens",
-                "loader",
-                "date_created",
+                "date",
             ],
-            column_widths=["0%", "50%", "8%", "7%", "15%", "20%"],
+            column_widths=["20%", "30%", "7%", "7%"],
             interactive=False,
-            wrap=False,
+            wrap=True,
             elem_id="file_list_view",
         )
 
+       # new file action
         with gr.Row():
+            with gr.Column():
+                pass 
+            with gr.Column(): 
+                with gr.Row():
+                    self.show_selected_button = gr.DownloadButton(
+                        "Show",
+                        variant="primary",
+                        interactive=False,
+                        visible=True,
+                    )
+                    self.delete_selected_button = gr.Button(
+                        "Delete",
+                        variant="stop",
+                        interactive=False,
+                        visible=True,
+                    )
+        #end //hamam
 
+        with gr.Row():
             self.chat_button = gr.Button(
                 "Go to Chat",
                 visible=False,
@@ -210,15 +269,15 @@ class FileIndexPage(BasePage):
                 visible=False,
             )
 
-        with gr.Row() as self.selection_info:
+        with gr.Row(visible=False) as self.selection_info:
             self.selected_file_id = gr.State(value=None)
             with gr.Column(scale=2):
                 self.selected_panel = gr.Markdown(self.selected_panel_false)
 
         self.chunks = gr.HTML(visible=False)
 
-        with gr.Accordion("Advance options", open=False):
-            with gr.Row():
+        with gr.Accordion("Advance options", open=False, visible=False):
+            with gr.Row(visible=False):
                 if not KH_SSO_ENABLED:
                     self.download_all_button = gr.DownloadButton(
                         "Download all files",
@@ -226,7 +285,7 @@ class FileIndexPage(BasePage):
                 self.delete_all_button = gr.Button(
                     "Delete all files",
                     variant="stop",
-                    visible=True,
+                    visible=False,
                 )
                 self.delete_all_button_confirm = gr.Button(
                     "Confirm delete", variant="stop", visible=False
@@ -237,14 +296,14 @@ class FileIndexPage(BasePage):
         self.group_list_state = gr.State(value=None)
         self.group_list = gr.DataFrame(
             headers=[
-                "id",
                 "name",
-                "files",
-                "date_created",
+                "company",
+                "size",
+                "date",
             ],
-            column_widths=["0%", "25%", "55%", "20%"],
+            column_widths=["20%", "30%", "7%", "7%"],
             interactive=False,
-            wrap=False,
+            wrap=True,
         )
 
         with gr.Row():
@@ -288,12 +347,13 @@ class FileIndexPage(BasePage):
         """Build the UI of the app"""
         with gr.Row():
             with gr.Column(scale=1):
+                gr.Markdown("## File Upload")
                 with gr.Column() as self.upload:
-                    with gr.Tab("Upload Files"):
+                    with gr.Column("Upload Files"):
                         self.files = File(
                             file_types=self._supported_file_types,
                             file_count="multiple",
-                            container=True,
+                            container=False,
                             show_label=False,
                         )
 
@@ -301,14 +361,14 @@ class FileIndexPage(BasePage):
                         if msg:
                             gr.Markdown(msg)
 
-                    with gr.Tab("Use Web Links"):
+                    with gr.Column("Use Web Links", visible=False):
                         self.urls = gr.Textbox(
                             label="Input web URLs",
                             lines=8,
                         )
                         gr.Markdown("(separated by new line)")
 
-                    with gr.Accordion("Advanced indexing options", open=False):
+                    with gr.Accordion("Advanced indexing options", visible=False, open=False):
                         with gr.Row():
                             self.reindex = gr.Checkbox(
                                 value=False, label="Force reindex file", container=False
@@ -334,10 +394,10 @@ class FileIndexPage(BasePage):
                         elem_classes=["right-button"],
                     )
 
-                with gr.Tab("Files"):
+                with gr.Column("Files"):
                     self.render_file_list()
 
-                with gr.Tab("Groups"):
+                with gr.Tab("Groups", visible=False):
                     self.render_group_list()
 
     def on_subscribe_public_events(self):
@@ -395,57 +455,60 @@ class FileIndexPage(BasePage):
 
     def file_selected(self, file_id):
         chunks = []
-        if file_id is not None:
+        # if file_id is not None:
             # get the chunks
 
-            Index = self._index._resources["Index"]
-            with Session(engine) as session:
-                matches = session.execute(
-                    select(Index).where(
-                        Index.source_id == file_id,
-                        Index.relation_type == "document",
-                    )
-                )
-                doc_ids = [doc.target_id for (doc,) in matches]
-                docs = self._index._docstore.get(doc_ids)
-                docs = sorted(
-                    docs, key=lambda x: x.metadata.get("page_label", float("inf"))
-                )
+            # Index = self._index._resources["Index"]
+            # with Session(engine) as session:
+            #     matches = session.execute(
+            #         select(Index).where(
+            #             Index.source_id == file_id,
+            #             Index.relation_type == "document",
+            #         )
+            #     )
+            #     doc_ids = [doc.target_id for (doc,) in matches]
+            #     docs = self._index._docstore.get(doc_ids)
+            #     docs = sorted(
+            #         docs, key=lambda x: x.metadata.get("page_label", float("inf"))
+            #     )
 
-                for idx, doc in enumerate(docs):
-                    title = html.escape(
-                        f"{doc.text[:50]}..." if len(doc.text) > 50 else doc.text
-                    )
-                    doc_type = doc.metadata.get("type", "text")
-                    content = ""
-                    if doc_type == "text":
-                        content = html.escape(doc.text)
-                    elif doc_type == "table":
-                        content = Render.table(doc.text)
-                    elif doc_type == "image":
-                        content = Render.image(
-                            url=doc.metadata.get("image_origin", ""), text=doc.text
-                        )
+            #     for idx, doc in enumerate(docs):
+            #         title = html.escape(
+            #             f"{doc.text[:50]}..." if len(doc.text) > 50 else doc.text
+            #         )
+            #         doc_type = doc.metadata.get("type", "text")
+            #         content = ""
+            #         if doc_type == "text":
+            #             content = html.escape(doc.text)
+            #         elif doc_type == "table":
+            #             content = Render.table(doc.text)
+            #         elif doc_type == "image":
+            #             content = Render.image(
+            #                 url=doc.metadata.get("image_origin", ""), text=doc.text
+            #             )
 
-                    header_prefix = f"[{idx+1}/{len(docs)}]"
-                    if doc.metadata.get("page_label"):
-                        header_prefix += f" [Page {doc.metadata['page_label']}]"
+            #         header_prefix = f"[{idx+1}/{len(docs)}]"
+            #         if doc.metadata.get("page_label"):
+            #             header_prefix += f" [Page {doc.metadata['page_label']}]"
 
-                    chunks.append(
-                        Render.collapsible(
-                            header=f"{header_prefix} {title}",
-                            content=content,
-                        )
-                    )
+            #         chunks.append(
+            #             Render.collapsible(
+            #                 header=f"{header_prefix} {title}",
+            #                 content=content,
+            #             )
+            #         )
         return (
-            gr.update(value="".join(chunks), visible=file_id is not None),
-            gr.update(visible=file_id is not None),
-            gr.update(visible=file_id is not None),
-            gr.update(visible=file_id is not None),
-            gr.update(visible=file_id is not None),
+            gr.update(value="".join(chunks), visible=False),
+            gr.update(visible=False),
+            gr.update(visible=False),
+            gr.update(visible=False),
+            gr.update(visible=False),
+            gr.update(interactive=file_id is not None),
+            gr.update(interactive=file_id is not None),
         )
 
     def delete_event(self, file_id):
+        import os
         file_name = ""
         with Session(engine) as session:
             source = session.execute(
@@ -455,6 +518,35 @@ class FileIndexPage(BasePage):
             ).first()
             if source:
                 file_name = source[0].name
+                # Hapus file fisik jika ada
+                # Coba cari di folder gradio_tmp dan folder chunks/markdown jika perlu
+                try:
+                    # Folder utama gradio_tmp
+                    gradio_tmp_dir = getattr(flowsettings, "KH_GRADIO_TMP_DIR", None)
+                    if gradio_tmp_dir:
+                        file_path = os.path.join(gradio_tmp_dir, file_name)
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
+                    # Folder chunks
+                    chunks_dir = getattr(flowsettings, "KH_CHUNKS_OUTPUT_DIR", None)
+                    if chunks_dir:
+                        for f in os.listdir(chunks_dir):
+                            if file_name in f:
+                                try:
+                                    os.remove(os.path.join(chunks_dir, f))
+                                except Exception:
+                                    pass
+                    # Folder markdown
+                    markdown_dir = getattr(flowsettings, "KH_MARKDOWN_OUTPUT_DIR", None)
+                    if markdown_dir:
+                        for f in os.listdir(markdown_dir):
+                            if file_name in f:
+                                try:
+                                    os.remove(os.path.join(markdown_dir, f))
+                                except Exception:
+                                    pass
+                except Exception as e:
+                    print(f"[WARNING] Failed to remove file: {e}")
                 session.delete(source[0])
 
             vs_ids, ds_ids = [], []
@@ -731,6 +823,7 @@ class FileIndexPage(BasePage):
         if KH_DEMO_MODE:
             return
 
+        import pandas as pd
         onDeleted = (
             self.delete_button.click(
                 fn=self.delete_event,
@@ -749,20 +842,67 @@ class FileIndexPage(BasePage):
                 outputs=[self.file_list_state, self.file_list],
             )
             .then(
-                fn=self.file_selected,
-                inputs=[self.selected_file_id],
+                fn=lambda: [
+                    gr.update(value=None),  # clear selection/focus on DataFrame
+                    gr.update(value=""),
+                    gr.update(visible=False),
+                    gr.update(visible=False),
+                    gr.update(visible=False),
+                    gr.update(visible=False),
+                    gr.update(visible=False),
+                    gr.update(selected=None),  # only clear selection, not value
+                ],
+                inputs=[],
                 outputs=[
                     self.chunks,
+                    self.selected_panel,
                     self.deselect_button,
                     self.delete_button,
                     self.download_single_button,
                     self.chat_button,
+                    self.selected_file_id,
+                    self.file_list,
                 ],
                 show_progress="hidden",
             )
         )
         for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
             onDeleted = onDeleted.then(**event)
+        
+        
+        #deleting selected file
+        onDeleteSelected = (
+            self.delete_selected_button.click(
+                fn=self.delete_event,
+                inputs=[self.selected_file_id],
+                outputs=None,
+            )
+            .then(
+                fn=lambda: (None, self.selected_panel_false),
+                inputs=[],
+                outputs=[self.selected_file_id, self.selected_panel],
+                show_progress="hidden",
+            )
+            .then(
+                fn=self.list_file,
+                inputs=[self._app.user_id, self.filter],
+                outputs=[self.file_list_state, self.file_list],
+            )
+            .then(
+                fn=lambda: [
+                    gr.update(interactive=False, visible=True),
+                    gr.update(interactive=False, visible=True),
+                    gr.update(selected=None),  # only clear selection, not value
+                ],
+                inputs=[],
+                outputs=[self.delete_selected_button, self.show_selected_button, self.file_list],
+                show_progress="hidden",
+            )
+        )
+        for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
+            onDeleteSelected = onDeleteSelected.then(**event)
+        #end
+        
 
         self.deselect_button.click(
             fn=lambda: (None, self.selected_panel_false),
@@ -811,7 +951,7 @@ class FileIndexPage(BasePage):
         )
         self.delete_all_button_cancel.click(
             lambda: [
-                gr.update(visible=True),
+                gr.update(visible=False),
                 gr.update(visible=False),
                 gr.update(visible=False),
             ],
@@ -834,7 +974,7 @@ class FileIndexPage(BasePage):
             outputs=[self.file_list_state, self.file_list],
         ).then(
             lambda: [
-                gr.update(visible=True),
+                gr.update(visible=False),
                 gr.update(visible=False),
                 gr.update(visible=False),
             ],
@@ -905,7 +1045,7 @@ class FileIndexPage(BasePage):
 
         self.file_list.select(
             fn=self.interact_file_list,
-            inputs=[self.file_list],
+            inputs=[self.file_list_state],
             outputs=[self.selected_file_id, self.selected_panel],
             show_progress="hidden",
         ).then(
@@ -917,6 +1057,8 @@ class FileIndexPage(BasePage):
                 self.delete_button,
                 self.download_single_button,
                 self.chat_button,
+                self.show_selected_button,
+                self.delete_selected_button,
             ],
             show_progress="hidden",
         )
@@ -935,6 +1077,7 @@ class FileIndexPage(BasePage):
             fn=lambda: (
                 gr.update(visible=True),
                 gr.update(visible=False),
+                gr.update(visible=True),
                 gr.update(visible=True),
                 gr.update(visible=True),
                 gr.update(visible=True),
@@ -1351,12 +1494,10 @@ class FileIndexPage(BasePage):
             return [], pd.DataFrame.from_records(
                 [
                     {
-                        "id": "-",
                         "name": "-",
+                        "company": "-",
                         "size": "-",
-                        "tokens": "-",
-                        "loader": "-",
-                        "date_created": "-",
+                        "date": "-",
                     }
                 ]
             )
@@ -1368,32 +1509,39 @@ class FileIndexPage(BasePage):
                 statement = statement.where(Source.user == user_id)
             if name_pattern:
                 statement = statement.where(Source.name.ilike(f"%{name_pattern}%"))
-            results = [
-                {
-                    "id": each[0].id,
-                    "name": each[0].name,
-                    "size": self.format_size_human_readable(each[0].size),
-                    "tokens": self.format_size_human_readable(
-                        each[0].note.get("tokens", "-"), suffix=""
-                    ),
-                    "loader": each[0].note.get("loader", "-"),
-                    "date_created": each[0].date_created.strftime("%Y-%m-%d %H:%M:%S"),
-                }
-                for each in session.execute(statement).all()
-            ]
+
+            results = []
+            for each in session.execute(statement).all():
+                item = each[0]
+                note = getattr(item, 'note', {}) or {}
+                date_val = note.get('date_from_file_name') or note.get('date_from_content') or item.date_created.strftime("%Y-%m-%d")
+                company_val = "-"
+                if hasattr(item, 'company') and isinstance(item.company, list) and len(item.company) > 0:
+                    company_val = " ".join(f"- {str(c)}" for c in item.company if c)
+                results.append({
+                    "id": item.id,  # simpan id di state
+                    "name": item.name,
+                    "company": company_val,
+                    "size": self.format_size_human_readable(item.size),
+                    "date": date_val,
+                })
 
         if results:
-            file_list = pd.DataFrame.from_records(results)
+            # Hide 'id' from DataFrame shown in Gradio, but keep it in results (state)
+            file_list = pd.DataFrame.from_records(
+                [
+                    {k: v for k, v in item.items() if k != "id"}
+                    for item in results
+                ]
+            )
         else:
             file_list = pd.DataFrame.from_records(
                 [
                     {
-                        "id": "-",
                         "name": "-",
+                        "company": "-",
                         "size": "-",
-                        "tokens": "-",
-                        "loader": "-",
-                        "date_created": "-",
+                        "date": "-",
                     }
                 ]
             )
@@ -1420,10 +1568,10 @@ class FileIndexPage(BasePage):
             return [], pd.DataFrame.from_records(
                 [
                     {
-                        "id": "-",
                         "name": "-",
-                        "files": "-",
-                        "date_created": "-",
+                        "company": "-",
+                        "size": "-",
+                        "date": "-",
                     }
                 ]
             )
@@ -1465,10 +1613,10 @@ class FileIndexPage(BasePage):
             group_list = pd.DataFrame.from_records(
                 [
                     {
-                        "id": "-",
                         "name": "-",
-                        "files": "-",
-                        "date_created": "-",
+                        "company": "-",
+                        "size": "-",
+                        "date": "-",
                     }
                 ]
             )
@@ -1552,8 +1700,9 @@ class FileIndexPage(BasePage):
         if not ev.selected:
             return None, self.selected_panel_false
 
-        return list_files["id"][ev.index[0]], self.selected_panel_true.format(
-            name=list_files["name"][ev.index[0]]
+        idx = ev.index[0]
+        return list_files[idx]["id"], self.selected_panel_true.format(
+            name=list_files[idx]["name"]
         )
 
     def interact_group_list(self, list_groups, ev: gr.SelectData):
@@ -1665,7 +1814,6 @@ class FileSelector(BasePage):
             "Clear",
             visible=True,
         )
-        self.filtered_file_list = gr.Markdown(visible=True)
         self.filtered_file_ids = gr.State(value=filtered_files_ids)
         self.selector_user_id = gr.State(value=user_id)
         self.selector_choices = gr.JSON(
@@ -1680,7 +1828,6 @@ class FileSelector(BasePage):
         #         gr.update(visible=mode == "date"),
         #         gr.update(visible=mode == "date"),
         #         gr.update(visible=mode == "date"),
-        #         gr.update(visible=mode == "date"),
         #         user_id
         #     ),
         #     inputs=[self.mode, self._app.user_id],
@@ -1689,7 +1836,6 @@ class FileSelector(BasePage):
         #         self.start_date_picker,
         #         self.end_date_picker,
         #         self.apply_date_filter_button,
-        #         self.filtered_file_list,
         #         self.selector_user_id
         #     ],
         # )
@@ -1702,7 +1848,7 @@ class FileSelector(BasePage):
                 self.search_keyword_input,
                 self.search_company_input,
             ],
-            outputs=[self.filtered_file_ids, self.filtered_file_list],
+            outputs=[self.filtered_file_ids],
         )
         self.clear_button.click(
             fn=self.get_all_files,
@@ -1711,7 +1857,6 @@ class FileSelector(BasePage):
                 self.filtered_file_ids, 
                 self.start_date_picker, 
                 self.end_date_picker,
-                self.filtered_file_list, 
                 self.search_keyword_input,
                 self.search_company_input
             ],
@@ -1840,14 +1985,6 @@ class FileSelector(BasePage):
             ]
 
         return gr.update(value=selected_files, choices=options), options
-
-    def format_file_list(self, file_ids):
-        if not file_ids:
-            return "No files found."
-        Source = self._index._resources["Source"]
-        with Session(engine) as session:
-            files = session.query(Source).filter(Source.id.in_(file_ids)).all()
-            return "\n".join(f"- {file.name}" for file in files)
         
     def get_filtered_files_and_list(self, start, end, user_id, keyword, company):
         # Convert float timestamps to datetime
@@ -1866,14 +2003,14 @@ class FileSelector(BasePage):
             end = datetime.datetime.combine(end, datetime.time(23, 59, 59))
 
         file_ids = self.get_selected_ids(["filter", [], start, end, [], user_id, keyword, company])
-        file_list_str = self.format_file_list(file_ids)
-        return file_ids, file_list_str
+        
+        return file_ids
 
     def get_all_files(self, user_id):
         # Show all files for the user (no filters)
         file_ids = self.get_selected_ids(["all", [], "", "", [], user_id, "", ""])
-        file_list_str = self.format_file_list(file_ids)
-        return file_ids, "", "", file_list_str, "", ""
+        
+        return file_ids, "", "", "", ""
 
     def _on_app_created(self):
         self._app.app.load(
@@ -1904,7 +2041,7 @@ class FileSelector(BasePage):
                         "show_progress": "hidden",
                     },
                 )
-                # Update filtered_file_ids and filtered_file_list on sign in
+                # Update filtered_file_ids on sign in
                 self._app.subscribe_event(
                     name="onSignIn",
                     definition={
@@ -1914,20 +2051,19 @@ class FileSelector(BasePage):
                             self.filtered_file_ids, 
                             self.start_date_picker, 
                             self.end_date_picker,
-                            self.filtered_file_list, 
                             self.search_keyword_input,
                             self.search_company_input
                         ],
                         "show_progress": "hidden",
                     },
                 )
-                # Clear filtered_file_ids and filtered_file_list on sign out
+                # Clear filtered_file_ids on sign out
                 self._app.subscribe_event(
                     name="onSignOut",
                     definition={
                         "fn": lambda user_id: ([], "No files found."),
                         "inputs": [self._app.user_id],
-                        "outputs": [self.filtered_file_ids, self.filtered_file_list],
+                        "outputs": [self.filtered_file_ids],
                         "show_progress": "hidden",
                     },
                 )

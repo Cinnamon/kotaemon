@@ -115,16 +115,19 @@ class SettingsPage(BasePage):
         self.on_building_ui()
 
     def on_building_ui(self):
-        if not KH_SSO_ENABLED:
-            self.setting_save_btn = gr.Button(
-                "Save & Close",
-                variant="primary",
-                elem_classes=["right-button"],
-                elem_id="save-setting-btn",
-            )
+        # if not KH_SSO_ENABLED:
+            # self.setting_save_btn = gr.Button(
+            #     "Save & Close",
+            #     variant="primary",
+            #     visible="False",
+            #     elem_classes=["right-button"],
+            #     elem_id="save-setting-btn",
+            # )
         if self._app.f_user_management:
-            with gr.Tab("User settings"):
+            with gr.Column("User settings"):
                 self.user_tab()
+            # with gr.Tab("User settings"):
+            #     self.user_tab()
 
         self.app_tab()
         self.index_tab()
@@ -185,15 +188,15 @@ class SettingsPage(BasePage):
             )
 
     def on_register_events(self):
-        if not KH_SSO_ENABLED:
-            self.setting_save_btn.click(
-                self.save_setting,
-                inputs=[self._user_id] + self.components(),
-                outputs=self._settings_state,
-            ).then(
-                lambda: gr.Tabs(selected="chat-tab"),
-                outputs=self._app.tabs,
-            )
+        # if not KH_SSO_ENABLED:
+        #     self.setting_save_btn.click(
+        #         self.save_setting,
+        #         inputs=[self._user_id] + self.components(),
+        #         outputs=self._settings_state,
+        #     ).then(
+        #         lambda: gr.Tabs(selected="chat-tab"),
+        #         outputs=self._app.tabs,
+        #     )
         self._components["reasoning.use"].change(
             self.change_reasoning_mode,
             inputs=[self._components["reasoning.use"]],
@@ -231,17 +234,18 @@ class SettingsPage(BasePage):
             for event in self._app.get_event("onSignOut"):
                 onSignOutClick = onSignOutClick.then(**event)
 
+    #user setting modification //hamam
     def user_tab(self):
         # user management
-        self.current_name = gr.Markdown("Current user: ___")
+        with gr.Row(elem_classes="row-justify-between"):
+            gr.Markdown("## User Setting")
+            self.current_name = gr.Markdown("Current user: ___", elem_classes="text-end")
 
         if KH_SSO_ENABLED:
             import gradiologin as grlogin
 
             self.sso_signout = grlogin.LogoutButton("Logout")
         else:
-            self.signout = gr.Button("Logout")
-
             self.password_change = gr.Textbox(
                 label="New password", interactive=True, type="password"
             )
@@ -249,6 +253,8 @@ class SettingsPage(BasePage):
                 label="Confirm password", interactive=True, type="password"
             )
             self.password_change_btn = gr.Button("Change password", interactive=True)
+            
+            self.signout = gr.Button("Logout", variant="stop")
 
     def change_password(self, user_id, password, password_confirm):
         from ktem.pages.resources.user import validate_password
@@ -292,7 +298,8 @@ class SettingsPage(BasePage):
         #         self._components[f"index.{n}"] = obj
 
         id2name = {k: v.name for k, v in self._app.index_manager.info().items()}
-        with gr.Tab("Retrieval settings", visible=self._render_index_tab):
+        with gr.Tab("Retrieval settings", visible=False):
+        # with gr.Tab("Retrieval settings", visible=self._render_index_tab):
             for pn, sig in self._default_settings.index.options.items():
                 name = id2name.get(pn, f"<id {pn}>")
                 with gr.Tab(name):
@@ -305,7 +312,7 @@ class SettingsPage(BasePage):
                             self._embeddings.append(obj)
 
     def reasoning_tab(self):
-        with gr.Tab("Reasoning settings", visible=self._render_reasoning_tab):
+        with gr.Tab("Reasoning settings", visible=False):
             with gr.Group():
                 for n, si in self._default_settings.reasoning.settings.items():
                     if n == "use":

@@ -190,10 +190,8 @@ class FullQAPipeline(BaseReasoning):
                 content=Render.collapsible(
                     header="""
                     <i>Mindmap</i>
-                    <a href="#" id='mindmap-toggle'>
-                        [Expand]</a>
                     <a href="#" id='mindmap-export'>
-                        [Export]</a>""",
+                        [Show]</a>""",
                     content=mindmap_svg,
                     open=True,
                 ),

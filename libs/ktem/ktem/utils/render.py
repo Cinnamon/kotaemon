@@ -221,8 +221,7 @@ class Render:
             rendered_doc_content = Render.table(text)
 
         rendered_header = Render.preview(
-            f"<i>{item_type_prefix}{get_header(doc)}</i>"
-            f" [score: {llm_reranking_score}]",
+            f"<i>{item_type_prefix}{get_header(doc)}</i>",
             doc,
             highlight_text=highlight_text,
         )
@@ -232,6 +231,6 @@ class Render:
 
         return Render.collapsible(
             header=rendered_header,
-            content=rendered_score + rendered_doc_content,
+            content=rendered_doc_content,
             open=open_collapsible,
         )
