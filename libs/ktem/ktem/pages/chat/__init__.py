@@ -197,6 +197,19 @@ function(_, __) {
 }
 """
 
+pdflistview_js = """
+function() {
+    // Get all links and attach click event
+    var links = document.getElementsByClassName("pdf-file");
+
+    for (var i = 0; i < links.length; i++) {
+        links[i].onclick = openModalExpanded;
+    }
+
+    return [links.length]
+}
+"""
+
 
 class ChatPage(BasePage):
     def __init__(self, app):
@@ -409,6 +422,7 @@ class ChatPage(BasePage):
 
         self.followup_questions = self.chat_suggestion.examples
         self.followup_questions_ui = self.chat_suggestion.accordion
+        self.modal_show = gr.HTML("<div id='pdf-modal-show'></div>")
 
     def _json_to_plot(self, json_dict: dict | None):
         if json_dict:
@@ -436,6 +450,11 @@ class ChatPage(BasePage):
             fn=self.file_list_container.update,
             inputs=[self.file_ids],
             outputs=[self.file_list_container.container],
+        ).then(
+            fn=None,
+            inputs=None,
+            outputs=None,
+            js=pdflistview_js,
         )
 
         chat_event = (

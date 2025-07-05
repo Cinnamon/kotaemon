@@ -53,6 +53,29 @@ function onBlockLoad() {
     };
   };
 
+  globalThis.createModalShowPdf = () => {
+    // Create modal for the 1st time if it does not exist
+    var modal = document.getElementById("pdf-modal-show");
+
+    modal.id = "pdf-modal-show";
+    modal.className = "modal";
+    modal.innerHTML = `
+            <div class="modal-content">
+              <div class="modal-header">
+                <span class="close" id="modal-show-close">&times;</span>
+              </div>
+              <div class="modal-body">
+                <pdfjs-viewer-element id="pdf-viewer-show" viewer-path="GR_FILE_ROOT_PATH/file=PDFJS_PREBUILT_DIR" locale="en" phrase="true">
+                </pdfjs-viewer-element>
+              </div>
+            </div>
+          `;
+
+    modal.querySelector("#modal-show-close").onclick = function () {
+      modal.style.display = "none";
+    };
+  };
+
   function matchRatio(str1, str2) {
     let n = str1.length;
     let m = str2.length;
@@ -171,6 +194,28 @@ function onBlockLoad() {
     compareText(search_phrases, page);
   };
 
+  globalThis.openModalExpanded = async (event) => {
+    event.preventDefault();
+    var target = event.currentTarget;
+    var src = target.getAttribute("data-src");
+    var page = target.getAttribute("data-page");
+
+    var pdfViewer = document.getElementById("pdf-viewer-show");
+    var current_src = pdfViewer.getAttribute("src");
+    if (current_src != src) {
+      pdfViewer.setAttribute("src", src);
+    }
+    pdfViewer.setAttribute("page", page);
+
+    var modal = document.getElementById("pdf-modal-show");
+    modal.style.display = "block";
+
+    modal.style.position = "fixed";
+    modal.style.width = "70%";
+    modal.style.left = "15%";
+    modal.style.height = "100dvh";
+  };
+
   globalThis.assignPdfOnclickEvent = () => {
     // Get all links and attach click event
     var links = document.getElementsByClassName("pdf-link");
@@ -182,5 +227,10 @@ function onBlockLoad() {
   var created_modal = document.getElementById("pdf-viewer");
   if (!created_modal) {
     createModal();
+  }
+
+  var created_modal_show = document.getElementById("pdf-viewer-show");
+  if (!created_modal_show) {
+    createModalShowPdf();
   }
 }
