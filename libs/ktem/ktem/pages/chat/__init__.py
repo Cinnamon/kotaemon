@@ -37,6 +37,7 @@ from .control import ConversationControl
 from .demo_hint import HintPage
 from .paper_list import PaperListPage
 from .report import ReportIssue
+from .file_list import FileList
 
 KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
@@ -202,6 +203,10 @@ class ChatPage(BasePage):
         self._app = app
         self._indices_input = []
 
+        self.file_ids = []
+        self.indexFileSelector = ""
+        self.file_list_container = None
+
         self.on_building_ui()
 
         self._preview_links = gr.State(value=None)
@@ -247,6 +252,10 @@ class ChatPage(BasePage):
                         index_ui.render()
                         gr_index = index_ui.as_gradio_component()
 
+                        if index_id == 0:
+                            self.file_ids = index_ui.filtered_file_ids
+                            self.indexFileSelector = index
+
                         # get the file selector choices for the first index
                         if index_id == 0:
                             self.first_selector_choices = index_ui.selector_choices
@@ -267,6 +276,8 @@ class ChatPage(BasePage):
                                 index.default_selector = index_ui.default()
                                 self._indices_input.append(gr_index)
                         setattr(self, f"_index_{index.id}", index_ui)
+
+                self.file_list_container = FileList(self._app, self.indexFileSelector)
 
                 self.chat_suggestion = ChatSuggestion(self._app)
 
@@ -420,6 +431,12 @@ class ChatPage(BasePage):
                 outputs=None,
                 js=recommended_papers_js,
             )
+        
+        self.file_ids.change(
+            fn=self.file_list_container.update,
+            inputs=[self.file_ids],
+            outputs=[self.file_list_container.container],
+        )
 
         chat_event = (
             gr.on(
