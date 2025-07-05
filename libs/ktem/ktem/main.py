@@ -141,7 +141,7 @@ class App(BaseApp):
             self.help_button = gr.Button(
                 "",
                 elem_id="help-tab-button-icon",
-                icon=f"{ASSETS_DIR}/info-circle.svg",
+                icon=f"{ASSETS_DIR}/info-circle-neutral.svg",
                 visible=False,
                 size="lg",
                 variant="secondary",
@@ -151,7 +151,7 @@ class App(BaseApp):
             self.user_button = gr.Button(
                 "User",
                 elem_id="user-tab-button-icon",
-                icon=f"{ASSETS_DIR}/user.svg",
+                icon=f"{ASSETS_DIR}/user-neutral.svg",
                 visible=False,
                 size="lg",
                 variant="secondary",
@@ -177,8 +177,8 @@ class App(BaseApp):
                 # Jika dipanggil dari self.tabs.select, set active_tab ke 'other' agar tombol reset
                 if reset == "from_select":
                     return (
-                        gr.update(icon=f"{ASSETS_DIR}/info-circle.svg"),
-                        gr.update(icon=f"{ASSETS_DIR}/user.svg", elem_classes=["additional-tab-button", "no-background", "body-text-color"]),
+                        gr.update(icon=f"{ASSETS_DIR}/info-circle-neutral.svg"),
+                        gr.update(icon=f"{ASSETS_DIR}/user-neutral.svg", elem_classes=["additional-tab-button", "no-background", "body-text-color"]),
                         "other"
                     )
                 # Ubah warna text dan icon sesuai tab aktif
@@ -186,10 +186,10 @@ class App(BaseApp):
                 user_active = tab_id == "settings-tab"
                 return (
                     gr.update(
-                        icon=f"{ASSETS_DIR}/info-circle-active.svg" if help_active else f"{ASSETS_DIR}/info-circle.svg"
+                        icon=f"{ASSETS_DIR}/info-circle-active.svg" if help_active else f"{ASSETS_DIR}/info-circle-neutral.svg"
                     ),
                     gr.update(
-                        icon=f"{ASSETS_DIR}/user-active.svg" if user_active else f"{ASSETS_DIR}/user.svg",
+                        icon=f"{ASSETS_DIR}/user-active.svg" if user_active else f"{ASSETS_DIR}/user-neutral.svg",
                         elem_classes=[
                             "additional-tab-button", "no-background", "body-text-color", ("additional-tab-button-active" if user_active else "")
                         ]
@@ -227,7 +227,7 @@ class App(BaseApp):
                             for k in self._tabs.keys()
                         ]
                         + [gr.update(selected="login-tab")]
-                        + [gr.update(visible=False), gr.update(visible=False, icon=f"{ASSETS_DIR}/user.svg", elem_classes=["additional-tab-button", "no-background", "body-text-color", "force-hide"])]
+                        + [gr.update(visible=False), gr.update(visible=False, icon=f"{ASSETS_DIR}/user-neutral.svg", elem_classes=["additional-tab-button", "no-background", "body-text-color", "force-hide"])]
                     )
 
                 with Session(engine) as session:
@@ -239,7 +239,7 @@ class App(BaseApp):
                                 for k in self._tabs.keys()
                             ]
                             + [gr.update(selected="login-tab")]
-                            + [gr.update(visible=False), gr.update(visible=False, icon=f"{ASSETS_DIR}/user.svg", elem_classes=["additional-tab-button", "no-background", "body-text-color", "force-hide"])]
+                            + [gr.update(visible=False), gr.update(visible=False, icon=f"{ASSETS_DIR}/user-neutral.svg", elem_classes=["additional-tab-button", "no-background", "body-text-color", "force-hide"])]
                         )
 
                     is_admin = user.admin

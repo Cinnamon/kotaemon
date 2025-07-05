@@ -492,7 +492,8 @@ div.markmap {
 #settings-tab-button {
     display: none !important;
     /* width: 30px !important; */
-    color: #FFF;
+    color: #808080;
+    box-shadow: none;
 }
 
 #help-tab-button-icon {

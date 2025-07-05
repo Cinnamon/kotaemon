@@ -152,6 +152,45 @@ class FileIndexPage(BasePage):
 
         if not KH_DEMO_MODE:
             self.on_building_ui()
+        
+    # new dataframe filter
+    def filter_file_list(self, file_list_state, name, company, date_start, date_end):
+        import pandas as pd
+        
+        print(f"Filtering file list with parameters: name: {name}, company: {company}, start: {date_start}, end: {date_end}")
+
+        if file_list_state is None or not isinstance(file_list_state, list):
+            print("File list state is empty or not a list, returning empty DataFrame.")
+            return gr.update()
+        df = pd.DataFrame(file_list_state)
+        print(f"Initial DataFrame:\n{df.head()}")  # Debugging line
+        # Convert 'date' column to datetime for safe comparison
+        if 'date' in df.columns:
+            df['date'] = pd.to_datetime(df['date'], errors='coerce')
+        if name:
+            df = df[df['name'].str.contains(name, case=False, na=False)]
+        if company:
+            df = df[df['company'].str.contains(company, case=False, na=False)]
+        if date_start:
+            print(f"Filtering from start date: {date_start}")
+            date_start_dt = pd.to_datetime(date_start, errors='coerce')
+            print(f"date_start_dt: {date_start_dt}")
+            df = df[df['date'] >= date_start_dt]
+        if date_end:
+            date_end_dt = pd.to_datetime(date_end, errors='coerce')
+            df = df[df['date'] <= date_end_dt]
+        # Hide 'id' if ada
+        if 'id' in df.columns:
+            df = df.drop(columns=['id'])
+            
+        
+        return gr.update(value=df)
+        
+    # Event clear filter: kosongkan filter dan refresh file list
+    def clear_filters_and_refresh(self, file_list_state):
+        # Kosongkan semua filter dan refresh
+        print("Clearing filters...")  # Debug
+        return self.filter_file_list(file_list_state, "", "", None, None), "", "", None, None
 
     def upload_instruction(self) -> str:
         msgs = []
@@ -170,10 +209,15 @@ class FileIndexPage(BasePage):
         return ""
     
     #new filter
+    
     def render_file_list(self):
         gr.Markdown("## List Files")
+        
+        # Initialize state and DataFrame before using in events
+        self.file_list_state = gr.State(value=None)
+
         with gr.Row():
-            self.filter = gr.Textbox(
+            self.name_filter = gr.Textbox(
                 value="",
                 placeholder="File Name",
                 show_label=False,
@@ -185,15 +229,18 @@ class FileIndexPage(BasePage):
                 placeholder="Company",
                 scale=9,
                 show_label=False,
+                interactive=True
             )
             self.date_start_filter = gr.DateTime(
                 include_time=False,
+                type="datetime",
                 show_label=False,
                 scale=10,
                 elem_classes="datepick-file",
             )
             self.date_end_filter = gr.DateTime(
                 include_time=False,
+                type="datetime",
                 show_label=False,
                 scale=10,
                 elem_classes="datepick-file",
@@ -206,7 +253,7 @@ class FileIndexPage(BasePage):
                 size="sm",
                 elem_classes=["no-background", "body-text-color"],
             )
-            self.btn_del = gr.Button(
+            self.btn_clr = gr.Button(
                 value="",
                 icon=f"{ASSETS_DIR}/filter-off.svg",
                 min_width=2,
@@ -214,8 +261,7 @@ class FileIndexPage(BasePage):
                 size="sm",
                 elem_classes=["no-background", "body-text-color"],
             )
-            
-        self.file_list_state = gr.State(value=None)
+    
         self.file_list = gr.DataFrame(
             headers=[
                 "name",
@@ -227,8 +273,49 @@ class FileIndexPage(BasePage):
             interactive=False,
             wrap=True,
             elem_id="file_list_view",
-        )
+        )       
+       
+        with gr.Row(visible=False):
+            self.filter = gr.Textbox(
+                value="",
+                placeholder="Name",
+                show_label=False,
+                scale=0,
+            )
+            # Event filter search
+            self.btn_sch.click(
+                fn=self.filter_file_list,
+                inputs=[self.file_list_state, self.name_filter, self.company_filter, self.date_start_filter, self.date_end_filter],
+                outputs=[self.file_list],
+                show_progress="hidden"
+            )
 
+            self.btn_clr.click(
+                fn=self.clear_filters_and_refresh,
+                inputs=[self.file_list_state],
+                outputs=[
+                    self.file_list,
+                    self.name_filter, self.company_filter, self.date_start_filter, self.date_end_filter
+                ],
+            )
+            # self.btn_clr.click(
+            #     fn=self.clear_filters_and_refresh,
+            #     inputs=[self.file_list_state, self.filter, self.company_filter, self.date_start_filter, self.date_end_filter],
+            #     outputs=[
+            #         self.filter, 
+            #         self.company_filter, 
+            #         self.date_start_filter, 
+            #         self.date_end_filter, 
+            #         self.file_list
+            #     ],
+            #     show_progress="hidden"
+
+                # fn=lambda: self.filter_file_list("", "", None, None),
+                # inputs=[self.file_list_state],
+                # outputs=[self.file_list],
+                # show_progress="hidden"
+            # )
+ 
        # new file action
         with gr.Row():
             with gr.Column():
@@ -1514,7 +1601,13 @@ class FileIndexPage(BasePage):
             for each in session.execute(statement).all():
                 item = each[0]
                 note = getattr(item, 'note', {}) or {}
-                date_val = note.get('date_from_file_name') or note.get('date_from_content') or item.date_created.strftime("%Y-%m-%d")
+                date_val =  item.date_from_file_name or item.date_from_content or item.date_created
+                formatted_date = date_val.strftime("%Y-%m-%d")
+                # date_val = note.get('date_from_file_name') or note.get('date_from_content') or item.date_created.strftime("%Y-%m-%d")
+                # date_val = (str(note.get('date_from_file_name')) if note and note.get('date_from_file_name')
+                #     else str(note.get('date_from_content')) if note and note.get('date_from_content') 
+                #     else item.date_created.strftime("%Y-%m-%d")
+                # )
                 company_val = "-"
                 if hasattr(item, 'company') and isinstance(item.company, list) and len(item.company) > 0:
                     company_val = " ".join(f"- {str(c)}" for c in item.company if c)
@@ -1523,7 +1616,7 @@ class FileIndexPage(BasePage):
                     "name": item.name,
                     "company": company_val,
                     "size": self.format_size_human_readable(item.size),
-                    "date": date_val,
+                    "date": formatted_date,
                 })
 
         if results:
