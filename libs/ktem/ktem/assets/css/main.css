@@ -236,6 +236,21 @@ mark {
   height: 35px;
 }
 
+#language-switch {
+  display: flex;
+  justify-content: end;
+  width: 50px;
+  min-width: min(90px, 100%) !important;
+}
+
+#language-switch input[type="radio"] {
+    display: none;
+}
+
+#language-switch > div > label > span {
+  margin-left: 0;
+}
+
 #quick-url textarea {
   resize: none;
   background: transparent;
