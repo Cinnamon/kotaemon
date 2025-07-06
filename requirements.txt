@@ -1,0 +1,2 @@
+keybert
+sentence-transformers

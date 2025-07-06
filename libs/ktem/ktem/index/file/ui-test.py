@@ -35,6 +35,8 @@ if not os.path.isdir(ASSETS_DIR):
     ASSETS_DIR = "libs/ktem/ktem/assets/icons"
 
 
+BASE_PATH = os.environ.get("GR_FILE_ROOT_PATH", "")
+
 chat_input_focus_js = """
 function() {
     let chatInput = document.querySelector("#chat-input textarea");
@@ -79,6 +81,21 @@ function(file_list) {
 """.replace(
     "web_search", WEB_SEARCH_COMMAND
 )
+
+pdflistview_js = """
+function() {
+    // Get all links and attach click event
+    var links = document.getElementsByClassName("pdf-file");
+
+    for (var i = 0; i < links.length; i++) {
+        links[i].onclick = openModalExpanded;
+    }
+
+    return [links.length]
+}
+"""
+
+
 
 class File(gr.File):
     """Subclass from gr.File to maintain the original filename
@@ -156,6 +173,7 @@ class FileIndexPage(BasePage):
     def filter_file_list(self, file_list_state, name, company, date_start, date_end):
         import pandas as pd
 
+
         if file_list_state is None or not isinstance(file_list_state, list):
             return gr.update()
         df = pd.DataFrame(file_list_state)
@@ -166,17 +184,21 @@ class FileIndexPage(BasePage):
         if company:
             df = df[df['company'].str.contains(company, case=False, na=False)]
         if date_start:
+            print(f"Filtering from start date: {date_start}")
             date_start_dt = pd.to_datetime(date_start, errors='coerce')
+            print(f"date_start_dt: {date_start_dt}")
             df = df[df['date'] >= date_start_dt]
         if date_end:
             date_end_dt = pd.to_datetime(date_end, errors='coerce')
             df = df[df['date'] <= date_end_dt]
-            
+        # Hide 'id' if ada
         if 'id' in df.columns:
             df = df.drop(columns=['id'])
-
+        
+        # Format date column to show only date (not datetime)
         if 'date' in df.columns:
-            df['date'] = df['date'].dt.strftime('%Y-%m-%d')            
+            df['date'] = df['date'].dt.strftime('%Y-%m-%d')
+            
         
         return gr.update(value=df)
         
@@ -216,7 +238,6 @@ class FileIndexPage(BasePage):
                 placeholder="File Name",
                 show_label=False,
                 scale=9,
-                info="file name",
                 interactive=True
             )
             self.company_filter = gr.Textbox(
@@ -224,14 +245,12 @@ class FileIndexPage(BasePage):
                 placeholder="Company",
                 scale=9,
                 show_label=False,
-                info="company",
                 interactive=True
             )
             self.date_start_filter = gr.DateTime(
                 include_time=False,
                 type="datetime",
                 show_label=False,
-                info="start date",
                 scale=10,
                 elem_classes="datepick-file",
             )
@@ -239,7 +258,6 @@ class FileIndexPage(BasePage):
                 include_time=False,
                 type="datetime",
                 show_label=False,
-                info="end date",
                 scale=10,
                 elem_classes="datepick-file",
             )
@@ -258,18 +276,6 @@ class FileIndexPage(BasePage):
                 scale=1,
                 size="sm",
                 elem_classes=["no-background", "body-text-color"],
-            )
-
-            self.pdf_modal = gr.HTML(
-                visible=False,
-                elem_id="pdf-modal-container"
-            )
-            
-            # Hidden button to close modal (triggered by JavaScript)
-            self.close_modal_button = gr.Button(
-                "Close Modal",
-                visible=False,
-                elem_id="close-modal-button"
             )
     
         self.file_list = gr.DataFrame(
@@ -308,17 +314,37 @@ class FileIndexPage(BasePage):
                     self.name_filter, self.company_filter, self.date_start_filter, self.date_end_filter
                 ],
             )
+            # self.btn_clr.click(
+            #     fn=self.clear_filters_and_refresh,
+            #     inputs=[self.file_list_state, self.filter, self.company_filter, self.date_start_filter, self.date_end_filter],
+            #     outputs=[
+            #         self.filter, 
+            #         self.company_filter, 
+            #         self.date_start_filter, 
+            #         self.date_end_filter, 
+            #         self.file_list
+            #     ],
+            #     show_progress="hidden"
+
+                # fn=lambda: self.filter_file_list("", "", None, None),
+                # inputs=[self.file_list_state],
+                # outputs=[self.file_list],
+                # show_progress="hidden"
+            # )
  
        # new file action
         with gr.Row():
+            
+            # Komponen HTML untuk modal PDF (akan diupdate oleh event)
+            self.pdf_modal_html = gr.HTML(visible=True)
+
             with gr.Column():
                 pass 
             with gr.Column(): 
                 with gr.Row():
-                    self.show_selected_button = gr.DownloadButton(
-                        "Show",
-                        variant="primary",
-                        interactive=False,
+                    # HTML element yang berisi link untuk preview PDF
+                    self.show_selected_button = gr.HTML(
+                        value='<div style="display:flex;gap:10px;"><button disabled style="background:#ccc;color:#666;border:none;padding:8px 16px;border-radius:4px;cursor:not-allowed;">Show</button></div>',
                         visible=True,
                     )
                     self.delete_selected_button = gr.Button(
@@ -372,6 +398,57 @@ class FileIndexPage(BasePage):
                 )
                 self.delete_all_button_cancel = gr.Button("Cancel", visible=False)
 
+    def show_pdf_modal(self, file_id):
+        """Show PDF modal using pdf_viewer.js like file_list.py implementation"""
+        if not file_id:
+            return gr.update(visible=False)
+        
+        Source = self._index._resources["Source"]
+        with Session(engine) as session:
+            file = session.query(Source).filter(Source.id == file_id).first()
+            
+            if not file or not file.path:
+                return gr.update(visible=False)
+            
+            BASE_PATH = os.environ.get("GR_FILE_ROOT_PATH", "")
+            pdf_url = f"{BASE_PATH}/file={file.path}"
+            
+            # Generate clean HTML with PDF preview link (tanpa script kompleks)
+            html = f'''
+            <div style="border:1px solid #bbb; border-radius:8px; padding:10px; margin-bottom:10px; display:flex; flex-direction:column; gap:8px; max-width:320px;">
+                <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                    {file.name}
+                </div>
+                <a 
+                    href="#" 
+                    class="pdf-file" 
+                    data-expand-pdf="true" 
+                    data-src="{pdf_url}"
+                    data-page="1"
+                    style="
+                        align-self:flex-end;
+                        background:#fff;
+                        border:2px solid #444;
+                        border-radius:12px;
+                        padding:2px 14px 2px 10px;
+                        cursor:pointer;
+                        display:flex;
+                        align-items:center;
+                        gap:6px;
+                        font-size:1.1em;
+                        font-weight:500;
+                        color:#222;
+                        transition:box-shadow 0.1s;
+                        text-decoration:none;
+                ">
+                    <span style="display:inline-flex; align-items:center; height:20px; width:20px;">[View]</span>
+                    Preview PDF
+                </a>
+            </div>
+            '''
+            
+            return gr.update(value=html, visible=True)
+        
     def render_group_list(self):
         self.group_list_state = gr.State(value=None)
         self.group_list = gr.DataFrame(
@@ -423,89 +500,9 @@ class FileIndexPage(BasePage):
                 variant="primary",
             )
 
-    def show_pdf_modal(self, file_id):
-        if not file_id:
-            return gr.update(visible=False)
-        
-        Source = self._index._resources["Source"]
-        with Session(engine) as session:
-            file = session.query(Source).filter(Source.id == file_id).first()
-            
-            if not file or not file.path:
-                return gr.update(visible=False)
-            
-            BASE_PATH = os.environ.get("GR_FILE_ROOT_PATH", "")
-            pdf_url = f"{BASE_PATH}/file={file.path}"
-            
-            # Buat modal HTML dengan iframe untuk PDF dan JavaScript yang lebih sederhana
-            modal_html = f"""
-            <div id="pdf-modal-file" style="
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.7);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 9999;
-            " onclick="
-                document.getElementById('pdf-modal-file').style.display='none';
-                document.getElementById('close-modal-button').click();
-            ">
-                <div style="
-                    position: relative;
-                    width: 80%;
-                    height: 100%;
-                    background: white;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-                    display: flex;
-                    flex-direction: column;
-                " onclick="event.stopPropagation()">
-                    <div style="
-                        padding: 4px 12px;
-                        background: #fff;
-                        border-bottom: 1px solid #ddd;
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                    ">
-                        <span style="font-weight: 500; font-size: 1.1em; color: #333;">{file.name}</span>
-                        <button onclick="
-                            document.getElementById('pdf-modal-file').style.display='none';
-                            document.getElementById('close-modal-button').click();
-                        " style="
-                            background: none;
-                            border: none;
-                            font-size: 1.5em;
-                            cursor: pointer;
-                            color: #333;
-                            padding: 5px 10px;
-                            font-weight: bold;
-                        ">×</button>
-                    </div>
-                    <iframe 
-                        src="{pdf_url}" 
-                        style="
-                            flex-grow: 1;
-                            border: none;
-                            border-radius: 0 0 8px 8px;
-                        " 
-                        frameborder="0">
-                    </iframe>
-                </div>
-            </div>
-            """
-            
-            return gr.update(value=modal_html, visible=True)
-        
-    def close_pdf_modal(self):
-        """Close the PDF modal by returning empty HTML"""
-        return gr.update(value="", visible=False)
-
     def on_building_ui(self):
         """Build the UI of the app"""
+        self.modal_show = gr.HTML("<div id='pdf-modal-show-file'></div>")
         with gr.Row():
             with gr.Column(scale=1):
                 gr.Markdown("## File Upload")
@@ -658,13 +655,16 @@ class FileIndexPage(BasePage):
             #                 content=content,
             #             )
             #         )
+        # Update the Show button with PDF link
+        show_button_update = self.update_show_button(file_id)
+        
         return (
             gr.update(value="".join(chunks), visible=False),
             gr.update(visible=False),
             gr.update(visible=False),
             gr.update(visible=False),
             gr.update(visible=False),
-            gr.update(interactive=file_id is not None),
+            show_button_update,  # Use the updated show button
             gr.update(interactive=file_id is not None),
         )
 
@@ -981,6 +981,8 @@ class FileIndexPage(BasePage):
         """Register all events to the app"""
         self.on_register_quick_uploads()
 
+        # No longer need event handler for show_selected_button since it's now an HTML link
+
         if KH_DEMO_MODE:
             return
 
@@ -1030,22 +1032,7 @@ class FileIndexPage(BasePage):
         for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
             onDeleted = onDeleted.then(**event)
         
-        # showing selected file
-        self.show_selected_button.click(
-            fn=self.show_pdf_modal,
-            inputs=[self.selected_file_id],
-            outputs=[self.pdf_modal],
-            show_progress="hidden"
-        )
         
-        # close modal event
-        self.close_modal_button.click(
-            fn=self.close_pdf_modal,
-            inputs=[],
-            outputs=[self.pdf_modal],
-            show_progress="hidden"
-        )
-
         #deleting selected file
         onDeleteSelected = (
             self.delete_selected_button.click(
@@ -1379,18 +1366,15 @@ class FileIndexPage(BasePage):
         """Handle zip files"""
         zip_files = [file for file in files if file.endswith(".zip")]
         remaining_files = [file for file in files if not file.endswith("zip")]
-        errors: list[str] = []
 
         # Clean-up <zip_dir> before unzip to remove old files
         shutil.rmtree(zip_dir, ignore_errors=True)
 
-        # Unzip
         for zip_file in zip_files:
             # Prepare new zip output dir, separated for each files
             basename = os.path.splitext(os.path.basename(zip_file))[0]
             zip_out_dir = os.path.join(zip_dir, basename)
             os.makedirs(zip_out_dir, exist_ok=True)
-
             with zipfile.ZipFile(zip_file, "r") as zip_ref:
                 zip_ref.extractall(zip_out_dir)
 
@@ -1407,7 +1391,7 @@ class FileIndexPage(BasePage):
         if n_zip_file > 0:
             print(f"Update zip files: {n_zip_file}")
 
-        return remaining_files, errors
+        return remaining_files
 
     def index_fn(
         self, files, urls, reindex: bool, settings, user_id
@@ -1423,22 +1407,20 @@ class FileIndexPage(BasePage):
         """
         if urls:
             files = [it.strip() for it in urls.split("\n")]
-            errors = self.validate_urls(files)
+            errors = []
         else:
             if not files:
                 gr.Info("No uploaded file")
                 yield "", ""
                 return
-            files, unzip_errors = self._may_extract_zip(
-                files, flowsettings.KH_ZIP_INPUT_DIR
-            )
-            errors = self.validate_files(files)
-            errors.extend(unzip_errors)
 
-        if errors:
-            gr.Warning(", ".join(errors))
-            yield "", ""
-            return
+            files = self._may_extract_zip(files, flowsettings.KH_ZIP_INPUT_DIR)
+
+            errors = self.validate(files)
+            if errors:
+                gr.Warning(", ".join(errors))
+                yield "", ""
+                return
 
         gr.Info(f"Start indexing {len(files)} files...")
 
@@ -1906,7 +1888,7 @@ class FileIndexPage(BasePage):
             selected_item["files"],
         )
 
-    def validate_files(self, files: list[str]):
+    def validate(self, files: list[str]):
         """Validate if the files are valid"""
         paths = [Path(file) for file in files]
         errors = []
@@ -1935,330 +1917,116 @@ class FileIndexPage(BasePage):
 
         return errors
 
-    def validate_urls(self, urls: list[str]):
-        """Validate if the urls are valid"""
-        errors = []
-        for url in urls:
-            if not url.startswith("http") and not url.startswith("https"):
-                errors.append(f"Invalid url `{url}`")
-        return errors
-
-
-class FileSelector(BasePage):
-    """File selector UI in the Chat page"""
-
-    def __init__(self, app, index):
-        super().__init__(app)
-        self._index = index
-        self.on_building_ui()
-
-    def default(self):
-        if self._app.f_user_management:
-            return "all", [], "", "", [], -1, "", ""
-        return "all", [], "", "", [], 1, "", ""
-
-    def on_building_ui(self):
-        default_mode, default_selector, start_date, end_date, filtered_files_ids, user_id, keyword, company = self.default()
-
-        self.mode = gr.Radio(
-            value=default_mode,
-            choices=[
-                ("Search By Date", "date"),
-            ],
-            container=False,
-            visible=False
-        )
-        self.selector = gr.Dropdown(
-            label="Files",
-            value=default_selector,
-            choices=[],
-            multiselect=True,
-            container=False,
-            interactive=True,
-            visible=False,
-        )
-        self.search_keyword_input = gr.Textbox(
-            label="Search Keyword",
-            value=keyword,
-            visible=True,
-            placeholder="Search keyword"
-        )
-        self.search_company_input = gr.Textbox(
-            label="Search Company",
-            value=company,
-            visible=True,
-            placeholder="Search company name"
-        )
-        self.start_date_picker = gr.DateTime(
-            label="Start Date",
-            value=start_date,
-            visible=True,
-            include_time=False
-        )
-        self.end_date_picker = gr.DateTime(
-            label="End Date",
-            value=end_date,
-            visible=True,
-            include_time=False
-        )
-        self.apply_filter_button = gr.Button(
-            "Apply",
-            visible=True,
-        )
-        self.clear_button = gr.Button(
-            "Clear",
-            visible=True,
-        )
-        self.filtered_file_ids = gr.State(value=filtered_files_ids)
-        self.selector_user_id = gr.State(value=user_id)
-        self.selector_choices = gr.JSON(
-            value=[],
-            visible=False,
-        )
-
-    def on_register_events(self):
-        # self.mode.change(
-        #     fn=lambda mode, user_id: (
-        #         gr.update(visible=mode == "select"), 
-        #         gr.update(visible=mode == "date"),
-        #         gr.update(visible=mode == "date"),
-        #         gr.update(visible=mode == "date"),
-        #         user_id
-        #     ),
-        #     inputs=[self.mode, self._app.user_id],
-        #     outputs=[
-        #         self.selector,
-        #         self.start_date_picker,
-        #         self.end_date_picker,
-        #         self.apply_date_filter_button,
-        #         self.selector_user_id
-        #     ],
-        # )
-        self.apply_filter_button.click(
-            fn=self.get_filtered_files_and_list,
-            inputs=[
-                self.start_date_picker,
-                self.end_date_picker,
-                self._app.user_id,
-                self.search_keyword_input,
-                self.search_company_input,
-            ],
-            outputs=[self.filtered_file_ids],
-        )
-        self.clear_button.click(
-            fn=self.get_all_files,
-            inputs=[self._app.user_id],
-            outputs=[
-                self.filtered_file_ids, 
-                self.start_date_picker, 
-                self.end_date_picker,
-                self.search_keyword_input,
-                self.search_company_input
-            ],
-        )
-        # attach special event for the first index
-        if self._index.id == 1:
-            self.selector_choices.change(
-                fn=None,
-                inputs=[self.selector_choices],
-                js=update_file_list_js,
-                show_progress="hidden",
+    def update_show_button(self, file_id):
+        """Update show button with active PDF link when file is selected"""
+        if not file_id:
+            # Return disabled button when no file selected
+            return gr.update(
+                value='<div style="display:flex;gap:10px;"><button disabled style="background:#ccc;color:#666;border:none;padding:8px 16px;border-radius:4px;cursor:not-allowed;">Show</button></div>'
             )
-
-    def as_gradio_component(self):
-        return [
-            self.mode, 
-            self.selector, 
-            self.start_date_picker, 
-            self.end_date_picker, 
-            self.filtered_file_ids,
-            self.selector_user_id,
-            self.search_keyword_input,
-            self.search_company_input
-        ]
-
-    def get_selected_ids(self, components):
-        mode, selected, start_date, end_date, filtered_file_ids, user_id, keyword, company = components
-        if user_id is None:
-            return []
         
-        if mode == "select":
-            return selected
-        
-        # Use filtered_file_ids if provided
-        if len(filtered_file_ids) > 0:
-            return filtered_file_ids
-
-        file_ids = []
+        Source = self._index._resources["Source"]
         with Session(engine) as session:
-            Source = self._index._resources["Source"]
-            # Use coalesce to prioritize date_from_file_name, then date_from_file, then date_created
-            date_column = func.coalesce(
-                Source.date_from_file_name,
-                Source.date_from_content,
-                Source.date_created
-            )
-
-            statement = select(Source.id)
-            if self._index.config.get("private", False):
-                statement = statement.where(Source.user == user_id)
+            file = session.query(Source).filter(Source.id == file_id).first()
             
-            # Querying by date (for Apply Date Filter)
-            if start_date and end_date:
-                statement = statement.where(date_column >= start_date)
-                statement = statement.where(date_column <= end_date)
-
-            # Querying by keyword
-            if keyword:
-                statement = statement.where(
-                    text(
-                        f"""EXISTS (
-                            SELECT 1 FROM json_each({Source.keywords.key})
-                            WHERE LOWER(value) = LOWER(:keyword)
-                        )"""
-                    )
-                ).params(keyword=keyword)
-
-            # Querying by company
-            if company:
-                statement = statement.where(
-                    text(
-                        f"""EXISTS (
-                            SELECT 1 FROM json_each({Source.company.key})
-                            WHERE LOWER(value) LIKE LOWER(:company)
-                        )"""
-                    )
-                ).params(company=f"%{company}%")
-
-            results = session.execute(statement).all()
-
-            for (id,) in results:
-                file_ids.append(id)
-
-        return file_ids
-
-    def load_files(self, selected_files, user_id):
-        options: list = []
-        available_ids = []
-        if user_id is None:
-            # not signed in
-            return gr.update(value=selected_files, choices=options), options
-
-        with Session(engine) as session:
-            # get file list from Source table
-            statement = select(self._index._resources["Source"])
-            if self._index.config.get("private", False):
-                statement = statement.where(
-                    self._index._resources["Source"].user == user_id
+            if not file or not file.path:
+                return gr.update(
+                    value='<div style="display:flex;gap:10px;"><button disabled style="background:#ccc;color:#666;border:none;padding:8px 16px;border-radius:4px;cursor:not-allowed;">Show</button></div>'
                 )
-
-            if KH_DEMO_MODE:
-                # limit query by MAX_FILE_COUNT
-                statement = statement.limit(MAX_FILE_COUNT)
-
-            results = session.execute(statement).all()
-            for result in results:
-                available_ids.append(result[0].id)
-                options.append((result[0].name, result[0].id))
-
-            # get group list from FileGroup table
-            FileGroup = self._index._resources["FileGroup"]
-            statement = select(FileGroup)
-            if self._index.config.get("private", False):
-                statement = statement.where(FileGroup.user == user_id)
-            results = session.execute(statement).all()
-            for result in results:
-                item = result[0]
-                options.append(
-                    (f"group: '{item.name}'", json.dumps(item.data.get("files", [])))
-                )
-
-        if selected_files:
-            available_ids_set = set(available_ids)
-            selected_files = [
-                each for each in selected_files if each in available_ids_set
-            ]
-
-        return gr.update(value=selected_files, choices=options), options
-        
-    def get_filtered_files_and_list(self, start, end, user_id, keyword, company):
-        # Convert float timestamps to datetime
-        if isinstance(start, (float, int)):
-            start = datetime.datetime.fromtimestamp(start)
-        if isinstance(end, (float, int)):
-            end = datetime.datetime.fromtimestamp(end)
-
-        # Convert date to datetime for filtering
-        if isinstance(start, datetime.date) and not isinstance(start, datetime.datetime):
-            start = datetime.datetime.combine(start, datetime.time.min)
-        # Always force end time to 23:59:59 if time is 00:00:00
-        if isinstance(end, datetime.datetime) and end.time() == datetime.time(0, 0, 0):
-            end = end.replace(hour=23, minute=59, second=59)
-        elif isinstance(end, datetime.date) and not isinstance(end, datetime.datetime):
-            end = datetime.datetime.combine(end, datetime.time(23, 59, 59))
-
-        file_ids = self.get_selected_ids(["filter", [], start, end, [], user_id, keyword, company])
-        
-        return file_ids
-
-    def get_all_files(self, user_id):
-        # Show all files for the user (no filters)
-        file_ids = self.get_selected_ids(["all", [], "", "", [], user_id, "", ""])
-        
-        return file_ids, "", "", "", ""
-
-    def _on_app_created(self):
-        self._app.app.load(
-            self.load_files,
-            inputs=[self.selector, self._app.user_id],
-            outputs=[self.selector, self.selector_choices],
-        )
-
-    def on_subscribe_public_events(self):
-        self._app.subscribe_event(
-            name=f"onFileIndex{self._index.id}Changed",
-            definition={
-                "fn": self.load_files,
-                "inputs": [self.selector, self._app.user_id],
-                "outputs": [self.selector, self.selector_choices],
-                "show_progress": "hidden",
-            },
-        )
-
-        if self._app.f_user_management:
-            for event_name in ["onSignIn", "onSignOut"]:
-                self._app.subscribe_event(
-                    name=event_name,
-                    definition={
-                        "fn": self.load_files,
-                        "inputs": [self.selector, self._app.user_id],
-                        "outputs": [self.selector, self.selector_choices],
-                        "show_progress": "hidden",
-                    },
-                )
-                # Update filtered_file_ids on sign in
-                self._app.subscribe_event(
-                    name="onSignIn",
-                    definition={
-                        "fn": self.get_all_files,
-                        "inputs": [self._app.user_id],
-                        "outputs": [
-                            self.filtered_file_ids, 
-                            self.start_date_picker, 
-                            self.end_date_picker,
-                            self.search_keyword_input,
-                            self.search_company_input
-                        ],
-                        "show_progress": "hidden",
-                    },
-                )
-                # Clear filtered_file_ids on sign out
-                self._app.subscribe_event(
-                    name="onSignOut",
-                    definition={
-                        "fn": lambda user_id: ([], "No files found."),
-                        "inputs": [self._app.user_id],
-                        "outputs": [self.filtered_file_ids],
-                        "show_progress": "hidden",
-                    },
-                )
+            
+            BASE_PATH = os.environ.get("GR_FILE_ROOT_PATH", "")
+            pdf_url = f"{BASE_PATH}/file={file.path}"
+            
+            # Create active link that directly opens PDF modal
+            button_html = f'''
+            <div style="display:flex;gap:10px;">
+                <a 
+                    href="#" 
+                    class="pdf-file show-pdf-direct" 
+                    data-expand-pdf="true" 
+                    data-src="{pdf_url}"
+                    data-page="1"
+                    data-filename="{file.name}"
+                    style="
+                        background:#007bff;
+                        color:white;
+                        border:none;
+                        padding:8px 16px;
+                        border-radius:4px;
+                        text-decoration:none;
+                        cursor:pointer;
+                        font-weight:500;
+                        transition:background 0.2s;
+                        display:inline-block;
+                ">
+                    Show
+                </a>
+                <script>
+                    // Auto-attach event to the newly created link
+                    setTimeout(function() {{
+                        var link = document.querySelector('.show-pdf-direct[data-src="{pdf_url}"]');
+                        if (link && !link.onclick) {{
+                            link.onclick = function(e) {{
+                                e.preventDefault();
+                                console.log('Direct PDF link clicked for:', '{file.name}');
+                                
+                                // Ensure modal container exists
+                                var modalContainer = document.getElementById('pdf-modal-show-file');
+                                if (!modalContainer) {{
+                                    modalContainer = document.createElement('div');
+                                    modalContainer.id = 'pdf-modal-show-file';
+                                    document.body.appendChild(modalContainer);
+                                }}
+                                
+                                // Create modal if not exists
+                                if (typeof window.createModalShowPdfFile === 'function') {{
+                                    window.createModalShowPdfFile();
+                                }} else {{
+                                    // Manual modal creation
+                                    modalContainer.className = 'modal';
+                                    modalContainer.innerHTML = `
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <span class="close" id="modal-file-close">&times;</span>
+                                            </div>
+                                            <div class="modal-body">
+                                                <pdfjs-viewer-element id="pdf-viewer-file" viewer-path="GR_FILE_ROOT_PATH/file=PDFJS_PREBUILT_DIR" locale="en" phrase="true">
+                                                </pdfjs-viewer-element>
+                                            </div>
+                                        </div>
+                                    `;
+                                    modalContainer.querySelector("#modal-file-close").onclick = function () {{
+                                        modalContainer.style.display = "none";
+                                    }};
+                                }}
+                                
+                                // Open modal
+                                setTimeout(function() {{
+                                    var pdfViewer = document.getElementById("pdf-viewer-file");
+                                    var modal = document.getElementById("pdf-modal-show-file");
+                                    
+                                    if (pdfViewer && modal) {{
+                                        pdfViewer.setAttribute("src", "{pdf_url}");
+                                        pdfViewer.setAttribute("page", "1");
+                                        
+                                        modal.style.display = "block";
+                                        modal.style.position = "fixed";
+                                        modal.style.top = "0";
+                                        modal.style.left = "15%";
+                                        modal.style.width = "70%";
+                                        modal.style.height = "100vh";
+                                        modal.style.zIndex = "9999";
+                                        modal.style.backgroundColor = "rgba(0,0,0,0.8)";
+                                        
+                                        console.log('PDF modal opened for:', '{file.name}');
+                                    }}
+                                }}, 100);
+                            }};
+                            console.log('Event attached to Show link for:', '{file.name}');
+                        }}
+                    }}, 100);
+                </script>
+            </div>
+            '''
+            
+            return gr.update(value=button_html)

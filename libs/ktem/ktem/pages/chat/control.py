@@ -68,6 +68,7 @@ class ConversationControl(BasePage):
                 size="sm",
                 elem_classes=["no-background", "body-text-color"],
                 elem_id="chat-expand-button",
+                visible=False,
             )
             self.btn_info_expand = gr.Button(
                 value="",
@@ -77,6 +78,7 @@ class ConversationControl(BasePage):
                 size="sm",
                 elem_classes=["no-background", "body-text-color"],
                 elem_id="info-expand-button",
+                visible=False,
             )
 
             self.btn_toggle_dark_mode.click(
@@ -107,7 +109,7 @@ class ConversationControl(BasePage):
                 scale=6,
                 elem_id="suggest-chat-checkbox",
                 container=False,
-                visible=not KH_DEMO_MODE,
+                visible=False,
             )
             self.cb_is_public = gr.Checkbox(
                 value=False,

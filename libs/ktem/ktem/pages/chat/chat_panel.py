@@ -6,13 +6,13 @@ KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 
 if not KH_DEMO_MODE:
     PLACEHOLDER_TEXT = (
-        "This is the beginning of a new conversation.\n"
-        "Start by uploading a file or a web URL. "
-        "Visit Files tab for more options (e.g: GraphRAG)."
+        "Welcome to Doculazer.\n"
+        "Summarize content, chat with your AI assistant, and unlock insights.\n"
+        "Let's get started!"
     )
 else:
     PLACEHOLDER_TEXT = (
-        "Welcome to Kotaemon Demo. "
+        "Welcome to Doculazer. "
         "Start by browsing preloaded conversations to get onboard.\n"
         "Check out Hint section for more tips."
     )

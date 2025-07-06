@@ -37,6 +37,7 @@ from .control import ConversationControl
 from .demo_hint import HintPage
 from .paper_list import PaperListPage
 from .report import ReportIssue
+from .file_list import FileList
 
 KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
@@ -196,11 +197,28 @@ function(_, __) {
 }
 """
 
+pdflistview_js = """
+function() {
+    // Get all links and attach click event
+    var links = document.getElementsByClassName("pdf-file");
+
+    for (var i = 0; i < links.length; i++) {
+        links[i].onclick = openModalExpanded;
+    }
+
+    return [links.length]
+}
+"""
+
 
 class ChatPage(BasePage):
     def __init__(self, app):
         self._app = app
         self._indices_input = []
+
+        self.file_ids = []
+        self.indexFileSelector = ""
+        self.file_list_container = None
 
         self.on_building_ui()
 
@@ -247,6 +265,10 @@ class ChatPage(BasePage):
                         index_ui.render()
                         gr_index = index_ui.as_gradio_component()
 
+                        if index_id == 0:
+                            self.file_ids = index_ui.filtered_file_ids
+                            self.indexFileSelector = index
+
                         # get the file selector choices for the first index
                         if index_id == 0:
                             self.first_selector_choices = index_ui.selector_choices
@@ -268,6 +290,8 @@ class ChatPage(BasePage):
                                 self._indices_input.append(gr_index)
                         setattr(self, f"_index_{index.id}", index_ui)
 
+                self.file_list_container = FileList(self._app, self.indexFileSelector)
+
                 self.chat_suggestion = ChatSuggestion(self._app)
 
                 if len(self._app.index_manager.indices) > 0:
@@ -275,7 +299,7 @@ class ChatPage(BasePage):
                         "Quick Upload" if not KH_DEMO_MODE else "Or input new paper URL"
                     )
 
-                    with gr.Accordion(label=quick_upload_label) as _:
+                    with gr.Accordion(label=quick_upload_label, visible=False) as _:
                         self.quick_file_upload_status = gr.Markdown()
                         if not KH_DEMO_MODE:
                             self.quick_file_upload = File(
@@ -311,20 +335,30 @@ class ChatPage(BasePage):
                 if KH_DEMO_MODE:
                     self.paper_list = PaperListPage(self._app)
 
+                language_setting = (
+                    self._app.default_settings.reasoning.settings["lang"]
+                )
+                self.language = gr.Radio(
+                    choices=language_setting.choices,
+                    value=language_setting.value,
+                    container=False,
+                    show_label=False,
+                    elem_id="language-switch",
+                )
+
                 self.chat_panel = ChatPanel(self._app)
 
-                with gr.Accordion(
-                    label="Chat settings",
+                with gr.Row(
                     elem_id="chat-settings-expand",
-                    open=False,
                     visible=not KH_DEMO_MODE,
                 ) as self.chat_settings:
-                    with gr.Row(elem_id="quick-setting-labels"):
-                        gr.HTML("Reasoning method")
-                        gr.HTML(
-                            "Model", visible=not KH_DEMO_MODE and not KH_SSO_ENABLED
-                        )
-                        gr.HTML("Language")
+                    gr.HTML("Chat Settings")
+                    # with gr.Row(elem_id="quick-setting-labels"):
+                    #     gr.HTML("Reasoning method", visible=False)
+                    #     gr.HTML(
+                    #         "Model", visible=False
+                    #     )
+                    #     gr.HTML("Language")
 
                     with gr.Row():
                         reasoning_setting = (
@@ -333,9 +367,7 @@ class ChatPage(BasePage):
                         model_setting = self._app.default_settings.reasoning.options[
                             "simple"
                         ].settings["llm"]
-                        language_setting = (
-                            self._app.default_settings.reasoning.settings["lang"]
-                        )
+
                         citation_setting = self._app.default_settings.reasoning.options[
                             "simple"
                         ].settings["highlight_citation"]
@@ -345,19 +377,14 @@ class ChatPage(BasePage):
                             value=reasoning_setting.value,
                             container=False,
                             show_label=False,
+                            visible=False,
                         )
                         self.model_type = gr.Dropdown(
                             choices=model_setting.choices,
                             value=model_setting.value,
                             container=False,
                             show_label=False,
-                            visible=not KH_DEMO_MODE and not KH_SSO_ENABLED,
-                        )
-                        self.language = gr.Dropdown(
-                            choices=language_setting.choices,
-                            value=language_setting.value,
-                            container=False,
-                            show_label=False,
+                            visible=False,
                         )
 
                         self.citation = gr.Dropdown(
@@ -376,6 +403,7 @@ class ChatPage(BasePage):
                                 container=False,
                                 elem_id="use-mindmap-checkbox",
                                 value=True,
+                                visible=False
                             )
                         else:
                             self.use_mindmap = gr.State(value=False)
@@ -384,6 +412,7 @@ class ChatPage(BasePage):
                                 container=False,
                                 elem_id="use-mindmap-checkbox",
                                 value=False,
+                                visible=False
                             )
 
             with gr.Column(
@@ -398,6 +427,7 @@ class ChatPage(BasePage):
 
         self.followup_questions = self.chat_suggestion.examples
         self.followup_questions_ui = self.chat_suggestion.accordion
+        self.modal_show = gr.HTML("<div id='pdf-modal-show'></div>")
 
     def _json_to_plot(self, json_dict: dict | None):
         if json_dict:
@@ -420,6 +450,17 @@ class ChatPage(BasePage):
                 outputs=None,
                 js=recommended_papers_js,
             )
+        
+        self.file_ids.change(
+            fn=self.file_list_container.update,
+            inputs=[self.file_ids],
+            outputs=[self.file_list_container.container],
+        ).then(
+            fn=None,
+            inputs=None,
+            outputs=None,
+            js=pdflistview_js,
+        )
 
         chat_event = (
             gr.on(

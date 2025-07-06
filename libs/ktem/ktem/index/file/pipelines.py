@@ -6,12 +6,15 @@ import shutil
 import threading
 import time
 import warnings
+import os
+from datetime import datetime
 from collections import defaultdict
 from copy import deepcopy
 from functools import lru_cache
 from hashlib import sha256
 from pathlib import Path
 from typing import Generator, Optional, Sequence
+from keybert import KeyBERT
 
 import tiktoken
 from decouple import config
@@ -33,6 +36,9 @@ from sqlalchemy.orm import Session
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
 
+from openai import OpenAI
+from dotenv import load_dotenv
+
 from kotaemon.base import BaseComponent, Document, Node, Param, RetrievedDocument
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.indices import VectorIndexing, VectorRetrieval
@@ -50,7 +56,7 @@ from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
 
 logger = logging.getLogger(__name__)
-
+load_dotenv()
 
 @lru_cache
 def dev_settings():
@@ -76,6 +82,25 @@ def dev_settings():
 
 _default_token_func = tiktoken.encoding_for_model("gpt-3.5-turbo").encode
 
+kw_model = KeyBERT()
+
+def extract_keywords_long(text, chunk_size=1000, top_n=5):
+    chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+    all_keywords = []
+    for chunk in chunks:
+        keywords = kw_model.extract_keywords(chunk, top_n=top_n)
+        all_keywords.extend(keywords)
+    # Deduplicate
+    return list(set([kw for kw, _ in all_keywords]))
+
+def parse_date_from_string(date_str):
+    if not date_str:
+        return None
+    try:
+        converted_date = datetime.strptime(date_str, "%d-%m-%Y")
+        return converted_date
+    except Exception:
+        return None
 
 class DocumentRetrievalPipeline(BaseFileIndexRetriever):
     """Retrieve relevant document
@@ -374,6 +399,13 @@ class IndexPipeline(BaseComponent):
         else:
             all_chunks = text_docs
 
+        file_keywords_set = set()
+        for chunk in all_chunks:
+            if hasattr(chunk, "text"):
+                chunk_keywords = extract_keywords_long(chunk.text)
+                chunk.metadata["keywords"] = ", ".join(chunk_keywords)
+                file_keywords_set.update(chunk_keywords)
+
         # add the thumbnails doc_id to the chunks
         for chunk in all_chunks:
             page_label = chunk.metadata.get("page_label", None)
@@ -419,7 +451,7 @@ class IndexPipeline(BaseComponent):
             yield from insert_chunks_to_vectorstore()
 
         print("indexing step took", time.time() - s_time)
-        return n_chunks
+        return n_chunks, list(file_keywords_set)
 
     def handle_chunks_docstore(self, chunks, file_id):
         """Run chunks"""
@@ -523,9 +555,10 @@ class IndexPipeline(BaseComponent):
             file_hash = sha256(fi.read()).hexdigest()
 
         shutil.copy(file_path, self.FSPath / file_hash)
+        rel_path = os.path.relpath(file_path, start=os.getcwd())
         source = self.Source(
             name=file_path.name,
-            path=file_hash,
+            path=rel_path,
             size=file_path.stat().st_size,
             user=self.user_id,  # type: ignore
         )
@@ -646,7 +679,23 @@ class IndexPipeline(BaseComponent):
         yield Document(f" => Converting {file_name} to text", channel="debug")
         docs = self.loader.load_data(file_path, extra_info=extra_info)
         yield Document(f" => Converted {file_name} to text", channel="debug")
-        yield from self.handle_docs(docs, file_id, file_name)
+
+        llm_parser = LLMParser()
+        full_text = "\n\n".join(getattr(doc, "text", str(doc)) for doc in docs)
+        llm_result = llm_parser.parse_dates_and_company(full_text, file_name)
+
+        n_chunks, file_keywords = yield from self.handle_docs(docs, file_id, file_name)
+
+        # --- Update the Source record with file-level keywords ---
+        with Session(engine) as session:
+            source = session.get(self.Source, file_id)
+            if source:
+                source.keywords = file_keywords
+                source.date_from_file_name = parse_date_from_string(llm_result.get("date_file_name"))
+                source.date_from_content = parse_date_from_string(llm_result.get("date_content"))
+                source.company = llm_result.get("company", [])
+                session.add(source)
+                session.commit()
 
         self.finish(file_id, file_path)
 
@@ -835,3 +884,44 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                 )
 
         return file_ids, errors, all_docs
+
+class LLMParser:
+    def __init__(self):
+        self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.client = OpenAI(api_key=self.openai_api_key)
+        self.GPT_MODEL = "gpt-4o-mini"
+
+    def parse_dates_and_company(self, text, file_name):
+        prompt = (
+            "Extract the following information from the file name and content below:\n"
+            "1. The date mentioned in the **file name** (e.g., 'January to March 2023' → use the latest likely date such as '31-03-2023'). "
+            "If it's a range, return the latest possible date in 'DD-MM-YYYY' format. If no date is found, return null.\n"
+            "2. The **meeting date** found in the content (the date the meeting happened, ignore other unrelated dates). "
+            "If no clear meeting date is found, return null.\n"
+            "3. The name of the **company that held the meeting**, and any **other companies involved** (mentioned or participated).\n\n"
+            "Return the result strictly as a single line of valid JSON. "
+            "Do NOT use markdown, triple backticks, or any extra formatting. "
+            "Only output the JSON object, nothing else.\n"
+            '{\n'
+            '  "date_file_name": "DD-MM-YYYY" or null,\n'
+            '  "date_content": "DD-MM-YYYY" or null,\n'
+            '  "company": ["Company A", "Company B"]\n'
+            '}\n\n'
+            f"File name: {file_name}\n\n"
+            f"Content: {text}"
+        )
+
+        response = self.client.chat.completions.create(
+            model=self.GPT_MODEL,
+            messages=[
+                {"role": "system", "content": "You are an expert information extractor. Only return valid JSON as instructed."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=256,
+        )
+
+        try:
+            return json.loads(response.choices[0].message.content)
+        except Exception as e:
+            print(f"Error parsing LLM response: {e}")
+            return []

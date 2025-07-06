@@ -39,7 +39,7 @@ class BaseApp:
 
     def __init__(self):
         self.dev_mode = getattr(settings, "KH_MODE", "") == "dev"
-        self.app_name = getattr(settings, "KH_APP_NAME", "Kotaemon")
+        self.app_name = getattr(settings, "KH_APP_NAME", "Doculazer")
         self.app_version = getattr(settings, "KH_APP_VERSION", "")
         self.f_user_management = getattr(settings, "KH_FEATURE_USER_MANAGEMENT", False)
         self._theme = KotaemonTheme()

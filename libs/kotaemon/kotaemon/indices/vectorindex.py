@@ -283,7 +283,13 @@ class VectorRetrieval(BaseRetrieval):
         additional_docs = []
 
         for thumbnail_doc in linked_thumbnail_docs:
-            text_doc = text_thumbnail_docs[thumbnail_doc.doc_id]
+            # text_doc = text_thumbnail_docs[thumbnail_doc.doc_id]
+            doc_id = thumbnail_doc.doc_id
+            if doc_id not in text_thumbnail_docs:
+                print(f"⚠️ Skipping missing thumbnail for doc_id: {doc_id}")
+                continue  # <-- this is crucial to prevent KeyError
+
+            text_doc = text_thumbnail_docs[doc_id]
             doc_dict = thumbnail_doc.to_dict()
             doc_dict["_id"] = text_doc.doc_id
             doc_dict["content"] = text_doc.content
