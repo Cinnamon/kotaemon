@@ -507,7 +507,8 @@ div.markmap {
 #settings-tab-button {
     display: none !important;
     /* width: 30px !important; */
-    color: #FFF;
+    color: #808080;
+    box-shadow: none;
 }
 
 #help-tab-button-icon {
@@ -530,7 +531,7 @@ div.markmap {
 
 #toggle-dark-button {
   position: fixed;
-  bottom: 16px;
-  right: -30px;
+  bottom: 24px;
+  right: -40px;
 }
 

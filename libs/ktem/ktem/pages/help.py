@@ -49,19 +49,19 @@ class HelpPage:
 
         self.changelogs_cache_dir.mkdir(parents=True, exist_ok=True)
 
-        about_md_dir = self.doc_dir / "about.md"
-        if about_md_dir.exists():
-            with (self.doc_dir / "about.md").open(encoding="utf-8") as fi:
-                about_md = fi.read()
-        else:  # fetch from remote
-            about_md = get_remote_doc(
-                f"{self.remote_content_url}/v{self.app_version}/docs/about.md"
-            )
-        if about_md:
-            with gr.Accordion("About"):
-                if self.app_version:
-                    about_md = f"Version: {self.app_version}\n\n{about_md}"
-                gr.Markdown(about_md)
+        # about_md_dir = self.doc_dir / "about.md"
+        # if about_md_dir.exists():
+        #     with (self.doc_dir / "about.md").open(encoding="utf-8") as fi:
+        #         about_md = fi.read()
+        # else:  # fetch from remote
+        #     about_md = get_remote_doc(
+        #         f"{self.remote_content_url}/v{self.app_version}/docs/about.md"
+        #     )
+        # if about_md:
+        #     with gr.Accordion("About"):
+        #         if self.app_version:
+        #             about_md = f"Version: {self.app_version}\n\n{about_md}"
+        #         gr.Markdown(about_md)
 
         if KH_DEMO_MODE:
             with gr.Accordion("Create Your Own Space"):
