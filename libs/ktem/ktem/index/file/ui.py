@@ -216,6 +216,7 @@ class FileIndexPage(BasePage):
                 placeholder="File Name",
                 show_label=False,
                 scale=9,
+                info="file name",
                 interactive=True
             )
             self.company_filter = gr.Textbox(
@@ -223,12 +224,14 @@ class FileIndexPage(BasePage):
                 placeholder="Company",
                 scale=9,
                 show_label=False,
+                info="company",
                 interactive=True
             )
             self.date_start_filter = gr.DateTime(
                 include_time=False,
                 type="datetime",
                 show_label=False,
+                info="start date",
                 scale=10,
                 elem_classes="datepick-file",
             )
@@ -236,6 +239,7 @@ class FileIndexPage(BasePage):
                 include_time=False,
                 type="datetime",
                 show_label=False,
+                info="end date",
                 scale=10,
                 elem_classes="datepick-file",
             )
