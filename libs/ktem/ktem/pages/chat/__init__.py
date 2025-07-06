@@ -335,20 +335,30 @@ class ChatPage(BasePage):
                 if KH_DEMO_MODE:
                     self.paper_list = PaperListPage(self._app)
 
+                language_setting = (
+                    self._app.default_settings.reasoning.settings["lang"]
+                )
+                self.language = gr.Radio(
+                    choices=language_setting.choices,
+                    value=language_setting.value,
+                    container=False,
+                    show_label=False,
+                    elem_id="language-switch",
+                )
+
                 self.chat_panel = ChatPanel(self._app)
 
-                with gr.Accordion(
-                    label="Chat settings",
+                with gr.Row(
                     elem_id="chat-settings-expand",
-                    open=False,
                     visible=not KH_DEMO_MODE,
                 ) as self.chat_settings:
-                    with gr.Row(elem_id="quick-setting-labels"):
-                        gr.HTML("Reasoning method")
-                        gr.HTML(
-                            "Model", visible=not KH_DEMO_MODE and not KH_SSO_ENABLED
-                        )
-                        gr.HTML("Language")
+                    gr.HTML("Chat Settings")
+                    # with gr.Row(elem_id="quick-setting-labels"):
+                    #     gr.HTML("Reasoning method", visible=False)
+                    #     gr.HTML(
+                    #         "Model", visible=False
+                    #     )
+                    #     gr.HTML("Language")
 
                     with gr.Row():
                         reasoning_setting = (
@@ -357,9 +367,7 @@ class ChatPage(BasePage):
                         model_setting = self._app.default_settings.reasoning.options[
                             "simple"
                         ].settings["llm"]
-                        language_setting = (
-                            self._app.default_settings.reasoning.settings["lang"]
-                        )
+
                         citation_setting = self._app.default_settings.reasoning.options[
                             "simple"
                         ].settings["highlight_citation"]
@@ -369,19 +377,14 @@ class ChatPage(BasePage):
                             value=reasoning_setting.value,
                             container=False,
                             show_label=False,
+                            visible=False,
                         )
                         self.model_type = gr.Dropdown(
                             choices=model_setting.choices,
                             value=model_setting.value,
                             container=False,
                             show_label=False,
-                            visible=not KH_DEMO_MODE and not KH_SSO_ENABLED,
-                        )
-                        self.language = gr.Dropdown(
-                            choices=language_setting.choices,
-                            value=language_setting.value,
-                            container=False,
-                            show_label=False,
+                            visible=False,
                         )
 
                         self.citation = gr.Dropdown(
@@ -400,6 +403,7 @@ class ChatPage(BasePage):
                                 container=False,
                                 elem_id="use-mindmap-checkbox",
                                 value=True,
+                                visible=False
                             )
                         else:
                             self.use_mindmap = gr.State(value=False)
@@ -408,6 +412,7 @@ class ChatPage(BasePage):
                                 container=False,
                                 elem_id="use-mindmap-checkbox",
                                 value=False,
+                                visible=False
                             )
 
             with gr.Column(
