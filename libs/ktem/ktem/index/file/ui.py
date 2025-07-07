@@ -1968,10 +1968,10 @@ class FileSelector(BasePage):
             label="Search Keyword",
             value=keyword,
             visible=True,
-            placeholder="Search keyword"
+            placeholder="Search inside documents"
         )
         self.search_company_input = gr.Textbox(
-            label="Search Company",
+            label="Company Mentioned",
             value=company,
             visible=True,
             placeholder="Search company name"
