@@ -6,9 +6,7 @@ KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 
 if not KH_DEMO_MODE:
     PLACEHOLDER_TEXT = (
-        "Welcome to Doculazer.\n"
-        "Summarize content, chat with your AI assistant, and unlock insights.\n"
-        "Let's get started!"
+        "What should I summarize for you today?"
     )
 else:
     PLACEHOLDER_TEXT = (
@@ -33,13 +31,16 @@ class ChatPanel(BasePage):
             likeable=True,
             bubble_full_width=False,
         )
+
+        self.query_notif = gr.HTML(value="", visible=False)
+
         with gr.Row():
             self.text_input = gr.MultimodalTextbox(
                 interactive=True,
                 scale=20,
                 file_count="multiple",
                 placeholder=(
-                    "Type a message, search the @web, or tag a file with @filename"
+                    "Ask me to find trends, summarize, or track mentions..."
                 ),
                 container=False,
                 show_label=False,
