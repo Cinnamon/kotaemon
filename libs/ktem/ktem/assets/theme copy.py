@@ -29,22 +29,15 @@ err = "rgba(255, 93, 93, 1)"
 err_muted = "rgba(237, 80, 80, 1)"
 
 
-
-docu_white = "#FFFFFF"  # Soft white background
-
 docu_background_primary = "#F9F9FD"  # Soft white background
 docu_background_secondary = "#F1F6FE"  # Soft white background
-docu_background_tertiary = "#E8F0FE"  # Soft white background
 
 docu_primary = "#2F80ED"  # Call to action color
 docu_secondary = "#E8F0FE"  # Call to action color
-docu_tertiary = "#8CB8F6"
-docu_quaternary = "#C8DDF5"
 
 docu_primary_hover = "#5899F1"  # Call to action color
 docu_secondary_hover = "#D1E2FC"  # secondary hover
 
-  # tertiary text color
 docu_text_primary = "#1A1A1A"  # Primary text color
 docu_text_secondary = "#5C667B"  # secondary text color
 
@@ -68,14 +61,11 @@ common = dict(
     button_shadow_active="*shadow_drop",
     button_shadow_hover="none",
     # Custom colors based on user requirements
-    background_fill_primary="#F9F9FD",  # Soft white background
-    body_text_color="#1A1A1A",
-    body_text_color_subdued="#1A1A1A",  # Secondary text color
-
-    block_title_text_color="#2F80ED",    # High contrast black text
+    body_text_color="docu_primary",  # Primary text color
+    body_text_color_subdued="docu_text_secondary",  # Secondary text color
+   # High contrast black text
     block_label_text_color="*primary_600",
-
-    color_accent_soft="#E8F0FE",        # Light panels, accents
+        # Light panels, accents
     input_background_fill="#2F80ED",
     # Success and warning
     # stat_background_fill_success="#27AF60",  # Green for completion
@@ -128,24 +118,25 @@ dark_mode = dict(
     button_cancel_background_fill_dark=err_dark,
     button_cancel_background_fill_hover_dark=err_dark_muted,
 )
+
 light_mode = dict(
-    background_fill_primary=docu_background_primary,
-    background_fill_secondary=docu_white,
+    background_fill_primary="docu_background_primary",
+    background_fill_secondary="docu_background_secondary",
     # body attributes
-    body_background_fill=docu_background_primary,
-    body_text_color_subdued=docu_text_primary,  # Secondary text color
+    body_background_fill="docu_background_primary",
+    # body_text_color_subdued="*neutral_600",
     border_color_accent="rgba(255,255,255,0)",
     border_color_primary="*neutral_300",
-    # color_accent_soft="*secondary_100",
+    color_accent_soft="docu_secondary", 
     # text
     link_text_color="*secondary_400",
     link_text_color_visited="*secondary_700",
     # layout atoms
     block_label_border_width="0px",
     block_label_background_fill="white",
-    # block_label_text_color="*primary_600",
-    block_shadow=docu_primary,
-    # block_title_text_color="*primary_600",
+    block_label_text_color="docu_primary",
+    block_shadow="none",
+    block_title_text_color="none",
     panel_border_width="0px",
     # component atoms
     checkbox_background_color_selected="*primary_400",
@@ -155,16 +146,16 @@ light_mode = dict(
     error_background_fill="*background_fill_primary",
     error_border_color=err_muted,
     error_text_color="*neutral_800",
-    input_background_fill=docu_background_tertiary,
+    # input_background_fill="*neutral_200",
     input_border_color="*input_background_fill",
     input_border_color_focus="*input_background_fill",
-    input_placeholder_color="*neutral_400",
+    input_placeholder_color="*neutral_500",
     loader_color="*primary_300",
     slider_color="*primary_400",
     stat_background_fill="*secondary_300",
-    table_even_background_fill=docu_quaternary,
-    table_odd_background_fill=docu_secondary,
-    table_row_focus=docu_primary,
+    table_even_background_fill="docu_background_secondary",
+    table_odd_background_fill="*neutral_300",
+    table_row_focus="*secondary_200",
     # buttons
     button_primary_background_fill=docu_primary,
     button_primary_background_fill_hover=docu_primary_hover,
@@ -195,9 +186,9 @@ custom_colors = colors.Color(
 neutral_colors = colors.Color(
     name="neutral_custom",
     c50="#F9F9FD",      # Soft white (#F9F9FD - Background)
-    c100="#F0F0F5",     # Very light grey
+    c100="#8CB8F6",     # Very light grey  #1st panel dataframe, secondary hover button
     c200="#E1E2E6",     # Light grey (current selection)
-    c300="#BEBEC4",     # Medium light grey #2 panel datagrame,
+    c300="#E8F0FE",     # Medium light grey #2nd panel dataframe, secondary button  
     c400="#202020",     # Medium grey
     c500="#202020",     # Medium dark grey
     c600="#1A1A1A",     # Secondary text (#5C667B - For file meta, timestamps)
@@ -226,7 +217,7 @@ class Kotaemon(Soft):
         *,
         primary_hue: colors.Color | str = custom_colors,      # Changed to custom blue
         secondary_hue: colors.Color | str = colors.blue,
-        neutral_hue: colors.Color | str = gray,
+        neutral_hue: colors.Color | str = neutral_colors,     # Changed to custom neutral
         spacing_size: sizes.Size | str = sizes.spacing_md,
         radius_size: sizes.Size | str = sizes.radius_md,
         text_size: sizes.Size | str = sizes.text_md,
@@ -258,6 +249,8 @@ class Kotaemon(Soft):
         self.name = "kotaemon"
         # Set default theme mode to light
         super().set(
+            # **common,
+            # **dark_mode,
             **light_mode,
         )
         

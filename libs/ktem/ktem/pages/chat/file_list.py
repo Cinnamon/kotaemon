@@ -47,7 +47,7 @@ class FileList(BasePage):
                 return gr.update(value="<div>No files found.</div>")
             cards = []
 
-            eye_icon_path = f"{ASSETS_DIR}/eye.svg"
+            eye_icon_path = f"{ASSETS_DIR}/docu-eye.svg"
             with open(eye_icon_path, "r", encoding="utf-8") as f:
                 eye_svg = f.read()
 
@@ -63,38 +63,42 @@ class FileList(BasePage):
                 )
 
                 cards.append(f"""
-                    <div style="border:1px solid #bbb; border-radius:8px; padding:10px; margin-bottom:10px; display:flex; flex-direction:column; gap:8px; max-width:320px;">
+                    <div style="background:#fff; border-radius:8px; padding:10px; margin-bottom:10px; display:flex; flex-direction:column; gap:8px; max-width:320px;">
                         <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                             {file["name"]}
                         </div>
-                        <div style="display:flex; align-items:center; gap:6px; color:#555;">
-                            <span style="display:inline-flex; align-items:center; height:18px; width:18px; background:#fff; border-radius:4px">{calendar_svg}</span>
-                            <span style="font-size:0.95em;">{display_date}</span>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; align-items:center; gap:6px; color:#5C667B;">
+                                <span style="display:inline-flex; align-items:center; height:18px; width:18px; background:#fff; border-radius:4px">{calendar_svg}</span>
+                                <span style="font-size:0.95em;">{display_date}</span>
+                            </div>
+                            <div>
+                                <a 
+                                    href="#" 
+                                    class="pdf-file" 
+                                    data-expand-pdf="true" 
+                                    data-src="{BASE_PATH}/file={file["path"]}"
+                                    style="
+                                        align-self:flex-end;
+                                        background:#E8F0FE;
+                                        border-radius:12px;
+                                        padding:2px 14px 2px 10px;
+                                        cursor:pointer;
+                                        display:flex;
+                                        align-items:center;
+                                        gap:6px;
+                                        font-size:1.1em;
+                                        font-weight:500;
+                                        color:#222;
+                                        box-shadow: 0px 2px 5px 0px rgba(0,0,0,0.05);
+                                        transition:box-shadow 0.1s;
+                                        text-decoration:none;
+                                ">
+                                    <span style="display:inline-flex; align-items:center; height:20px; width:20px;">{eye_svg}</span>
+                                    <span>show</span>
+                                </a>
+                            </div>
                         </div>
-                        <a 
-                            href="#" 
-                            class="pdf-file" 
-                            data-expand-pdf="true" 
-                            data-src="{BASE_PATH}/file={file["path"]}"
-                            style="
-                                align-self:flex-end;
-                                background:#fff;
-                                border:2px solid #444;
-                                border-radius:12px;
-                                padding:2px 14px 2px 10px;
-                                cursor:pointer;
-                                display:flex;
-                                align-items:center;
-                                gap:6px;
-                                font-size:1.1em;
-                                font-weight:500;
-                                color:#222;
-                                transition:box-shadow 0.1s;
-                                text-decoration:none;
-                        ">
-                            <span style="display:inline-flex; align-items:center; height:20px; width:20px;">{eye_svg}</span>
-                            show
-                        </a>
                     </div>
                     """)
             return gr.update(value="".join(cards))

@@ -210,7 +210,7 @@ class FileIndexPage(BasePage):
         # Initialize state and DataFrame before using in events
         self.file_list_state = gr.State(value=None)
 
-        with gr.Row():
+        with gr.Row(elem_classes=["docu-panel-primary"]):
             self.name_filter = gr.Textbox(
                 value="",
                 placeholder="File Name",
@@ -245,11 +245,11 @@ class FileIndexPage(BasePage):
             )
             self.btn_sch = gr.Button(
                 value="",
-                icon=f"{ASSETS_DIR}/search.svg",
+                icon=f"{ASSETS_DIR}/docu-search.svg",
                 min_width=2,
                 scale=1,
                 size="sm",
-                elem_classes=["no-background", "body-text-color"],
+                elem_classes=["no-background", "body-text-color", "no-shadow-button-icon", "filter-action-button"],
             )
             self.btn_clr = gr.Button(
                 value="",
@@ -257,7 +257,7 @@ class FileIndexPage(BasePage):
                 min_width=2,
                 scale=1,
                 size="sm",
-                elem_classes=["no-background", "body-text-color"],
+                elem_classes=["no-background", "body-text-color", "no-shadow-button-icon", "filter-action-button"],
             )
 
             self.pdf_modal = gr.HTML(

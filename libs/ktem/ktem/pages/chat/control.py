@@ -60,6 +60,7 @@ class ConversationControl(BasePage):
                 size="sm",
                 elem_classes=["no-background", "body-text-color"],
                 elem_id="toggle-dark-button",
+                visible=False
             )
             self.btn_chat_expand = gr.Button(
                 value="",
@@ -85,7 +86,8 @@ class ConversationControl(BasePage):
                 None,
                 js="""
                 () => {
-                    document.body.classList.toggle('dark');
+                    document.body.classList.remove('dark');
+                    document.documentElement.classList.remove('dark');
                 }
                 """,
             )
@@ -122,27 +124,27 @@ class ConversationControl(BasePage):
             if not KH_DEMO_MODE:
                 self.btn_conversation_rn = gr.Button(
                     value="",
-                    icon=f"{ASSETS_DIR}/rename.svg",
+                    icon=f"{ASSETS_DIR}/docu-edit.svg",
                     min_width=2,
                     scale=1,
                     size="sm",
-                    elem_classes=["no-background", "body-text-color"],
+                    elem_classes=["no-background", "body-text-color", "no-shadow-button-icon"],
                 )
                 self.btn_del = gr.Button(
                     value="",
-                    icon=f"{ASSETS_DIR}/delete.svg",
+                    icon=f"{ASSETS_DIR}/docu-trash.svg",
                     min_width=2,
                     scale=1,
                     size="sm",
-                    elem_classes=["no-background", "body-text-color"],
+                    elem_classes=["no-background", "body-text-color", "no-shadow-button-icon"],
                 )
                 self.btn_new = gr.Button(
                     value="",
-                    icon=f"{ASSETS_DIR}/new.svg",
+                    icon=f"{ASSETS_DIR}/docu-new-chat.svg",
                     min_width=2,
                     scale=1,
                     size="sm",
-                    elem_classes=["no-background", "body-text-color"],
+                    elem_classes=["no-background", "body-text-color", "no-shadow-button-icon"],
                     elem_id="new-conv-button",
                 )
             else:

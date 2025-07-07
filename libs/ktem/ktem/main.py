@@ -141,21 +141,21 @@ class App(BaseApp):
             self.help_button = gr.Button(
                 "",
                 elem_id="help-tab-button-icon",
-                icon=f"{ASSETS_DIR}/info-circle-neutral.svg",
+                icon=f"{ASSETS_DIR}/docu-info-circle.svg",
                 visible=False,
                 size="lg",
                 variant="secondary",
-                elem_classes=["additional-tab-button", "no-background", "body-text-color"]
+                elem_classes=["additional-tab-button", "no-background", "no-shadow-button-icon"]
             )
             # Tombol untuk mengubah tab ke 'settings-tab'
             self.user_button = gr.Button(
                 "User",
                 elem_id="user-tab-button-icon",
-                icon=f"{ASSETS_DIR}/user-neutral.svg",
+                icon=f"{ASSETS_DIR}/docu-user-circle.svg",
                 visible=False,
                 size="lg",
                 variant="secondary",
-                elem_classes=["additional-tab-button", "no-background", "body-text-color", "force-hide"]
+                elem_classes=["additional-tab-button", "no-background", "no-shadow-button-icon", "force-hide"]
             )
 
             def set_tab(tab_id):
@@ -177,8 +177,8 @@ class App(BaseApp):
                 # Jika dipanggil dari self.tabs.select, set active_tab ke 'other' agar tombol reset
                 if reset == "from_select":
                     return (
-                        gr.update(icon=f"{ASSETS_DIR}/info-circle-neutral.svg"),
-                        gr.update(icon=f"{ASSETS_DIR}/user-neutral.svg", elem_classes=["additional-tab-button", "no-background", "body-text-color"]),
+                        gr.update(icon=f"{ASSETS_DIR}/docu-info-circle.svg"),
+                        gr.update(icon=f"{ASSETS_DIR}/docu-user-circle.svg", elem_classes=["additional-tab-button", "no-background", "no-shadow-button-icon"]),
                         "other"
                     )
                 # Ubah warna text dan icon sesuai tab aktif
@@ -186,12 +186,12 @@ class App(BaseApp):
                 user_active = tab_id == "settings-tab"
                 return (
                     gr.update(
-                        icon=f"{ASSETS_DIR}/info-circle-active.svg" if help_active else f"{ASSETS_DIR}/info-circle-neutral.svg"
+                        icon=f"{ASSETS_DIR}/docu-info-circle-active.svg" if help_active else f"{ASSETS_DIR}/docu-info-circle.svg"
                     ),
                     gr.update(
-                        icon=f"{ASSETS_DIR}/user-active.svg" if user_active else f"{ASSETS_DIR}/user-neutral.svg",
+                        icon=f"{ASSETS_DIR}/docu-user-circle-active.svg" if user_active else f"{ASSETS_DIR}/docu-user-circle.svg",
                         elem_classes=[
-                            "additional-tab-button", "no-background", "body-text-color", ("additional-tab-button-active" if user_active else "")
+                            "additional-tab-button", "no-background", "no-shadow-button-icon", ("additional-tab-button-active" if user_active else "")
                         ]
                     ),
                     tab_id
@@ -227,7 +227,7 @@ class App(BaseApp):
                             for k in self._tabs.keys()
                         ]
                         + [gr.update(selected="login-tab")]
-                        + [gr.update(visible=False), gr.update(visible=False, icon=f"{ASSETS_DIR}/user-neutral.svg", elem_classes=["additional-tab-button", "no-background", "body-text-color", "force-hide"])]
+                        + [gr.update(visible=False), gr.update(visible=False, icon=f"{ASSETS_DIR}/docu-user-circle.svg", elem_classes=["additional-tab-button", "no-background", "no-shadow-button-icon", "force-hide"])]
                     )
 
                 with Session(engine) as session:
@@ -239,7 +239,7 @@ class App(BaseApp):
                                 for k in self._tabs.keys()
                             ]
                             + [gr.update(selected="login-tab")]
-                            + [gr.update(visible=False), gr.update(visible=False, icon=f"{ASSETS_DIR}/user-neutral.svg", elem_classes=["additional-tab-button", "no-background", "body-text-color", "force-hide"])]
+                            + [gr.update(visible=False), gr.update(visible=False, icon=f"{ASSETS_DIR}/docu-user-circle.svg", elem_classes=["additional-tab-button", "no-background", "no-shadow-button-icon", "force-hide"])]
                         )
 
                     is_admin = user.admin
@@ -256,7 +256,7 @@ class App(BaseApp):
                 tabs_update.append(gr.update(selected="chat-tab"))
                 # Show help/user button after login
                 tabs_update.append(gr.update(visible=True))
-                tabs_update.append(gr.update(visible=True, elem_classes=["additional-tab-button", "no-background", "body-text-color"]))
+                tabs_update.append(gr.update(visible=True, elem_classes=["additional-tab-button", "no-background", "no-shadow-button-icon"]))
                 return tabs_update
 
             self.subscribe_event(

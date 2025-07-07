@@ -1,4 +1,7 @@
 function run() {
+  document.body.classList.remove('dark');
+  document.documentElement.classList.remove('dark');
+
   let main_parent = document.getElementById("chat-tab").parentNode;
 
   main_parent.childNodes[0].classList.add("header-bar");

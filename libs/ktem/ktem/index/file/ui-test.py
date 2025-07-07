@@ -267,7 +267,7 @@ class FileIndexPage(BasePage):
                 min_width=2,
                 scale=1,
                 size="sm",
-                elem_classes=["no-background", "body-text-color"],
+                elem_classes=["no-background", "body-text-color", "filter-action-button", "no-shadow-button-icon"],
             )
             self.btn_clr = gr.Button(
                 value="",
@@ -275,7 +275,7 @@ class FileIndexPage(BasePage):
                 min_width=2,
                 scale=1,
                 size="sm",
-                elem_classes=["no-background", "body-text-color"],
+                elem_classes=["no-background", "body-text-color", "filter-action-button", "no-shadow-button-icon"],
             )
     
         self.file_list = gr.DataFrame(
