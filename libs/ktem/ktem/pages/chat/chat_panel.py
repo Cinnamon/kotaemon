@@ -6,9 +6,7 @@ KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 
 if not KH_DEMO_MODE:
     PLACEHOLDER_TEXT = (
-        "Welcome to Doculazer.\n"
-        "Summarize content, chat with your AI assistant, and unlock insights.\n"
-        "Let's get started!"
+        "What should I summarize for you today?"
     )
 else:
     PLACEHOLDER_TEXT = (
