@@ -683,9 +683,9 @@ class FileIndexPage(BasePage):
                 # Coba cari di folder gradio_tmp dan folder chunks/markdown jika perlu
                 try:
                     # Folder utama gradio_tmp
-                    gradio_tmp_dir = getattr(flowsettings, "KH_GRADIO_TMP_DIR", None)
+                    gradio_tmp_dir = source[0].path
                     if gradio_tmp_dir:
-                        file_path = os.path.join(gradio_tmp_dir, file_name)
+                        file_path = gradio_tmp_dir
                         if os.path.exists(file_path):
                             os.remove(file_path)
                     # Folder chunks
