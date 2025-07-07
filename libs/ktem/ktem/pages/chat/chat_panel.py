@@ -37,7 +37,7 @@ class ChatPanel(BasePage):
                 scale=20,
                 file_count="multiple",
                 placeholder=(
-                    "Type a message, search the @web, or tag a file with @filename"
+                    "Ask me to find trends, summarize, or track mentions..."
                 ),
                 container=False,
                 show_label=False,
