@@ -419,7 +419,7 @@ class ChatPage(BasePage):
                 scale=INFO_PANEL_SCALES[False], elem_id="chat-info-panel"
             ) as self.info_column:
                 with gr.Accordion(
-                    label="Information panel", open=True, elem_id="info-expand"
+                    label="Context & Threads", open=True, elem_id="info-expand"
                 ):
                     self.modal = gr.HTML("<div id='pdf-modal'></div>")
                     self.plot_panel = gr.Plot(visible=False)
