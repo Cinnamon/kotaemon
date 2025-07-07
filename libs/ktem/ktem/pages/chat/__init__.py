@@ -483,6 +483,7 @@ class ChatPage(BasePage):
                     self.chat_control.conversation_id,
                     self.chat_control.conversation,
                     self.chat_control.conversation_rn,
+                    self.chat_panel.query_notif,
                     # file selector from the first index
                     self._indices_input[0],
                     self._indices_input[1],
@@ -1006,6 +1007,8 @@ class ChatPage(BasePage):
             conv_update = gr.update()
             new_conv_name = conv_name
 
+        notif = gr.update(value="You are querying based on the documents shown in the file list", visible=True)
+
         return (
             [
                 {},
@@ -1013,6 +1016,7 @@ class ChatPage(BasePage):
                 new_conv_id,
                 conv_update,
                 new_conv_name,
+                notif,
             ]
             + selector_output
             + [used_command]

@@ -31,6 +31,9 @@ class ChatPanel(BasePage):
             likeable=True,
             bubble_full_width=False,
         )
+
+        self.query_notif = gr.HTML(value="", visible=False)
+
         with gr.Row():
             self.text_input = gr.MultimodalTextbox(
                 interactive=True,
