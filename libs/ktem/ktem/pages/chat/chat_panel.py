@@ -45,6 +45,7 @@ class ChatPanel(BasePage):
                 container=False,
                 show_label=False,
                 elem_id="chat-input",
+                elem_classes=["docu-chat-input"],
             )
 
     def submit_msg(self, chat_input, chat_history):

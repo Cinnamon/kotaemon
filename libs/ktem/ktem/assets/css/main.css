@@ -137,7 +137,7 @@ td {
 }
 
 mark {
-  background-color: #10b981;
+  background-color:  #2f80ed !important;
 }
 
 /* clpse */
@@ -266,7 +266,8 @@ mark {
 }
 
 span.icon {
-  color: #cecece;
+  /* color: #cecece; */
+  color: --primary-text-color;
 }
 
 .upload-button {
@@ -489,7 +490,7 @@ div.markmap {
 /* Styling the additional tab button*/
 .additional-tab-button-col {
   position: absolute;
-  top: 0px;
+  top: -8px;
   right: -40px;
   max-width: 200px !important;
   display: flex !important;
@@ -508,7 +509,6 @@ div.markmap {
     display: none !important;
     /* width: 30px !important; */
     color: #808080;
-    box-shadow: none;
 }
 
 #help-tab-button-icon {
@@ -522,11 +522,24 @@ div.markmap {
     justify-content: center !important;
     gap: 10px;
 }
+
+.no-shadow-button-icon {
+  box-shadow: none !important;
+  background-color: transparent !important;
+  border: none !important;
+  color: var(--body-text-color) !important;
+}
+
+.filter-action-button {
+  align-items: flex-end !important;
+  padding-bottom: 18px !important;
+}
+
 .force-hide {
   display: none !important;
 }
 .additional-tab-button-active {
-  color: #10b981 !important; /* Emerald/green, bisa diganti sesuai kebutuhan */
+  color: #2f80ed !important; /* Emerald/green, bisa diganti sesuai kebutuhan */
 }
 
 #toggle-dark-button {
@@ -535,3 +548,15 @@ div.markmap {
   right: -40px;
 }
 
+.docu-panel-primary {
+  background-color: #ffffff !important; /* docu_secondary */
+  border-radius: 8px !important;
+}
+
+.docu-chat-input {
+  background-color: #E8F0FE;
+}
+
+.submit-button {
+  background-color: #E8F0FE;
+}

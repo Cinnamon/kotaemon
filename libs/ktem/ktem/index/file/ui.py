@@ -210,28 +210,28 @@ class FileIndexPage(BasePage):
         # Initialize state and DataFrame before using in events
         self.file_list_state = gr.State(value=None)
 
-        with gr.Row():
+        with gr.Row(elem_classes=["docu-panel-primary"]):
             self.name_filter = gr.Textbox(
                 value="",
                 placeholder="File Name",
                 show_label=False,
                 scale=9,
-                info="file name",
+                info="File Name",
                 interactive=True
             )
             self.company_filter = gr.Textbox(
                 value="",
-                placeholder="Company",
+                placeholder="Company Mentioned",
                 scale=9,
                 show_label=False,
-                info="company",
+                info="Company Mentioned",
                 interactive=True
             )
             self.date_start_filter = gr.DateTime(
                 include_time=False,
                 type="datetime",
                 show_label=False,
-                info="start date",
+                info="Start Date",
                 scale=10,
                 elem_classes="datepick-file",
             )
@@ -239,17 +239,17 @@ class FileIndexPage(BasePage):
                 include_time=False,
                 type="datetime",
                 show_label=False,
-                info="end date",
+                info="End Date",
                 scale=10,
                 elem_classes="datepick-file",
             )
             self.btn_sch = gr.Button(
                 value="",
-                icon=f"{ASSETS_DIR}/search.svg",
+                icon=f"{ASSETS_DIR}/docu-search.svg",
                 min_width=2,
                 scale=1,
                 size="sm",
-                elem_classes=["no-background", "body-text-color"],
+                elem_classes=["no-background", "body-text-color", "no-shadow-button-icon", "filter-action-button"],
             )
             self.btn_clr = gr.Button(
                 value="",
@@ -257,7 +257,7 @@ class FileIndexPage(BasePage):
                 min_width=2,
                 scale=1,
                 size="sm",
-                elem_classes=["no-background", "body-text-color"],
+                elem_classes=["no-background", "body-text-color", "no-shadow-button-icon", "filter-action-button"],
             )
 
             self.pdf_modal = gr.HTML(
