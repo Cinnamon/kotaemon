@@ -243,7 +243,7 @@ KH_LLMS["google"] = {
         "model_name": "gemini-1.5-flash",
         "api_key": GOOGLE_API_KEY,
     },
-    "default": False,
+    "default": not IS_OPENAI_DEFAULT,
 }
 KH_LLMS["groq"] = {
     "spec": {
@@ -288,7 +288,7 @@ KH_EMBEDDINGS["google"] = {
         "model": "models/text-embedding-004",
         "google_api_key": GOOGLE_API_KEY,
     },
-    "default": False,
+    "default": not IS_OPENAI_DEFAULT,
 }
 KH_EMBEDDINGS["mistral"] = {
     "spec": {

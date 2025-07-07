@@ -887,9 +887,10 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
 
 class LLMParser:
     def __init__(self):
-        self.openai_api_key = os.getenv("OPENAI_API_KEY")
-        self.client = OpenAI(api_key=self.openai_api_key)
-        self.GPT_MODEL = "gpt-4o-mini"
+        self.google_api_key = os.getenv("GOOGLE_API_KEY")
+        self.google_api_base = os.getenv("GOOGLE_API_BASE")
+        self.client = OpenAI(api_key=self.google_api_key, base_url=self.google_api_base)
+        self.MODEL = "gemini-1.5-flash"
 
     def parse_dates_and_company(self, text, file_name):
         prompt = (
@@ -912,7 +913,7 @@ class LLMParser:
         )
 
         response = self.client.chat.completions.create(
-            model=self.GPT_MODEL,
+            model=self.MODEL,
             messages=[
                 {"role": "system", "content": "You are an expert information extractor. Only return valid JSON as instructed."},
                 {"role": "user", "content": prompt}
