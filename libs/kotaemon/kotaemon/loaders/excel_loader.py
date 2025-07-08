@@ -3,6 +3,7 @@
 Pandas parser for .xlsx files.
 
 """
+
 from pathlib import Path
 from typing import Any, List, Optional, Union
 
@@ -82,21 +83,27 @@ class PandasExcelReader(BaseReader):
             sheet = []
             if include_sheetname:
                 sheet.append([key])
-            dfs[key] = dfs[key].dropna(axis=0, how="all")
-            dfs[key] = dfs[key].dropna(axis=0, how="all")
-            dfs[key].fillna("", inplace=True)
-            sheet.extend(dfs[key].values.astype(str).tolist())
+            df = dfs[key].dropna(axis=0, how="all")
+            df = df.dropna(axis=0, how="all")
+            for col in df.select_dtypes(exclude=["number"]).columns:
+                df[col].fillna("", inplace=True)
+            sheet.extend(df.values.tolist())
             df_sheets.append(sheet)
 
         text_list = list(
             itertools.chain.from_iterable(df_sheets)
         )  # flatten list of lists
 
+        output_text = self._row_joiner.join(
+            self._col_joiner.join(
+                "" if pd.isna(cell) else str(cell) for cell in sublist
+            )
+            for sublist in text_list
+        )
+
         output = [
             Document(
-                text=self._row_joiner.join(
-                    self._col_joiner.join(sublist) for sublist in text_list
-                ),
+                text=output_text,
                 metadata=extra_info or {},
             )
         ]
@@ -175,14 +182,17 @@ class ExcelReader(BaseReader):
         output = []
 
         for idx, key in enumerate(sheet_names):
-            dfs[key] = dfs[key].dropna(axis=0, how="all")
-            dfs[key] = dfs[key].dropna(axis=0, how="all")
-            dfs[key] = dfs[key].astype("object")
-            dfs[key].fillna("", inplace=True)
+            df = dfs[key].dropna(axis=0, how="all")
+            df = df.dropna(axis=0, how="all")
+            for col in df.select_dtypes(exclude=["number"]).columns:
+                df[col].fillna("", inplace=True)
 
-            rows = dfs[key].values.astype(str).tolist()
+            rows = df.values.tolist()
             content = self._row_joiner.join(
-                self._col_joiner.join(row).strip() for row in rows
+                self._col_joiner.join(
+                    "" if pd.isna(cell) else str(cell) for cell in row
+                ).strip()
+                for row in rows
             ).strip()
             if include_sheetname:
                 content = f"(Sheet {key} of file {file.name})\n{content}"
