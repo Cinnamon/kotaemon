@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
+import numpy as np
 from llama_index.core.schema import NodeRelationship, RelatedNodeInfo
 from llama_index.core.vector_stores.types import BasePydanticVectorStore
 from llama_index.core.vector_stores.types import VectorStore as LIVectorStore
@@ -19,14 +20,14 @@ class BaseVectorStore(ABC):
     @abstractmethod
     def add(
         self,
-        embeddings: list[list[float]] | list[DocumentWithEmbedding],
+        embeddings: list[list[float]] | np.ndarray | list[DocumentWithEmbedding],
         metadatas: Optional[list[dict]] = None,
         ids: Optional[list[str]] = None,
     ) -> list[str]:
         """Add vector embeddings to vector stores
 
         Args:
-            embeddings: List of embeddings
+            embeddings: List of embeddings or numpy array
             metadatas: List of metadata of the embeddings
             ids: List of ids of the embeddings
             kwargs: meant for vectorstore-specific parameters
@@ -49,7 +50,7 @@ class BaseVectorStore(ABC):
     @abstractmethod
     def query(
         self,
-        embedding: list[float],
+        embedding: list[float] | np.ndarray,
         top_k: int = 1,
         ids: Optional[list[str]] = None,
         **kwargs,
@@ -57,7 +58,7 @@ class BaseVectorStore(ABC):
         """Return the top k most similar vector embeddings
 
         Args:
-            embedding: List of embeddings
+            embedding: List of embeddings or numpy array
             top_k: Number of most similar embeddings to return
             ids: List of ids of the embeddings to be queried
 
@@ -112,10 +113,13 @@ class LlamaIndexVectorStore(BaseVectorStore):
 
     def add(
         self,
-        embeddings: list[list[float]] | list[DocumentWithEmbedding],
+        embeddings: list[list[float]] | np.ndarray | list[DocumentWithEmbedding],
         metadatas: Optional[list[dict]] = None,
         ids: Optional[list[str]] = None,
     ):
+        if isinstance(embeddings, np.ndarray):
+            embeddings = embeddings.tolist()
+
         if isinstance(embeddings[0], list):
             nodes: list[DocumentWithEmbedding] = [
                 DocumentWithEmbedding(embedding=embedding) for embedding in embeddings
@@ -140,7 +144,7 @@ class LlamaIndexVectorStore(BaseVectorStore):
 
     def query(
         self,
-        embedding: list[float],
+        embedding: list[float] | np.ndarray,
         top_k: int = 1,
         ids: Optional[list[str]] = None,
         **kwargs,
@@ -148,7 +152,7 @@ class LlamaIndexVectorStore(BaseVectorStore):
         """Return the top k most similar vector embeddings
 
         Args:
-            embedding: List of embeddings
+            embedding: List of embeddings or numpy array
             top_k: Number of most similar embeddings to return
             ids: List of ids of the embeddings to be queried
             kwargs: extra query parameters. Depending on the name, these parameters
@@ -165,6 +169,9 @@ class LlamaIndexVectorStore(BaseVectorStore):
                 vsq_kwargs[kwkey] = kwvalue
             else:
                 vs_kwargs[kwkey] = kwvalue
+
+        if isinstance(embedding, np.ndarray):
+            embedding = embedding.tolist()
 
         output = self._client.query(
             query=VectorStoreQuery(

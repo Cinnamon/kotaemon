@@ -1,4 +1,5 @@
 import json
+import numbers
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -32,7 +33,7 @@ def assert_embedding_result(output):
     assert isinstance(output, list)
     assert isinstance(output[0], Document)
     assert isinstance(output[0].embedding, list)
-    assert isinstance(output[0].embedding[0], float)
+    assert isinstance(output[0].embedding[0], (float, numbers.Real))
 
 
 @patch(
