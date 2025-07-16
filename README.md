@@ -306,7 +306,7 @@ This file provides another way to configure your models and credentials.
   - **Azure OpenAI**
 
     For OpenAI models via Azure platform, you need to provide your Azure endpoint and API
-    key. Your might also need to provide your developments' name for the chat model and the
+    key. You might also need to provide your developments' name for the chat model and the
     embedding model depending on how you set up Azure development.
 
     ```shell
