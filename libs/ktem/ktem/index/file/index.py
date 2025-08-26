@@ -78,7 +78,8 @@ class FileIndex(BaseIndex):
                     "path": Column(String),
                     "size": Column(Integer, default=0),
                     "date_created": Column(
-                        DateTime(timezone=True), default=lambda: datetime.now(get_localzone())
+                        DateTime(timezone=True),
+                        default=lambda: datetime.now(get_localzone()),
                     ),
                     "user": Column(String, default=""),
                     "note": Column(
@@ -103,7 +104,8 @@ class FileIndex(BaseIndex):
                     "path": Column(String),
                     "size": Column(Integer, default=0),
                     "date_created": Column(
-                        DateTime(timezone=True), default=lambda: datetime.now(get_localzone())
+                        DateTime(timezone=True),
+                        default=lambda: datetime.now(get_localzone()),
                     ),
                     "user": Column(String, default=""),
                     "note": Column(
@@ -139,7 +141,8 @@ class FileIndex(BaseIndex):
                     unique=True,
                 ),
                 "date_created": Column(
-                    DateTime(timezone=True), default=lambda: datetime.now(get_localzone())
+                    DateTime(timezone=True),
+                    default=lambda: datetime.now(get_localzone()),
                 ),
                 "name": Column(String),
                 "user": Column(String, default=""),
