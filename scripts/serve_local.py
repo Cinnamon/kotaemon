@@ -45,9 +45,27 @@ def serve_llamacpp_python(local_model_file: Path, **kwargs):
         raise ValueError(f"Unsupported system: {system_name}")
 
     args = " ".join(f"--{k} {v}" for k, v in kwargs.items())
-
-    cmd = f"{script_file} --model {local_model_file} {args}"
-    subprocess.Popen(cmd, shell=True)
+    uvicorn_command = [
+        "uvicorn",
+        app_path,
+        "--host",
+        host,
+        "--port",
+        str(port),
+    ]
+    if reload:
+        uvicorn_command.append("--reload")
+    uvicorn_process = subprocess.Popen(uvicorn_command)
+        "--host",
+        host,
+        "--port",
+        str(port),
+        "--workers",
+        str(workers),
+    ]
+    if reload:
+        command.append("--reload")
+    proc = subprocess.Popen(command)
 
 
 def main():
