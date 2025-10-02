@@ -142,6 +142,28 @@ documents and developers who want to build their own RAG pipeline.
 
 ### Without Docker
 
+#### Option 1: Using uv (Recommended for faster installation)
+
+1. Clone the repository and run the uv installation script:
+
+   ```shell
+   # clone this repo
+   git clone https://github.com/Cinnamon/kotaemon
+   cd kotaemon
+
+   # run the uv installation script (installs uv automatically if not present)
+   bash scripts/run_uv.sh
+   ```
+
+   This script will:
+   - Install uv package manager if not present
+   - Create a virtual environment with Python 3.10
+   - Install all dependencies using uv (significantly faster than conda/pip)
+   - Set up PDF.js viewer
+   - Launch the application
+
+#### Option 2: Using conda (Traditional method)
+
 1. Clone and install required packages on a fresh python environment.
 
    ```shell

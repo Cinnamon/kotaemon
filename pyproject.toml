@@ -18,8 +18,8 @@ dynamic = ["version"]
 requires-python = ">= 3.10"
 description = "Kotaemon App"
 dependencies = [
-    "kotaemon @ git+https://github.com/Cinnamon/kotaemon.git@main#subdirectory=libs/kotaemon",
-    "ktem @ git+https://github.com/Cinnamon/kotaemon.git@main#subdirectory=libs/ktem"
+    "kotaemon",
+    "ktem"
 ]
 authors = [
     { name = "@trducng", email = "john@cinnamon.is" },
@@ -30,6 +30,26 @@ authors = [
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
+]
+
+[tool.uv.sources]
+kotaemon = { workspace = true }
+ktem = { workspace = true }
+
+# uv workspace configuration
+[tool.uv.workspace]
+members = ["libs/kotaemon", "libs/ktem"]
+
+[dependency-groups]
+dev = [
+    "black",
+    "coverage",  
+    "flake8",
+    "ipython",
+    "pre-commit",
+    "pytest",
+    "pytest-mock",
+    "sphinx"
 ]
 
 [project.urls]
