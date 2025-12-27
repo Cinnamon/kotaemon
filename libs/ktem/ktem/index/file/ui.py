@@ -444,6 +444,50 @@ class FileIndexPage(BasePage):
             gr.update(visible=file_id is not None),
         )
 
+    def _delete_physical_files(self, file_name: str) -> None:
+        """Delete physical files associated with a document.
+
+        This includes:
+        - Chunk cache files in KH_CHUNKS_OUTPUT_DIR
+        - Markdown cache files in KH_MARKDOWN_OUTPUT_DIR
+        """
+        if not file_name:
+            return
+
+        file_stem = Path(file_name).stem
+
+        # Delete chunk cache files
+        try:
+            chunks_dir = Path(flowsettings.KH_CHUNKS_OUTPUT_DIR)
+            if chunks_dir.exists():
+                for file_path in chunks_dir.iterdir():
+                    if file_stem in file_path.name:
+                        try:
+                            if file_path.is_file():
+                                file_path.unlink()
+                            elif file_path.is_dir():
+                                shutil.rmtree(file_path)
+                        except OSError as e:
+                            print(f"Warning: Failed to delete {file_path}: {e}")
+        except Exception as e:
+            print(f"Warning: Error cleaning chunks cache: {e}")
+
+        # Delete markdown cache files
+        try:
+            markdown_dir = Path(flowsettings.KH_MARKDOWN_OUTPUT_DIR)
+            if markdown_dir.exists():
+                for file_path in markdown_dir.iterdir():
+                    if file_stem in file_path.name:
+                        try:
+                            if file_path.is_file():
+                                file_path.unlink()
+                            elif file_path.is_dir():
+                                shutil.rmtree(file_path)
+                        except OSError as e:
+                            print(f"Warning: Failed to delete {file_path}: {e}")
+        except Exception as e:
+            print(f"Warning: Error cleaning markdown cache: {e}")
+
     def delete_event(self, file_id):
         file_name = ""
         with Session(engine) as session:
@@ -473,6 +517,9 @@ class FileIndexPage(BasePage):
         if vs_ids:
             self._index._vs.delete(vs_ids)
         self._index._docstore.delete(ds_ids)
+
+        # Delete physical files associated with the document
+        self._delete_physical_files(file_name)
 
         gr.Info(f"File {file_name} has been deleted")
 
