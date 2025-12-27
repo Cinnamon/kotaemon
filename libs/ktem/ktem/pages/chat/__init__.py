@@ -8,7 +8,7 @@ import gradio as gr
 from decouple import config
 from ktem.app import BasePage
 from ktem.components import reasonings
-from ktem.db.models import Conversation, engine
+from ktem.db.models import Conversation, Settings, engine
 from ktem.index.file.ui import File
 from ktem.reasoning.prompt_optimization.mindmap import MINDMAP_HTML_EXPORT_TEMPLATE
 from ktem.reasoning.prompt_optimization.suggest_conversation_name import (
@@ -1016,6 +1016,22 @@ class ChatPage(BasePage):
                     f"Conversation: {name} is {'public' if is_public else 'private'}."
                 )
 
+    def _load_user_language(self, user_id):
+        """Load user's language setting from database"""
+        default_lang = self._app.default_settings.reasoning.settings["lang"].value
+        if not user_id:
+            return default_lang
+        with Session(engine) as session:
+            statement = select(Settings).where(Settings.user == user_id)
+            result = session.exec(statement).all()
+            if result and result[0].setting:
+                return result[0].setting.get("reasoning.lang", default_lang)
+        return default_lang
+
+    def _reset_language_to_default(self):
+        """Reset language dropdown to default value"""
+        return self._app.default_settings.reasoning.settings["lang"].value
+
     def on_subscribe_public_events(self):
         if self._app.f_user_management:
             self._app.subscribe_event(
@@ -1024,6 +1040,17 @@ class ChatPage(BasePage):
                     "fn": self.chat_control.reload_conv,
                     "inputs": [self._app.user_id],
                     "outputs": [self.chat_control.conversation],
+                    "show_progress": "hidden",
+                },
+            )
+
+            # Load user's language setting on sign in (Fixes #692, #709)
+            self._app.subscribe_event(
+                name="onSignIn",
+                definition={
+                    "fn": self._load_user_language,
+                    "inputs": [self._app.user_id],
+                    "outputs": [self.language],
                     "show_progress": "hidden",
                 },
             )
@@ -1046,6 +1073,16 @@ class ChatPage(BasePage):
                         self.state_chat,
                     ]
                     + self._indices_input,
+                    "show_progress": "hidden",
+                },
+            )
+
+            # Reset language to default on sign out
+            self._app.subscribe_event(
+                name="onSignOut",
+                definition={
+                    "fn": self._reset_language_to_default,
+                    "outputs": [self.language],
                     "show_progress": "hidden",
                 },
             )
