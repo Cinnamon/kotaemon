@@ -10,6 +10,8 @@ from sqlmodel import Session, or_, select
 import flowsettings
 
 from ...utils.conversation import sync_retrieval_n_message
+from ...utils.lang import get_ui_text
+from ..settings import get_current_language
 from .chat_suggestion import ChatSuggestion
 from .common import STATE
 
@@ -50,8 +52,14 @@ class ConversationControl(BasePage):
         self.on_building_ui()
 
     def on_building_ui(self):
+        _lang = get_current_language()
+
         with gr.Row():
-            title_text = "Conversations" if not KH_DEMO_MODE else "Kotaemon Papers"
+            title_text = (
+                get_ui_text("chat.conversations", _lang)
+                if not KH_DEMO_MODE
+                else "Kotaemon Papers"
+            )
             gr.Markdown("## {}".format(title_text))
             self.btn_toggle_dark_mode = gr.Button(
                 value="",
@@ -90,7 +98,7 @@ class ConversationControl(BasePage):
 
         self.conversation_id = gr.State(value="")
         self.conversation = gr.Dropdown(
-            label="Chat sessions",
+            label=get_ui_text("chat.chat_sessions", _lang),
             choices=[],
             container=False,
             filterable=True,
@@ -102,7 +110,7 @@ class ConversationControl(BasePage):
         with gr.Row() as self._new_delete:
             self.cb_suggest_chat = gr.Checkbox(
                 value=False,
-                label="Suggest chat",
+                label=get_ui_text("chat.suggest_chat", _lang),
                 min_width=10,
                 scale=6,
                 elem_id="suggest-chat-checkbox",
@@ -111,7 +119,7 @@ class ConversationControl(BasePage):
             )
             self.cb_is_public = gr.Checkbox(
                 value=False,
-                label="Share this conversation",
+                label=get_ui_text("chat.share_conversation", _lang),
                 elem_id="is-public-checkbox",
                 container=False,
                 visible=not KH_DEMO_MODE and not KH_SSO_ENABLED,
@@ -181,16 +189,18 @@ class ConversationControl(BasePage):
 
         with gr.Row(visible=False) as self._delete_confirm:
             self.btn_del_conf = gr.Button(
-                value="Delete",
+                value=get_ui_text("delete", _lang),
                 variant="stop",
                 min_width=10,
             )
-            self.btn_del_cnl = gr.Button(value="Cancel", min_width=10)
+            self.btn_del_cnl = gr.Button(
+                value=get_ui_text("cancel", _lang), min_width=10
+            )
 
         with gr.Row():
             self.conversation_rn = gr.Text(
-                label="(Enter) to save",
-                placeholder="Conversation name",
+                label=get_ui_text("enter_to_save", _lang),
+                placeholder=get_ui_text("conversation_name", _lang),
                 container=True,
                 scale=5,
                 min_width=10,
@@ -298,7 +308,10 @@ class ConversationControl(BasePage):
 
     def select_conv(self, conversation_id, user_id):
         """Select the conversation"""
-        default_chat_suggestions = [[each] for each in ChatSuggestion.CHAT_SAMPLES]
+        # Get default chat suggestions using current language
+        _lang = get_current_language()
+        chat_suggestion_instance = ChatSuggestion(self._app)
+        default_chat_suggestions = [[each] for each in chat_suggestion_instance._get_chat_samples(_lang)]
 
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == conversation_id)

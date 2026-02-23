@@ -1,0 +1,158 @@
+{
+  "language_name": "Korean",
+
+  "common": {
+    "save": "저장",
+    "cancel": "취소",
+    "delete": "삭제",
+    "close": "닫기",
+    "confirm": "확인",
+    "yes": "예",
+    "no": "아니오",
+    "ok": "확인",
+    "loading": "로딩 중...",
+    "error": "오류",
+    "success": "성공",
+    "warning": "경고",
+    "info": "정보"
+  },
+
+  "nav": {
+    "chat": "채팅",
+    "files": "파일",
+    "resources": "리소스",
+    "settings": "설정",
+    "help": "도움말"
+  },
+
+  "chat": {
+    "conversations": "대화",
+    "browse_conversation": "대화 찾아보기",
+    "chat_sessions": "채팅 세션",
+    "new_chat": "새 채팅",
+    "suggest_chat": "채팅 제안",
+    "share_conversation": "이 대화 공유",
+    "conversation_name": "대화 이름",
+    "enter_to_save": "(Enter)로 저장",
+    "no_conversation_selected": "선택된 대화가 없습니다",
+    "conversation_renamed": "대화 이름이 변경되었습니다",
+    "type_message": "메시지 입력, @web 검색, 또는 @filename으로 파일 태그",
+    "beginning_conversation": "새 대화의 시작입니다.\n파일이나 웹 URL을 업로드하여 시작하세요. 더 많은 옵션(예: GraphRAG)은 파일 탭을 방문하세요.",
+    "reasoning_type_changed": "추론 유형이 `{}`로 변경되었습니다"
+  },
+
+  "chat_settings": {
+    "chat_settings": "채팅 설정",
+    "reasoning_method": "추론 방법",
+    "model": "모델",
+    "language": "언어",
+    "mindmap_on": "마인드맵 (켜짐)",
+    "mindmap_off": "마인드맵 (꺼짐)"
+  },
+
+  "chat_suggestion": {
+    "chat_suggestion": "채팅 제안",
+    "next_question": "다음 질문",
+    "summary_document": "이 문서 요약하기",
+    "generate_faq": "이 문서에 대한 FAQ 생성",
+    "identify_highlights": "주요 하이라이트를 글머리 기호로 식별"
+  },
+
+  "file_upload": {
+    "quick_upload": "빠른 업로드",
+    "or_paste_urls": "또는 URL 붙여넣기",
+    "drop_file_here": "여기에 파일 드롭",
+    "click_to_upload": "클릭하여 업로드",
+    "file_collection": "파일 컬렉션",
+    "search_all": "전체 검색",
+    "search_in_files": "파일에서 검색"
+  },
+
+  "info_panel": {
+    "information_panel": "정보 패널",
+    "related_papers": "관련 논문",
+    "expand": "펼치기",
+    "export": "내보내기"
+  },
+
+  "evidence": {
+    "page": "페이지",
+    "preview": "미리보기",
+    "full_text_search": "전체 텍스트 검색",
+    "relevance_score": "관련성 점수",
+    "vectorstore_score": "벡터스토어 점수",
+    "llm_relevant_score": "LLM 관련성 점수",
+    "reranking_score": "리랭킹 점수",
+    "evidence": "증거",
+    "table_from": "테이블 출처:",
+    "text_from": "텍스트 출처:",
+    "figure_from": "그림 출처:",
+    "row": "행",
+    "from": "에서",
+    "score": "점수"
+  },
+
+  "feedback": {
+    "feedback": "피드백",
+    "report": "보고",
+    "correctness": "정확도:",
+    "answer_correct": "답변이 정확함",
+    "answer_incorrect": "답변이 부정확함",
+    "answer_offensive": "답변이 부적절함",
+    "evidence_incorrect": "증거가 부정확함",
+    "other_issue": "기타 문제:",
+    "more_detail": "자세한 내용 (예: 얼마나 틀렸는지, 정확한 답변은 무엇인지 등...)",
+    "thank_you_feedback": "피드백 감사합니다"
+  },
+
+  "settings": {
+    "settings": "설정",
+    "user_settings": "사용자 설정",
+    "general": "일반",
+    "retrieval_settings": "검색 설정",
+    "reasoning_settings": "추론 설정",
+    "save_close": "저장 후 닫기",
+    "setting_saved": "설정이 저장되었습니다",
+    "need_login": "설정을 저장하려면 로그인이 필요합니다"
+  },
+
+  "auth": {
+    "login": "로그인",
+    "logout": "로그아웃",
+    "sign_in": "로그인",
+    "sign_out": "로그아웃",
+    "username": "사용자 이름",
+    "password": "비밀번호",
+    "new_password": "새 비밀번호",
+    "confirm_password": "비밀번호 확인",
+    "change_password": "비밀번호 변경",
+    "current_user": "현재 사용자",
+    "invalid_credentials": "사용자 이름 또는 비밀번호가 잘못되었습니다",
+    "password_changed": "비밀번호가 변경되었습니다",
+    "user_not_found": "사용자를 찾을 수 없습니다",
+    "sign_in_first": "먼저 로그인해주세요 (설정 → 사용자 설정)"
+  },
+
+  "user_management": {
+    "user_list": "사용자 목록",
+    "create_user": "사용자 생성",
+    "admin": "관리자",
+    "confirm_delete": "삭제 확인",
+    "no_user_loaded": "사용자가 로드되지 않았습니다. 사용자 목록을 새로고침해주세요",
+    "no_user_selected": "선택된 사용자가 없습니다",
+    "cannot_delete_yourself": "자신을 삭제할 수 없습니다"
+  },
+
+  "help": {
+    "about": "정보",
+    "user_guide": "사용 가이드",
+    "changelogs": "변경 로그",
+    "hint": "힌트",
+    "welcome_to": "환영합니다"
+  },
+
+  "index": {
+    "graphrag_collection": "GraphRAG 컬렉션",
+    "lightrag_collection": "LightRAG 컬렉션"
+  }
+}

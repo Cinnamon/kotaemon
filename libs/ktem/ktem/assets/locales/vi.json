@@ -1,0 +1,158 @@
+{
+  "language_name": "Vietnamese",
+
+  "common": {
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "close": "Đóng",
+    "confirm": "Xác nhận",
+    "yes": "Có",
+    "no": "Không",
+    "ok": "OK",
+    "loading": "Đang tải...",
+    "error": "Lỗi",
+    "success": "Thành công",
+    "warning": "Cảnh báo",
+    "info": "Thông tin"
+  },
+
+  "nav": {
+    "chat": "Chat",
+    "files": "Tệp",
+    "resources": "Tài nguyên",
+    "settings": "Cài đặt",
+    "help": "Trợ giúp"
+  },
+
+  "chat": {
+    "conversations": "Hội thoại",
+    "browse_conversation": "Duyệt hội thoại",
+    "chat_sessions": "Phiên chat",
+    "new_chat": "Chat mới",
+    "suggest_chat": "Gợi ý chat",
+    "share_conversation": "Chia sẻ hội thoại này",
+    "conversation_name": "Tên hội thoại",
+    "enter_to_save": "(Enter) để lưu",
+    "no_conversation_selected": "Chưa chọn hội thoại nào",
+    "conversation_renamed": "Đã đổi tên hội thoại",
+    "type_message": "Nhập tin nhắn, tìm kiếm @web, hoặc gắn thẻ tệp với @filename",
+    "beginning_conversation": "Đây là bắt đầu của một hội thoại mới.\nBắt đầu bằng cách tải lên tệp hoặc URL web. Truy cập tab Tệp để có thêm tùy chọn (ví dụ: GraphRAG).",
+    "reasoning_type_changed": "Loại suy luận đã thay đổi thành `{}`"
+  },
+
+  "chat_settings": {
+    "chat_settings": "Cài đặt chat",
+    "reasoning_method": "Phương pháp suy luận",
+    "model": "Mô hình",
+    "language": "Ngôn ngữ",
+    "mindmap_on": "Sơ đồ tư duy (bật)",
+    "mindmap_off": "Sơ đồ tư duy (tắt)"
+  },
+
+  "chat_suggestion": {
+    "chat_suggestion": "Gợi ý chat",
+    "next_question": "Câu hỏi tiếp theo",
+    "summary_document": "Tóm tắt tài liệu này",
+    "generate_faq": "Tạo FAQ cho tài liệu này",
+    "identify_highlights": "Xác định các điểm nổi bật chính theo dạng gạch đầu dòng"
+  },
+
+  "file_upload": {
+    "quick_upload": "Tải lên nhanh",
+    "or_paste_urls": "Hoặc dán URL",
+    "drop_file_here": "Thả tệp vào đây",
+    "click_to_upload": "Nhấn để tải lên",
+    "file_collection": "Bộ sưu tập tệp",
+    "search_all": "Tìm tất cả",
+    "search_in_files": "Tìm trong tệp"
+  },
+
+  "info_panel": {
+    "information_panel": "Bảng thông tin",
+    "related_papers": "Bài báo liên quan",
+    "expand": "Mở rộng",
+    "export": "Xuất"
+  },
+
+  "evidence": {
+    "page": "Trang",
+    "preview": "Xem trước",
+    "full_text_search": "tìm kiếm toàn văn",
+    "relevance_score": "Điểm liên quan",
+    "vectorstore_score": "Điểm vectorstore",
+    "llm_relevant_score": "Điểm LLM liên quan",
+    "reranking_score": "Điểm xếp hạng lại",
+    "evidence": "bằng chứng",
+    "table_from": "Bảng từ",
+    "text_from": "Văn bản từ",
+    "figure_from": "Hình từ",
+    "row": "Hàng",
+    "from": "từ",
+    "score": "điểm"
+  },
+
+  "feedback": {
+    "feedback": "Phản hồi",
+    "report": "Báo cáo",
+    "correctness": "Độ chính xác:",
+    "answer_correct": "Câu trả lời đúng",
+    "answer_incorrect": "Câu trả lời sai",
+    "answer_offensive": "Câu trả lời không phù hợp",
+    "evidence_incorrect": "Bằng chứng không chính xác",
+    "other_issue": "Vấn đề khác:",
+    "more_detail": "Chi tiết thêm (ví dụ: sai như thế nào, câu trả lời đúng là gì, v.v...)",
+    "thank_you_feedback": "Cảm ơn phản hồi của bạn"
+  },
+
+  "settings": {
+    "settings": "Cài đặt",
+    "user_settings": "Cài đặt người dùng",
+    "general": "Chung",
+    "retrieval_settings": "Cài đặt truy xuất",
+    "reasoning_settings": "Cài đặt suy luận",
+    "save_close": "Lưu & Đóng",
+    "setting_saved": "Cài đặt đã được lưu",
+    "need_login": "Cần đăng nhập trước khi lưu cài đặt"
+  },
+
+  "auth": {
+    "login": "Đăng nhập",
+    "logout": "Đăng xuất",
+    "sign_in": "Đăng nhập",
+    "sign_out": "Đăng xuất",
+    "username": "Tên đăng nhập",
+    "password": "Mật khẩu",
+    "new_password": "Mật khẩu mới",
+    "confirm_password": "Xác nhận mật khẩu",
+    "change_password": "Đổi mật khẩu",
+    "current_user": "Người dùng hiện tại",
+    "invalid_credentials": "Tên đăng nhập hoặc mật khẩu không hợp lệ",
+    "password_changed": "Mật khẩu đã được thay đổi",
+    "user_not_found": "Không tìm thấy người dùng",
+    "sign_in_first": "Vui lòng đăng nhập trước (Cài đặt → Cài đặt người dùng)"
+  },
+
+  "user_management": {
+    "user_list": "Danh sách người dùng",
+    "create_user": "Tạo người dùng",
+    "admin": "Quản trị viên",
+    "confirm_delete": "Xác nhận xóa",
+    "no_user_loaded": "Chưa tải người dùng. Vui lòng làm mới danh sách người dùng",
+    "no_user_selected": "Chưa chọn người dùng",
+    "cannot_delete_yourself": "Bạn không thể xóa chính mình"
+  },
+
+  "help": {
+    "about": "Giới thiệu",
+    "user_guide": "Hướng dẫn sử dụng",
+    "changelogs": "Nhật ký thay đổi",
+    "hint": "Gợi ý",
+    "welcome_to": "Chào mừng đến với"
+  },
+
+  "index": {
+    "graphrag_collection": "Bộ sưu tập GraphRAG",
+    "lightrag_collection": "Bộ sưu tập LightRAG"
+  }
+}

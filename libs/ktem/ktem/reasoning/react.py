@@ -20,6 +20,8 @@ from kotaemon.base import BaseComponent, Document, HumanMessage, Node, SystemMes
 from kotaemon.llms import ChatLLM, PromptTemplate
 
 from ..utils import SUPPORTED_LANGUAGE_MAP
+from ..utils.lang import get_ui_text
+from ..utils.render import get_render_language, set_render_language
 
 logger = logging.getLogger(__name__)
 DEFAULT_AGENT_STEPS = 4
@@ -62,7 +64,9 @@ class DocSearchTool(BaseTool):
             page = retrieved_item.metadata.get("page_label", None)
             source = filename = retrieved_item.metadata.get("file_name", "-")
             if page:
-                source += f" (Page {page})"
+                lang_code = get_render_language()
+                page_text = get_ui_text("page", lang_code)
+                source += f" ({page_text} {page})"
             if retrieved_item.metadata.get("type", "") == "table":
                 if table_found < 5:
                     retrieved_content = retrieved_item.metadata.get("table_origin", "")
@@ -286,9 +290,12 @@ class ReactAgentPipeline(BaseReasoning):
                 tool.llm = llm
             tools.append(tool)
         pipeline.agent.plugins = tools
-        pipeline.agent.output_lang = SUPPORTED_LANGUAGE_MAP.get(
-            settings["reasoning.lang"], "English"
-        )
+        lang_code = settings["reasoning.lang"]
+        pipeline.agent.output_lang = SUPPORTED_LANGUAGE_MAP.get(lang_code, "English")
+
+        # Set render language for UI translations
+        set_render_language(lang_code)
+
         pipeline.use_rewrite = states.get("app", {}).get("regen", False)
         pipeline.agent.prompt_template = PromptTemplate(settings[f"{prefix}.qa_prompt"])
 

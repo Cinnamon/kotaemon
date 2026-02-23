@@ -5,6 +5,9 @@ from ktem.app import BasePage
 from ktem.db.models import IssueReport, engine
 from sqlmodel import Session
 
+from ...utils.lang import get_ui_text
+from ..settings import get_current_language
+
 
 class ReportIssue(BasePage):
     def __init__(self, app):
@@ -12,26 +15,28 @@ class ReportIssue(BasePage):
         self.on_building_ui()
 
     def on_building_ui(self):
-        with gr.Accordion(label="Feedback", open=False, elem_id="report-accordion"):
+        _lang = get_current_language()
+        with gr.Accordion(
+            label=get_ui_text("feedback.feedback", _lang),
+            open=False,
+            elem_id="report-accordion",
+        ):
             self.correctness = gr.Radio(
                 choices=[
-                    ("The answer is correct", "correct"),
-                    ("The answer is incorrect", "incorrect"),
+                    (get_ui_text("feedback.answer_correct", _lang), "correct"),
+                    (get_ui_text("feedback.answer_incorrect", _lang), "incorrect"),
                 ],
-                label="Correctness:",
+                label=get_ui_text("feedback.correctness", _lang),
             )
             self.issues = gr.CheckboxGroup(
                 choices=[
-                    ("The answer is offensive", "offensive"),
-                    ("The evidence is incorrect", "wrong-evidence"),
+                    (get_ui_text("feedback.answer_offensive", _lang), "offensive"),
+                    (get_ui_text("feedback.evidence_incorrect", _lang), "wrong-evidence"),
                 ],
-                label="Other issue:",
+                label=get_ui_text("feedback.other_issue", _lang),
             )
             self.more_detail = gr.Textbox(
-                placeholder=(
-                    "More detail (e.g. how wrong is it, what is the "
-                    "correct answer, etc...)"
-                ),
+                placeholder=get_ui_text("feedback.more_detail", _lang),
                 container=False,
                 lines=3,
             )
@@ -39,7 +44,7 @@ class ReportIssue(BasePage):
                 "This will send the current chat and the user settings to "
                 "help with investigation"
             )
-            self.report_btn = gr.Button("Report")
+            self.report_btn = gr.Button(get_ui_text("feedback.report", _lang))
 
     def report(
         self,
@@ -83,4 +88,5 @@ class ReportIssue(BasePage):
             )
             session.add(issue)
             session.commit()
-        gr.Info("Thank you for your feedback")
+        _lang = get_current_language()
+        gr.Info(get_ui_text("feedback.thank_you_feedback", _lang))

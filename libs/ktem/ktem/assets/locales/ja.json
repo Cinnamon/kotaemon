@@ -1,0 +1,158 @@
+{
+  "language_name": "Japanese",
+
+  "common": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "close": "閉じる",
+    "confirm": "確認",
+    "yes": "はい",
+    "no": "いいえ",
+    "ok": "OK",
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "success": "成功",
+    "warning": "警告",
+    "info": "情報"
+  },
+
+  "nav": {
+    "chat": "チャット",
+    "files": "ファイル",
+    "resources": "リソース",
+    "settings": "設定",
+    "help": "ヘルプ"
+  },
+
+  "chat": {
+    "conversations": "会話",
+    "browse_conversation": "会話を閲覧",
+    "chat_sessions": "チャットセッション",
+    "new_chat": "新しいチャット",
+    "suggest_chat": "チャット提案",
+    "share_conversation": "この会話を共有",
+    "conversation_name": "会話名",
+    "enter_to_save": "(Enter)で保存",
+    "no_conversation_selected": "会話が選択されていません",
+    "conversation_renamed": "会話名が変更されました",
+    "type_message": "メッセージを入力、@webで検索、または@filenameでファイルをタグ付け",
+    "beginning_conversation": "新しい会話の始まりです。\nファイルまたはWebURLをアップロードして開始してください。その他のオプション（GraphRAGなど）についてはファイルタブをご覧ください。",
+    "reasoning_type_changed": "推論タイプが `{}` に変更されました"
+  },
+
+  "chat_settings": {
+    "chat_settings": "チャット設定",
+    "reasoning_method": "推論方法",
+    "model": "モデル",
+    "language": "言語",
+    "mindmap_on": "マインドマップ (オン)",
+    "mindmap_off": "マインドマップ (オフ)"
+  },
+
+  "chat_suggestion": {
+    "chat_suggestion": "チャット提案",
+    "next_question": "次の質問",
+    "summary_document": "この文書を要約する",
+    "generate_faq": "この文書のFAQを生成する",
+    "identify_highlights": "主要なポイントを箇条書きで特定する"
+  },
+
+  "file_upload": {
+    "quick_upload": "クイックアップロード",
+    "or_paste_urls": "またはURLを貼り付け",
+    "drop_file_here": "ここにファイルをドロップ",
+    "click_to_upload": "クリックしてアップロード",
+    "file_collection": "ファイルコレクション",
+    "search_all": "すべて検索",
+    "search_in_files": "ファイル内を検索"
+  },
+
+  "info_panel": {
+    "information_panel": "情報パネル",
+    "related_papers": "関連論文",
+    "expand": "展開",
+    "export": "エクスポート"
+  },
+
+  "evidence": {
+    "page": "ページ",
+    "preview": "プレビュー",
+    "full_text_search": "全文検索",
+    "relevance_score": "関連性スコア",
+    "vectorstore_score": "ベクトルストアスコア",
+    "llm_relevant_score": "LLM関連性スコア",
+    "reranking_score": "リランキングスコア",
+    "evidence": "証拠",
+    "table_from": "テーブル（出典：",
+    "text_from": "テキスト（出典：",
+    "figure_from": "図（出典：",
+    "row": "行",
+    "from": "から",
+    "score": "スコア"
+  },
+
+  "feedback": {
+    "feedback": "フィードバック",
+    "report": "報告",
+    "correctness": "正確性:",
+    "answer_correct": "回答は正しい",
+    "answer_incorrect": "回答は間違っている",
+    "answer_offensive": "回答は不適切",
+    "evidence_incorrect": "証拠が間違っている",
+    "other_issue": "その他の問題:",
+    "more_detail": "詳細（例：どのように間違っているか、正しい回答は何か等...）",
+    "thank_you_feedback": "フィードバックありがとうございます"
+  },
+
+  "settings": {
+    "settings": "設定",
+    "user_settings": "ユーザー設定",
+    "general": "一般",
+    "retrieval_settings": "検索設定",
+    "reasoning_settings": "推論設定",
+    "save_close": "保存して閉じる",
+    "setting_saved": "設定が保存されました",
+    "need_login": "設定を保存する前にログインが必要です"
+  },
+
+  "auth": {
+    "login": "ログイン",
+    "logout": "ログアウト",
+    "sign_in": "サインイン",
+    "sign_out": "サインアウト",
+    "username": "ユーザー名",
+    "password": "パスワード",
+    "new_password": "新しいパスワード",
+    "confirm_password": "パスワード確認",
+    "change_password": "パスワード変更",
+    "current_user": "現在のユーザー",
+    "invalid_credentials": "ユーザー名またはパスワードが無効です",
+    "password_changed": "パスワードが変更されました",
+    "user_not_found": "ユーザーが見つかりません",
+    "sign_in_first": "最初にサインインしてください（設定 → ユーザー設定）"
+  },
+
+  "user_management": {
+    "user_list": "ユーザーリスト",
+    "create_user": "ユーザー作成",
+    "admin": "管理者",
+    "confirm_delete": "削除を確認",
+    "no_user_loaded": "ユーザーが読み込まれていません。ユーザーリストを更新してください",
+    "no_user_selected": "ユーザーが選択されていません",
+    "cannot_delete_yourself": "自分自身を削除することはできません"
+  },
+
+  "help": {
+    "about": "について",
+    "user_guide": "ユーザーガイド",
+    "changelogs": "変更履歴",
+    "hint": "ヒント",
+    "welcome_to": "ようこそ"
+  },
+
+  "index": {
+    "graphrag_collection": "GraphRAGコレクション",
+    "lightrag_collection": "LightRAGコレクション"
+  }
+}

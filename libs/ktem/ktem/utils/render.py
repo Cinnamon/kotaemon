@@ -5,7 +5,23 @@ from fast_langdetect import detect
 
 from kotaemon.base import RetrievedDocument
 
+from .lang import get_ui_text
+
 BASE_PATH = os.environ.get("GR_FILE_ROOT_PATH", "")
+
+# Global language context for UI rendering
+_current_lang_code = "en"
+
+
+def set_render_language(lang_code: str) -> None:
+    """Set the current language for UI rendering."""
+    global _current_lang_code
+    _current_lang_code = lang_code
+
+
+def get_render_language() -> str:
+    """Get the current language for UI rendering."""
+    return _current_lang_code
 
 
 def is_close(val1, val2, tolerance=1e-9):
@@ -28,10 +44,14 @@ def replace_mardown_header(text: str) -> str:
 def get_header(doc: RetrievedDocument) -> str:
     """Get the header for the document"""
     header = ""
-    if "page_label" in doc.metadata:
-        header += f" [Page {doc.metadata['page_label']}]"
+    lang_code = get_render_language()
+    page_text = get_ui_text("evidence.page", lang_code)
+    evidence_text = get_ui_text("evidence.evidence", lang_code)
 
-    header += f" {doc.metadata.get('file_name', '<evidence>')}"
+    if "page_label" in doc.metadata:
+        header += f" [{page_text} {doc.metadata['page_label']}]"
+
+    header += f" {doc.metadata.get('file_name', f'<{evidence_text}>')}"
     return header.strip()
 
 
@@ -95,6 +115,7 @@ class Render:
             print("Fail to extract page number")
             return html_content
 
+        phrase = "true"
         if not highlight_text:
             try:
                 lang = detect(text.replace("\n", " "))["lang"]
@@ -116,10 +137,12 @@ class Render:
         else:
             phrase = "true"
 
+        lang_code = get_render_language()
+        preview_text = get_ui_text("evidence.preview", lang_code)
         return f"""
         {html_content}
         <a href="#" class="pdf-link" data-src="{BASE_PATH}/file={pdf_path}" data-page="{page_idx}" data-search="{highlight_text}" data-phrase="{phrase}">
-            [Preview]
+            [{preview_text}]
         </a>
         """  # noqa
 
@@ -165,10 +188,13 @@ class Render:
         open_collapsible: bool = False,
     ) -> str:
         """Format the retrieval score and the document"""
+        lang_code = get_render_language()
+
         # score from doc_store (Elasticsearch)
         if is_close(doc.score, -1.0):
             vectorstore_score = ""
-            text_search_str = " (full-text search)<br>"
+            full_text_search = get_ui_text("evidence.full_text_search", lang_code)
+            text_search_str = f" ({full_text_search})<br>"
         else:
             vectorstore_score = str(round(doc.score, 2))
             text_search_str = "<br>"
@@ -198,14 +224,19 @@ class Render:
         else:
             relevant_score = 0.0
 
+        relevance_score_text = get_ui_text("evidence.relevance_score", lang_code)
+        vectorstore_score_text = get_ui_text("evidence.vectorstore_score", lang_code)
+        llm_relevant_score_text = get_ui_text("evidence.llm_relevant_score", lang_code)
+        reranking_score_text = get_ui_text("evidence.reranking_score", lang_code)
+
         rendered_score = Render.collapsible(
-            header=f"<b>&emsp;Relevance score</b>: {relevant_score:.1f}",
-            content="<b>&emsp;&emsp;Vectorstore score:</b>"
+            header=f"<b>&emsp;{relevance_score_text}</b>: {relevant_score:.1f}",
+            content=f"<b>&emsp;&emsp;{vectorstore_score_text}:</b>"
             f" {vectorstore_score}"
             f"{text_search_str}"
-            "<b>&emsp;&emsp;LLM relevant score:</b>"
+            f"<b>&emsp;&emsp;{llm_relevant_score_text}:</b>"
             f" {llm_reranking_score}<br>"
-            "<b>&emsp;&emsp;Reranking score:</b>"
+            f"<b>&emsp;&emsp;{reranking_score_text}:</b>"
             f" {reranking_score}<br>",
         )
 
