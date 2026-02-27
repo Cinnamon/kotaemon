@@ -4,8 +4,9 @@ from ktem.app import BaseApp
 from ktem.pages.chat import ChatPage
 from ktem.pages.help import HelpPage
 from ktem.pages.resources import ResourcesTab
-from ktem.pages.settings import SettingsPage
+from ktem.pages.settings import SettingsPage, get_current_language
 from ktem.pages.setup import SetupPage
+from ktem.utils.lang import get_ui_text
 from theflow.settings import settings as flowsettings
 
 KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
@@ -42,18 +43,19 @@ class App(BaseApp):
     def ui(self):
         """Render the UI"""
         self._tabs = {}
+        _lang = get_current_language()
 
         with gr.Tabs() as self.tabs:
             if self.f_user_management:
                 from ktem.pages.login import LoginPage
 
                 with gr.Tab(
-                    "Welcome", elem_id="login-tab", id="login-tab"
+                    get_ui_text("help.welcome_to", _lang), elem_id="login-tab", id="login-tab"
                 ) as self._tabs["login-tab"]:
                     self.login_page = LoginPage(self)
 
             with gr.Tab(
-                "Chat",
+                get_ui_text("nav.chat", _lang),
                 elem_id="chat-tab",
                 id="chat-tab",
                 visible=not self.f_user_management,
@@ -77,7 +79,7 @@ class App(BaseApp):
                         setattr(self, f"_index_{index.id}", page)
             elif len(self.index_manager.indices) > 1:
                 with gr.Tab(
-                    "Files",
+                    get_ui_text("nav.files", _lang),
                     elem_id="indices-tab",
                     elem_classes=["fill-main-area-height", "scrollable", "indices-tab"],
                     id="indices-tab",
@@ -94,7 +96,7 @@ class App(BaseApp):
             if not KH_DEMO_MODE:
                 if not KH_SSO_ENABLED:
                     with gr.Tab(
-                        "Resources",
+                        get_ui_text("nav.resources", _lang),
                         elem_id="resources-tab",
                         id="resources-tab",
                         visible=not self.f_user_management,
@@ -103,7 +105,7 @@ class App(BaseApp):
                         self.resources_page = ResourcesTab(self)
 
                 with gr.Tab(
-                    "Settings",
+                    get_ui_text("nav.settings", _lang),
                     elem_id="settings-tab",
                     id="settings-tab",
                     visible=not self.f_user_management,
@@ -112,7 +114,7 @@ class App(BaseApp):
                     self.settings_page = SettingsPage(self)
 
             with gr.Tab(
-                "Help",
+                get_ui_text("nav.help", _lang),
                 elem_id="help-tab",
                 id="help-tab",
                 visible=not self.f_user_management,

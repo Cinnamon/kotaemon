@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import re
 from copy import deepcopy
 from typing import Optional
@@ -27,6 +28,11 @@ from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 from kotaemon.indices.qa.utils import strip_think_tag
 
 from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex, get_urls
+from ...utils.lang import get_ui_text
+
+logger = logging.getLogger(__name__)
+from ...utils.render import set_render_language
+from ..settings import get_current_language
 from ...utils.commands import WEB_SEARCH_COMMAND
 from ...utils.hf_papers import get_recommended_papers
 from ...utils.rate_limit import check_rate_limit
@@ -270,9 +276,15 @@ class ChatPage(BasePage):
 
                 self.chat_suggestion = ChatSuggestion(self._app)
 
+                # Get current language for UI translations early
+                _lang = get_current_language()
+                set_render_language(_lang)
+
                 if len(self._app.index_manager.indices) > 0:
                     quick_upload_label = (
-                        "Quick Upload" if not KH_DEMO_MODE else "Or input new paper URL"
+                        get_ui_text("file_upload.quick_upload", _lang)
+                        if not KH_DEMO_MODE
+                        else "Or input new paper URL"
                     )
 
                     with gr.Accordion(label=quick_upload_label) as _:
@@ -287,7 +299,7 @@ class ChatPage(BasePage):
                             )
                         self.quick_urls = gr.Textbox(
                             placeholder=(
-                                "Or paste URLs"
+                                get_ui_text("file_upload.or_paste_urls", _lang)
                                 if not KH_DEMO_MODE
                                 else "Paste Arxiv URLs\n(https://arxiv.org/abs/xxx)"
                             ),
@@ -302,7 +314,9 @@ class ChatPage(BasePage):
                 if not KH_DEMO_MODE:
                     self.report_issue = ReportIssue(self._app)
                 else:
-                    with gr.Accordion(label="Related papers", open=False):
+                    with gr.Accordion(
+                        label=get_ui_text("info_panel.related_papers", _lang), open=False
+                    ):
                         self.related_papers = gr.Markdown(elem_id="related-papers")
 
                     self.hint_page = HintPage(self._app)
@@ -314,17 +328,18 @@ class ChatPage(BasePage):
                 self.chat_panel = ChatPanel(self._app)
 
                 with gr.Accordion(
-                    label="Chat settings",
+                    label=get_ui_text("chat_settings.chat_settings", _lang),
                     elem_id="chat-settings-expand",
                     open=False,
                     visible=not KH_DEMO_MODE,
                 ) as self.chat_settings:
                     with gr.Row(elem_id="quick-setting-labels"):
-                        gr.HTML("Reasoning method")
+                        gr.HTML(get_ui_text("chat_settings.reasoning_method", _lang))
                         gr.HTML(
-                            "Model", visible=not KH_DEMO_MODE and not KH_SSO_ENABLED
+                            get_ui_text("chat_settings.model", _lang),
+                            visible=not KH_DEMO_MODE and not KH_SSO_ENABLED,
                         )
-                        gr.HTML("Language")
+                        gr.HTML(get_ui_text("chat_settings.language", _lang))
 
                     with gr.Row():
                         reasoning_setting = (
@@ -372,7 +387,7 @@ class ChatPage(BasePage):
                         if not config("USE_LOW_LLM_REQUESTS", default=False, cast=bool):
                             self.use_mindmap = gr.State(value=True)
                             self.use_mindmap_check = gr.Checkbox(
-                                label="Mindmap (on)",
+                                label=get_ui_text("chat_settings.mindmap_on", _lang),
                                 container=False,
                                 elem_id="use-mindmap-checkbox",
                                 value=True,
@@ -380,7 +395,7 @@ class ChatPage(BasePage):
                         else:
                             self.use_mindmap = gr.State(value=False)
                             self.use_mindmap_check = gr.Checkbox(
-                                label="Mindmap (off)",
+                                label=get_ui_text("chat_settings.mindmap_off", _lang),
                                 container=False,
                                 elem_id="use-mindmap-checkbox",
                                 value=False,
@@ -390,7 +405,9 @@ class ChatPage(BasePage):
                 scale=INFO_PANEL_SCALES[False], elem_id="chat-info-panel"
             ) as self.info_column:
                 with gr.Accordion(
-                    label="Information panel", open=True, elem_id="info-expand"
+                    label=get_ui_text("information_panel", _lang),
+                    open=True,
+                    elem_id="info-expand",
                 ):
                     self.modal = gr.HTML("<div id='pdf-modal'></div>")
                     self.plot_panel = gr.Plot(visible=False)
@@ -1051,6 +1068,29 @@ class ChatPage(BasePage):
             )
 
     def _on_app_created(self):
+        # Load saved language setting into dropdown on page load
+        def load_language(settings):
+            print(f"[LANGUAGE] Full settings_state: {settings}")
+            lang = settings.get("reasoning.lang", "en")
+            print(f"[LANGUAGE] Loading saved language setting: {lang}")
+            logger.info(f"Loading saved language setting: {lang}")
+            return lang
+        
+        self._app.app.load(
+            fn=load_language,
+            inputs=[self._app.settings_state],
+            outputs=[self.language],
+            show_progress="hidden",
+        )
+        
+        # Update language dropdown when settings_state changes (after user login)
+        self._app.settings_state.change(
+            fn=load_language,
+            inputs=[self._app.settings_state],
+            outputs=[self.language],
+            show_progress="hidden",
+        )
+        
         if KH_DEMO_MODE:
             self._app.app.load(
                 fn=lambda x: x,
@@ -1228,7 +1268,12 @@ class ChatPage(BasePage):
             ] = session_use_citation
 
         if session_language not in (DEFAULT_SETTING, None):
+            print(f"[LANGUAGE] Setting language from session: {session_language}")
+            logger.info(f"Setting language from session: {session_language}")
             settings["reasoning.lang"] = session_language
+        else:
+            print(f"[LANGUAGE] Using default language from settings: {settings.get('reasoning.lang', 'en')}")
+            logger.info(f"Using default language from settings: {settings.get('reasoning.lang', 'en')}")
 
         # get retrievers
         retrievers = []
@@ -1399,7 +1444,7 @@ class ChatPage(BasePage):
             suggest_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
                 target_language, "English"
             )
-            suggested_questions = [[each] for each in ChatSuggestion.CHAT_SAMPLES]
+            suggested_questions = [[each] for each in self.chat_suggestion._get_chat_samples(target_language)]
 
             if len(chat_history) >= 1:
                 suggested_resp = suggest_pipeline(chat_history).text

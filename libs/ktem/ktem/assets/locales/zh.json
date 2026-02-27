@@ -1,0 +1,158 @@
+{
+  "language_name": "Chinese",
+
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "close": "关闭",
+    "confirm": "确认",
+    "yes": "是",
+    "no": "否",
+    "ok": "确定",
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "warning": "警告",
+    "info": "信息"
+  },
+
+  "nav": {
+    "chat": "聊天",
+    "files": "文件",
+    "resources": "资源",
+    "settings": "设置",
+    "help": "帮助"
+  },
+
+  "chat": {
+    "conversations": "对话",
+    "browse_conversation": "浏览对话",
+    "chat_sessions": "聊天会话",
+    "new_chat": "新建聊天",
+    "suggest_chat": "聊天建议",
+    "share_conversation": "分享此对话",
+    "conversation_name": "对话名称",
+    "enter_to_save": "(回车)保存",
+    "no_conversation_selected": "未选择对话",
+    "conversation_renamed": "对话已重命名",
+    "type_message": "输入消息，搜索@web，或使用@filename标记文件",
+    "beginning_conversation": "这是一个新对话的开始。\n首先上传文件或网址。访问文件选项卡了解更多选项（如：GraphRAG）。",
+    "reasoning_type_changed": "推理类型已更改为 `{}`"
+  },
+
+  "chat_settings": {
+    "chat_settings": "聊天设置",
+    "reasoning_method": "推理方法",
+    "model": "模型",
+    "language": "语言",
+    "mindmap_on": "思维导图 (开)",
+    "mindmap_off": "思维导图 (关)"
+  },
+
+  "chat_suggestion": {
+    "chat_suggestion": "聊天建议",
+    "next_question": "下一个问题",
+    "summary_document": "总结此文档",
+    "generate_faq": "为此文档生成FAQ",
+    "identify_highlights": "以要点形式识别主要亮点"
+  },
+
+  "file_upload": {
+    "quick_upload": "快速上传",
+    "or_paste_urls": "或粘贴URL",
+    "drop_file_here": "将文件拖放到此处",
+    "click_to_upload": "点击上传",
+    "file_collection": "文件集合",
+    "search_all": "搜索全部",
+    "search_in_files": "在文件中搜索"
+  },
+
+  "info_panel": {
+    "information_panel": "信息面板",
+    "related_papers": "相关论文",
+    "expand": "展开",
+    "export": "导出"
+  },
+
+  "evidence": {
+    "page": "页面",
+    "preview": "预览",
+    "full_text_search": "全文搜索",
+    "relevance_score": "相关性分数",
+    "vectorstore_score": "向量存储分数",
+    "llm_relevant_score": "LLM相关性分数",
+    "reranking_score": "重排序分数",
+    "evidence": "证据",
+    "table_from": "表格来自",
+    "text_from": "文本来自",
+    "figure_from": "图片来自",
+    "row": "行",
+    "from": "来自",
+    "score": "分数"
+  },
+
+  "feedback": {
+    "feedback": "反馈",
+    "report": "报告",
+    "correctness": "正确性:",
+    "answer_correct": "答案正确",
+    "answer_incorrect": "答案不正确",
+    "answer_offensive": "答案不当",
+    "evidence_incorrect": "证据不正确",
+    "other_issue": "其他问题:",
+    "more_detail": "更多详情（例如：错误程度、正确答案是什么等...）",
+    "thank_you_feedback": "感谢您的反馈"
+  },
+
+  "settings": {
+    "settings": "设置",
+    "user_settings": "用户设置",
+    "general": "常规",
+    "retrieval_settings": "检索设置",
+    "reasoning_settings": "推理设置",
+    "save_close": "保存并关闭",
+    "setting_saved": "设置已保存",
+    "need_login": "保存设置前需要登录"
+  },
+
+  "auth": {
+    "login": "登录",
+    "logout": "登出",
+    "sign_in": "登录",
+    "sign_out": "登出",
+    "username": "用户名",
+    "password": "密码",
+    "new_password": "新密码",
+    "confirm_password": "确认密码",
+    "change_password": "修改密码",
+    "current_user": "当前用户",
+    "invalid_credentials": "用户名或密码无效",
+    "password_changed": "密码已更改",
+    "user_not_found": "用户未找到",
+    "sign_in_first": "请先登录（设置 → 用户设置）"
+  },
+
+  "user_management": {
+    "user_list": "用户列表",
+    "create_user": "创建用户",
+    "admin": "管理员",
+    "confirm_delete": "确认删除",
+    "no_user_loaded": "未加载用户。请刷新用户列表",
+    "no_user_selected": "未选择用户",
+    "cannot_delete_yourself": "您不能删除自己"
+  },
+
+  "help": {
+    "about": "关于",
+    "user_guide": "用户指南",
+    "changelogs": "更新日志",
+    "hint": "提示",
+    "welcome_to": "欢迎来到"
+  },
+
+  "index": {
+    "graphrag_collection": "GraphRAG集合",
+    "lightrag_collection": "LightRAG集合"
+  }
+}
