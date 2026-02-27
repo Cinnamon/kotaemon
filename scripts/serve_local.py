@@ -47,7 +47,7 @@ def serve_llamacpp_python(local_model_file: Path, **kwargs):
     args = " ".join(f"--{k} {v}" for k, v in kwargs.items())
 
     cmd = f"{script_file} --model {local_model_file} {args}"
-    subprocess.Popen(cmd, shell=True)
+    subprocess.Popen(cmd, shell=False)
 
 
 def main():
