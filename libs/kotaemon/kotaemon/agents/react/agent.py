@@ -221,7 +221,15 @@ class ReactAgent(BaseAgent):
                 tool_input = action_step.tool_input
                 logging.info(f"Action: {action_name}")
                 logging.info(f"Tool Input: {tool_input}")
-                result = self._format_function_map()[action_name](tool_input)
+                function_map = self._format_function_map()
+                if action_name not in function_map:
+                    available = ", ".join(function_map.keys())
+                    result = (
+                        f"Tool '{action_name}' not found. "
+                        f"Available tools: {available}"
+                    )
+                else:
+                    result = function_map[action_name](tool_input)
 
                 # trim the worker output to 1000 tokens, as we are appending
                 # all workers' logs and it can exceed the token limit if we
@@ -297,7 +305,16 @@ class ReactAgent(BaseAgent):
                 print(f"Action: {action_name}")
                 logging.info(f"Tool Input: {tool_input}")
                 print(f"Tool Input: {tool_input}")
-                result = self._format_function_map()[action_name](tool_input)
+                action_name = self._clean_action_name(action_name)
+                function_map = self._format_function_map()
+                if action_name not in function_map:
+                    available = ", ".join(function_map.keys())
+                    result = (
+                        f"Tool '{action_name}' not found. "
+                        f"Available tools: {available}"
+                    )
+                else:
+                    result = function_map[action_name](tool_input)
 
                 # trim the worker output to 1000 tokens, as we are appending
                 # all workers' logs and it can exceed the token limit if we

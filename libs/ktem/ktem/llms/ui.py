@@ -33,6 +33,7 @@ class LLMManagement(BasePage):
             self.llm_list = gr.DataFrame(
                 headers=["name", "vendor", "default"],
                 interactive=False,
+                column_widths=[30, 40, 30],
             )
 
             with gr.Column(visible=False) as self._selected_panel:
@@ -42,9 +43,15 @@ class LLMManagement(BasePage):
                         self.edit_default = gr.Checkbox(
                             label="Set default",
                             info=(
-                                "Set this LLM as default. If no default is set, a "
-                                "random LLM will be used."
+                                "Set this LLM as default. If no default is set, "
+                                "a random LLM will be used. "
+                                "This default LLM will be used by other components "
+                                "by default if no LLM is specified for such components."
                             ),
+                        )
+                        self.edit_name = gr.Textbox(
+                            label="Name",
+                            info="Edit to rename this LLM.",
                         )
                         self.edit_spec = gr.Textbox(
                             label="Specification",
@@ -181,11 +188,10 @@ class LLMManagement(BasePage):
                 self.btn_delete_yes,
                 self.btn_delete_no,
                 # edit section
+                self.edit_name,
                 self.edit_spec,
                 self.edit_spec_desc,
                 self.edit_default,
-                # check connection panel
-                self._check_connection_panel,
             ],
             show_progress="hidden",
         ).success(lambda: gr.update(value=""), outputs=[self.connection_logs])
@@ -220,9 +226,11 @@ class LLMManagement(BasePage):
             self.save_llm,
             inputs=[
                 self.selected_llm_name,
+                self.edit_name,
                 self.edit_default,
                 self.edit_spec,
             ],
+            outputs=[self.selected_llm_name],
             show_progress="hidden",
         ).then(
             self.list_llms,
@@ -242,6 +250,7 @@ class LLMManagement(BasePage):
 
     def create_llm(self, name, choices, spec, default):
         try:
+            name = name.strip()
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
             spec["__type__"] = (
                 llms.vendors()[choices].__module__
@@ -250,9 +259,11 @@ class LLMManagement(BasePage):
             )
 
             llms.add(name, spec=spec, default=default)
-            gr.Info(f"LLM {name} created successfully")
+            gr.Info(f"LLM '{name}' created successfully")
+        except ValueError as e:
+            raise gr.Error(str(e))
         except Exception as e:
-            raise gr.Error(f"Failed to create LLM {name}: {e}")
+            raise gr.Error(f"Failed to create LLM '{name}': {e}")
 
     def list_llms(self):
         """List the LLMs"""
@@ -285,17 +296,16 @@ class LLMManagement(BasePage):
 
     def on_selected_llm_change(self, selected_llm_name):
         if selected_llm_name == "":
-            _check_connection_panel = gr.update(visible=False)
             _selected_panel = gr.update(visible=False)
             _selected_panel_btn = gr.update(visible=False)
             btn_delete = gr.update(visible=True)
             btn_delete_yes = gr.update(visible=False)
             btn_delete_no = gr.update(visible=False)
+            edit_name = gr.update(value="")
             edit_spec = gr.update(value="")
             edit_spec_desc = gr.update(value="")
             edit_default = gr.update(value=False)
         else:
-            _check_connection_panel = gr.update(visible=True)
             _selected_panel = gr.update(visible=True)
             _selected_panel_btn = gr.update(visible=True)
             btn_delete = gr.update(visible=True)
@@ -306,6 +316,7 @@ class LLMManagement(BasePage):
             vendor_str = info["spec"].pop("__type__", "-").split(".")[-1]
             vendor = llms.vendors()[vendor_str]
 
+            edit_name = selected_llm_name
             edit_spec = yaml.dump(info["spec"])
             edit_spec_desc = format_description(vendor)
             edit_default = info["default"]
@@ -316,10 +327,10 @@ class LLMManagement(BasePage):
             btn_delete,
             btn_delete_yes,
             btn_delete_no,
+            edit_name,
             edit_spec,
             edit_spec_desc,
             edit_default,
-            _check_connection_panel,
         )
 
     def on_btn_delete_click(self):
@@ -368,14 +379,23 @@ class LLMManagement(BasePage):
 
         return log_content
 
-    def save_llm(self, selected_llm_name, default, spec):
+    def save_llm(self, selected_llm_name, edit_name, default, spec):
         try:
+            new_name = edit_name.strip()
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
             spec["__type__"] = llms.info()[selected_llm_name]["spec"]["__type__"]
-            llms.update(selected_llm_name, spec=spec, default=default)
-            gr.Info(f"LLM {selected_llm_name} saved successfully")
+            llms.update(
+                selected_llm_name, spec=spec, default=default, new_name=new_name
+            )
+            final_name = (
+                new_name if new_name != selected_llm_name else selected_llm_name
+            )
+            gr.Info(f"LLM '{final_name}' saved successfully")
+            return final_name
+        except ValueError as e:
+            raise gr.Error(str(e))
         except Exception as e:
-            raise gr.Error(f"Failed to save LLM {selected_llm_name}: {e}")
+            raise gr.Error(f"Failed to save LLM '{selected_llm_name}': {e}")
 
     def delete_llm(self, selected_llm_name):
         try:
