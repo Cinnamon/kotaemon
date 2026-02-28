@@ -64,5 +64,24 @@ ignore-words-list = "llm,fo"
 quiet-level = 3
 check-filenames = ""
 
-[tool.isort]
-known_first_party = ["kotaemon"]
+[tool.ruff]
+exclude = ["*.ipynb"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["libs"]
+check_untyped_defs = true
+disallow_untyped_defs = true
+disallow_untyped_calls = true
+disallow_any_generics = true
+ignore_missing_imports = true
+follow_imports = "normal"
+no_implicit_reexport = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
