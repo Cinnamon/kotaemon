@@ -348,7 +348,7 @@ SETTINGS_REASONING = {
     },
     "max_context_length": {
         "name": "Max context length (LLM)",
-        "value": 32000,
+        "value": config("MAX_CONTEXT_LENGTH", default=32000, cast=int),
         "component": "number",
     },
 }

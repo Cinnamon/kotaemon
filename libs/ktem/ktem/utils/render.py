@@ -97,7 +97,11 @@ class Render:
 
         if not highlight_text:
             try:
-                lang = detect(text.replace("\n", " "))["lang"]
+                detect_result = detect(text.replace("\n", " "))
+                if isinstance(detect_result, list):
+                    lang = detect_result[0]["lang"]
+                else:
+                    lang = detect_result["lang"]
                 if lang not in ["ja", "cn"]:
                     highlight_words = [
                         t[:-1] if t.endswith("-") else t for t in text.split("\n")
@@ -113,6 +117,7 @@ class Render:
             except Exception as e:
                 print(e)
                 highlight_text = text
+                phrase = "false"
         else:
             phrase = "true"
 

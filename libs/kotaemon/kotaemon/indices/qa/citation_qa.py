@@ -40,8 +40,10 @@ CONTEXT_RELEVANT_WARNING_SCORE = config(
 DEFAULT_QA_TEXT_PROMPT = (
     "Use the following pieces of context to answer the question at the end in detail with clear explanation. "  # noqa: E501
     "If you don't know the answer, just say that you don't know, don't try to "
-    "make up an answer. Give answer in "
-    "{lang}.\n\n"
+    "make up an answer. "
+    "Use rich formatting in your answer: use markdown tables, bullet points, "
+    "numbered lists, and headings where appropriate to make the answer clear and structured. "
+    "Give answer in {lang}.\n\n"
     "{context}\n"
     "Question: {question}\n"
     "Helpful Answer:"
@@ -49,9 +51,12 @@ DEFAULT_QA_TEXT_PROMPT = (
 
 DEFAULT_QA_TABLE_PROMPT = (
     "Use the given context: texts, tables, and figures below to answer the question, "
-    "then provide answer with clear explanation."
+    "then provide answer with clear explanation. "
     "If you don't know the answer, just say that you don't know, "
-    "don't try to make up an answer. Give answer in {lang}.\n\n"
+    "don't try to make up an answer. "
+    "Use rich formatting in your answer: use markdown tables, bullet points, "
+    "numbered lists, and headings where appropriate to make the answer clear and structured. "
+    "Give answer in {lang}.\n\n"
     "Context:\n"
     "{context}\n"
     "Question: {question}\n"
@@ -72,6 +77,8 @@ DEFAULT_QA_CHATBOT_PROMPT = (
 DEFAULT_QA_FIGURE_PROMPT = (
     "Use the given context: texts, tables, and figures below to answer the question. "
     "If you don't know the answer, just say that you don't know. "
+    "Use rich formatting in your answer: use markdown tables, bullet points, "
+    "numbered lists, and headings where appropriate to make the answer clear and structured. "
     "Give answer in {lang}.\n\n"
     "Context: \n"
     "{context}\n"

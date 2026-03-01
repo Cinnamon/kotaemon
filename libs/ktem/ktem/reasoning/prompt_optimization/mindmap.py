@@ -24,6 +24,8 @@ MINDMAP_HTML_EXPORT_TEMPLATE = dedent(
         height: 100vh;
       }
     </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.16"></script>
   </head>
   <body>
@@ -38,9 +40,10 @@ class CreateMindmapPipeline(BaseComponent):
     """Create a mindmap from the question and context"""
 
     llm: ChatLLM = Node(default_callback=lambda _: llms.get_default())
+    lang: str = "English"
 
     SYSTEM_PROMPT = """
-From now on you will behave as "MapGPT" and, for every text the user will submit, you are going to create a PlantUML mind map file for the inputted text to best describe main ideas. Format it as a code and remember that the mind map should be in the same language as the inputted context. You don't have to provide a general example for the mind map format before the user inputs the text.
+From now on you will behave as "MapGPT" and, for every text the user will submit, you are going to create a PlantUML mind map file for the inputted text to best describe main ideas. Format it as a code. You don't have to provide a general example for the mind map format before the user inputs the text.
     """  # noqa: E501
     MINDMAP_PROMPT_TEMPLATE = """
 Question:
@@ -49,7 +52,9 @@ Question:
 Context:
 {context}
 
-Generate a sample PlantUML mindmap for based on the provided question and context above. Only includes context relevant to the question to produce the mindmap.
+Generate a sample PlantUML mindmap based on the provided question and context above. Only includes context relevant to the question to produce the mindmap.
+The mind map MUST be in {lang}.
+If there are mathematical formulas, wrap them in inline math delimiters like $E=mc^2$ (single dollar signs). Do NOT use \\( \\) or \\[ \\] delimiters.
 
 Use the template like this:
 
@@ -82,6 +87,7 @@ Use the template like this:
         prompt = prompt_template.populate(
             question=question,
             context=context,
+            lang=self.lang,
         )
 
         messages = [

@@ -32,6 +32,12 @@ class ChatPanel(BasePage):
             show_copy_button=True,
             likeable=True,
             bubble_full_width=False,
+            latex_delimiters=[
+                {"left": "$$", "right": "$$", "display": True},
+                {"left": "$", "right": "$", "display": False},
+                {"left": "\\(", "right": "\\)", "display": False},
+                {"left": "\\[", "right": "\\]", "display": True},
+            ],
         )
         with gr.Row():
             self.text_input = gr.MultimodalTextbox(

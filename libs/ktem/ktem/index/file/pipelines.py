@@ -242,7 +242,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             },
             "num_retrieval": {
                 "name": "Number of document chunks to retrieve",
-                "value": 10,
+                "value": config("NUM_RETRIEVAL_DEFAULT", default=10, cast=int),
                 "component": "number",
             },
             "retrieval_mode": {

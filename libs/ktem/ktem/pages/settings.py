@@ -354,12 +354,15 @@ class SettingsPage(BasePage):
         return output
 
     def load_setting(self, user_id=None):
-        settings = self._settings_dict
+        settings = dict(self._settings_dict)
         with Session(engine) as session:
             statement = select(Settings).where(Settings.user == user_id)
             result = session.exec(statement).all()
             if result:
-                settings = result[0].setting
+                # merge: saved settings override defaults, but new defaults
+                # for keys not yet saved are preserved
+                saved = result[0].setting
+                settings.update(saved)
 
         output = [settings]
         output += tuple(settings[name] for name in self.component_names())

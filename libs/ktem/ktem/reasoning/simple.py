@@ -177,7 +177,11 @@ class FullQAPipeline(BaseReasoning):
                     activeNode:
                         placement: center
                     initialExpandLevel: 4
-                    maxWidth: 200
+                    maxWidth: 300
+                    extraJs:
+                        - https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js
+                    extraCss:
+                        - https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css
                 ---
                 {}
                 </script>
@@ -379,6 +383,7 @@ class FullQAPipeline(BaseReasoning):
         answer_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
             settings["reasoning.lang"], "English"
         )
+        answer_pipeline.create_mindmap_pipeline.lang = answer_pipeline.lang
 
         pipeline.add_query_context.llm = llm
         pipeline.add_query_context.n_last_interactions = settings[

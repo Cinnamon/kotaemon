@@ -30,6 +30,7 @@ class PrepareEvidencePipeline(BaseComponent):
         images = []
         table_found = 0
         evidence_modes = []
+        seen_doc_ids: set = set()
 
         evidence_trim_func = (
             self.trim_func
@@ -46,15 +47,24 @@ class PrepareEvidencePipeline(BaseComponent):
             )
         )
 
-        for _, retrieved_item in enumerate(docs):
+        print(f"[PrepareEvidence] Total docs to process: {len(docs)}")
+        for _idx, retrieved_item in enumerate(docs):
+            # skip duplicate documents by doc_id
+            if retrieved_item.doc_id in seen_doc_ids:
+                continue
+            seen_doc_ids.add(retrieved_item.doc_id)
+
             retrieved_content = ""
             page = retrieved_item.metadata.get("page_label", None)
             source = filename = retrieved_item.metadata.get("file_name", "-")
+            doc_type = retrieved_item.metadata.get("type", "text")
+            print(f"[PrepareEvidence] Doc {_idx}: page={page}, type={doc_type}, "
+                  f"file={filename}, text_len={len(retrieved_item.text)}")
             if page:
                 source += f" (Page {page})"
             if retrieved_item.metadata.get("type", "") == "table":
                 evidence_modes.append(EVIDENCE_MODE_TABLE)
-                if table_found < 5:
+                if table_found < 20:
                     retrieved_content = retrieved_item.metadata.get(
                         "table_origin", retrieved_item.text
                     )
@@ -90,12 +100,11 @@ class PrepareEvidencePipeline(BaseComponent):
                 else:
                     retrieved_content = retrieved_item.text
                 retrieved_content = retrieved_content.replace("\n", " ")
-                if retrieved_content not in evidence:
-                    evidence += (
-                        f"<br><b>Content from {source}: </b> "
-                        + retrieved_content
-                        + " \n<br>"
-                    )
+                evidence += (
+                    f"<br><b>Content from {source}: </b> "
+                    + retrieved_content
+                    + " \n<br>"
+                )
 
         # resolve evidence mode
         evidence_mode = EVIDENCE_MODE_TEXT
