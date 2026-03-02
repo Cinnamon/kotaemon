@@ -305,7 +305,6 @@ class ReactAgent(BaseAgent):
                 print(f"Action: {action_name}")
                 logging.info(f"Tool Input: {tool_input}")
                 print(f"Tool Input: {tool_input}")
-                action_name = self._clean_action_name(action_name)
                 function_map = self._format_function_map()
                 if action_name not in function_map:
                     available = ", ".join(function_map.keys())
