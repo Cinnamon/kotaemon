@@ -182,7 +182,7 @@ class FileIndexPage(BasePage):
                 "loader",
                 "date_created",
             ],
-            column_widths=["0%", "50%", "8%", "7%", "15%", "20%"],
+            column_widths=[0, 50, 8, 7, 15, 20],
             interactive=False,
             wrap=False,
             elem_id="file_list_view",
@@ -241,7 +241,7 @@ class FileIndexPage(BasePage):
                 "files",
                 "date_created",
             ],
-            column_widths=["0%", "25%", "55%", "20%"],
+            column_widths=[0, 25, 55, 20],
             interactive=False,
             wrap=False,
         )

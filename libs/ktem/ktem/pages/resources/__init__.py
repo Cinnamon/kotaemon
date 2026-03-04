@@ -4,6 +4,7 @@ from ktem.db.models import User, engine
 from ktem.embeddings.ui import EmbeddingManagement
 from ktem.index.ui import IndexManagement
 from ktem.llms.ui import LLMManagement
+from ktem.mcp.ui import MCPManagement
 from ktem.rerankings.ui import RerankingManagement
 from sqlmodel import Session, select
 
@@ -27,6 +28,9 @@ class ResourcesTab(BasePage):
 
         with gr.Tab("Rerankings") as self.rerank_management_tab:
             self.rerank_management = RerankingManagement(self._app)
+
+        with gr.Tab("MCP Servers") as self.mcp_management_tab:
+            self.mcp_management = MCPManagement(self._app)
 
         if self._app.f_user_management:
             with gr.Tab("Users", visible=False) as self.user_management_tab:

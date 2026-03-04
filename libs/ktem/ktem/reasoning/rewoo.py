@@ -4,6 +4,7 @@ from difflib import SequenceMatcher
 from typing import AnyStr, Generator, Optional, Type
 
 from ktem.llms.manager import llms
+from ktem.mcp.manager import mcp_manager
 from ktem.reasoning.base import BaseReasoning
 from ktem.utils.generator import Generator as GeneratorWrapper
 from ktem.utils.render import Render
@@ -17,6 +18,7 @@ from kotaemon.agents import (
     RewooAgent,
     WikipediaTool,
 )
+from kotaemon.agents.tools.mcp import create_tools_from_config
 from kotaemon.base import BaseComponent, Document, HumanMessage, Node, SystemMessage
 from kotaemon.llms import ChatLLM, PromptTemplate
 
@@ -405,12 +407,21 @@ class RewooAgentPipeline(BaseReasoning):
 
         tools = []
         for tool_name in settings[f"{prefix}.tools"]:
-            tool = TOOL_REGISTRY[tool_name]
-            if tool_name == "SearchDoc":
-                tool.retrievers = retrievers
-            elif tool_name == "LLM":
-                tool.llm = solver_llm
-            tools.append(tool)
+            if tool_name.startswith("[MCP] "):
+                server_name = tool_name[len("[MCP] ") :]
+                entry = mcp_manager.get(server_name)
+                if entry:
+                    config = entry["config"]
+                    enabled_tools = config.pop("enabled_tools", None)
+                    mcp_tools = create_tools_from_config(config, enabled_tools)
+                    tools.extend(mcp_tools)
+            else:
+                tool = TOOL_REGISTRY[tool_name]
+                if tool_name == "SearchDoc":
+                    tool.retrievers = retrievers
+                elif tool_name == "LLM":
+                    tool.llm = solver_llm
+                tools.append(tool)
         pipeline.agent.plugins = tools
         pipeline.agent.output_lang = SUPPORTED_LANGUAGE_MAP.get(
             settings["reasoning.lang"], "English"
@@ -441,6 +452,10 @@ class RewooAgentPipeline(BaseReasoning):
             logger.exception(f"Failed to get LLM options: {e}")
 
         tool_choices = ["Wikipedia", "Google", "LLM", "SearchDoc"]
+        try:
+            tool_choices += mcp_manager.get_enabled_tools()
+        except Exception as e:
+            logger.exception(f"Failed to get MCP tool options: {e}")
 
         return {
             "planner_llm": {
