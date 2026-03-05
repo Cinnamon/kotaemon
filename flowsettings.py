@@ -185,7 +185,7 @@ if VOYAGE_API_KEY:
     KH_RERANKINGS["voyageai"] = {
         "spec": {
             "__type__": "kotaemon.rerankings.VoyageAIReranking",
-            "model_name": "rerank-2",
+            "model_name": "rerank-2.5",
             "api_key": VOYAGE_API_KEY,
         },
         "default": False,

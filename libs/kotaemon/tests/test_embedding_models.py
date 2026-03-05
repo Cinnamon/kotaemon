@@ -162,6 +162,10 @@ def test_fastembed_embeddings():
 voyage_output_mock = Mock()
 voyage_output_mock.embeddings = [[1.0, 2.1, 3.2]]
 
+# Mock for voyage-4 family with 1024 dimensions (default)
+voyage_4_output_mock = Mock()
+voyage_4_output_mock.embeddings = [[0.1] * 1024]
+
 
 @skip_when_voyageai_not_installed
 @patch("voyageai.Client.embed", return_value=voyage_output_mock)
@@ -170,3 +174,53 @@ def test_voyageai_embeddings(sync_call, async_call):
     model = VoyageAIEmbeddings(api_key="test")
     output = model("Hello, world!")
     assert all(isinstance(doc, DocumentWithEmbedding) for doc in output)
+
+
+@skip_when_voyageai_not_installed
+@patch("voyageai.Client.embed", return_value=voyage_4_output_mock)
+@patch("voyageai.AsyncClient.embed", return_value=voyage_4_output_mock)
+def test_voyageai_embeddings_voyage_4(mock_async, mock_sync):
+    """Test voyage-4 model - balanced quality and throughput."""
+    model = VoyageAIEmbeddings(api_key="test", model="voyage-4")
+    output = model("Hello, world!")
+    assert all(isinstance(doc, DocumentWithEmbedding) for doc in output)
+    assert len(output[0].embedding) == 1024
+
+
+@skip_when_voyageai_not_installed
+@patch("voyageai.Client.embed", return_value=voyage_4_output_mock)
+@patch("voyageai.AsyncClient.embed", return_value=voyage_4_output_mock)
+def test_voyageai_embeddings_voyage_4_lite(mock_async, mock_sync):
+    """Test voyage-4-lite model - optimized for latency and cost."""
+    model = VoyageAIEmbeddings(api_key="test", model="voyage-4-lite")
+    output = model("Hello, world!")
+    assert all(isinstance(doc, DocumentWithEmbedding) for doc in output)
+    assert len(output[0].embedding) == 1024
+
+
+@skip_when_voyageai_not_installed
+@patch("voyageai.Client.embed", return_value=voyage_4_output_mock)
+@patch("voyageai.AsyncClient.embed", return_value=voyage_4_output_mock)
+def test_voyageai_embeddings_voyage_4_large(mock_async, mock_sync):
+    """Test voyage-4-large model - best quality for demanding tasks."""
+    model = VoyageAIEmbeddings(api_key="test", model="voyage-4-large")
+    output = model("Hello, world!")
+    assert all(isinstance(doc, DocumentWithEmbedding) for doc in output)
+    assert len(output[0].embedding) == 1024
+
+
+# Mock for batch voyage-4 test with multiple embeddings
+voyage_4_batch_mock = Mock()
+voyage_4_batch_mock.embeddings = [[0.1] * 1024, [0.2] * 1024]
+
+
+@skip_when_voyageai_not_installed
+@patch("voyageai.Client.embed", return_value=voyage_4_batch_mock)
+@patch("voyageai.AsyncClient.embed", return_value=voyage_4_batch_mock)
+def test_voyageai_embeddings_voyage_4_batch(mock_async, mock_sync):
+    """Test voyage-4 family with batch input."""
+    model = VoyageAIEmbeddings(api_key="test", model="voyage-4")
+    output = model(["Hello, world!", "Goodbye, world!"])
+    assert len(output) == 2
+    assert all(isinstance(doc, DocumentWithEmbedding) for doc in output)
+    assert all(len(doc.embedding) == 1024 for doc in output)
