@@ -86,7 +86,9 @@ class File(gr.File):
         if self.type == "filepath":
             if f.orig_name and Path(file_name).name != f.orig_name:
                 file_name = str(Path(file_name).parent / f.orig_name)
-                os.rename(f.path, file_name)
+                # Use shutil.move instead of os.rename to handle the case where
+                # the target file already exists (FileExistsError on Windows)
+                shutil.move(f.path, file_name)
             file = tempfile.NamedTemporaryFile(delete=False, dir=self.GRADIO_CACHE)
             file.name = file_name
             return NamedString(file_name)
