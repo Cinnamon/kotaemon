@@ -156,6 +156,7 @@ documents and developers who want to build their own RAG pipeline.
    ```
 
    This script will:
+
    - Install uv package manager if not present
    - Create a virtual environment with Python 3.10
    - Install all dependencies using uv (significantly faster than conda/pip)

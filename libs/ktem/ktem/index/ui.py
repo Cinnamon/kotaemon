@@ -46,6 +46,7 @@ class IndexManagement(BasePage):
             self.index_list = gr.DataFrame(
                 headers=["id", "name", "index type"],
                 interactive=False,
+                column_widths=[10, 30, 60],
             )
 
             with gr.Column(visible=False) as self._selected_panel:
@@ -238,22 +239,24 @@ class IndexManagement(BasePage):
         return yaml.dump(required, sort_keys=False), format_description(index_type_cls)
 
     def create_index(self, name: str, index_type: str, config: str):
-        """Create the index
+        """Create the index"""
+        name = name.strip()
+        if not name:
+            raise gr.Error("Name must not be empty")
 
-        Args:
-            name: the name of the index
-            index_type: the type of the index
-            config: the expected config of the index
-        """
+        existing_names = {idx.name for idx in self.manager.indices}
+        if name in existing_names:
+            raise gr.Error(f"Index '{name}' already exists. Please use a unique name.")
+
         try:
             self.manager.build_index(
                 name=name,
                 config=yaml.load(config, Loader=YAMLNoDateSafeLoader),
                 index_type=index_type,
             )
-            gr.Info(f'Create index "{name}" successfully. Please restart the app!')
+            gr.Info(f'Index "{name}" created successfully. Please restart the app!')
         except Exception as e:
-            raise gr.Error(f"Failed to create Embedding model {name}: {e}")
+            raise gr.Error(f'Failed to create index "{name}": {e}')
 
     def list_indices(self):
         """List the indices constructed by the user"""
@@ -311,10 +314,23 @@ class IndexManagement(BasePage):
         )
 
     def update_index(self, selected_index_id: int, name: str, config: str):
+        name = name.strip()
+        if not name:
+            raise gr.Error("Name must not be empty")
+
+        # Check uniqueness (excluding current index)
+        for idx in self.manager.indices:
+            if idx.name == name and idx.id != selected_index_id:
+                raise gr.Error(
+                    f"Index '{name}' already exists. Please use a unique name."
+                )
+
         try:
             spec = yaml.load(config, Loader=YAMLNoDateSafeLoader)
             self.manager.update_index(selected_index_id, name, spec)
-            gr.Info(f'Update index "{name}" successfully. Please restart the app!')
+            gr.Info(f'Index "{name}" updated successfully. Please restart the app!')
+        except gr.Error:
+            raise
         except Exception as e:
             raise gr.Error(f'Failed to save index "{name}": {e}')
 

@@ -416,6 +416,18 @@ class UserManagement(BasePage):
                 return pwd, pwd_cnf
 
         with Session(engine) as session:
+            # Check username uniqueness (excluding current user)
+            statement = select(User).where(
+                User.username_lower == usn.lower(),
+                User.id != selected_user_id,
+            )
+            existing = session.exec(statement).first()
+            if existing:
+                gr.Warning(
+                    f'Username "{usn}" already exists. Please use a unique name.'
+                )
+                return pwd, pwd_cnf
+
             statement = select(User).where(User.id == selected_user_id)
             user = session.exec(statement).one()
             user.username = usn

@@ -35,6 +35,7 @@ class RerankingManagement(BasePage):
             self.rerank_list = gr.DataFrame(
                 headers=["name", "vendor", "default"],
                 interactive=False,
+                column_widths=[30, 40, 30],
             )
 
             with gr.Column(visible=False) as self._selected_panel:
@@ -48,6 +49,10 @@ class RerankingManagement(BasePage):
                                 "Reranking will be used by other components by default "
                                 "if no Reranking is specified for such components."
                             ),
+                        )
+                        self.edit_name = gr.Textbox(
+                            label="Name",
+                            info="Edit to rename this Reranking model.",
                         )
                         self.edit_spec = gr.Textbox(
                             label="Specification",
@@ -186,10 +191,10 @@ class RerankingManagement(BasePage):
                 self.btn_delete_yes,
                 self.btn_delete_no,
                 # edit section
+                self.edit_name,
                 self.edit_spec,
                 self.edit_spec_desc,
                 self.edit_default,
-                self._check_connection_panel,
             ],
             show_progress="hidden",
         ).success(lambda: gr.update(value=""), outputs=[self.connection_logs])
@@ -224,9 +229,11 @@ class RerankingManagement(BasePage):
             self.save_rerank,
             inputs=[
                 self.selected_rerank_name,
+                self.edit_name,
                 self.edit_default,
                 self.edit_spec,
             ],
+            outputs=[self.selected_rerank_name],
             show_progress="hidden",
         ).then(
             self.list_rerankings,
@@ -243,6 +250,7 @@ class RerankingManagement(BasePage):
 
     def create_rerank(self, name, choices, spec, default):
         try:
+            name = name.strip()
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
             spec["__type__"] = (
                 reranking_models_manager.vendors()[choices].__module__
@@ -251,9 +259,11 @@ class RerankingManagement(BasePage):
             )
 
             reranking_models_manager.add(name, spec=spec, default=default)
-            gr.Info(f'Create Reranking model "{name}" successfully')
+            gr.Info(f'Reranking model "{name}" created successfully')
+        except ValueError as e:
+            raise gr.Error(str(e))
         except Exception as e:
-            raise gr.Error(f"Failed to create Reranking model {name}: {e}")
+            raise gr.Error(f"Failed to create Reranking model '{name}': {e}")
 
     def list_rerankings(self):
         """List the Reranking models"""
@@ -286,17 +296,16 @@ class RerankingManagement(BasePage):
 
     def on_selected_rerank_change(self, selected_rerank_name):
         if selected_rerank_name == "":
-            _check_connection_panel = gr.update(visible=False)
             _selected_panel = gr.update(visible=False)
             _selected_panel_btn = gr.update(visible=False)
             btn_delete = gr.update(visible=True)
             btn_delete_yes = gr.update(visible=False)
             btn_delete_no = gr.update(visible=False)
+            edit_name = gr.update(value="")
             edit_spec = gr.update(value="")
             edit_spec_desc = gr.update(value="")
             edit_default = gr.update(value=False)
         else:
-            _check_connection_panel = gr.update(visible=True)
             _selected_panel = gr.update(visible=True)
             _selected_panel_btn = gr.update(visible=True)
             btn_delete = gr.update(visible=True)
@@ -307,6 +316,7 @@ class RerankingManagement(BasePage):
             vendor_str = info["spec"].pop("__type__", "-").split(".")[-1]
             vendor = reranking_models_manager.vendors()[vendor_str]
 
+            edit_name = selected_rerank_name
             edit_spec = yaml.dump(info["spec"])
             edit_spec_desc = format_description(vendor)
             edit_default = info["default"]
@@ -317,10 +327,10 @@ class RerankingManagement(BasePage):
             btn_delete,
             btn_delete_yes,
             btn_delete_no,
+            edit_name,
             edit_spec,
             edit_spec_desc,
             edit_default,
-            _check_connection_panel,
         )
 
     def on_btn_delete_click(self):
@@ -369,18 +379,27 @@ class RerankingManagement(BasePage):
 
         return log_content
 
-    def save_rerank(self, selected_rerank_name, default, spec):
+    def save_rerank(self, selected_rerank_name, edit_name, default, spec):
         try:
+            new_name = edit_name.strip()
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
             spec["__type__"] = reranking_models_manager.info()[selected_rerank_name][
                 "spec"
             ]["__type__"]
             reranking_models_manager.update(
-                selected_rerank_name, spec=spec, default=default
+                selected_rerank_name, spec=spec, default=default, new_name=new_name
             )
-            gr.Info(f'Save Reranking model "{selected_rerank_name}" successfully')
+            final_name = (
+                new_name if new_name != selected_rerank_name else selected_rerank_name
+            )
+            gr.Info(f'Reranking model "{final_name}" saved successfully')
+            return final_name
+        except ValueError as e:
+            raise gr.Error(str(e))
         except Exception as e:
-            gr.Error(f'Failed to save Embedding model "{selected_rerank_name}": {e}')
+            raise gr.Error(
+                f'Failed to save Reranking model "{selected_rerank_name}": {e}'
+            )
 
     def delete_rerank(self, selected_rerank_name):
         try:

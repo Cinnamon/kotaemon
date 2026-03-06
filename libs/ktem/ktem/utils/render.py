@@ -96,6 +96,7 @@ class Render:
             return html_content
 
         if not highlight_text:
+            phrase = "false"
             try:
                 detect_result = detect(text.replace("\n", " "))
                 if isinstance(detect_result, list):
@@ -108,8 +109,6 @@ class Render:
                     ]
                     highlight_text = highlight_words[0]
                     phrase = "true"
-                else:
-                    phrase = "false"
 
                 highlight_text = (
                     text.replace("\n", "").replace('"', "").replace("'", "")

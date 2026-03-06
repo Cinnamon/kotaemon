@@ -18,7 +18,7 @@ dynamic = ["version"]
 requires-python = ">= 3.10"
 description = "Kotaemon App"
 dependencies = [
-    "kotaemon",
+    "kotaemon[all]",
     "ktem"
 ]
 authors = [
@@ -43,7 +43,7 @@ members = ["libs/kotaemon", "libs/ktem"]
 [dependency-groups]
 dev = [
     "black",
-    "coverage",  
+    "coverage",
     "flake8",
     "ipython",
     "pre-commit",
