@@ -39,8 +39,7 @@ function() {
 chat_input_focus_js_with_submit = """
 function() {
     let chatInput = document.querySelector("#chat-input textarea");
-    let chatInputSubmit = document.querySelector("#chat-input button.submit-button");
-    chatInputSubmit.click();
+    // Only focus the input, don't auto-submit
     chatInput.focus();
 }
 """
@@ -86,6 +85,10 @@ class File(gr.File):
         if self.type == "filepath":
             if f.orig_name and Path(file_name).name != f.orig_name:
                 file_name = str(Path(file_name).parent / f.orig_name)
+                # Check if destination file already exists before renaming
+                if os.path.exists(file_name):
+                    # Remove existing file to avoid FileExistsError
+                    os.remove(file_name)
                 os.rename(f.path, file_name)
             file = tempfile.NamedTemporaryFile(delete=False, dir=self.GRADIO_CACHE)
             file.name = file_name

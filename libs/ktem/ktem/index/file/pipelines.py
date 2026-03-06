@@ -242,7 +242,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             },
             "num_retrieval": {
                 "name": "Number of document chunks to retrieve",
-                "value": config("NUM_RETRIEVAL_DEFAULT", default=10, cast=int),
+                "value": config("NUM_RETRIEVAL_DEFAULT", default=50, cast=int),
                 "component": "number",
             },
             "retrieval_mode": {
@@ -271,7 +271,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             },
             "use_llm_reranking": {
                 "name": "Use LLM relevant scoring",
-                "value": not config("USE_LOW_LLM_REQUESTS", default=False, cast=bool),
+                "value": False,  # Disabled to avoid aggressive filtering
                 "choices": [True, False],
                 "component": "checkbox",
             },

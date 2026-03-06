@@ -1,4 +1,5 @@
 import logging
+import re
 from textwrap import dedent
 
 from ktem.llms.manager import llms
@@ -54,7 +55,23 @@ Context:
 
 Generate a sample PlantUML mindmap based on the provided question and context above. Only includes context relevant to the question to produce the mindmap.
 The mind map MUST be in {lang}.
-If there are mathematical formulas, wrap them in inline math delimiters like $E=mc^2$ (single dollar signs). Do NOT use \\( \\) or \\[ \\] delimiters.
+
+For mathematical formulas in the mindmap, follow these rules STRICTLY:
+1. Use $...$ for inline math formulas (e.g., $E=mc^2$, $n_{{max}}$, $x^2$)
+2. For complex formulas with fractions, subscripts, or superscripts, keep them simple and avoid special characters like #, <, >, &, quotes
+3. Escape special characters: use \# for #, \< for <, \> for >, \& for &
+4. Avoid using double backslashes (\\) - use single backslash for LaTeX commands
+5. Keep formulas as short as possible - consider simplifying complex expressions
+6. Examples of GOOD formulas:
+   - $w^*$ (simple superscript)
+   - $n_{{max}}$ (simple subscript)
+   - $||w||^2$ (norm notation)
+   - $X^T$ (transpose)
+   - $\alpha^2$ (Greek letters)
+7. Examples of BAD formulas that may cause rendering errors:
+   - Complex fractions like $\frac{{a}}{{b}}$ - simplify if possible
+   - Multiple nested operations - break into simpler parts
+   - Special symbols not supported by PlantUML
 
 Use the template like this:
 
@@ -77,6 +94,21 @@ Use the template like this:
             text = text.split(start_phrase)[-1]
             text = text.split(end_phrase)[0]
             text = text.strip().replace("*", "#")
+            
+            # Fix common PlantUML math rendering issues
+            # Remove problematic characters that cause red errors
+            
+            # Find all math expressions between $...$
+            math_expressions = re.findall(r'\$[^$]+\$', text)
+            for math_expr in math_expressions:
+                # Remove or escape problematic characters within math expressions
+                fixed_expr = math_expr
+                # Remove # symbols that can cause issues
+                fixed_expr = fixed_expr.replace('#', '')
+                # Simplify complex fractions if possible
+                # Keep the fix localized to the math expression
+                text = text.replace(math_expr, fixed_expr)
+                
         except IndexError:
             text = ""
 

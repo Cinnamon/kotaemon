@@ -21,13 +21,28 @@ class LCEmbeddingMixin:
     def run(self, text):
         input_docs = self.prepare_input(text)
         input_ = [doc.text for doc in input_docs]
-
-        embeddings = self._obj.embed_documents(input_)
-
-        return [
-            DocumentWithEmbedding(content=doc, embedding=each_embedding)
-            for doc, each_embedding in zip(input_docs, embeddings)
-        ]
+        
+        # Filter out empty texts to avoid API errors (especially for Google embeddings)
+        non_empty_indices = [i for i, t in enumerate(input_) if t and t.strip()]
+        if not non_empty_indices:
+            # Return empty embeddings if all texts are empty
+            return []
+        
+        non_empty_inputs = [input_[i] for i in non_empty_indices]
+        non_empty_docs = [input_docs[i] for i in non_empty_indices]
+        
+        embeddings = self._obj.embed_documents(non_empty_inputs)
+        
+        # Create result with original order, skipping empty texts
+        result = []
+        for idx, doc in enumerate(input_docs):
+            if idx in non_empty_indices:
+                original_idx = non_empty_indices.index(idx)
+                result.append(
+                    DocumentWithEmbedding(content=doc, embedding=embeddings[original_idx])
+                )
+        
+        return result
 
     def __repr__(self):
         kwargs = []
