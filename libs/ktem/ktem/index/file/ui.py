@@ -47,7 +47,11 @@ function() {
 
 update_file_list_js = """
 function(file_list) {
-    var values = [];
+    var values = [{
+        key: "web_search_label",
+        value: "web_search_value",
+    }];
+
     for (var i = 0; i < file_list.length; i++) {
         values.push({
             key: file_list[i][0],
@@ -55,23 +59,71 @@ function(file_list) {
         });
     }
 
-    // manually push web search tag
-    values.push({
-        key: "web_search",
-        value: '"web_search"',
-    });
-
     var tribute = new Tribute({
         values: values,
+        lookup: function(item) {
+            return item.key + ' "' + item.key + '"';
+        },
+        menuItemTemplate: function(item) {
+            return item.original.key;
+        },
         noMatchTemplate: "",
         allowSpaces: true,
-    })
-    input_box = document.querySelector('#chat-input textarea');
+    });
+    var input_box = document.querySelector('#chat-input textarea');
+    if (!input_box) {
+        return;
+    }
+
+    input_box.kotaTribute = tribute;
     tribute.detach(input_box);
     tribute.attach(input_box);
+
+    if (input_box.dataset.kotaMentionBound === "1") {
+        return;
+    }
+
+    input_box.dataset.kotaMentionBound = "1";
+    var lastMentionSignature = "";
+
+    var toggleMentionSuggestions = function() {
+        var cursorPos = input_box.selectionStart || 0;
+        var textBeforeCursor = input_box.value.slice(0, cursorPos);
+        var mentionPattern = /(^|\\s)@(?:"[^"\\n]*|[^\\s@"]*)$/;
+        var isInMention = mentionPattern.test(textBeforeCursor);
+        var mentionSignature = (isInMention ? "1" : "0") + "|" + textBeforeCursor;
+        if (mentionSignature === lastMentionSignature) {
+            return;
+        }
+        lastMentionSignature = mentionSignature;
+
+        var tributeInstance = input_box.kotaTribute;
+        if (!tributeInstance) {
+            return;
+        }
+
+        if (isInMention) {
+            tributeInstance.showMenuForCollection(input_box);
+        } else {
+            tributeInstance.hideMenu();
+        }
+    };
+
+    input_box.addEventListener("input", function(event) {
+        if (
+            event &&
+            typeof event.inputType === "string" &&
+            event.inputType.indexOf("delete") === 0
+        ) {
+            toggleMentionSuggestions();
+        }
+    });
+    input_box.addEventListener("click", toggleMentionSuggestions);
 }
 """.replace(
-    "web_search", WEB_SEARCH_COMMAND
+    "web_search_label", WEB_SEARCH_COMMAND
+).replace(
+    "web_search_value", WEB_SEARCH_COMMAND
 )
 
 

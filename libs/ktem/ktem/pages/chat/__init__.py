@@ -26,7 +26,12 @@ from kotaemon.base import Document
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 from kotaemon.indices.qa.utils import strip_think_tag
 
-from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex, get_urls
+from ...utils import (
+    SUPPORTED_LANGUAGE_MAP,
+    format_mentions_for_display,
+    get_file_names_regex,
+    get_urls,
+)
 from ...utils.commands import WEB_SEARCH_COMMAND
 from ...utils.hf_papers import get_recommended_papers
 from ...utils.rate_limit import check_rate_limit
@@ -456,7 +461,7 @@ class ChatPage(BasePage):
                     self.chat_control.conversation_id,
                     self.chat_panel.chatbot,
                     self._app.settings_state,
-                    self._reasoning_type,
+                    self.reasoning_type,
                     self.model_type,
                     self.use_mindmap,
                     self.citation,
@@ -890,6 +895,7 @@ class ChatPage(BasePage):
             raise ValueError("Input is empty")
 
         chat_input_text = chat_input.get("text", "")
+        display_chat_input_text = format_mentions_for_display(chat_input_text)
         file_ids = []
         used_command = None
 
@@ -901,7 +907,8 @@ class ChatPage(BasePage):
         file_names, chat_input_text = get_file_names_regex(chat_input_text)
 
         # check if web search command is in file_names
-        if WEB_SEARCH_COMMAND in file_names:
+        normalized_file_names = {name.lower() for name in file_names}
+        if WEB_SEARCH_COMMAND.lower() in normalized_file_names:
             used_command = WEB_SEARCH_COMMAND
 
         # get all urls in input_str
@@ -934,6 +941,12 @@ class ChatPage(BasePage):
         if not chat_input_text and not chat_history:
             chat_input_text = DEFAULT_QUESTION
 
+        _display_mentions, display_text_without_mentions = get_file_names_regex(
+            display_chat_input_text
+        )
+        if not display_text_without_mentions:
+            display_chat_input_text = chat_input_text
+
         if file_ids:
             selector_output = [
                 "select",
@@ -944,7 +957,7 @@ class ChatPage(BasePage):
 
         # check if regen mode is active
         if chat_input_text:
-            chat_history = chat_history + [(chat_input_text, None)]
+            chat_history = chat_history + [(display_chat_input_text, None)]
         else:
             if not chat_history:
                 raise gr.Error("Empty chat")
@@ -1280,6 +1293,7 @@ class ChatPage(BasePage):
     ):
         """Chat function"""
         chat_input, chat_output = chat_history[-1]
+        _file_names, chat_input_for_pipeline = get_file_names_regex(chat_input)
         chat_history = chat_history[:-1]
 
         # if chat_input is empty, assume regen mode
@@ -1318,7 +1332,11 @@ class ChatPage(BasePage):
         )
 
         try:
-            for response in pipeline.stream(chat_input, conversation_id, chat_history):
+            for response in pipeline.stream(
+                chat_input_for_pipeline,
+                conversation_id,
+                chat_history,
+            ):
 
                 if not isinstance(response, Document):
                     continue
