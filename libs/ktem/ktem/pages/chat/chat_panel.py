@@ -39,7 +39,7 @@ class ChatPanel(BasePage):
                 scale=20,
                 file_count="multiple",
                 placeholder=(
-                    "Type a message, search the @WebSearch, or tag a file with @filename"
+                    "Type a message, use @WebSearch, or tag a file with @filename"
                 ),
                 container=False,
                 show_label=False,
