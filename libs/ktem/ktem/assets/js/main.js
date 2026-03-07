@@ -33,7 +33,7 @@ function run() {
 
   // move toggle-side-bar button
   let chat_expand_button = document.getElementById("chat-expand-button");
-  let chat_column = document.getElementById("main-chat-bot");
+  let chat_column = document.getElementById("chat-area");
   let conv_column = document.getElementById("conv-settings-panel");
 
   // move setting close button
@@ -58,17 +58,14 @@ function run() {
     }
   };
 
-  chat_column.insertBefore(chat_expand_button, chat_column.firstChild);
-
-  // move use mind-map checkbox
-  let mindmap_checkbox = document.getElementById("use-mindmap-checkbox");
-  let citation_dropdown = document.getElementById("citation-dropdown");
-  let chat_setting_panel = document.getElementById("chat-settings-expand");
-  chat_setting_panel.insertBefore(
-    mindmap_checkbox,
-    chat_setting_panel.childNodes[2]
-  );
-  chat_setting_panel.insertBefore(citation_dropdown, mindmap_checkbox);
+  if (chat_column && chat_expand_button) {
+    chat_expand_button.style.flexGrow = "0";
+    chat_expand_button.style.width = "36px";
+    chat_expand_button.style.minWidth = "36px";
+    chat_expand_button.style.height = "36px";
+    chat_expand_button.style.padding = "0";
+    chat_column.insertBefore(chat_expand_button, chat_column.firstChild);
+  }
 
   // move share conv checkbox
   let report_div = document.querySelector(

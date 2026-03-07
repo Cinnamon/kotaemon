@@ -127,9 +127,34 @@ class FullQAPipeline(BaseReasoning):
         docs, doc_ids = [], []
         plot_docs = []
 
+        active_file_name = getattr(self, "active_file_name", "")
+        page_number = getattr(self, "page_number", None)
+
+        def _is_current_page_doc(doc: RetrievedDocument) -> bool:
+            if not active_file_name:
+                return True
+
+            doc_file_name = doc.metadata.get("file_name", "")
+            if doc_file_name != active_file_name:
+                return False
+
+            if not page_number:
+                return True
+
+            page_label = doc.metadata.get("page_label", None)
+            if page_label is None:
+                return False
+
+            try:
+                return int(page_label) == int(page_number)
+            except Exception:
+                return False
+
         for idx, retriever in enumerate(self.retrievers):
             retriever_node = self._prepare_child(retriever, f"retriever_{idx}")
             retriever_docs = retriever_node(text=query)
+
+            retriever_docs = [doc for doc in retriever_docs if _is_current_page_doc(doc)]
 
             retriever_docs_text = []
             retriever_docs_plot = []

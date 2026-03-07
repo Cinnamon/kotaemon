@@ -1,6 +1,9 @@
 import asyncio
 import json
+import os
 import re
+import shutil
+import tempfile
 from copy import deepcopy
 from typing import Optional
 
@@ -30,6 +33,7 @@ from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex, get_urls
 from ...utils.commands import WEB_SEARCH_COMMAND
 from ...utils.hf_papers import get_recommended_papers
 from ...utils.rate_limit import check_rate_limit
+from ...utils.render import BASE_PATH
 from .chat_panel import ChatPanel
 from .chat_suggestion import ChatSuggestion
 from .common import STATE
@@ -213,6 +217,10 @@ class ChatPage(BasePage):
         self._info_panel_expanded = gr.State(value=True)
         self._command_state = gr.State(value=None)
         self._user_api_key = gr.Text(value="", visible=False)
+        self._active_file_id = gr.State(value="")
+        self._active_file_name = gr.State(value="")
+        self._active_file_path = gr.State(value="")
+        self._last_question = gr.State(value="")
 
     def on_building_ui(self):
         with gr.Row():
@@ -311,90 +319,97 @@ class ChatPage(BasePage):
                 if KH_DEMO_MODE:
                     self.paper_list = PaperListPage(self._app)
 
-                self.chat_panel = ChatPanel(self._app)
+                with gr.Column(elem_id="chat-preview-section"):
+                    self.chat_panel = ChatPanel(self._app)
 
-                with gr.Accordion(
-                    label="Chat settings",
-                    elem_id="chat-settings-expand",
-                    open=False,
-                    visible=not KH_DEMO_MODE,
-                ) as self.chat_settings:
-                    with gr.Row(elem_id="quick-setting-labels"):
-                        gr.HTML("Reasoning method")
-                        gr.HTML(
-                            "Model", visible=not KH_DEMO_MODE and not KH_SSO_ENABLED
-                        )
-                        gr.HTML("Language")
+                with gr.Column(elem_id="chat-bottom-controls"):
+                    self.chat_panel.render_notice_and_pager()
 
-                    with gr.Row():
-                        reasoning_setting = (
-                            self._app.default_settings.reasoning.settings["use"]
-                        )
-                        model_setting = self._app.default_settings.reasoning.options[
-                            "simple"
-                        ].settings["llm"]
-                        language_setting = (
-                            self._app.default_settings.reasoning.settings["lang"]
-                        )
-                        citation_setting = self._app.default_settings.reasoning.options[
-                            "simple"
-                        ].settings["highlight_citation"]
-
-                        self.reasoning_type = gr.Dropdown(
-                            choices=reasoning_setting.choices[:REASONING_LIMITS],
-                            value=reasoning_setting.value,
-                            container=False,
-                            show_label=False,
-                        )
-                        self.model_type = gr.Dropdown(
-                            choices=model_setting.choices,
-                            value=model_setting.value,
-                            container=False,
-                            show_label=False,
-                            visible=not KH_DEMO_MODE and not KH_SSO_ENABLED,
-                        )
-                        self.language = gr.Dropdown(
-                            choices=language_setting.choices,
-                            value=language_setting.value,
-                            container=False,
-                            show_label=False,
-                        )
-
-                        self.citation = gr.Dropdown(
-                            choices=citation_setting.choices,
-                            value=citation_setting.value,
-                            container=False,
-                            show_label=False,
-                            interactive=True,
-                            elem_id="citation-dropdown",
-                        )
-
-                        if not config("USE_LOW_LLM_REQUESTS", default=False, cast=bool):
-                            self.use_mindmap = gr.State(value=True)
-                            self.use_mindmap_check = gr.Checkbox(
-                                label="Mindmap (on)",
-                                container=False,
-                                elem_id="use-mindmap-checkbox",
-                                value=True,
+                    with gr.Accordion(
+                        label="Chat settings",
+                        elem_id="chat-settings-expand",
+                        open=False,
+                        visible=not KH_DEMO_MODE,
+                    ) as self.chat_settings:
+                        with gr.Row(elem_id="quick-setting-labels"):
+                            gr.HTML("Reasoning method")
+                            gr.HTML(
+                                "Model", visible=not KH_DEMO_MODE and not KH_SSO_ENABLED
                             )
-                        else:
-                            self.use_mindmap = gr.State(value=False)
-                            self.use_mindmap_check = gr.Checkbox(
-                                label="Mindmap (off)",
-                                container=False,
-                                elem_id="use-mindmap-checkbox",
-                                value=False,
+                            gr.HTML("Language")
+
+                        with gr.Row():
+                            reasoning_setting = (
+                                self._app.default_settings.reasoning.settings["use"]
                             )
+                            model_setting = self._app.default_settings.reasoning.options[
+                                "simple"
+                            ].settings["llm"]
+                            language_setting = (
+                                self._app.default_settings.reasoning.settings["lang"]
+                            )
+                            citation_setting = self._app.default_settings.reasoning.options[
+                                "simple"
+                            ].settings["highlight_citation"]
+
+                            self.reasoning_type = gr.Dropdown(
+                                choices=reasoning_setting.choices[:REASONING_LIMITS],
+                                value=reasoning_setting.value,
+                                container=False,
+                                show_label=False,
+                            )
+                            self.model_type = gr.Dropdown(
+                                choices=model_setting.choices,
+                                value=model_setting.value,
+                                container=False,
+                                show_label=False,
+                                visible=not KH_DEMO_MODE and not KH_SSO_ENABLED,
+                            )
+                            self.language = gr.Dropdown(
+                                choices=language_setting.choices,
+                                value=language_setting.value,
+                                container=False,
+                                show_label=False,
+                            )
+
+                            self.citation = gr.Dropdown(
+                                choices=citation_setting.choices,
+                                value=citation_setting.value,
+                                container=False,
+                                show_label=False,
+                                interactive=True,
+                                elem_id="citation-dropdown",
+                            )
+
+                            if not config("USE_LOW_LLM_REQUESTS", default=False, cast=bool):
+                                self.use_mindmap = gr.State(value=True)
+                                self.use_mindmap_check = gr.Checkbox(
+                                    label="Mindmap (on)",
+                                    container=False,
+                                    elem_id="use-mindmap-checkbox",
+                                    value=True,
+                                )
+                            else:
+                                self.use_mindmap = gr.State(value=False)
+                                self.use_mindmap_check = gr.Checkbox(
+                                    label="Mindmap (off)",
+                                    container=False,
+                                    elem_id="use-mindmap-checkbox",
+                                    value=False,
+                                )
+
+                    self.chat_panel.render_input()
 
             with gr.Column(
                 scale=INFO_PANEL_SCALES[False], elem_id="chat-info-panel"
             ) as self.info_column:
-                with gr.Accordion(
-                    label="Information panel", open=True, elem_id="info-expand"
-                ):
+                with gr.Accordion(label="Mindmap", open=True, elem_id="info-expand"):
                     self.modal = gr.HTML("<div id='pdf-modal'></div>")
                     self.plot_panel = gr.Plot(visible=False)
                     self.info_panel = gr.HTML(elem_id="html-info-panel")
+
+                with gr.Accordion(label="Answer", open=True):
+                    self.answer_panel = gr.Markdown(value="")
 
         self.followup_questions = self.chat_suggestion.examples
         self.followup_questions_ui = self.chat_suggestion.accordion
@@ -406,6 +421,180 @@ class ChatPage(BasePage):
         else:
             plot = gr.update(visible=False)
         return plot
+
+    def _make_pdf_preview_html(self, file_path: str, page: int) -> tuple[str, str]:
+        if not file_path:
+            return (
+                "<div class='pdf-preview-empty'></div>",
+                "<div class='pdf-preview-notice'>Select a PDF file to preview.</div>",
+            )
+
+        if not os.path.isfile(file_path):
+            return (
+                "<div class='pdf-preview-empty'></div>",
+                "<div class='pdf-preview-notice'>Selected file is unavailable.</div>",
+            )
+
+        page = max(1, int(page or 1))
+        src = (
+            f"{BASE_PATH}/file={file_path}"
+            f"#page={page}&zoom=page-fit&view=Fit&toolbar=0&navpanes=0"
+        )
+        return (
+            f"<iframe src=\"{src}\" title=\"PDF Preview\"></iframe>",
+            "<div class='pdf-preview-notice'></div>",
+        )
+
+    def _extract_first_selected_file_id(self, selected_file_ids):
+        if not selected_file_ids:
+            return ""
+
+        selected = selected_file_ids[0]
+
+        if isinstance(selected, str) and selected.startswith("["):
+            try:
+                selected_items = json.loads(selected)
+                return selected_items[0] if selected_items else ""
+            except Exception:
+                return ""
+
+        return selected
+
+    def _ensure_pdf_preview_copy(self, file_path: str, file_name: str) -> str:
+        if not file_path or not os.path.isfile(file_path):
+            return ""
+
+        gradio_temp_dir = os.environ.get("GRADIO_TEMP_DIR", tempfile.gettempdir())
+        preview_dir = os.path.join(gradio_temp_dir, "pdf_previews")
+        os.makedirs(preview_dir, exist_ok=True)
+
+        ext = os.path.splitext(file_name)[1].lower() if file_name else ".pdf"
+        if ext != ".pdf":
+            ext = ".pdf"
+
+        preview_name = f"{os.path.basename(file_path)}{ext}"
+        preview_path = os.path.join(preview_dir, preview_name)
+
+        if not os.path.isfile(preview_path):
+            shutil.copyfile(file_path, preview_path)
+        elif os.path.getsize(preview_path) != os.path.getsize(file_path):
+            shutil.copyfile(file_path, preview_path)
+
+        return preview_path
+
+    def _resolve_pdf_source(self, first_selector_choices, selected_file_ids):
+        file_id = self._extract_first_selected_file_id(selected_file_ids)
+        if not file_id:
+            return "", "", ""
+
+        first_index = self._app.index_manager.indices[0]
+        source_table = first_index._resources["Source"]
+        file_storage_path = first_index._resources["FileStoragePath"]
+
+        with Session(engine) as session:
+            statement = select(source_table).where(source_table.id == file_id)
+            source_obj = session.exec(statement).first()
+
+        if not source_obj:
+            return "", "", ""
+
+        file_name = getattr(source_obj, "name", "") or ""
+        stored_path = getattr(source_obj, "path", "") or ""
+
+        resolved_path = ""
+        if stored_path:
+            candidate_storage_path = os.path.join(str(file_storage_path), stored_path)
+            if os.path.isfile(candidate_storage_path):
+                resolved_path = self._ensure_pdf_preview_copy(
+                    candidate_storage_path, file_name
+                )
+            elif os.path.isfile(stored_path):
+                resolved_path = self._ensure_pdf_preview_copy(stored_path, file_name)
+
+        return file_id, file_name, resolved_path
+
+    def on_selected_file_change(self, first_selector_choices, selected_file_ids):
+        file_id, file_name, file_path = self._resolve_pdf_source(
+            first_selector_choices, selected_file_ids
+        )
+        page_number = 1
+        preview_html, preview_notice = self._make_pdf_preview_html(file_path, page_number)
+        return file_id, file_name, file_path, page_number, preview_html, preview_notice
+
+    def on_page_change(self, current_page, delta, file_path):
+        next_page = max(1, int(current_page or 1) + int(delta or 0))
+        preview_html, preview_notice = self._make_pdf_preview_html(file_path, next_page)
+        return next_page, preview_html, preview_notice
+
+    def on_page_set(self, current_page, file_path):
+        next_page = max(1, int(current_page or 1))
+        preview_html, preview_notice = self._make_pdf_preview_html(file_path, next_page)
+        return next_page, preview_html, preview_notice
+
+    def rerun_page_answer(
+        self,
+        last_question,
+        conversation_id,
+        chat_history,
+        settings,
+        reasoning_type,
+        llm_type,
+        use_mind_map,
+        use_citation,
+        language,
+        chat_state,
+        command_state,
+        user_id,
+        active_file_name,
+        page_number,
+        *selecteds,
+    ):
+        if not last_question:
+            return (
+                chat_history,
+                gr.update(),
+                gr.update(visible=False),
+                None,
+                chat_state,
+                "",
+            )
+
+        rerun_history = chat_history
+        if rerun_history and rerun_history[-1][0] == last_question:
+            rerun_history = rerun_history[:-1] + [(last_question, None)]
+        else:
+            rerun_history = rerun_history + [(last_question, None)]
+
+        final_output = None
+        for output in self.chat_fn(
+            conversation_id,
+            rerun_history,
+            settings,
+            reasoning_type,
+            llm_type,
+            use_mind_map,
+            use_citation,
+            language,
+            chat_state,
+            command_state,
+            user_id,
+            active_file_name,
+            page_number,
+            *selecteds,
+        ):
+            final_output = output
+
+        if final_output is None:
+            return (
+                chat_history,
+                gr.update(),
+                gr.update(visible=False),
+                None,
+                chat_state,
+                "",
+            )
+
+        return final_output
 
     def on_register_events(self):
         # first index paper recommendation
@@ -420,6 +609,95 @@ class ChatPage(BasePage):
                 outputs=None,
                 js=recommended_papers_js,
             )
+
+        if len(self._indices_input) > 1:
+            self._indices_input[1].change(
+                fn=self.on_selected_file_change,
+                inputs=[self.first_selector_choices, self._indices_input[1]],
+                outputs=[
+                    self._active_file_id,
+                    self._active_file_name,
+                    self._active_file_path,
+                    self.chat_panel.page_number,
+                    self.chat_panel.pdf_preview,
+                    self.chat_panel.pdf_preview_notice,
+                ],
+                show_progress="hidden",
+            )
+
+        page_inputs = [
+            self._last_question,
+            self.chat_control.conversation_id,
+            self.chat_panel.chatbot,
+            self._app.settings_state,
+            self._reasoning_type,
+            self.model_type,
+            self.use_mindmap,
+            self.citation,
+            self.language,
+            self.state_chat,
+            self._command_state,
+            self._app.user_id,
+            self._active_file_name,
+            self.chat_panel.page_number,
+        ] + self._indices_input
+
+        page_outputs = [
+            self.chat_panel.chatbot,
+            self.info_panel,
+            self.plot_panel,
+            self.state_plot_panel,
+            self.state_chat,
+            self.answer_panel,
+        ]
+
+        self.chat_panel.prev_page_btn.click(
+            fn=lambda page, path: self.on_page_change(page, -1, path),
+            inputs=[self.chat_panel.page_number, self._active_file_path],
+            outputs=[
+                self.chat_panel.page_number,
+                self.chat_panel.pdf_preview,
+                self.chat_panel.pdf_preview_notice,
+            ],
+            show_progress="hidden",
+        ).then(
+            fn=self.rerun_page_answer,
+            inputs=page_inputs,
+            outputs=page_outputs,
+            show_progress="minimal",
+        )
+
+        self.chat_panel.next_page_btn.click(
+            fn=lambda page, path: self.on_page_change(page, 1, path),
+            inputs=[self.chat_panel.page_number, self._active_file_path],
+            outputs=[
+                self.chat_panel.page_number,
+                self.chat_panel.pdf_preview,
+                self.chat_panel.pdf_preview_notice,
+            ],
+            show_progress="hidden",
+        ).then(
+            fn=self.rerun_page_answer,
+            inputs=page_inputs,
+            outputs=page_outputs,
+            show_progress="minimal",
+        )
+
+        self.chat_panel.page_number.change(
+            fn=self.on_page_set,
+            inputs=[self.chat_panel.page_number, self._active_file_path],
+            outputs=[
+                self.chat_panel.page_number,
+                self.chat_panel.pdf_preview,
+                self.chat_panel.pdf_preview_notice,
+            ],
+            show_progress="hidden",
+        ).then(
+            fn=self.rerun_page_answer,
+            inputs=page_inputs,
+            outputs=page_outputs,
+            show_progress="minimal",
+        )
 
         chat_event = (
             gr.on(
@@ -445,6 +723,7 @@ class ChatPage(BasePage):
                     # file selector from the first index
                     self._indices_input[0],
                     self._indices_input[1],
+                    self._last_question,
                     self._command_state,
                 ],
                 concurrency_limit=20,
@@ -464,6 +743,8 @@ class ChatPage(BasePage):
                     self.state_chat,
                     self._command_state,
                     self._app.user_id,
+                    self._active_file_name,
+                    self.chat_panel.page_number,
                 ]
                 + self._indices_input,
                 outputs=[
@@ -472,9 +753,23 @@ class ChatPage(BasePage):
                     self.plot_panel,
                     self.state_plot_panel,
                     self.state_chat,
+                    self.answer_panel,
                 ],
                 concurrency_limit=20,
                 show_progress="minimal",
+            )
+            .then(
+                fn=self.on_selected_file_change,
+                inputs=[self.first_selector_choices, self._indices_input[1]],
+                outputs=[
+                    self._active_file_id,
+                    self._active_file_name,
+                    self._active_file_path,
+                    self.chat_panel.page_number,
+                    self.chat_panel.pdf_preview,
+                    self.chat_panel.pdf_preview_notice,
+                ],
+                show_progress="hidden",
             )
             .then(
                 fn=lambda: True,
@@ -583,6 +878,12 @@ class ChatPage(BasePage):
                 lambda: (gr.update(visible=False), gr.update(visible=True)),
                 outputs=[self.paper_list.accordion, self.chat_settings],
             ).then(
+                fn=lambda: "",
+                outputs=[self.answer_panel],
+            ).then(
+                fn=lambda: "",
+                outputs=[self._last_question],
+            ).then(
                 fn=None,
                 inputs=None,
                 js=chat_input_focus_js,
@@ -619,6 +920,12 @@ class ChatPage(BasePage):
                 fn=self._json_to_plot,
                 inputs=self.state_plot_panel,
                 outputs=self.plot_panel,
+            ).then(
+                fn=lambda: "",
+                outputs=[self.answer_panel],
+            ).then(
+                fn=lambda: "",
+                outputs=[self._last_question],
             ).then(
                 fn=None,
                 inputs=None,
@@ -741,6 +1048,19 @@ class ChatPage(BasePage):
 
         onConvSelect = (
             onConvSelect.then(
+                fn=self.on_selected_file_change,
+                inputs=[self.first_selector_choices, self._indices_input[1]],
+                outputs=[
+                    self._active_file_id,
+                    self._active_file_name,
+                    self._active_file_path,
+                    self.chat_panel.page_number,
+                    self.chat_panel.pdf_preview,
+                    self.chat_panel.pdf_preview_notice,
+                ],
+                show_progress="hidden",
+            )
+            .then(
                 fn=lambda: True,
                 js=clear_bot_message_selection_js,
             )
@@ -749,6 +1069,18 @@ class ChatPage(BasePage):
                 inputs=None,
                 outputs=[self._preview_links],
                 js=pdfview_js,
+            )
+            .then(
+                fn=lambda history: history[-1][1] if history else "",
+                inputs=[self.chat_panel.chatbot],
+                outputs=[self.answer_panel],
+                show_progress="hidden",
+            )
+            .then(
+                fn=lambda history: history[-1][0] if history else "",
+                inputs=[self.chat_panel.chatbot],
+                outputs=[self._last_question],
+                show_progress="hidden",
             )
             .then(fn=None, inputs=None, outputs=None, js=chat_input_focus_js)
         )
@@ -974,6 +1306,7 @@ class ChatPage(BasePage):
                 new_conv_name,
             ]
             + selector_output
+            + [chat_input_text]
             + [used_command]
         )
 
@@ -1176,6 +1509,8 @@ class ChatPage(BasePage):
         state: dict,
         command_state: str | None,
         user_id: int,
+        active_file_name: str,
+        page_number: int,
         *selecteds,
     ):
         """Create the pipeline from settings
@@ -1233,6 +1568,19 @@ class ChatPage(BasePage):
         # get retrievers
         retrievers = []
 
+        if not active_file_name and self._app.index_manager.indices:
+            first_index = self._app.index_manager.indices[0]
+            selected_file_ids = []
+            if isinstance(first_index.selector, tuple) and len(first_index.selector) > 1:
+                selected_file_ids = selecteds[first_index.selector[1]]
+            elif isinstance(first_index.selector, int):
+                selected_file_ids = selecteds[first_index.selector]
+
+            _, inferred_file_name, _ = self._resolve_pdf_source(
+                None, selected_file_ids
+            )
+            active_file_name = inferred_file_name
+
         if command_state == WEB_SEARCH_COMMAND:
             # set retriever for web search
             if not WebSearch:
@@ -1260,6 +1608,8 @@ class ChatPage(BasePage):
         }
 
         pipeline = reasoning_cls.get_pipeline(settings, reasoning_state, retrievers)
+        pipeline.active_file_name = active_file_name
+        pipeline.page_number = max(1, int(page_number or 1))
 
         return pipeline, reasoning_state
 
@@ -1276,6 +1626,8 @@ class ChatPage(BasePage):
         chat_state,
         command_state,
         user_id,
+        active_file_name,
+        page_number,
         *selecteds,
     ):
         """Chat function"""
@@ -1299,22 +1651,26 @@ class ChatPage(BasePage):
             chat_state,
             command_state,
             user_id,
+            active_file_name,
+            page_number,
             *selecteds,
         )
         print("Reasoning state", reasoning_state)
         pipeline.set_output_queue(queue)
 
         text, refs, plot, plot_gr = "", "", None, gr.update(visible=False)
+        mindmap_html = ""
         msg_placeholder = getattr(
             flowsettings, "KH_CHAT_MSG_PLACEHOLDER", "Thinking ..."
         )
         print(msg_placeholder)
         yield (
             chat_history + [(chat_input, text or msg_placeholder)],
-            refs,
+            mindmap_html,
             plot_gr,
             plot,
             chat_state,
+            text,
         )
 
         try:
@@ -1335,8 +1691,11 @@ class ChatPage(BasePage):
                 if response.channel == "info":
                     if response.content is None:
                         refs = ""
+                        mindmap_html = ""
                     else:
                         refs += response.content
+                        if "markmap" in response.content:
+                            mindmap_html += response.content
 
                 if response.channel == "plot":
                     plot = response.content
@@ -1346,10 +1705,11 @@ class ChatPage(BasePage):
 
                 yield (
                     chat_history + [(chat_input, text or msg_placeholder)],
-                    refs,
+                    mindmap_html,
                     plot_gr,
                     plot,
                     chat_state,
+                    text,
                 )
         except ValueError as e:
             print(e)
@@ -1361,10 +1721,11 @@ class ChatPage(BasePage):
             print(f"Generate nothing: {empty_msg}")
             yield (
                 chat_history + [(chat_input, text or empty_msg)],
-                refs,
+                mindmap_html,
                 plot_gr,
                 plot,
                 chat_state,
+                text or empty_msg,
             )
 
     def check_and_suggest_name_conv(self, chat_history):
