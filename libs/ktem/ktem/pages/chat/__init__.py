@@ -29,7 +29,7 @@ from kotaemon.indices.qa.utils import strip_think_tag
 from ...utils import (
     SUPPORTED_LANGUAGE_MAP,
     format_mentions_for_display,
-    get_file_names_regex,
+    get_mentions_regex,
     get_urls,
 )
 from ...utils.commands import WEB_SEARCH_COMMAND
@@ -904,33 +904,37 @@ class ChatPage(BasePage):
         }
 
         # get all file names with pattern @"filename" in input_str
-        file_names, chat_input_text = get_file_names_regex(chat_input_text)
+        mentions, chat_input_text = get_mentions_regex(chat_input_text)
 
         # check if web search command is in file_names
-        normalized_file_names = {name.lower() for name in file_names}
-        if WEB_SEARCH_COMMAND.lower() in normalized_file_names:
+        if WEB_SEARCH_COMMAND in mentions:
             used_command = WEB_SEARCH_COMMAND
+
+        # get all file names in input_str
+        file_names = [
+            mention for mention in mentions if mention not in (WEB_SEARCH_COMMAND,)
+        ]
+        if file_names:
+            indexed_file_ids = [
+                first_selector_choices_map.get(file_name) for file_name in file_names
+            ]
+            file_ids.extend(indexed_file_ids)
 
         # get all urls in input_str
         urls, chat_input_text = get_urls(chat_input_text)
-
         if urls and self.first_indexing_url_fn:
             print("Detected URLs", urls)
-            file_ids = self.first_indexing_url_fn(
+            url_file_ids = self.first_indexing_url_fn(
                 "\n".join(urls),
                 True,
                 settings,
                 user_id,
                 request=None,
             )
-        elif file_names:
-            for file_name in file_names:
-                file_id = first_selector_choices_map.get(file_name)
-                if file_id:
-                    file_ids.append(file_id)
+            file_ids.extend(url_file_ids)
 
-        # add new file ids to the first selector choices
-        first_selector_choices.extend(zip(urls, file_ids))
+            # Add new file ids to the first selector choices for display
+            first_selector_choices.extend(zip(urls, url_file_ids))
 
         # if file_ids is not empty and chat_input_text is empty
         # set the input to summary
@@ -940,12 +944,6 @@ class ChatPage(BasePage):
         # if start of conversation and no query is specified
         if not chat_input_text and not chat_history:
             chat_input_text = DEFAULT_QUESTION
-
-        _display_mentions, display_text_without_mentions = get_file_names_regex(
-            display_chat_input_text
-        )
-        if not display_text_without_mentions:
-            display_chat_input_text = chat_input_text
 
         if file_ids:
             selector_output = [
@@ -1293,7 +1291,6 @@ class ChatPage(BasePage):
     ):
         """Chat function"""
         chat_input, chat_output = chat_history[-1]
-        _file_names, chat_input_for_pipeline = get_file_names_regex(chat_input)
         chat_history = chat_history[:-1]
 
         # if chat_input is empty, assume regen mode
@@ -1333,7 +1330,7 @@ class ChatPage(BasePage):
 
         try:
             for response in pipeline.stream(
-                chat_input_for_pipeline,
+                chat_input,
                 conversation_id,
                 chat_history,
             ):

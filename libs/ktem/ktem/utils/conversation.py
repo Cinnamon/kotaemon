@@ -41,10 +41,10 @@ def sync_retrieval_n_message(
     return retrievals
 
 
-def get_file_names_regex(input_str: str) -> tuple[list[str], str]:
+def get_mentions_regex(input_str: str) -> tuple[list[str], str]:
     # get mentions with pattern @"filename" or @WebSearch in input_str
     # also remove these file names from input_str
-    pattern = r"(?:(?<=\s)|^)\*{0,2}@(?:(\"[^\"]+\")|(WebSearch))\*{0,2}"
+    pattern = r"(?:(?<=\s)|^)@(?:(\"[^\"]+\")|(WebSearch))"
     matches_raw = re.findall(pattern, input_str)
     matches = []
     for quoted, web in matches_raw:
