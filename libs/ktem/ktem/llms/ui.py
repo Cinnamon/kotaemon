@@ -63,13 +63,10 @@ class LLMManagement(BasePage):
                             label="Test connection", visible=False, open=False
                         ) as self._check_connection_panel:
                             with gr.Row():
+                                with gr.Column(scale=1):
+                                    self.btn_test_connection = gr.Button("Test")
                                 with gr.Column(scale=4):
                                     self.connection_logs = gr.HTML("Logs")
-
-                                with gr.Column(scale=1):
-                                    self.btn_test_connection = gr.Button(
-                                        "Test",
-                                    )
 
                         with gr.Row(visible=False) as self._selected_panel_btn:
                             with gr.Column():
@@ -183,6 +180,7 @@ class LLMManagement(BasePage):
             outputs=[
                 self._selected_panel,
                 self._selected_panel_btn,
+                self._check_connection_panel,
                 # delete section
                 self.btn_delete,
                 self.btn_delete_yes,
@@ -298,6 +296,7 @@ class LLMManagement(BasePage):
         if selected_llm_name == "":
             _selected_panel = gr.update(visible=False)
             _selected_panel_btn = gr.update(visible=False)
+            _check_connection_panel = gr.update(visible=False)
             btn_delete = gr.update(visible=True)
             btn_delete_yes = gr.update(visible=False)
             btn_delete_no = gr.update(visible=False)
@@ -308,6 +307,7 @@ class LLMManagement(BasePage):
         else:
             _selected_panel = gr.update(visible=True)
             _selected_panel_btn = gr.update(visible=True)
+            _check_connection_panel = gr.update(visible=True, open=False)
             btn_delete = gr.update(visible=True)
             btn_delete_yes = gr.update(visible=False)
             btn_delete_no = gr.update(visible=False)
@@ -324,6 +324,7 @@ class LLMManagement(BasePage):
         return (
             _selected_panel,
             _selected_panel_btn,
+            _check_connection_panel,
             btn_delete,
             btn_delete_yes,
             btn_delete_no,
