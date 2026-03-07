@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, PropertyMock
 import pytest
 
 from kotaemon.base import Document
+from kotaemon.loaders.paddleocr_loader.adapter import PaddleOCRResult
 
 from .conftest import skip_when_paddleocr_not_installed
 
@@ -28,24 +29,16 @@ class TestPaddleOCRResultAdapter:
 
     def test_clean_table_html_strips_wrapper(self) -> None:
         """_clean_table_html removes <html><body> wrapper."""
-        from kotaemon.loaders.paddleocr_loader.ppstructure_v3_loader import (
-            PPStructureV3Result,
-        )
-
         raw = [_make_page_result({"page_index": 0, "parsing_res_list": []})]
         path = Path("/tmp/doc.pdf")
-        result = PPStructureV3Result(raw_result=raw, file_path=path, extra_info={})
+        result = PaddleOCRResult(raw_result=raw, file_path=path, extra_info={})
         out = result._clean_table_html("<html><body><table>x</table></body></html>")
         assert out.strip() == "<table>x</table>"
 
     def test_file_name_property(self) -> None:
         """file_name returns the path name."""
-        from kotaemon.loaders.paddleocr_loader.ppstructure_v3_loader import (
-            PPStructureV3Result,
-        )
-
         raw = [_make_page_result({"page_index": 0, "parsing_res_list": []})]
-        result = PPStructureV3Result(
+        result = PaddleOCRResult(
             raw_result=raw,
             file_path=Path("/some/dir/doc.pdf"),
             extra_info={},
@@ -53,15 +46,11 @@ class TestPaddleOCRResultAdapter:
         assert result.file_name == "doc.pdf"
 
 
-class TestPPStructureV3Result:
-    """Tests for PPStructureV3Result.to_documents()."""
+class TestPaddleOCRResult:
+    """Tests for PaddleOCRResult.to_documents()."""
 
     def test_to_documents_text_and_table(self) -> None:
         """to_documents returns text and table docs from parsing_res_list."""
-        from kotaemon.loaders.paddleocr_loader.ppstructure_v3_loader import (
-            PPStructureV3Result,
-        )
-
         raw = [
             _make_page_result(
                 {
@@ -78,7 +67,7 @@ class TestPPStructureV3Result:
                 }
             )
         ]
-        result = PPStructureV3Result(
+        result = PaddleOCRResult(
             raw_result=raw,
             file_path=Path("doc.pdf"),
             extra_info={"source": "test"},
@@ -99,10 +88,6 @@ class TestPPStructureV3Result:
 
     def test_to_documents_skips_empty_content(self) -> None:
         """Blocks with empty block_content are skipped."""
-        from kotaemon.loaders.paddleocr_loader.ppstructure_v3_loader import (
-            PPStructureV3Result,
-        )
-
         raw = [
             _make_page_result(
                 {
@@ -114,53 +99,10 @@ class TestPPStructureV3Result:
                 }
             )
         ]
-        result = PPStructureV3Result(
-            raw_result=raw, file_path=Path("x.pdf"), extra_info={}
-        )
+        result = PaddleOCRResult(raw_result=raw, file_path=Path("x.pdf"), extra_info={})
         docs = result.to_documents()
         assert len(docs) == 1
         assert docs[0].text.strip() == "Only"
-
-
-class TestPaddleOCRVLResult:
-    """Tests for PaddleOCRVLResult.to_documents()."""
-
-    def test_to_documents_includes_bbox_polygon(self) -> None:
-        """VL result includes bbox and polygon in table/figure metadata."""
-        from kotaemon.loaders.paddleocr_loader.paddleocr_vl_loader import (
-            PaddleOCRVLResult,
-        )
-
-        raw = [
-            _make_page_result(
-                {
-                    "page_index": 0,
-                    "parsing_res_list": [
-                        {
-                            "block_label": "table",
-                            "block_content": (
-                                "<html><body><table></table></body></html>"
-                            ),
-                            "block_bbox": [0, 0, 100, 50],
-                            "block_polygon_points": [
-                                [0, 0],
-                                [100, 0],
-                                [100, 50],
-                                [0, 50],
-                            ],
-                        },
-                    ],
-                }
-            )
-        ]
-        result = PaddleOCRVLResult(
-            raw_result=raw, file_path=Path("img.png"), extra_info={}
-        )
-        docs = result.to_documents()
-        table_docs = [d for d in docs if d.metadata.get("type") == "table"]
-        assert len(table_docs) == 1
-        assert table_docs[0].metadata["bbox"] == [0, 0, 100, 50]
-        assert len(table_docs[0].metadata["polygon"]) == 4
 
 
 class TestPPStructureV3Reader:
