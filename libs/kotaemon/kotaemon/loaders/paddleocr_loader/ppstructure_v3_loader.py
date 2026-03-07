@@ -236,7 +236,7 @@ class PPStructureV3Reader(BaseReader):
             from paddleocr import PPStructureV3
         except ImportError:
             raise ImportError(
-                "Please install paddleocr: '\"pip install paddleocr[all]\"'"
+                "Please install paddleocr: 'pip install \"paddleocr[all]\"'"
             )
 
         kwargs = {
