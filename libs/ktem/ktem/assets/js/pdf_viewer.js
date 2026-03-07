@@ -1,5 +1,17 @@
 function onBlockLoad() {
   var infor_panel_scroll_pos = 0;
+
+  function getViewerInnerDoc(viewerId) {
+    var viewer = document.getElementById(viewerId);
+    if (!viewer || !viewer.iframe) {
+      return null;
+    }
+
+    return viewer.iframe.contentDocument
+      ? viewer.iframe.contentDocument
+      : viewer.iframe.contentWindow.document;
+  }
+
   globalThis.createModal = () => {
     // Create modal for the 1st time if it does not exist
     var modal = document.getElementById("pdf-modal");
@@ -83,10 +95,11 @@ function onBlockLoad() {
   }
 
   globalThis.compareText = (search_phrases, page_label) => {
-    var iframe = document.querySelector("#pdf-viewer").iframe;
-    var innerDoc = iframe.contentDocument
-      ? iframe.contentDocument
-      : iframe.contentWindow.document;
+    var innerDoc = getViewerInnerDoc("pdf-viewer");
+    if (!innerDoc) {
+      setTimeout(() => compareText(search_phrases, page_label), 1000);
+      return;
+    }
 
     var renderedPages = innerDoc.querySelectorAll("div#viewer div.page");
     if (renderedPages.length == 0) {

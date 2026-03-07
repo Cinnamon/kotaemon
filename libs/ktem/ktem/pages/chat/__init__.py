@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from pathlib import Path
 import re
 import shutil
 import tempfile
@@ -28,6 +29,7 @@ from theflow.utils.modules import import_dotted_string
 from kotaemon.base import Document
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 from kotaemon.indices.qa.utils import strip_think_tag
+from kotaemon.loaders.pdf_loader import get_page_thumbnails
 
 from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex, get_urls
 from ...utils.commands import WEB_SEARCH_COMMAND
@@ -205,6 +207,8 @@ class ChatPage(BasePage):
     def __init__(self, app):
         self._app = app
         self._indices_input = []
+        self._page_thumbnail_cache: dict[str, dict[str, str]] = {}
+        self._page_preview_cache: dict[str, dict[str, str]] = {}
 
         self.on_building_ui()
 
@@ -408,8 +412,8 @@ class ChatPage(BasePage):
                     self.plot_panel = gr.Plot(visible=False)
                     self.info_panel = gr.HTML(elem_id="html-info-panel")
 
-                with gr.Accordion(label="Answer", open=True):
-                    self.answer_panel = gr.Markdown(value="")
+                with gr.Accordion(label="Answer", open=True, elem_id="answer-expand"):
+                    self.answer_panel = gr.Markdown(value="", elem_id="answer-panel")
 
         self.followup_questions = self.chat_suggestion.examples
         self.followup_questions_ui = self.chat_suggestion.accordion
@@ -422,8 +426,69 @@ class ChatPage(BasePage):
             plot = gr.update(visible=False)
         return plot
 
-    def _make_pdf_preview_html(self, file_path: str, page: int) -> tuple[str, str]:
-        if not file_path:
+    def _get_page_thumbnail(self, file_id: str, page: int) -> str:
+        if not file_id:
+            return ""
+
+        page_key = str(page)
+        if file_id in self._page_thumbnail_cache:
+            cached = self._page_thumbnail_cache[file_id].get(page_key)
+            if cached is not None:
+                return cached
+
+        first_index = self._app.index_manager.indices[0]
+        index_table = first_index._resources["Index"]
+        doc_store = first_index._resources["DocStore"]
+
+        with Session(engine) as session:
+            stmt = select(index_table.target_id).where(
+                index_table.source_id == file_id,
+                index_table.relation_type == "document",
+            )
+            doc_ids = [row[0] for row in session.execute(stmt).all()]
+
+        page_map: dict[str, str] = {}
+        if doc_ids:
+            docs = doc_store.get(doc_ids)
+            for doc in docs:
+                if doc.metadata.get("type") != "thumbnail":
+                    continue
+                page_label = str(doc.metadata.get("page_label", ""))
+                image_origin = doc.metadata.get("image_origin", "")
+                if page_label and image_origin:
+                    page_map[page_label] = image_origin
+
+        self._page_thumbnail_cache[file_id] = page_map
+        return page_map.get(page_key, "")
+
+    def _get_page_preview_image(self, file_id: str, file_path: str, page: int) -> str:
+        if not file_id or not file_path or not os.path.isfile(file_path):
+            return ""
+
+        page_key = str(page)
+        if file_id in self._page_preview_cache:
+            cached = self._page_preview_cache[file_id].get(page_key)
+            if cached is not None:
+                return cached
+
+        page_map = self._page_preview_cache.setdefault(file_id, {})
+        try:
+            rendered_pages = get_page_thumbnails(
+                Path(file_path), [max(0, page - 1)], dpi=120
+            )
+            if rendered_pages:
+                page_map[page_key] = rendered_pages[0]
+                return rendered_pages[0]
+        except Exception as exc:
+            print(f"Failed to render page preview: {exc}")
+
+        page_map[page_key] = ""
+        return ""
+
+    def _make_pdf_preview_html(
+        self, file_id: str, file_path: str, page: int
+    ) -> tuple[str, str]:
+        if not file_id and not file_path:
             return (
                 "<div class='pdf-preview-empty'></div>",
                 "<div class='pdf-preview-notice'>Select a PDF file to preview.</div>",
@@ -436,12 +501,32 @@ class ChatPage(BasePage):
             )
 
         page = max(1, int(page or 1))
-        src = (
-            f"{BASE_PATH}/file={file_path}"
-            f"#page={page}&zoom=page-fit&view=Fit&toolbar=0&navpanes=0"
-        )
+        preview_image = self._get_page_preview_image(file_id, file_path, page)
+        if preview_image:
+            return (
+                (
+                    "<div class='pdf-preview-image-wrap'>"
+                    f"<img src=\"{preview_image}\" class='pdf-preview-image' alt='PDF page {page}' />"
+                    "</div>"
+                ),
+                "<div class='pdf-preview-notice'></div>",
+            )
+
+        thumbnail = self._get_page_thumbnail(file_id, page)
+        if thumbnail:
+            return (
+                (
+                    "<div class='pdf-preview-image-wrap'>"
+                    f"<img src=\"{thumbnail}\" class='pdf-preview-image' alt='PDF page {page}' />"
+                    "</div>"
+                ),
+                "<div class='pdf-preview-notice'></div>",
+            )
+
+        preview_path = file_path.replace("\\", "/")
+        src = f"{BASE_PATH}/file={preview_path}#page={page}"
         return (
-            f"<iframe src=\"{src}\" title=\"PDF Preview\"></iframe>",
+            f"<iframe src=\"{src}\" title=\"PDF Preview\" loading=\"lazy\"></iframe>",
             "<div class='pdf-preview-notice'></div>",
         )
 
@@ -518,18 +603,64 @@ class ChatPage(BasePage):
             first_selector_choices, selected_file_ids
         )
         page_number = 1
-        preview_html, preview_notice = self._make_pdf_preview_html(file_path, page_number)
-        return file_id, file_name, file_path, page_number, preview_html, preview_notice
+        preview_html, preview_notice = self._make_pdf_preview_html(
+            file_id, file_path, page_number
+        )
+        return (
+            file_id,
+            file_name,
+            file_path,
+            page_number,
+            preview_html,
+            preview_notice,
+            "",
+            "<div class='page-result-placeholder'>Enter a question to generate a page-specific mindmap.</div>",
+            gr.update(visible=False),
+            None,
+            "Ask a question about the current page to generate an answer.",
+        )
 
-    def on_page_change(self, current_page, delta, file_path):
+    def on_page_change(self, current_page, delta, file_id, file_path):
         next_page = max(1, int(current_page or 1) + int(delta or 0))
-        preview_html, preview_notice = self._make_pdf_preview_html(file_path, next_page)
-        return next_page, preview_html, preview_notice
+        preview_html, preview_notice = self._make_pdf_preview_html(
+            file_id, file_path, next_page
+        )
+        return (
+            next_page,
+            preview_html,
+            preview_notice,
+            "",
+            "<div class='page-result-placeholder'>Enter a question to generate a page-specific mindmap.</div>",
+            gr.update(visible=False),
+            None,
+            "Ask a question about the current page to generate an answer.",
+        )
 
-    def on_page_set(self, current_page, file_path):
+    def on_page_set(self, current_page, file_id, file_path):
         next_page = max(1, int(current_page or 1))
-        preview_html, preview_notice = self._make_pdf_preview_html(file_path, next_page)
-        return next_page, preview_html, preview_notice
+        preview_html, preview_notice = self._make_pdf_preview_html(
+            file_id, file_path, next_page
+        )
+        return (
+            next_page,
+            preview_html,
+            preview_notice,
+            "",
+            "<div class='page-result-placeholder'>Enter a question to generate a page-specific mindmap.</div>",
+            gr.update(visible=False),
+            None,
+            "Ask a question about the current page to generate an answer.",
+        )
+
+    def refresh_selected_file_preview(self, first_selector_choices, selected_file_ids, current_page):
+        file_id, file_name, file_path = self._resolve_pdf_source(
+            first_selector_choices, selected_file_ids
+        )
+        page_number = max(1, int(current_page or 1))
+        preview_html, preview_notice = self._make_pdf_preview_html(
+            file_id, file_path, page_number
+        )
+        return file_id, file_name, file_path, page_number, preview_html, preview_notice
 
     def rerun_page_answer(
         self,
@@ -621,82 +752,73 @@ class ChatPage(BasePage):
                     self.chat_panel.page_number,
                     self.chat_panel.pdf_preview,
                     self.chat_panel.pdf_preview_notice,
+                    self._last_question,
+                    self.info_panel,
+                    self.plot_panel,
+                    self.state_plot_panel,
+                    self.answer_panel,
                 ],
                 show_progress="hidden",
             )
 
-        page_inputs = [
-            self._last_question,
-            self.chat_control.conversation_id,
-            self.chat_panel.chatbot,
-            self._app.settings_state,
-            self._reasoning_type,
-            self.model_type,
-            self.use_mindmap,
-            self.citation,
-            self.language,
-            self.state_chat,
-            self._command_state,
-            self._app.user_id,
-            self._active_file_name,
-            self.chat_panel.page_number,
-        ] + self._indices_input
-
-        page_outputs = [
-            self.chat_panel.chatbot,
-            self.info_panel,
-            self.plot_panel,
-            self.state_plot_panel,
-            self.state_chat,
-            self.answer_panel,
-        ]
-
         self.chat_panel.prev_page_btn.click(
-            fn=lambda page, path: self.on_page_change(page, -1, path),
-            inputs=[self.chat_panel.page_number, self._active_file_path],
+            fn=lambda page, file_id, path: self.on_page_change(page, -1, file_id, path),
+            inputs=[
+                self.chat_panel.page_number,
+                self._active_file_id,
+                self._active_file_path,
+            ],
             outputs=[
                 self.chat_panel.page_number,
                 self.chat_panel.pdf_preview,
                 self.chat_panel.pdf_preview_notice,
+                self._last_question,
+                self.info_panel,
+                self.plot_panel,
+                self.state_plot_panel,
+                self.answer_panel,
             ],
             show_progress="hidden",
-        ).then(
-            fn=self.rerun_page_answer,
-            inputs=page_inputs,
-            outputs=page_outputs,
-            show_progress="minimal",
         )
 
         self.chat_panel.next_page_btn.click(
-            fn=lambda page, path: self.on_page_change(page, 1, path),
-            inputs=[self.chat_panel.page_number, self._active_file_path],
+            fn=lambda page, file_id, path: self.on_page_change(page, 1, file_id, path),
+            inputs=[
+                self.chat_panel.page_number,
+                self._active_file_id,
+                self._active_file_path,
+            ],
             outputs=[
                 self.chat_panel.page_number,
                 self.chat_panel.pdf_preview,
                 self.chat_panel.pdf_preview_notice,
+                self._last_question,
+                self.info_panel,
+                self.plot_panel,
+                self.state_plot_panel,
+                self.answer_panel,
             ],
             show_progress="hidden",
-        ).then(
-            fn=self.rerun_page_answer,
-            inputs=page_inputs,
-            outputs=page_outputs,
-            show_progress="minimal",
         )
 
         self.chat_panel.page_number.change(
             fn=self.on_page_set,
-            inputs=[self.chat_panel.page_number, self._active_file_path],
+            inputs=[
+                self.chat_panel.page_number,
+                self._active_file_id,
+                self._active_file_path,
+            ],
             outputs=[
                 self.chat_panel.page_number,
                 self.chat_panel.pdf_preview,
                 self.chat_panel.pdf_preview_notice,
+                self._last_question,
+                self.info_panel,
+                self.plot_panel,
+                self.state_plot_panel,
+                self.answer_panel,
             ],
             show_progress="hidden",
-        ).then(
-            fn=self.rerun_page_answer,
-            inputs=page_inputs,
-            outputs=page_outputs,
-            show_progress="minimal",
         )
 
         chat_event = (
@@ -759,8 +881,12 @@ class ChatPage(BasePage):
                 show_progress="minimal",
             )
             .then(
-                fn=self.on_selected_file_change,
-                inputs=[self.first_selector_choices, self._indices_input[1]],
+                fn=self.refresh_selected_file_preview,
+                inputs=[
+                    self.first_selector_choices,
+                    self._indices_input[1],
+                    self.chat_panel.page_number,
+                ],
                 outputs=[
                     self._active_file_id,
                     self._active_file_name,

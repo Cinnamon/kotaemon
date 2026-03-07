@@ -1,4 +1,32 @@
 function run() {
+  let answerPanelObserver = null;
+
+  function enforceAnswerPanelScroll() {
+    let answerPanel = document.getElementById("answer-panel");
+    let answerExpand = document.getElementById("answer-expand");
+    if (!answerPanel || !answerExpand) {
+      return;
+    }
+
+    answerExpand.style.overflow = "hidden";
+    answerExpand.style.minHeight = "0";
+
+    let node = answerPanel.parentElement;
+    while (node && node !== answerExpand) {
+      node.style.minHeight = "0";
+      node.style.height = "100%";
+      node.style.maxHeight = "100%";
+      node.style.overflow = "hidden";
+      node = node.parentElement;
+    }
+
+    answerPanel.style.minHeight = "0";
+    answerPanel.style.height = "100%";
+    answerPanel.style.maxHeight = "100%";
+    answerPanel.style.overflowX = "hidden";
+    answerPanel.style.overflowY = "auto";
+  }
+
   let main_parent = document.getElementById("chat-tab").parentNode;
 
   main_parent.childNodes[0].classList.add("header-bar");
@@ -280,4 +308,17 @@ function run() {
     chatInput.dispatchEvent(new Event("input", { bubbles: true }));
     chatInput.focus();
   };
+
+  enforceAnswerPanelScroll();
+  if (!answerPanelObserver) {
+    answerPanelObserver = new MutationObserver(() => {
+      enforceAnswerPanelScroll();
+    });
+
+    answerPanelObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+  }
 }
