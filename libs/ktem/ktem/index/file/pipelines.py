@@ -683,9 +683,27 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         elif self.reader_mode == "docling":
             readers[".pdf"] = docling_reader
         elif self.reader_mode == "paddle-struct":
-            readers[".pdf"] = paddle_struct_reader
+            readers.update(
+                {
+                    ".pdf": paddle_struct_reader,
+                    ".png": paddle_struct_reader,
+                    ".jpeg": paddle_struct_reader,
+                    ".jpg": paddle_struct_reader,
+                    ".tiff": paddle_struct_reader,
+                    ".tif": paddle_struct_reader,
+                }
+            )
         elif self.reader_mode == "paddle-vl":
-            readers[".pdf"] = paddle_vl_reader
+            readers.update(
+                {
+                    ".pdf": paddle_vl_reader,
+                    ".png": paddle_vl_reader,
+                    ".jpeg": paddle_vl_reader,
+                    ".jpg": paddle_vl_reader,
+                    ".tiff": paddle_vl_reader,
+                    ".tif": paddle_vl_reader,
+                }
+            )
 
         dev_readers, _, _ = dev_settings()
         readers.update(dev_readers)
@@ -710,7 +728,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                         "PaddleOCR PPStructureV3 (table+figure extraction)",
                         "paddle-struct",
                     ),
-                    ("PaddleOCR VL (vision-language OCR)", "paddle-vl"),
+                    ("PaddleOCR-VL (VLM document parsing)", "paddle-vl"),
                 ],
                 "component": "dropdown",
             },

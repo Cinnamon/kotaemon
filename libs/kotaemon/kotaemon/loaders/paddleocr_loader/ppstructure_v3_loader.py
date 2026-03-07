@@ -1,8 +1,3 @@
-"""PPStructureV3 document loader and result adapter."""
-
-from __future__ import annotations
-
-from dataclasses import dataclass, field
 from pathlib import Path
 
 from kotaemon.base import Document, Param
@@ -11,145 +6,14 @@ from kotaemon.loaders.base import BaseReader
 from .adapter import PaddleOCRResult
 
 
-@dataclass
-class PPStructureV3Result(PaddleOCRResult):
-    """Adapter for PPStructureV3 results.
-
-    PPStructureV3 provides structured document parsing with:
-    - Layout detection
-    - Table recognition (HTML format)
-    - Formula recognition
-    - Chart/figure detection
-    """
-
-    text_labels: set[str] = field(
-        default_factory=lambda: {
-            "text",
-            "paragraph_title",
-            "doc_title",
-            "abstract",
-            "content",
-        }
-    )
-    table_labels: set[str] = field(default_factory=lambda: {"table"})
-    figure_labels: set[str] = field(
-        default_factory=lambda: {"chart", "figure", "image"}
-    )
-
-    def to_documents(self) -> list[Document]:
-        """Convert PPStructureV3 results to Documents."""
-        texts: list[Document] = []
-        tables: list[Document] = []
-        figures: list[Document] = []
-
-        for page_result in self.raw_result:
-            result_dict = page_result.json
-            page_index = result_dict.get("page_index")
-            page_label = (page_index + 1) if page_index is not None else 1
-
-            page_texts, page_tables, page_figures = self._parse_page(
-                result_dict, page_label
-            )
-            texts.extend(page_texts)
-            tables.extend(page_tables)
-            figures.extend(page_figures)
-
-        return texts + tables + figures
-
-    def _parse_page(
-        self,
-        result_dict: dict,
-        page_label: int,
-    ) -> tuple[list[Document], list[Document], list[Document]]:
-        """Parse a single page result."""
-        parsing_list = result_dict.get("parsing_res_list", [])
-
-        text_blocks: list[str] = []
-        tables: list[Document] = []
-        figures: list[Document] = []
-
-        for block in parsing_list:
-            label = block.get("block_label", "")
-            content = block.get("block_content", "")
-
-            if not content:
-                continue
-
-            if label in self.text_labels:
-                text_blocks.append(content)
-
-            elif label in self.table_labels:
-                table_content = self._clean_table_html(content)
-                tables.append(
-                    Document(
-                        text=table_content,
-                        metadata={
-                            "type": "table",
-                            "page_label": page_label,
-                            "table_origin": table_content,
-                            "file_name": self.file_name,
-                            "file_path": str(self.file_path),
-                            **self.extra_info,
-                        },
-                    )
-                )
-
-            elif label in self.figure_labels:
-                figures.append(
-                    Document(
-                        text=content,
-                        metadata={
-                            "type": "image",
-                            "page_label": page_label,
-                            "file_name": self.file_name,
-                            "file_path": str(self.file_path),
-                            **self.extra_info,
-                        },
-                    )
-                )
-
-        text_docs: list[Document] = []
-        if text_blocks:
-            text_docs.append(
-                Document(
-                    text="\n\n".join(text_blocks),
-                    metadata={
-                        "page_label": page_label,
-                        "file_name": self.file_name,
-                        "file_path": str(self.file_path),
-                        **self.extra_info,
-                    },
-                )
-            )
-
-        return text_docs, tables, figures
-
-
 class PPStructureV3Reader(BaseReader):
-    """Document reader using PaddleOCR PPStructureV3.
+    """Document structure extraction via PaddleOCR PPStructureV3.
 
-    PPStructureV3 provides comprehensive document structure extraction with
-    layout detection, table recognition, and formula recognition.
-
-    Example:
-        ```python
-        from kotaemon.loaders import PPStructureV3Reader
-
-        # GPU mode (default)
-        reader = PPStructureV3Reader()
-        documents = reader.load_data("path/to/document.pdf")
-
-        # CPU mode
-        reader = PPStructureV3Reader(device="cpu")
-        ```
-
-    Args:
-        device: Device for inference - "gpu:0", "cpu", "npu:0", "xpu:0"
-        use_doc_orientation_classify: Enable document orientation classification
-        use_doc_unwarping: Enable document unwarping preprocessing
+    Layout detection, OCR pipeline, table/chart/formula/seal recognition.
+    Model: https://huggingface.co/PaddlePaddle/PP-DocLayout-L
     """
 
-    _dependencies = ["paddleocr"]
+    _dependencies = ["paddleocr[all]"]
 
     device: str = Param(
         "gpu:0",
@@ -157,7 +21,7 @@ class PPStructureV3Reader(BaseReader):
     )
 
     supported_file_types: list[str] = Param(
-        [".pdf", ".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp"],
+        [".pdf", ".jpg", ".jpeg", ".png", ".tiff", ".tif"],
         help="Supported file extensions",
     )
 
@@ -267,15 +131,15 @@ class PPStructureV3Reader(BaseReader):
             "text_det_thresh": self.text_det_thresh,
             "text_det_box_thresh": self.text_det_box_thresh,
             "text_det_unclip_ratio": self.text_det_unclip_ratio,
-            "textline_orientation_model_name": (self.textline_orientation_model_name),
-            "textline_orientation_model_dir": (self.textline_orientation_model_dir),
-            "textline_orientation_batch_size": (self.textline_orientation_batch_size),
+            "textline_orientation_model_name": self.textline_orientation_model_name,
+            "textline_orientation_model_dir": self.textline_orientation_model_dir,
+            "textline_orientation_batch_size": self.textline_orientation_batch_size,
             "text_recognition_model_name": self.text_recognition_model_name,
             "text_recognition_model_dir": self.text_recognition_model_dir,
             "text_recognition_batch_size": self.text_recognition_batch_size,
             "text_rec_score_thresh": self.text_rec_score_thresh,
-            "table_classification_model_name": (self.table_classification_model_name),
-            "table_classification_model_dir": (self.table_classification_model_dir),
+            "table_classification_model_name": self.table_classification_model_name,
+            "table_classification_model_dir": self.table_classification_model_dir,
             "wired_table_structure_recognition_model_name": (
                 self.wired_table_structure_recognition_model_name
             ),
@@ -306,20 +170,20 @@ class PPStructureV3Reader(BaseReader):
             "table_orientation_classify_model_dir": (
                 self.table_orientation_classify_model_dir
             ),
-            "seal_text_detection_model_name": (self.seal_text_detection_model_name),
+            "seal_text_detection_model_name": self.seal_text_detection_model_name,
             "seal_text_detection_model_dir": self.seal_text_detection_model_dir,
             "seal_det_limit_side_len": self.seal_det_limit_side_len,
             "seal_det_limit_type": self.seal_det_limit_type,
             "seal_det_thresh": self.seal_det_thresh,
             "seal_det_box_thresh": self.seal_det_box_thresh,
             "seal_det_unclip_ratio": self.seal_det_unclip_ratio,
-            "seal_text_recognition_model_name": (self.seal_text_recognition_model_name),
-            "seal_text_recognition_model_dir": (self.seal_text_recognition_model_dir),
-            "seal_text_recognition_batch_size": (self.seal_text_recognition_batch_size),
+            "seal_text_recognition_model_name": self.seal_text_recognition_model_name,
+            "seal_text_recognition_model_dir": self.seal_text_recognition_model_dir,
+            "seal_text_recognition_batch_size": self.seal_text_recognition_batch_size,
             "seal_rec_score_thresh": self.seal_rec_score_thresh,
-            "formula_recognition_model_name": (self.formula_recognition_model_name),
-            "formula_recognition_model_dir": (self.formula_recognition_model_dir),
-            "formula_recognition_batch_size": (self.formula_recognition_batch_size),
+            "formula_recognition_model_name": self.formula_recognition_model_name,
+            "formula_recognition_model_dir": self.formula_recognition_model_dir,
+            "formula_recognition_batch_size": self.formula_recognition_batch_size,
             "use_doc_orientation_classify": self.use_doc_orientation_classify,
             "use_doc_unwarping": self.use_doc_unwarping,
             "use_textline_orientation": self.use_textline_orientation,
@@ -333,6 +197,7 @@ class PPStructureV3Reader(BaseReader):
             "lang": self.lang,
             "ocr_version": self.ocr_version,
         }
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
         return PPStructureV3(**kwargs)
 
     def run(
@@ -368,11 +233,11 @@ class PPStructureV3Reader(BaseReader):
             )
 
         raw_result = self.pipeline_.predict(str(file_path))
+        print("WTFFFF", file_path)
+        print("WTFFFF", raw_result)
 
-        result = PPStructureV3Result(
+        return PaddleOCRResult(
             raw_result=raw_result,
             file_path=file_path,
             extra_info=extra_info or {},
-        )
-
-        return result.to_documents()
+        ).to_documents()

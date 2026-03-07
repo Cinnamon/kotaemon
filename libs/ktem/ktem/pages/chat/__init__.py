@@ -924,17 +924,17 @@ class ChatPage(BasePage):
         urls, chat_input_text = get_urls(chat_input_text)
         if urls and self.first_indexing_url_fn:
             print("Detected URLs", urls)
-            url_file_ids = self.first_indexing_url_fn(
+            indexed_url_ids = self.first_indexing_url_fn(
                 "\n".join(urls),
                 True,
                 settings,
                 user_id,
                 request=None,
             )
-            file_ids.extend(url_file_ids)
+            file_ids.extend(indexed_url_ids)
 
             # Add new file ids to the first selector choices for display
-            first_selector_choices.extend(zip(urls, url_file_ids))
+            first_selector_choices.extend(zip(urls, indexed_url_ids))
 
         # if file_ids is not empty and chat_input_text is empty
         # set the input to summary
