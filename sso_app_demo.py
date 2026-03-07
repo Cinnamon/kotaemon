@@ -12,6 +12,9 @@ from theflow.settings import settings as flowsettings
 
 KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 KH_APP_DATA_DIR = getattr(flowsettings, "KH_APP_DATA_DIR", ".")
+KH_FILESTORAGE_PATH = getattr(
+    flowsettings, "KH_FILESTORAGE_PATH", os.path.join(KH_APP_DATA_DIR, "user_data", "files")
+)
 GRADIO_TEMP_DIR = os.getenv("GRADIO_TEMP_DIR", None)
 # override GRADIO_TEMP_DIR if it's not set
 if GRADIO_TEMP_DIR is None:
@@ -93,5 +96,6 @@ app = gr.mount_gradio_app(
     allowed_paths=[
         "libs/ktem/ktem/assets",
         GRADIO_TEMP_DIR,
+        KH_FILESTORAGE_PATH,
     ],
 )
