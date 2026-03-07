@@ -1,5 +1,7 @@
 function run() {
   let answerPanelObserver = null;
+  let previewSrcPoller = null;
+  let lastPreviewSrc = null;
 
   function enforceAnswerPanelScroll() {
     let answerPanel = document.getElementById("answer-panel");
@@ -25,6 +27,87 @@ function run() {
     answerPanel.style.maxHeight = "100%";
     answerPanel.style.overflowX = "hidden";
     answerPanel.style.overflowY = "auto";
+  }
+
+  function syncMainPdfPreview() {
+    let srcField = document.querySelector("#main-pdf-preview-src textarea, #main-pdf-preview-src input");
+    let iframe = document.getElementById("main-pdf-preview-frame");
+    let image = document.getElementById("main-pdf-preview-image");
+    let empty = document.getElementById("main-pdf-preview-empty");
+    if (!srcField || !iframe || !image || !empty) {
+      return;
+    }
+
+    let nextSrc = (srcField.value || "").trim();
+    if (nextSrc === lastPreviewSrc) {
+      return;
+    }
+    lastPreviewSrc = nextSrc;
+
+    if (!nextSrc) {
+      iframe.style.display = "none";
+      image.style.display = "none";
+      empty.style.display = "flex";
+      iframe.removeAttribute("src");
+      image.removeAttribute("src");
+      return;
+    }
+
+    const isImage = nextSrc.startsWith("data:image") || /\.(png|jpg|jpeg|gif|webp|svg)(\?|#|$)/i.test(nextSrc);
+    if (isImage) {
+      iframe.style.display = "none";
+      empty.style.display = "none";
+      image.style.display = "block";
+      image.src = nextSrc;
+      return;
+    }
+
+    image.style.display = "none";
+    empty.style.display = "none";
+    iframe.style.display = "block";
+
+    const getViewerDocumentKey = (src) => {
+      try {
+        let url = new URL(src, window.location.origin);
+        url.hash = "";
+        url.searchParams.delete("ktempage");
+        return `${url.origin}${url.pathname}?${url.searchParams.toString()}`;
+      } catch (error) {
+        return src.split("#")[0].replace(/([?&])ktempage=\d+(&?)/, "$1").replace(/[?&]$/, "");
+      }
+    };
+
+    const getTargetPage = (src) => {
+      try {
+        let url = new URL(src, window.location.origin);
+        let queryPage = parseInt(url.searchParams.get("ktempage") || "", 10);
+        if (Number.isFinite(queryPage) && queryPage > 0) {
+          return queryPage;
+        }
+        let hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+        let hashPage = parseInt(hashParams.get("page") || "", 10);
+        return Number.isFinite(hashPage) && hashPage > 0 ? hashPage : 1;
+      } catch (error) {
+        return 1;
+      }
+    };
+
+    let currentSrc = iframe.getAttribute("src") || "";
+    let currentBase = getViewerDocumentKey(currentSrc);
+    let nextBase = getViewerDocumentKey(nextSrc);
+    if (currentSrc && currentBase === nextBase && iframe.contentWindow) {
+      try {
+        iframe.contentWindow.postMessage({
+          type: "ktem-pdf-page-change",
+          page: getTargetPage(nextSrc),
+        }, window.location.origin);
+        return;
+      } catch (error) {
+        console.error("Failed to update preview page in place", error);
+      }
+    }
+
+    iframe.src = nextSrc;
   }
 
   let main_parent = document.getElementById("chat-tab").parentNode;
@@ -310,6 +393,7 @@ function run() {
   };
 
   enforceAnswerPanelScroll();
+  syncMainPdfPreview();
   if (!answerPanelObserver) {
     answerPanelObserver = new MutationObserver(() => {
       enforceAnswerPanelScroll();
@@ -320,5 +404,9 @@ function run() {
       subtree: true,
       characterData: true,
     });
+  }
+
+  if (!previewSrcPoller) {
+    previewSrcPoller = window.setInterval(syncMainPdfPreview, 120);
   }
 }

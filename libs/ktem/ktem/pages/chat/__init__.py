@@ -1,10 +1,6 @@
 import asyncio
 import json
-import os
-from pathlib import Path
 import re
-import shutil
-import tempfile
 from copy import deepcopy
 from typing import Optional
 
@@ -29,14 +25,13 @@ from theflow.utils.modules import import_dotted_string
 from kotaemon.base import Document
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 from kotaemon.indices.qa.utils import strip_think_tag
-from kotaemon.loaders.pdf_loader import get_page_thumbnails
 
 from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex, get_urls
 from ...utils.commands import WEB_SEARCH_COMMAND
 from ...utils.hf_papers import get_recommended_papers
 from ...utils.rate_limit import check_rate_limit
-from ...utils.render import BASE_PATH
 from .chat_panel import ChatPanel
+from .page_preview import ChatPagePreviewController
 from .chat_suggestion import ChatSuggestion
 from .common import STATE
 from .control import ConversationControl
@@ -207,8 +202,7 @@ class ChatPage(BasePage):
     def __init__(self, app):
         self._app = app
         self._indices_input = []
-        self._page_thumbnail_cache: dict[str, dict[str, str]] = {}
-        self._page_preview_cache: dict[str, dict[str, str]] = {}
+        self.page_preview = ChatPagePreviewController(app)
 
         self.on_building_ui()
 
@@ -426,242 +420,6 @@ class ChatPage(BasePage):
             plot = gr.update(visible=False)
         return plot
 
-    def _get_page_thumbnail(self, file_id: str, page: int) -> str:
-        if not file_id:
-            return ""
-
-        page_key = str(page)
-        if file_id in self._page_thumbnail_cache:
-            cached = self._page_thumbnail_cache[file_id].get(page_key)
-            if cached is not None:
-                return cached
-
-        first_index = self._app.index_manager.indices[0]
-        index_table = first_index._resources["Index"]
-        doc_store = first_index._resources["DocStore"]
-
-        with Session(engine) as session:
-            stmt = select(index_table.target_id).where(
-                index_table.source_id == file_id,
-                index_table.relation_type == "document",
-            )
-            doc_ids = [row[0] for row in session.execute(stmt).all()]
-
-        page_map: dict[str, str] = {}
-        if doc_ids:
-            docs = doc_store.get(doc_ids)
-            for doc in docs:
-                if doc.metadata.get("type") != "thumbnail":
-                    continue
-                page_label = str(doc.metadata.get("page_label", ""))
-                image_origin = doc.metadata.get("image_origin", "")
-                if page_label and image_origin:
-                    page_map[page_label] = image_origin
-
-        self._page_thumbnail_cache[file_id] = page_map
-        return page_map.get(page_key, "")
-
-    def _get_page_preview_image(self, file_id: str, file_path: str, page: int) -> str:
-        if not file_id or not file_path or not os.path.isfile(file_path):
-            return ""
-
-        page_key = str(page)
-        if file_id in self._page_preview_cache:
-            cached = self._page_preview_cache[file_id].get(page_key)
-            if cached is not None:
-                return cached
-
-        page_map = self._page_preview_cache.setdefault(file_id, {})
-        try:
-            rendered_pages = get_page_thumbnails(
-                Path(file_path), [max(0, page - 1)], dpi=120
-            )
-            if rendered_pages:
-                page_map[page_key] = rendered_pages[0]
-                return rendered_pages[0]
-        except Exception as exc:
-            print(f"Failed to render page preview: {exc}")
-
-        page_map[page_key] = ""
-        return ""
-
-    def _make_pdf_preview_html(
-        self, file_id: str, file_path: str, page: int
-    ) -> tuple[str, str]:
-        if not file_id and not file_path:
-            return (
-                "<div class='pdf-preview-empty'></div>",
-                "<div class='pdf-preview-notice'>Select a PDF file to preview.</div>",
-            )
-
-        if not os.path.isfile(file_path):
-            return (
-                "<div class='pdf-preview-empty'></div>",
-                "<div class='pdf-preview-notice'>Selected file is unavailable.</div>",
-            )
-
-        page = max(1, int(page or 1))
-        preview_image = self._get_page_preview_image(file_id, file_path, page)
-        if preview_image:
-            return (
-                (
-                    "<div class='pdf-preview-image-wrap'>"
-                    f"<img src=\"{preview_image}\" class='pdf-preview-image' alt='PDF page {page}' />"
-                    "</div>"
-                ),
-                "<div class='pdf-preview-notice'></div>",
-            )
-
-        thumbnail = self._get_page_thumbnail(file_id, page)
-        if thumbnail:
-            return (
-                (
-                    "<div class='pdf-preview-image-wrap'>"
-                    f"<img src=\"{thumbnail}\" class='pdf-preview-image' alt='PDF page {page}' />"
-                    "</div>"
-                ),
-                "<div class='pdf-preview-notice'></div>",
-            )
-
-        preview_path = file_path.replace("\\", "/")
-        src = f"{BASE_PATH}/file={preview_path}#page={page}"
-        return (
-            f"<iframe src=\"{src}\" title=\"PDF Preview\" loading=\"lazy\"></iframe>",
-            "<div class='pdf-preview-notice'></div>",
-        )
-
-    def _extract_first_selected_file_id(self, selected_file_ids):
-        if not selected_file_ids:
-            return ""
-
-        selected = selected_file_ids[0]
-
-        if isinstance(selected, str) and selected.startswith("["):
-            try:
-                selected_items = json.loads(selected)
-                return selected_items[0] if selected_items else ""
-            except Exception:
-                return ""
-
-        return selected
-
-    def _ensure_pdf_preview_copy(self, file_path: str, file_name: str) -> str:
-        if not file_path or not os.path.isfile(file_path):
-            return ""
-
-        gradio_temp_dir = os.environ.get("GRADIO_TEMP_DIR", tempfile.gettempdir())
-        preview_dir = os.path.join(gradio_temp_dir, "pdf_previews")
-        os.makedirs(preview_dir, exist_ok=True)
-
-        ext = os.path.splitext(file_name)[1].lower() if file_name else ".pdf"
-        if ext != ".pdf":
-            ext = ".pdf"
-
-        preview_name = f"{os.path.basename(file_path)}{ext}"
-        preview_path = os.path.join(preview_dir, preview_name)
-
-        if not os.path.isfile(preview_path):
-            shutil.copyfile(file_path, preview_path)
-        elif os.path.getsize(preview_path) != os.path.getsize(file_path):
-            shutil.copyfile(file_path, preview_path)
-
-        return preview_path
-
-    def _resolve_pdf_source(self, first_selector_choices, selected_file_ids):
-        file_id = self._extract_first_selected_file_id(selected_file_ids)
-        if not file_id:
-            return "", "", ""
-
-        first_index = self._app.index_manager.indices[0]
-        source_table = first_index._resources["Source"]
-        file_storage_path = first_index._resources["FileStoragePath"]
-
-        with Session(engine) as session:
-            statement = select(source_table).where(source_table.id == file_id)
-            source_obj = session.exec(statement).first()
-
-        if not source_obj:
-            return "", "", ""
-
-        file_name = getattr(source_obj, "name", "") or ""
-        stored_path = getattr(source_obj, "path", "") or ""
-
-        resolved_path = ""
-        if stored_path:
-            candidate_storage_path = os.path.join(str(file_storage_path), stored_path)
-            if os.path.isfile(candidate_storage_path):
-                resolved_path = self._ensure_pdf_preview_copy(
-                    candidate_storage_path, file_name
-                )
-            elif os.path.isfile(stored_path):
-                resolved_path = self._ensure_pdf_preview_copy(stored_path, file_name)
-
-        return file_id, file_name, resolved_path
-
-    def on_selected_file_change(self, first_selector_choices, selected_file_ids):
-        file_id, file_name, file_path = self._resolve_pdf_source(
-            first_selector_choices, selected_file_ids
-        )
-        page_number = 1
-        preview_html, preview_notice = self._make_pdf_preview_html(
-            file_id, file_path, page_number
-        )
-        return (
-            file_id,
-            file_name,
-            file_path,
-            page_number,
-            preview_html,
-            preview_notice,
-            "",
-            "<div class='page-result-placeholder'>Enter a question to generate a page-specific mindmap.</div>",
-            gr.update(visible=False),
-            None,
-            "Ask a question about the current page to generate an answer.",
-        )
-
-    def on_page_change(self, current_page, delta, file_id, file_path):
-        next_page = max(1, int(current_page or 1) + int(delta or 0))
-        preview_html, preview_notice = self._make_pdf_preview_html(
-            file_id, file_path, next_page
-        )
-        return (
-            next_page,
-            preview_html,
-            preview_notice,
-            "",
-            "<div class='page-result-placeholder'>Enter a question to generate a page-specific mindmap.</div>",
-            gr.update(visible=False),
-            None,
-            "Ask a question about the current page to generate an answer.",
-        )
-
-    def on_page_set(self, current_page, file_id, file_path):
-        next_page = max(1, int(current_page or 1))
-        preview_html, preview_notice = self._make_pdf_preview_html(
-            file_id, file_path, next_page
-        )
-        return (
-            next_page,
-            preview_html,
-            preview_notice,
-            "",
-            "<div class='page-result-placeholder'>Enter a question to generate a page-specific mindmap.</div>",
-            gr.update(visible=False),
-            None,
-            "Ask a question about the current page to generate an answer.",
-        )
-
-    def refresh_selected_file_preview(self, first_selector_choices, selected_file_ids, current_page):
-        file_id, file_name, file_path = self._resolve_pdf_source(
-            first_selector_choices, selected_file_ids
-        )
-        page_number = max(1, int(current_page or 1))
-        preview_html, preview_notice = self._make_pdf_preview_html(
-            file_id, file_path, page_number
-        )
-        return file_id, file_name, file_path, page_number, preview_html, preview_notice
-
     def rerun_page_answer(
         self,
         last_question,
@@ -743,14 +501,14 @@ class ChatPage(BasePage):
 
         if len(self._indices_input) > 1:
             self._indices_input[1].change(
-                fn=self.on_selected_file_change,
+                fn=self.page_preview.on_selected_file_change,
                 inputs=[self.first_selector_choices, self._indices_input[1]],
                 outputs=[
                     self._active_file_id,
                     self._active_file_name,
                     self._active_file_path,
                     self.chat_panel.page_number,
-                    self.chat_panel.pdf_preview,
+                    self.chat_panel.pdf_preview_src,
                     self.chat_panel.pdf_preview_notice,
                     self._last_question,
                     self.info_panel,
@@ -762,7 +520,7 @@ class ChatPage(BasePage):
             )
 
         self.chat_panel.prev_page_btn.click(
-            fn=lambda page, file_id, path: self.on_page_change(page, -1, file_id, path),
+            fn=self.page_preview.on_prev_page,
             inputs=[
                 self.chat_panel.page_number,
                 self._active_file_id,
@@ -770,7 +528,7 @@ class ChatPage(BasePage):
             ],
             outputs=[
                 self.chat_panel.page_number,
-                self.chat_panel.pdf_preview,
+                self.chat_panel.pdf_preview_src,
                 self.chat_panel.pdf_preview_notice,
                 self._last_question,
                 self.info_panel,
@@ -782,7 +540,7 @@ class ChatPage(BasePage):
         )
 
         self.chat_panel.next_page_btn.click(
-            fn=lambda page, file_id, path: self.on_page_change(page, 1, file_id, path),
+            fn=self.page_preview.on_next_page,
             inputs=[
                 self.chat_panel.page_number,
                 self._active_file_id,
@@ -790,7 +548,7 @@ class ChatPage(BasePage):
             ],
             outputs=[
                 self.chat_panel.page_number,
-                self.chat_panel.pdf_preview,
+                self.chat_panel.pdf_preview_src,
                 self.chat_panel.pdf_preview_notice,
                 self._last_question,
                 self.info_panel,
@@ -802,7 +560,7 @@ class ChatPage(BasePage):
         )
 
         self.chat_panel.page_number.change(
-            fn=self.on_page_set,
+            fn=self.page_preview.on_page_set,
             inputs=[
                 self.chat_panel.page_number,
                 self._active_file_id,
@@ -810,7 +568,7 @@ class ChatPage(BasePage):
             ],
             outputs=[
                 self.chat_panel.page_number,
-                self.chat_panel.pdf_preview,
+                self.chat_panel.pdf_preview_src,
                 self.chat_panel.pdf_preview_notice,
                 self._last_question,
                 self.info_panel,
@@ -881,7 +639,7 @@ class ChatPage(BasePage):
                 show_progress="minimal",
             )
             .then(
-                fn=self.refresh_selected_file_preview,
+                fn=self.page_preview.refresh_selected_file_preview,
                 inputs=[
                     self.first_selector_choices,
                     self._indices_input[1],
@@ -892,7 +650,7 @@ class ChatPage(BasePage):
                     self._active_file_name,
                     self._active_file_path,
                     self.chat_panel.page_number,
-                    self.chat_panel.pdf_preview,
+                    self.chat_panel.pdf_preview_src,
                     self.chat_panel.pdf_preview_notice,
                 ],
                 show_progress="hidden",
@@ -1174,14 +932,18 @@ class ChatPage(BasePage):
 
         onConvSelect = (
             onConvSelect.then(
-                fn=self.on_selected_file_change,
-                inputs=[self.first_selector_choices, self._indices_input[1]],
+                fn=self.page_preview.refresh_selected_file_preview,
+                inputs=[
+                    self.first_selector_choices,
+                    self._indices_input[1],
+                    self.chat_panel.page_number,
+                ],
                 outputs=[
                     self._active_file_id,
                     self._active_file_name,
                     self._active_file_path,
                     self.chat_panel.page_number,
-                    self.chat_panel.pdf_preview,
+                    self.chat_panel.pdf_preview_src,
                     self.chat_panel.pdf_preview_notice,
                 ],
                 show_progress="hidden",
@@ -1702,7 +1464,7 @@ class ChatPage(BasePage):
             elif isinstance(first_index.selector, int):
                 selected_file_ids = selecteds[first_index.selector]
 
-            _, inferred_file_name, _ = self._resolve_pdf_source(
+            _, inferred_file_name, _ = self.page_preview.resolve_pdf_source(
                 None, selected_file_ids
             )
             active_file_name = inferred_file_name

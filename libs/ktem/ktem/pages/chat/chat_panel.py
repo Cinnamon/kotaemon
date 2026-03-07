@@ -43,9 +43,16 @@ class ChatPanel(BasePage):
         )
 
         self.pdf_preview = gr.HTML(
-            value="<div class='pdf-preview-empty'></div>",
+            value=(
+                "<div class='pdf-preview-shell'>"
+                "<iframe id='main-pdf-preview-frame' title='PDF Preview' loading='lazy'></iframe>"
+                "<img id='main-pdf-preview-image' class='pdf-preview-image' alt='PDF page preview' />"
+                "<div id='main-pdf-preview-empty' class='pdf-preview-empty'>Select a PDF file to preview.</div>"
+                "</div>"
+            ),
             elem_id="main-pdf-preview",
         )
+        self.pdf_preview_src = gr.Textbox(value="", visible=False, elem_id="main-pdf-preview-src")
 
     def render_notice_and_pager(self):
         self.pdf_preview_notice = gr.HTML(
