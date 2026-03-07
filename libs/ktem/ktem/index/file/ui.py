@@ -266,6 +266,16 @@ class FileIndexPage(BasePage):
             with gr.Column(scale=2):
                 self.selected_panel = gr.Markdown(self.selected_panel_false)
 
+        self.chunk_header = gr.Markdown(visible=False)
+        with gr.Row() as self.chunk_toolbar:
+            self.chunk_type_filter = gr.Dropdown(
+                choices=["all", "text", "table", "image", "thumbnail"],
+                value="all",
+                label="Chunk type",
+                show_label=False,
+                scale=1,
+                visible=False,
+            )
         self.chunks = gr.HTML(visible=False)
 
         with gr.Accordion("Advance options", open=False):
@@ -444,56 +454,91 @@ class FileIndexPage(BasePage):
                 },
             )
 
+    def _build_chunk_panel(
+        self,
+        file_id: str | None,
+        type_filter: str | None = None,
+        expand_all: bool = False,
+    ) -> tuple[str, str]:
+        """Build chunk header and HTML. Returns (header_md, chunk_html)."""
+        if file_id is None:
+            return "", ""
+
+        Index = self._index._resources["Index"]
+        with Session(engine) as session:
+            matches = session.execute(
+                select(Index).where(
+                    Index.source_id == file_id,
+                    Index.relation_type == "document",
+                )
+            )
+            doc_ids = [doc.target_id for (doc,) in matches]
+            docs = self._index._docstore.get(doc_ids)
+            docs = sorted(
+                docs, key=lambda x: x.metadata.get("page_label", float("inf"))
+            )
+
+        # Filter the chunks by type
+        if type_filter and type_filter != "all":
+            want = type_filter.lower()
+            docs = [
+                d for d in docs if (d.metadata.get("type") or "text").lower() == want
+            ]
+        total = len(docs)
+
+        # Count the number of chunks for each type
+        type_counts: dict[str, int] = {}
+        for doc in docs:
+            t = doc.metadata.get("type", "text")
+            type_counts[t] = type_counts.get(t, 0) + 1
+        type_parts = [f"{c} {t}" for t, c in sorted(type_counts.items())]
+        type_str = ", ".join(type_parts) if type_parts else "0"
+        header_md = f"**{total} chunks** ({type_str})"
+
+        # Render the chunks
+        chunks_html: list[str] = []
+        for idx, doc in enumerate(docs):
+            title = html.escape(
+                f"{doc.text[:50]}..." if len(doc.text) > 50 else doc.text
+            )
+            doc_type = doc.metadata.get("type", "text")
+            content = ""
+            if doc_type == "text":
+                content = html.escape(doc.text)
+            elif doc_type == "table":
+                content = Render.table(doc.text)
+            elif doc_type in ("image", "thumbnail"):
+                content = Render.image(
+                    url=doc.metadata.get("image_origin", ""), text=doc.text
+                )
+
+            header_prefix = f"[{idx+1}/{total}]"
+            if doc.metadata.get("page_label"):
+                header_prefix += f" [Page {doc.metadata['page_label']}]"
+            badge = f' <span style="opacity:0.7;font-size:0.85em">({doc_type})</span>'
+            header_prefix += badge
+
+            chunks_html.append(
+                Render.collapsible(
+                    header=f"{header_prefix} {title}",
+                    content=content,
+                    open=expand_all,
+                )
+            )
+
+        return header_md, "".join(chunks_html)
+
     def file_selected(self, file_id):
-        chunks = []
-        if file_id is not None:
-            # get the chunks
-
-            Index = self._index._resources["Index"]
-            with Session(engine) as session:
-                matches = session.execute(
-                    select(Index).where(
-                        Index.source_id == file_id,
-                        Index.relation_type == "document",
-                    )
-                )
-                doc_ids = [doc.target_id for (doc,) in matches]
-                docs = self._index._docstore.get(doc_ids)
-                docs = sorted(
-                    docs, key=lambda x: x.metadata.get("page_label", float("inf"))
-                )
-
-                for idx, doc in enumerate(docs):
-                    title = html.escape(
-                        f"{doc.text[:50]}..." if len(doc.text) > 50 else doc.text
-                    )
-                    doc_type = doc.metadata.get("type", "text")
-                    content = ""
-                    if doc_type == "text":
-                        content = html.escape(doc.text)
-                    elif doc_type == "table":
-                        content = Render.table(doc.text)
-                    elif doc_type == "image":
-                        content = Render.image(
-                            url=doc.metadata.get("image_origin", ""), text=doc.text
-                        )
-
-                    header_prefix = f"[{idx+1}/{len(docs)}]"
-                    if doc.metadata.get("page_label"):
-                        header_prefix += f" [Page {doc.metadata['page_label']}]"
-
-                    chunks.append(
-                        Render.collapsible(
-                            header=f"{header_prefix} {title}",
-                            content=content,
-                        )
-                    )
+        visible = file_id is not None
+        header_md, chunk_html = self._build_chunk_panel(file_id)
         return (
-            gr.update(value="".join(chunks), visible=file_id is not None),
-            gr.update(visible=file_id is not None),
-            gr.update(visible=file_id is not None),
-            gr.update(visible=file_id is not None),
-            gr.update(visible=file_id is not None),
+            gr.update(value=chunk_html, visible=visible),
+            gr.update(visible=visible),
+            gr.update(visible=visible),
+            gr.update(visible=visible),
+            gr.update(visible=visible),
+            gr.update(value=header_md, visible=visible),
+            gr.update(visible=visible),
         )
 
     def delete_event(self, file_id):
@@ -808,6 +853,8 @@ class FileIndexPage(BasePage):
                     self.delete_button,
                     self.download_single_button,
                     self.chat_button,
+                    self.chunk_header,
+                    self.chunk_type_filter,
                 ],
                 show_progress="hidden",
             )
@@ -829,6 +876,8 @@ class FileIndexPage(BasePage):
                 self.delete_button,
                 self.download_single_button,
                 self.chat_button,
+                self.chunk_header,
+                self.chunk_type_filter,
             ],
             show_progress="hidden",
         )
@@ -968,8 +1017,20 @@ class FileIndexPage(BasePage):
                 self.delete_button,
                 self.download_single_button,
                 self.chat_button,
+                self.chunk_header,
+                self.chunk_type_filter,
             ],
             show_progress="hidden",
+        )
+
+        def _update_chunks(file_id, type_filter):
+            header, html = self._build_chunk_panel(file_id, type_filter, False)
+            return header, html
+
+        self.chunk_type_filter.change(
+            fn=lambda fid, t: _update_chunks(fid, t),
+            inputs=[self.selected_file_id, self.chunk_type_filter],
+            outputs=[self.chunk_header, self.chunks],
         )
 
         self.group_list.select(
@@ -1418,12 +1479,22 @@ class FileIndexPage(BasePage):
             )
 
         Source = self._index._resources["Source"]
+        name_pattern = name_pattern.strip()
+        if name_pattern:
+            # Escape SQL LIKE metacharacters so user input is literal substring
+            like_escape = (
+                name_pattern.replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_")
+            )
         with Session(engine) as session:
             statement = select(Source)
             if self._index.config.get("private", False):
                 statement = statement.where(Source.user == user_id)
             if name_pattern:
-                statement = statement.where(Source.name.ilike(f"%{name_pattern}%"))
+                statement = statement.where(
+                    Source.name.ilike(f"%{like_escape}%", escape="\\")
+                )
             results = [
                 {
                     "id": each[0].id,

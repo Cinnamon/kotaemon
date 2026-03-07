@@ -288,18 +288,15 @@ class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
 
     @classmethod
     def get_user_settings(cls) -> dict:
+        settings_dict = dict(GraphRAGIndexingPipeline.get_user_settings())
         try:
             from lightrag.prompt import PROMPTS
 
             blacklist_keywords = ["default", "response", "process"]
-            settings_dict = {
-                "batch_size": {
-                    "name": (
-                        "Index batch size " "(reduce if you have rate limit issues)"
-                    ),
-                    "value": INDEX_BATCHSIZE,
-                    "component": "number",
-                }
+            settings_dict["batch_size"] = {
+                "name": ("Index batch size " "(reduce if you have rate limit issues)"),
+                "value": INDEX_BATCHSIZE,
+                "component": "number",
             }
             settings_dict.update(
                 {
@@ -319,7 +316,7 @@ class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
             return settings_dict
         except ImportError as e:
             print(e)
-            return {}
+            return settings_dict
 
     def call_graphrag_index(self, graph_id: str, docs: list[Document]):
         from lightrag.prompt import PROMPTS
