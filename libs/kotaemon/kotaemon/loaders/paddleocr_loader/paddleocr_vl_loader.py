@@ -1,8 +1,3 @@
-"""PaddleOCRVL document loader and result adapter."""
-
-from __future__ import annotations
-
-from dataclasses import dataclass, field
 from pathlib import Path
 
 from kotaemon.base import Document, Param
@@ -11,149 +6,16 @@ from kotaemon.loaders.base import BaseReader
 from .adapter import PaddleOCRResult
 
 
-@dataclass
-class PaddleOCRVLResult(PaddleOCRResult):
-    """Adapter for PaddleOCRVL results.
-
-    PaddleOCRVL uses vision-language models for OCR with:
-    - Layout detection with polygon points
-    - Merged layout blocks
-    - Better handling of complex layouts
-    """
-
-    text_labels: set[str] = field(
-        default_factory=lambda: {
-            "text",
-            "paragraph_title",
-            "doc_title",
-            "abstract",
-            "content",
-        }
-    )
-    table_labels: set[str] = field(default_factory=lambda: {"table"})
-    figure_labels: set[str] = field(
-        default_factory=lambda: {"chart", "figure", "image"}
-    )
-
-    def to_documents(self) -> list[Document]:
-        """Convert PaddleOCRVL results to Documents."""
-        texts: list[Document] = []
-        tables: list[Document] = []
-        figures: list[Document] = []
-
-        for page_result in self.raw_result:
-            result_dict = page_result.json
-            page_index = result_dict.get("page_index")
-            page_label = (page_index + 1) if page_index is not None else 1
-
-            page_texts, page_tables, page_figures = self._parse_page(
-                result_dict, page_label
-            )
-            texts.extend(page_texts)
-            tables.extend(page_tables)
-            figures.extend(page_figures)
-
-        return texts + tables + figures
-
-    def _parse_page(
-        self,
-        result_dict: dict,
-        page_label: int,
-    ) -> tuple[list[Document], list[Document], list[Document]]:
-        """Parse a single page result from PaddleOCRVL."""
-        parsing_list = result_dict.get("parsing_res_list", [])
-
-        text_blocks: list[str] = []
-        tables: list[Document] = []
-        figures: list[Document] = []
-
-        for block in parsing_list:
-            label = block.get("block_label", "")
-            content = block.get("block_content", "")
-
-            if not content:
-                continue
-
-            bbox = block.get("block_bbox")
-            polygon = block.get("block_polygon_points")
-
-            if label in self.text_labels:
-                text_blocks.append(content)
-
-            elif label in self.table_labels:
-                table_content = self._clean_table_html(content)
-                tables.append(
-                    Document(
-                        text=table_content,
-                        metadata={
-                            "type": "table",
-                            "page_label": page_label,
-                            "table_origin": table_content,
-                            "bbox": bbox,
-                            "polygon": polygon,
-                            "file_name": self.file_name,
-                            "file_path": str(self.file_path),
-                            **self.extra_info,
-                        },
-                    )
-                )
-
-            elif label in self.figure_labels:
-                figures.append(
-                    Document(
-                        text=content,
-                        metadata={
-                            "type": "image",
-                            "page_label": page_label,
-                            "bbox": bbox,
-                            "polygon": polygon,
-                            "file_name": self.file_name,
-                            "file_path": str(self.file_path),
-                            **self.extra_info,
-                        },
-                    )
-                )
-
-        text_docs: list[Document] = []
-        if text_blocks:
-            text_docs.append(
-                Document(
-                    text="\n\n".join(text_blocks),
-                    metadata={
-                        "page_label": page_label,
-                        "file_name": self.file_name,
-                        "file_path": str(self.file_path),
-                        **self.extra_info,
-                    },
-                )
-            )
-
-        return text_docs, tables, figures
-
-
 class PaddleOCRVLReader(BaseReader):
-    """Document reader using PaddleOCR Vision-Language model.
+    """Multilingual document parsing via PaddleOCR-VL-1.5 (0.9B VLM).
 
-    PaddleOCRVL uses vision-language models for enhanced OCR with better
-    understanding of complex document layouts.
-
-    Example:
-        ```python
-        from kotaemon.loaders import PaddleOCRVLReader
-
-        # GPU mode (default)
-        reader = PaddleOCRVLReader()
-        documents = reader.load_data("path/to/image.png")
-
-        # CPU mode
-        reader = PaddleOCRVLReader(device="cpu")
-        ```
-
-    Args:
-        device: Device for inference - "gpu:0", "cpu", "npu:0", "xpu:0"
+    Handles text, tables, formulas, charts, seal recognition, and text spotting.
+    Robust to skew, warping, scanning, lighting, and screen photography.
+    Supports cross-page table merging and paragraph heading recognition.
+    Model: https://huggingface.co/PaddlePaddle/PaddleOCR-VL-1.5
     """
 
-    _dependencies = ["paddleocr"]
+    _dependencies = ["paddleocr[all]"]
 
     device: str = Param(
         "gpu:0",
@@ -239,6 +101,7 @@ class PaddleOCRVLReader(BaseReader):
             "markdown_ignore_labels": self.markdown_ignore_labels,
             "use_queues": self.use_queues,
         }
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
         return PaddleOCRVL(**kwargs)
 
     def run(
@@ -275,10 +138,8 @@ class PaddleOCRVLReader(BaseReader):
 
         raw_result = self.pipeline_.predict(str(file_path))
 
-        result = PaddleOCRVLResult(
+        return PaddleOCRResult(
             raw_result=raw_result,
             file_path=file_path,
             extra_info=extra_info or {},
-        )
-
-        return result.to_documents()
+        ).to_documents()
