@@ -312,49 +312,122 @@ class ChatPagePreviewController:
             file_name,
             file_path,
             page_number,
+            total_pages,
             preview_src,
             preview_notice,
             *self.clear_page_outputs(),
+            {},
         )
 
-    def on_page_change(self, current_page, delta, file_id, file_path):
-        next_page = max(1, int(current_page or 1) + int(delta or 0))
+    def on_page_change(
+        self, current_page, delta, file_id, file_path, page_outputs_cache, total_pages
+    ):
+        if not file_id or not file_path:
+            total_pages = 1
+            next_page = 1
+            preview_src, preview_notice = self._get_pdf_preview_src_and_notice(
+                file_id, file_path, next_page
+            )
+            return (
+                next_page,
+                total_pages,
+                preview_src,
+                preview_notice,
+                *self.clear_page_outputs(),
+            )
+
+        cached_total_pages = self._get_total_pages(file_id, file_path)
+        total_pages = max(
+            int(total_pages or 1),
+            int(cached_total_pages or 1),
+        )
+        next_page = self._clamp_page(
+            int(current_page or 1) + int(delta or 0), total_pages
+        )
         preview_src, preview_notice = self._get_pdf_preview_src_and_notice(
             file_id, file_path, next_page
         )
         return (
             next_page,
+            total_pages,
             preview_src,
             preview_notice,
-            *self.clear_page_outputs(),
+            *self.get_cached_page_outputs(page_outputs_cache, next_page),
         )
 
-    def on_prev_page(self, current_page, file_id, file_path):
-        return self.on_page_change(current_page, -1, file_id, file_path)
+    def on_prev_page(
+        self, current_page, file_id, file_path, page_outputs_cache, total_pages
+    ):
+        return self.on_page_change(
+            current_page, -1, file_id, file_path, page_outputs_cache, total_pages
+        )
 
-    def on_next_page(self, current_page, file_id, file_path):
-        return self.on_page_change(current_page, 1, file_id, file_path)
+    def on_next_page(
+        self, current_page, file_id, file_path, page_outputs_cache, total_pages
+    ):
+        return self.on_page_change(
+            current_page, 1, file_id, file_path, page_outputs_cache, total_pages
+        )
 
-    def on_page_set(self, current_page, file_id, file_path):
-        next_page = max(1, int(current_page or 1))
+    def on_page_set(
+        self, current_page, file_id, file_path, page_outputs_cache, total_pages
+    ):
+        if not file_id or not file_path:
+            total_pages = 1
+            next_page = 1
+            preview_src, preview_notice = self._get_pdf_preview_src_and_notice(
+                file_id, file_path, next_page
+            )
+            return (
+                next_page,
+                total_pages,
+                preview_src,
+                preview_notice,
+                *self.clear_page_outputs(),
+            )
+
+        cached_total_pages = self._get_total_pages(file_id, file_path)
+        total_pages = max(
+            int(total_pages or 1),
+            int(cached_total_pages or 1),
+        )
+        next_page = self._clamp_page(current_page, total_pages)
         preview_src, preview_notice = self._get_pdf_preview_src_and_notice(
             file_id, file_path, next_page
         )
         return (
             next_page,
+            total_pages,
             preview_src,
             preview_notice,
-            *self.clear_page_outputs(),
+            *self.get_cached_page_outputs(page_outputs_cache, next_page),
         )
 
     def refresh_selected_file_preview(
-        self, first_selector_choices, selected_file_ids, current_page
+        self, first_selector_choices, selected_file_ids, current_page, total_pages
     ):
         file_id, file_name, file_path = self.resolve_pdf_source(
             first_selector_choices, selected_file_ids
         )
-        page_number = max(1, int(current_page or 1))
+        if not file_id or not file_path:
+            return file_id, file_name, file_path, 1, 1, "", (
+                "<div class='pdf-preview-notice'>Select a PDF file to preview.</div>"
+            )
+        cached_total_pages = self._get_total_pages(file_id, file_path)
+        total_pages = max(
+            int(total_pages or 1),
+            int(cached_total_pages or 1),
+        )
+        page_number = self._clamp_page(current_page, total_pages)
         preview_src, preview_notice = self._get_pdf_preview_src_and_notice(
             file_id, file_path, page_number
         )
-        return file_id, file_name, file_path, page_number, preview_src, preview_notice
+        return (
+            file_id,
+            file_name,
+            file_path,
+            page_number,
+            total_pages,
+            preview_src,
+            preview_notice,
+        )
