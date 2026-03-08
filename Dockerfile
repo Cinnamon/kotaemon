@@ -58,11 +58,6 @@ ENTRYPOINT ["sh", "/app/launch.sh"]
 # Full version
 FROM lite AS full
 
-# Build device: cpu or gpu. Use at build time for torch/paddle backend choice.
-# Example: docker build --build-arg BUILD_DEVICE=gpu ...
-ARG BUILD_DEVICE=cpu
-ENV BUILD_DEVICE=${BUILD_DEVICE}
-
 # Additional dependencies for full version
 RUN apt-get update -qqy && \
     apt-get install -y --no-install-recommends \
@@ -76,16 +71,10 @@ RUN apt-get update -qqy && \
         && \
     apt-get autoremove && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Torch: CPU or GPU based on BUILD_DEVICE
+# Install torch and torchvision for unstructured
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/uv  \
-    if [ "$BUILD_DEVICE" = "gpu" ]; then \
-        uv pip install --python .venv torch torchvision torchaudio \
-            --index-url https://download.pytorch.org/whl/cu121; \
-    else \
-        uv pip install --python .venv torch torchvision torchaudio \
-            --index-url https://download.pytorch.org/whl/cpu; \
-    fi
+    uv pip install --python .venv torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
 # Install additional pip packages (adv + unstructured)
 RUN --mount=type=ssh  \
@@ -93,30 +82,31 @@ RUN --mount=type=ssh  \
     uv pip install --python .venv "libs/kotaemon[adv]" \
     && uv pip install --python .venv unstructured[all-docs]
 
-# Paddle backend first (CPU or GPU from BUILD_DEVICE), then PaddleOCR (order per upstream docs)
-RUN --mount=type=ssh  \
-    --mount=type=cache,target=/root/.cache/uv  \
-    if [ "$BUILD_DEVICE" = "gpu" ]; then \
-        uv pip install --python .venv paddlepaddle-gpu==3.3.0 \
-            -i https://www.paddlepaddle.org.cn/packages/stable/cu130/; \
-    else \
-        uv pip install --python .venv paddlepaddle; \
-    fi
-
-# Optional readers via extras (docling); paddleocr after backend above to avoid pulling default paddle
-RUN --mount=type=ssh  \
-    --mount=type=cache,target=/root/.cache/uv  \
-    uv pip install --python .venv "libs/kotaemon[docling]" \
-    && uv pip install --python .venv paddleocr[all]
-
 # Download NLTK data from LlamaIndex
 RUN /app/.venv/bin/python -c "from llama_index.core.readers.base import BaseReader"
 
-# RAG: lightRAG via extra
+# Optional reader: docling
+RUN --mount=type=ssh  \
+    --mount=type=cache,target=/root/.cache/uv  \
+    uv pip install --python .venv "libs/kotaemon[docling]"
+
+# Optional RAG: lightRAG
 ENV USE_LIGHTRAG=true
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/uv  \
     uv pip install --python .venv "libs/kotaemon[lightrag]"
+
+ENTRYPOINT ["sh", "/app/launch.sh"]
+
+# PaddleOCR version (GPU-only)
+FROM full AS paddle
+
+# Install paddlepaddle and paddleocr
+RUN --mount=type=ssh  \
+    --mount=type=cache,target=/root/.cache/uv  \
+    uv pip install --python .venv paddlepaddle-gpu==3.3.0 \
+        -i https://www.paddlepaddle.org.cn/packages/stable/cu130/ \
+    && uv pip install --python .venv "libs/kotaemon[paddleocr]"
 
 ENTRYPOINT ["sh", "/app/launch.sh"]
 
