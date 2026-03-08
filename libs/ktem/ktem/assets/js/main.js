@@ -17,7 +17,6 @@ function run() {
   let lastPostedPageDocKey = globalThis._ktemLastPostedPageDocKey || "";
   let lastPostedPageNumber = globalThis._ktemLastPostedPageNumber || 0;
   let lastNonEmptyPreviewSrcTs = globalThis._ktemLastNonEmptyPreviewSrcTs || 0;
-  let lastPreviewFlowLog = "";
 
   function parsePreviewFitMode(src) {
     try {
@@ -216,31 +215,6 @@ function run() {
     }
   }
 
-  function shortSrc(src) {
-    const value = (src || "").trim();
-    if (!value) {
-      return "";
-    }
-    return value.length > 180 ? `${value.slice(0, 180)}...` : value;
-  }
-
-  function logPreviewFlow(stage, payload = {}) {
-    try {
-      const normalized = {
-        stage,
-        ...payload,
-      };
-      const key = JSON.stringify(normalized);
-      if (key === lastPreviewFlowLog) {
-        return;
-      }
-      lastPreviewFlowLog = key;
-      console.log("[preview-flow]", normalized);
-    } catch (error) {
-      console.log("[preview-flow]", { stage });
-    }
-  }
-
   function ensureOfficeZoomControl() {
     if (officeZoomControl) {
       return;
@@ -348,15 +322,6 @@ function run() {
 
     let nextSrc = (srcField?.value || "").trim();
     const currentIframeSrc = (iframe.getAttribute("src") || "").trim();
-    logPreviewFlow("input", {
-      currentPage,
-      nextSrc: shortSrc(nextSrc),
-      currentIframeSrc: shortSrc(currentIframeSrc),
-      lastStable: shortSrc(lastStablePreviewSrc),
-      lastAssigned: shortSrc(lastAssignedPreviewSrc),
-      sinceLastNonEmptyMs: lastNonEmptyPreviewSrcTs ? Date.now() - lastNonEmptyPreviewSrcTs : null,
-    });
-
     if (!nextSrc) {
       // Gradio can transiently clear hidden field values during rerenders.
       // Keep rendering the last stable preview source instead of blanking UI.
@@ -365,12 +330,9 @@ function run() {
         lastNonEmptyPreviewSrcTs > 0 && now - lastNonEmptyPreviewSrcTs < 1200;
       if (withinGraceWindow && lastStablePreviewSrc) {
         nextSrc = lastStablePreviewSrc;
-        logPreviewFlow("fallback-last-stable", { nextSrc: shortSrc(nextSrc) });
       } else if (withinGraceWindow && currentIframeSrc) {
         nextSrc = currentIframeSrc;
-        logPreviewFlow("fallback-current-iframe", { nextSrc: shortSrc(nextSrc) });
       } else {
-        logPreviewFlow("empty-reset", {});
         isOfficePreview = false;
         setOfficeZoomControlVisible(false);
         iframe.style.display = "none";
@@ -411,17 +373,12 @@ function run() {
       (nextSrc === lastPreviewSrc || normalizedNextSrc === lastAssignedPreviewSrc) &&
       normalizedCurrentSrc === normalizedNextSrc
     ) {
-      logPreviewFlow("no-change", {
-        nextSrc: shortSrc(nextSrc),
-        normalizedNextSrc: shortSrc(normalizedNextSrc),
-      });
       return;
     }
     lastPreviewSrc = nextSrc;
     globalThis._ktemLastPreviewSrc = nextSrc;
 
     if (!isLikelyPreviewSrc(nextSrc)) {
-      logPreviewFlow("blocked-invalid-src", { nextSrc: shortSrc(nextSrc) });
       isOfficePreview = false;
       setOfficeZoomControlVisible(false);
       iframe.style.display = "none";
@@ -435,19 +392,7 @@ function run() {
     }
 
     const isImage = nextSrc.startsWith("data:image") || /\.(png|jpg|jpeg|gif|webp|svg)(\?|#|$)/i.test(nextSrc);
-    logPreviewFlow("classify", {
-      nextSrc: shortSrc(nextSrc),
-      inlineHtmlPreview,
-      dataHtmlPreview,
-      passthroughPreview,
-      isImage,
-      sameDoc,
-      chosenPage,
-      desiredPage,
-      normalizedNextSrc: shortSrc(normalizedNextSrc),
-    });
     if (isImage) {
-      logPreviewFlow("render-image", { nextSrc: shortSrc(nextSrc) });
       isOfficePreview = false;
       setOfficeZoomControlVisible(false);
       iframe.removeAttribute("srcdoc");
@@ -459,10 +404,6 @@ function run() {
     }
 
     if (inlineHtmlPreview || dataHtmlPreview) {
-      logPreviewFlow("render-html-preview", {
-        mode: inlineHtmlPreview ? "inline-html" : "data-html",
-        nextSrc: shortSrc(nextSrc),
-      });
       isOfficePreview = false;
       setOfficeZoomControlVisible(false);
       image.style.display = "none";
@@ -514,10 +455,6 @@ function run() {
 
     // Avoid iframe reload flicker when switching pages within the same document.
     if (sameDoc && iframe.contentWindow) {
-      logPreviewFlow("same-doc-post-message", {
-        desiredPage,
-        nextDocKey: shortSrc(nextDocKey),
-      });
       postPageChangeIfNeeded(iframe, desiredPage, nextDocKey, false);
       if (normalizedNextSrc) {
         updateLastAssignedPreviewSrc(normalizedNextSrc);
@@ -534,12 +471,6 @@ function run() {
       return;
     }
     updateLastPostedPageSync("", 0);
-    logPreviewFlow("assign-pdf-src", {
-      nextSrc: shortSrc(nextSrc),
-      normalizedNextSrc: shortSrc(normalizedNextSrc),
-      desiredPage,
-      fitMode: parsePreviewFitMode(nextSrc),
-    });
     iframe.src = nextSrc;
     updateLastAssignedPreviewSrc(nextSrc);
     if (nextSrc) {

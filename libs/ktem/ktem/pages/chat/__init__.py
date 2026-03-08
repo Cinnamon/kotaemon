@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 import re
 from copy import deepcopy
@@ -44,12 +45,13 @@ from .report import ReportIssue
 KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
 KH_WEB_SEARCH_BACKEND = getattr(flowsettings, "KH_WEB_SEARCH_BACKEND", None)
+logger = logging.getLogger(__name__)
 WebSearch = None
 if KH_WEB_SEARCH_BACKEND:
     try:
         WebSearch = import_dotted_string(KH_WEB_SEARCH_BACKEND, safe=False)
     except (ImportError, AttributeError) as e:
-        print(f"Error importing {KH_WEB_SEARCH_BACKEND}: {e}")
+        logger.warning("Error importing %s: %s", KH_WEB_SEARCH_BACKEND, e)
 
 REASONING_LIMITS = 2 if KH_DEMO_MODE else 10
 DEFAULT_SETTING = "(default)"
@@ -70,7 +72,6 @@ function() {
 quick_urls_submit_js = """
 function() {
     let urlInput = document.querySelector("#quick-url-demo textarea");
-    console.log("URL input:", urlInput);
     urlInput.dispatchEvent(new KeyboardEvent('keypress', {'key': 'Enter'}));
 }
 """
@@ -84,7 +85,6 @@ function() {
         event.preventDefault();
         var target = event.currentTarget;
         var url = target.getAttribute("href");
-        console.log("URL:", url);
 
         let newChatButton = document.querySelector("#new-conv-button");
         newChatButton.click();
@@ -194,7 +194,6 @@ function() {
 fetch_api_key_js = """
 function(_, __) {
     api_key = getStorage('google_api_key', '');
-    console.log('session API key:', api_key);
     return [api_key, _];
 }
 """
@@ -1221,7 +1220,7 @@ class ChatPage(BasePage):
         """Submit a message to the chatbot"""
         if KH_DEMO_MODE:
             sso_user_id = check_rate_limit("chat", request)
-            print("User ID:", sso_user_id)
+            logger.debug("User ID: %s", sso_user_id)
 
         if not chat_input:
             raise ValueError("Input is empty")
@@ -1245,7 +1244,7 @@ class ChatPage(BasePage):
         urls, chat_input_text = get_urls(chat_input_text)
 
         if urls and self.first_indexing_url_fn:
-            print("Detected URLs", urls)
+            logger.debug("Detected URLs: %s", urls)
             file_ids = self.first_indexing_url_fn(
                 "\n".join(urls),
                 True,
@@ -1450,7 +1449,6 @@ class ChatPage(BasePage):
             plot_history = plot_history + [plot_data]
         else:
             if retrival_history:
-                print("Updating retrieval history (regen=True)")
                 retrival_history[-1] = retrieval_msg
                 plot_history[-1] = plot_data
 
@@ -1586,24 +1584,12 @@ class ChatPage(BasePage):
             - the pipeline objects
         """
         # override reasoning_mode by temporary chat page state
-        print(
-            "Session reasoning type",
-            session_reasoning_type,
-            "use mindmap",
-            session_use_mindmap,
-            "use citation",
-            session_use_citation,
-            "language",
-            session_language,
-        )
-        print("Session LLM", session_llm)
         reasoning_mode = (
             settings["reasoning.use"]
             if session_reasoning_type in (DEFAULT_SETTING, None)
             else session_reasoning_type
         )
         reasoning_cls = reasonings[reasoning_mode]
-        print("Reasoning class", reasoning_cls)
         reasoning_id = reasoning_cls.get_info()["id"]
 
         settings = deepcopy(settings)
@@ -1738,7 +1724,6 @@ class ChatPage(BasePage):
             selected_page_text,
             *selecteds,
         )
-        print("Reasoning state", reasoning_state)
         pipeline.set_output_queue(queue)
 
         text, refs, plot, plot_gr = "", "", None, gr.update(visible=False)
@@ -1746,7 +1731,6 @@ class ChatPage(BasePage):
         msg_placeholder = getattr(
             flowsettings, "KH_CHAT_MSG_PLACEHOLDER", "Thinking ..."
         )
-        print(msg_placeholder)
         yield (
             chat_history + [(chat_input, text or msg_placeholder)],
             mindmap_html,
@@ -1795,13 +1779,12 @@ class ChatPage(BasePage):
                     text,
                 )
         except ValueError as e:
-            print(e)
+            logger.warning("Chat pipeline ValueError: %s", e)
 
         if not text:
             empty_msg = getattr(
                 flowsettings, "KH_CHAT_EMPTY_MSG_PLACEHOLDER", "(Sorry, I don't know)"
             )
-            print(f"Generate nothing: {empty_msg}")
             yield (
                 chat_history + [(chat_input, text or empty_msg)],
                 mindmap_html,

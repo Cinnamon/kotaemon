@@ -119,7 +119,6 @@ class FullQAPipeline(BaseReasoning):
         #     query = self.add_query_context(message, history).content
         # else:
         #     query = message
-        # print(f"Rewritten query: {query}")
         query = None
         if not query:
             # TODO: previously return [], [] because we think this message as something
@@ -297,7 +296,7 @@ class FullQAPipeline(BaseReasoning):
             try:
                 citation_plot = self.create_citation_viz_pipeline(doc_texts, question)
             except Exception as e:
-                print("Failed to create citation plot:", e)
+                logger.warning("Failed to create citation plot: %s", e)
 
             if citation_plot:
                 plot = to_json(citation_plot)
@@ -367,14 +366,9 @@ class FullQAPipeline(BaseReasoning):
         self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Generator[Document, None, Document]:
         if self.use_rewrite and self.rewrite_pipeline:
-            print("Chosen rewrite pipeline", self.rewrite_pipeline)
             message = self.rewrite_pipeline(question=message).text
-            print("Rewrite result", message)
-
-        print(f"Retrievers {self.retrievers}")
         # should populate the context
         docs, infos = self.retrieve(message, history)
-        print(f"Got {len(docs)} retrieved documents")
         yield from infos
 
         evidence_mode, evidence, images = self.evidence_pipeline(docs).content
@@ -583,7 +577,6 @@ class FullDecomposeQAPipeline(FullQAPipeline):
             )
             # should populate the context
             docs, infos = self.retrieve(message, history)
-            print(f"Got {len(docs)} retrieved documents")
 
             yield from infos
 
@@ -609,9 +602,7 @@ class FullDecomposeQAPipeline(FullQAPipeline):
     ) -> Generator[Document, None, Document]:
         sub_question_answer_output = ""
         if self.rewrite_pipeline:
-            print("Chosen rewrite pipeline", self.rewrite_pipeline)
             result = self.rewrite_pipeline(question=message)
-            print("Rewrite result", result)
             if isinstance(result, Document):
                 message = result.text
             elif (
@@ -634,7 +625,6 @@ class FullDecomposeQAPipeline(FullQAPipeline):
 
         # should populate the context
         docs, infos = self.retrieve(message, history)
-        print(f"Got {len(docs)} retrieved documents")
         yield from infos
 
         evidence_mode, evidence, images = self.evidence_pipeline(docs).content

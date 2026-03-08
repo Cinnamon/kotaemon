@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from pathlib import Path
 import shutil
@@ -31,6 +32,7 @@ MINDMAP_PLACEHOLDER_HTML = (
     "</div>"
 )
 ANSWER_PLACEHOLDER_TEXT = "Ask a question about the current page to generate an answer."
+logger = logging.getLogger(__name__)
 
 
 class ChatPagePreviewController:
@@ -835,7 +837,7 @@ class ChatPagePreviewController:
                 page_map[page_key] = rendered_pages[0]
                 return rendered_pages[0]
         except Exception as exc:
-            print(f"Failed to render page preview: {exc}")
+            logger.warning("Failed to render page preview: %s", exc)
 
         page_map[page_key] = ""
         return ""
@@ -858,7 +860,7 @@ class ChatPagePreviewController:
         try:
             return max(1, len(PdfReader(pdf_path, strict=False).pages))
         except Exception as exc:
-            print(f"Failed to read PDF total pages from {pdf_path}: {exc}")
+            logger.warning("Failed to read PDF total pages from %s: %s", pdf_path, exc)
             return fallback
 
     def _get_office_job_status(self, file_path: str) -> str:
@@ -1147,17 +1149,19 @@ class ChatPagePreviewController:
                 stderr_msg = (result.stderr or "").strip()
                 stdout_msg = (result.stdout or "").strip()
                 if stderr_msg or stdout_msg:
-                    print(
+                    logger.warning(
                         "LibreOffice conversion finished without output file. "
                         f"stdout={stdout_msg[:500]} stderr={stderr_msg[:500]}"
                     )
             except Exception as exc:
-                print(
+                logger.warning(
                     "Failed to convert office file to PDF preview via soffice: "
                     f"{repr(exc)}"
                 )
         else:
-            print("LibreOffice soffice binary not found. Skipping soffice conversion.")
+            logger.info(
+                "LibreOffice soffice binary not found. Skipping soffice conversion."
+            )
 
         # Windows/macOS fallback for docx conversion when LibreOffice isn't available.
         if ext in {".docx", ".doc"}:
@@ -1174,7 +1178,7 @@ class ChatPagePreviewController:
                             pass
                     return output_pdf
             except Exception as exc:
-                print(
+                logger.warning(
                     "Failed to convert office file to PDF preview via docx2pdf: "
                     f"{repr(exc)}"
                 )
@@ -1254,7 +1258,7 @@ class ChatPagePreviewController:
                     )
                     self._office_pdf_job_ts[job_key] = time.time()
             except Exception as exc:
-                print(f"Background office->pdf conversion failed: {exc}")
+                logger.warning("Background office->pdf conversion failed: %s", exc)
                 with self._office_pdf_job_lock:
                     self._office_pdf_job_status[job_key] = "failed"
                     self._office_pdf_job_ts[job_key] = time.time()
