@@ -918,7 +918,9 @@ class ChatPage(BasePage):
             indexed_file_ids = [
                 first_selector_choices_map.get(file_name) for file_name in file_names
             ]
-            file_ids.extend(indexed_file_ids)
+            file_ids.extend(
+                [file_id for file_id in indexed_file_ids if file_id is not None]
+            )
 
         # get all urls in input_str
         urls, chat_input_text = get_urls(chat_input_text)

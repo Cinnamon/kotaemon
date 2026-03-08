@@ -538,7 +538,9 @@ class FileIndexPage(BasePage):
             gr.update(visible=visible),
             gr.update(visible=visible),
             gr.update(value=header_md, visible=visible),
-            gr.update(visible=visible),
+            gr.update(
+                value="all", visible=visible
+            ),  # reset the filter to all when a file is selected
         )
 
     def delete_event(self, file_id):

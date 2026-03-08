@@ -141,8 +141,6 @@ class PaddleOCRResult:
             tables.extend(page_tables)
             figures.extend(page_figures)
 
-        print("Extract Figures:", figures)
-
         return texts + tables + figures
 
     def _parse_page(
