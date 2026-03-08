@@ -17,10 +17,10 @@ if TYPE_CHECKING:
     from pytest_mock.plugin import MockerFixture
 
 
-def _make_page_result(json_dict: dict) -> MagicMock:
-    """Build a mock page result with a .json attribute."""
+def _make_page_result(inner_dict: dict) -> MagicMock:
+    """Build a mock page result with .json['res'] as used by the adapter."""
     page = MagicMock()
-    page.json = json_dict
+    page.json = {"res": inner_dict}
     return page
 
 

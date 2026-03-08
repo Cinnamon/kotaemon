@@ -136,6 +136,11 @@ class PaddleOCRVLReader(BaseReader):
                 f"Supported: {self.supported_file_types}"
             )
 
+        # Force dynamic graph mode to avoid int(Tensor) in static mode (paddlex)
+        import paddle
+
+        paddle.disable_static()
+
         raw_result = self.pipeline_.predict(str(file_path))
 
         return PaddleOCRResult(
