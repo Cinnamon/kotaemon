@@ -110,6 +110,7 @@ def test_to_documents_skips_empty_content() -> None:
 # ---------------------------------------------------------------------------
 
 
+@skip_when_paddleocr_not_installed
 def test_ppstructure_v3_unsupported_file_type_raises() -> None:
     """load_data raises ValueError for unsupported extension."""
     from kotaemon.loaders import PPStructureV3Reader
@@ -129,6 +130,7 @@ def test_ppstructure_v3_supported_file_types_attribute() -> None:
     assert ".png" in reader.supported_file_types
 
 
+@skip_when_paddleocr_not_installed
 def test_ppstructure_v3_load_data_with_mocked_pipeline(
     mocker: MockerFixture,
 ) -> None:
@@ -170,6 +172,7 @@ def test_ppstructure_v3_load_data_with_mocked_pipeline(
 # ---------------------------------------------------------------------------
 
 
+@skip_when_paddleocr_not_installed
 def test_paddleocr_vl_unsupported_file_type_raises() -> None:
     """load_data raises ValueError for unsupported extension."""
     from kotaemon.loaders import PaddleOCRVLReader
@@ -189,6 +192,7 @@ def test_paddleocr_vl_supported_file_types_attribute() -> None:
     assert ".png" in reader.supported_file_types
 
 
+@skip_when_paddleocr_not_installed
 def test_paddleocr_vl_load_data_with_mocked_pipeline(
     mocker: MockerFixture,
 ) -> None:
