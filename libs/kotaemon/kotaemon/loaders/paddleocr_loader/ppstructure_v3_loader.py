@@ -233,8 +233,6 @@ class PPStructureV3Reader(BaseReader):
             )
 
         raw_result = self.pipeline_.predict(str(file_path))
-        print("WTFFFF", file_path)
-        print("WTFFFF", raw_result)
 
         return PaddleOCRResult(
             raw_result=raw_result,
