@@ -154,7 +154,7 @@ class ChatPagePreviewController:
         encoded_pdf_src = quote(pdf_src, safe="")
         query = (
             f"embed=1&disablehistory=true&sidebarviewonload=0"
-            f"&ktempage={max(1, int(page or 1))}&ktemv=10&ktemfit={quote(fit_mode or 'pdf', safe='')}"
+            f"&ktempage={max(1, int(page or 1))}&ktemv=11&ktemfit={quote(fit_mode or 'pdf', safe='')}"
             f"&file={encoded_pdf_src}"
         )
         return f"{BASE_PATH}/file={normalized_viewer_path}?{query}"

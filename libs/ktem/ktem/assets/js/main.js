@@ -877,6 +877,11 @@ function run() {
         return;
       }
 
+      if (event.data?.type === "ktem-office-diagnostics") {
+        console.log("[office-preview-diag][parent]", event.data.payload || null);
+        return;
+      }
+
       if (event.data?.type === "ktem-pdf-zoom-updated") {
         if (isOfficePreview) {
           const zoom = parseFloat(event.data.zoom || "");
