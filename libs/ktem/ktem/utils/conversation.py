@@ -1,6 +1,28 @@
 import re
 
 
+def _normalize_mention(raw_mention: str) -> str:
+    mention = raw_mention.strip()
+    if mention.startswith('"') and mention.endswith('"'):
+        mention = mention[1:-1].strip()
+    return mention
+
+
+def format_mentions_for_display(input_str: str) -> str:
+    """Normalize and bold @ mentions for chat display."""
+    mention_pattern = r'(?:(?<=\s)|^)@(?:"[^"]+"|WebSearch)'
+
+    def _replace(match: re.Match[str]) -> str:
+        raw_match = match.group(0)
+        raw_mention = raw_match[1:]
+        mention = _normalize_mention(raw_mention)
+        if not mention:
+            return raw_match
+        return f"**@{mention}**"
+
+    return re.sub(mention_pattern, _replace, input_str)
+
+
 def sync_retrieval_n_message(
     messages: list[list[str]],
     retrievals: list[str],
@@ -19,11 +41,18 @@ def sync_retrieval_n_message(
     return retrievals
 
 
-def get_file_names_regex(input_str: str) -> tuple[list[str], str]:
-    # get all file names with pattern @"filename" in input_str
+def get_mentions_regex(input_str: str) -> tuple[list[str], str]:
+    # get mentions with pattern @"filename" or @WebSearch in input_str
     # also remove these file names from input_str
-    pattern = r'@"([^"]*)"'
-    matches = re.findall(pattern, input_str)
+    pattern = r"(?:(?<=\s)|^)@(?:(\"[^\"]+\")|(WebSearch))"
+    matches_raw = re.findall(pattern, input_str)
+    matches = []
+    for quoted, web in matches_raw:
+        raw_mention = quoted if quoted else web
+        mention = _normalize_mention(raw_mention)
+        if mention:
+            matches.append(mention)
+
     input_str = re.sub(pattern, "", input_str).strip()
 
     return matches, input_str

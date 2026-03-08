@@ -1,1 +1,1 @@
-WEB_SEARCH_COMMAND = "web"
+WEB_SEARCH_COMMAND = "WebSearch"

@@ -41,6 +41,8 @@ from kotaemon.indices.ingests.files import (
     adobe_reader,
     azure_reader,
     docling_reader,
+    paddle_struct_reader,
+    paddle_vl_reader,
     unstructured,
     web_reader,
 )
@@ -680,6 +682,28 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
             readers[".pdf"] = azure_reader
         elif self.reader_mode == "docling":
             readers[".pdf"] = docling_reader
+        elif self.reader_mode == "paddle-struct":
+            readers.update(
+                {
+                    ".pdf": paddle_struct_reader,
+                    ".png": paddle_struct_reader,
+                    ".jpeg": paddle_struct_reader,
+                    ".jpg": paddle_struct_reader,
+                    ".tiff": paddle_struct_reader,
+                    ".tif": paddle_struct_reader,
+                }
+            )
+        elif self.reader_mode == "paddle-vl":
+            readers.update(
+                {
+                    ".pdf": paddle_vl_reader,
+                    ".png": paddle_vl_reader,
+                    ".jpeg": paddle_vl_reader,
+                    ".jpg": paddle_vl_reader,
+                    ".tiff": paddle_vl_reader,
+                    ".tif": paddle_vl_reader,
+                }
+            )
 
         dev_readers, _, _ = dev_settings()
         readers.update(dev_readers)
@@ -700,6 +724,11 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                         "azure-di",
                     ),
                     ("Docling (figure+table extraction)", "docling"),
+                    (
+                        "PaddleOCR PPStructureV3 (table+figure extraction)",
+                        "paddle-struct",
+                    ),
+                    ("PaddleOCR-VL (VLM document parsing)", "paddle-vl"),
                 ],
                 "component": "dropdown",
             },
