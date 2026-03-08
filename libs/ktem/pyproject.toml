@@ -32,6 +32,7 @@ dependencies = [
     "markdown>=3.6,<4",
     "tzlocal>=5.0",
     "mcp>=1.0.0",
+    "docx2pdf>=0.1.8,<0.2",
 ]
 authors = [
     { name = "@trducng", email = "john@cinnamon.is" },

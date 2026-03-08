@@ -100,6 +100,10 @@ button.selected {
   overflow: hidden;
 }
 
+#main-pdf-preview-src {
+  display: none !important;
+}
+
 #main-pdf-preview > div,
 #main-pdf-preview > div > div,
 #main-pdf-preview .prose {

@@ -541,6 +541,26 @@ class ChatPage(BasePage):
                 js=pdfview_js,
             )
 
+        self.chat_panel.preview_refresh_timer.tick(
+            fn=self.page_preview.on_preview_tick,
+            inputs=[
+                self._active_file_id,
+                self._active_file_name,
+                self._active_file_path,
+                self.chat_panel.page_number,
+                self._active_file_total_pages,
+                self.chat_panel.pdf_preview_src,
+                self.chat_panel.pdf_preview_notice,
+            ],
+            outputs=[
+                self.chat_panel.page_number,
+                self._active_file_total_pages,
+                self.chat_panel.pdf_preview_src,
+                self.chat_panel.pdf_preview_notice,
+            ],
+            show_progress="hidden",
+        )
+
         self.chat_panel.prev_page_btn.click(
             fn=self.page_preview.on_prev_page,
             inputs=[
@@ -1607,8 +1627,9 @@ class ChatPage(BasePage):
 
         pipeline = reasoning_cls.get_pipeline(settings, reasoning_state, retrievers)
         pipeline.active_file_name = active_file_name
-        pipeline.page_number = max(1, int(page_number or 1))
-        pipeline.selected_text = (selected_page_text or "").strip()
+        is_pdf_file = (active_file_name or "").lower().endswith(".pdf")
+        pipeline.page_number = max(1, int(page_number or 1)) if is_pdf_file else None
+        pipeline.selected_text = (selected_page_text or "").strip() if is_pdf_file else ""
 
         return pipeline, reasoning_state
 

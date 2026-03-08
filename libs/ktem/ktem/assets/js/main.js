@@ -1,12 +1,158 @@
 function run() {
-  let answerPanelObserver = null;
-  let previewSrcPoller = null;
-  let lastPreviewSrc = null;
+  let answerPanelObserver = globalThis._ktemAnswerPanelObserver || null;
+  let previewSrcPoller = globalThis._ktemPreviewSrcPoller || null;
+  let lastPreviewSrc = globalThis._ktemLastPreviewSrc || null;
   let selectionPromptBox = null;
   let selectionPromptInput = null;
   let selectionPromptAsk = null;
   let selectionPromptClose = null;
   let currentSelectedPageText = "";
+  let officeZoomControl = null;
+  let officeZoomSlider = null;
+  let officeZoomLabel = null;
+  let isOfficePreview = false;
+  let iframeLoadWatchdog = null;
+
+  function parsePreviewFitMode(src) {
+    try {
+      let url = new URL(src, window.location.origin);
+      return (url.searchParams.get("ktemfit") || "pdf").toLowerCase();
+    } catch (error) {
+      return "pdf";
+    }
+  }
+
+  function getPreviewFamily(src) {
+    const value = (src || "").trim();
+    if (!value) {
+      return "empty";
+    }
+    if (value.startsWith("data:image") || /\.(png|jpg|jpeg|gif|webp|svg)(\?|#|$)/i.test(value)) {
+      return "image";
+    }
+    if (value.startsWith("data:text/html")) {
+      return "office-html";
+    }
+    const fitMode = parsePreviewFitMode(value);
+    if (fitMode === "office") {
+      return "office-pdf";
+    }
+    if (fitMode === "pdf") {
+      return "pdf-viewer";
+    }
+    return "other";
+  }
+
+  function replacePreviewIframe() {
+    const currentIframe = document.getElementById("main-pdf-preview-frame");
+    if (!currentIframe || !currentIframe.parentNode) {
+      return currentIframe;
+    }
+
+    const nextIframe = currentIframe.cloneNode(false);
+    nextIframe.removeAttribute("src");
+    nextIframe.style.display = "block";
+    nextIframe.style.width = "100%";
+    nextIframe.style.height = "100%";
+    currentIframe.parentNode.replaceChild(nextIframe, currentIframe);
+    return nextIframe;
+  }
+
+  function scorePreviewSrc(src) {
+    const value = (src || "").trim();
+    if (!value) {
+      return 0;
+    }
+
+    if (value.startsWith("data:image") || /\.(png|jpg|jpeg|gif|webp|svg)(\?|#|$)/i.test(value)) {
+      return 100;
+    }
+
+    if (value.startsWith("data:text/html")) {
+      return 200;
+    }
+
+    const fitMode = parsePreviewFitMode(value);
+    if (fitMode === "office") {
+      return 500;
+    }
+    if (fitMode === "pdf") {
+      return 450;
+    }
+
+    if (/\.pdf(\?|#|$)/i.test(value)) {
+      return 400;
+    }
+
+    return 250;
+  }
+
+  function ensureOfficeZoomControl() {
+    if (officeZoomControl) {
+      return;
+    }
+    const shell = document.querySelector("#main-pdf-preview .pdf-preview-shell");
+    if (!shell) {
+      return;
+    }
+
+    officeZoomControl = document.createElement("div");
+    officeZoomControl.id = "ktem-office-zoom-control";
+    officeZoomControl.style.position = "absolute";
+    officeZoomControl.style.right = "10px";
+    officeZoomControl.style.bottom = "10px";
+    officeZoomControl.style.zIndex = "10";
+    officeZoomControl.style.display = "none";
+    officeZoomControl.style.alignItems = "center";
+    officeZoomControl.style.gap = "8px";
+    officeZoomControl.style.padding = "6px 8px";
+    officeZoomControl.style.borderRadius = "10px";
+    officeZoomControl.style.background = "rgba(255,255,255,0.95)";
+    officeZoomControl.style.border = "1px solid var(--border-color-primary,#d4d4d8)";
+    officeZoomControl.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+    officeZoomControl.innerHTML = `
+      <span style="font-size:12px;color:#111827;white-space:nowrap;">Zoom</span>
+      <input id="ktem-office-zoom-slider" type="range" min="35" max="250" step="5" value="100" style="width:140px;accent-color:#2563eb;" />
+      <span id="ktem-office-zoom-label" style="font-size:12px;min-width:42px;text-align:right;color:#111827;">100%</span>
+    `;
+    shell.appendChild(officeZoomControl);
+
+    officeZoomSlider = officeZoomControl.querySelector("#ktem-office-zoom-slider");
+    officeZoomLabel = officeZoomControl.querySelector("#ktem-office-zoom-label");
+    if (officeZoomSlider) {
+      officeZoomSlider.addEventListener("input", () => {
+        const iframe = document.getElementById("main-pdf-preview-frame");
+        if (!iframe || !iframe.contentWindow || !isOfficePreview) {
+          return;
+        }
+        const zoomValue = parseInt(officeZoomSlider.value || "100", 10);
+        if (officeZoomLabel) {
+          officeZoomLabel.textContent = `${zoomValue}%`;
+        }
+        iframe.contentWindow.postMessage(
+          { type: "ktem-pdf-zoom-set", zoom: zoomValue / 100 },
+          window.location.origin
+        );
+      });
+    }
+  }
+
+  function setOfficeZoomControlVisible(visible) {
+    ensureOfficeZoomControl();
+    if (!officeZoomControl) {
+      return;
+    }
+    officeZoomControl.style.display = visible ? "inline-flex" : "none";
+  }
+
+  function updateOfficeZoomControl(scaleValue) {
+    if (!officeZoomSlider || !officeZoomLabel) {
+      return;
+    }
+    const percent = Math.max(35, Math.min(250, Math.round((scaleValue || 1) * 100)));
+    officeZoomSlider.value = String(percent);
+    officeZoomLabel.textContent = `${percent}%`;
+  }
 
   function enforceAnswerPanelScroll() {
     let answerPanel = document.getElementById("answer-panel");
@@ -35,7 +181,27 @@ function run() {
   }
 
   function syncMainPdfPreview() {
-    let srcField = document.querySelector("#main-pdf-preview-src textarea, #main-pdf-preview-src input");
+    const srcFields = document.querySelectorAll(
+      "#main-pdf-preview-src textarea, #main-pdf-preview-src input"
+    );
+    let srcField = null;
+    if (srcFields && srcFields.length > 0) {
+      // Gradio can keep stale hidden inputs during rerender. Prefer the richest
+      // preview source so an updated PDF viewer URL wins over an older HTML placeholder.
+      let bestScore = -1;
+      for (let i = 0; i < srcFields.length; i++) {
+        const candidate = srcFields[i];
+        const value = (candidate && candidate.value ? candidate.value : "").trim();
+        const score = scorePreviewSrc(value);
+        if (score > bestScore || (score === bestScore && value)) {
+          bestScore = score;
+          srcField = candidate;
+        }
+      }
+      if (!srcField) {
+        srcField = srcFields[srcFields.length - 1] || null;
+      }
+    }
     let iframe = document.getElementById("main-pdf-preview-frame");
     let image = document.getElementById("main-pdf-preview-image");
     let empty = document.getElementById("main-pdf-preview-empty");
@@ -44,13 +210,17 @@ function run() {
     }
 
     let nextSrc = (srcField.value || "").trim();
-    if (nextSrc === lastPreviewSrc) {
+    const currentIframeSrc = (iframe.getAttribute("src") || "").trim();
+    if (nextSrc === lastPreviewSrc && currentIframeSrc === nextSrc) {
       return;
     }
     lastPreviewSrc = nextSrc;
+    globalThis._ktemLastPreviewSrc = nextSrc;
     hideSelectionPrompt();
 
     if (!nextSrc) {
+      isOfficePreview = false;
+      setOfficeZoomControlVisible(false);
       iframe.style.display = "none";
       image.style.display = "none";
       empty.style.display = "flex";
@@ -61,6 +231,8 @@ function run() {
 
     const isImage = nextSrc.startsWith("data:image") || /\.(png|jpg|jpeg|gif|webp|svg)(\?|#|$)/i.test(nextSrc);
     if (isImage) {
+      isOfficePreview = false;
+      setOfficeZoomControlVisible(false);
       iframe.style.display = "none";
       empty.style.display = "none";
       image.style.display = "block";
@@ -71,6 +243,9 @@ function run() {
     image.style.display = "none";
     empty.style.display = "none";
     iframe.style.display = "block";
+    const fitMode = parsePreviewFitMode(nextSrc);
+    isOfficePreview = fitMode === "office";
+    setOfficeZoomControlVisible(isOfficePreview);
 
     const getViewerDocumentKey = (src) => {
       try {
@@ -101,7 +276,19 @@ function run() {
     let currentSrc = iframe.getAttribute("src") || "";
     let currentBase = getViewerDocumentKey(currentSrc);
     let nextBase = getViewerDocumentKey(nextSrc);
-    if (currentSrc && currentBase === nextBase && iframe.contentWindow) {
+    const currentFamily = getPreviewFamily(currentSrc);
+    const nextFamily = getPreviewFamily(nextSrc);
+
+    const requiresHardReload = currentFamily !== nextFamily;
+    console.log("[office-preview-ui] sync", {
+      currentFamily,
+      nextFamily,
+      requiresHardReload,
+      currentSrc: currentSrc.slice(0, 260),
+      nextSrc: nextSrc.slice(0, 260),
+    });
+
+    if (!requiresHardReload && currentSrc && currentBase === nextBase && iframe.contentWindow) {
       try {
         iframe.contentWindow.postMessage({
           type: "ktem-pdf-page-change",
@@ -113,7 +300,98 @@ function run() {
       }
     }
 
-    iframe.src = nextSrc;
+    if (requiresHardReload) {
+      iframe = replacePreviewIframe();
+      console.log("[office-preview-ui] iframe replaced", {
+        nextFamily,
+        nextSrc: nextSrc.slice(0, 260),
+      });
+    }
+
+    if (!iframe) {
+      return;
+    }
+
+    const absoluteNextSrc = (() => {
+      try {
+        return new URL(nextSrc, window.location.origin).toString();
+      } catch (error) {
+        return nextSrc;
+      }
+    })();
+
+    if (iframeLoadWatchdog) {
+      window.clearTimeout(iframeLoadWatchdog);
+      iframeLoadWatchdog = null;
+    }
+
+    iframe.onload = () => {
+      if (iframeLoadWatchdog) {
+        window.clearTimeout(iframeLoadWatchdog);
+        iframeLoadWatchdog = null;
+      }
+      console.log("[office-preview-ui] iframe onload", {
+        nextFamily,
+        iframeSrc: (iframe.getAttribute("src") || "").slice(0, 260),
+      });
+      if (!isOfficePreview || !iframe.contentWindow) {
+        return;
+      }
+      iframe.contentWindow.postMessage(
+        { type: "ktem-pdf-zoom-request" },
+        window.location.origin
+      );
+    };
+
+    iframe.onerror = (error) => {
+      if (iframeLoadWatchdog) {
+        window.clearTimeout(iframeLoadWatchdog);
+        iframeLoadWatchdog = null;
+      }
+      console.error("[office-preview-ui] iframe onerror", {
+        nextFamily,
+        assignedSrc: absoluteNextSrc.slice(0, 260),
+        error,
+      });
+    };
+
+    iframe.style.display = "block";
+    iframe.style.width = "100%";
+    iframe.style.height = "100%";
+
+    const assignSrc = () => {
+      iframe.src = absoluteNextSrc;
+      console.log("[office-preview-ui] iframe src assigned", {
+        nextFamily,
+        assignedSrc: absoluteNextSrc.slice(0, 260),
+      });
+      iframeLoadWatchdog = window.setTimeout(() => {
+        try {
+          console.warn("[office-preview-ui] iframe load timeout, forcing location.replace", {
+            nextFamily,
+            assignedSrc: absoluteNextSrc.slice(0, 260),
+          });
+          if (iframe.contentWindow) {
+            iframe.contentWindow.location.replace(absoluteNextSrc);
+          } else {
+            iframe.src = absoluteNextSrc;
+          }
+        } catch (error) {
+          console.error("[office-preview-ui] iframe watchdog failed", {
+            nextFamily,
+            assignedSrc: absoluteNextSrc.slice(0, 260),
+            error,
+          });
+        }
+      }, 1500);
+    };
+
+    if (requiresHardReload) {
+      iframe.src = "about:blank";
+      window.requestAnimationFrame(assignSrc);
+    } else {
+      assignSrc();
+    }
   }
 
   function setSelectedPageText(value) {
@@ -307,6 +585,8 @@ function run() {
     let page = parseInt((pageField.value || "").trim(), 10);
     return Number.isFinite(page) && page > 0 ? page : null;
   }
+
+  syncMainPdfPreview();
 
   let main_parent = document.getElementById("chat-tab").parentNode;
 
@@ -591,10 +871,19 @@ function run() {
   };
 
   enforceAnswerPanelScroll();
-  syncMainPdfPreview();
   if (!globalThis._ktemSelectionBridgeRegistered) {
     window.addEventListener("message", (event) => {
       if (event.origin !== window.location.origin) {
+        return;
+      }
+
+      if (event.data?.type === "ktem-pdf-zoom-updated") {
+        if (isOfficePreview) {
+          const zoom = parseFloat(event.data.zoom || "");
+          if (Number.isFinite(zoom) && zoom > 0) {
+            updateOfficeZoomControl(zoom);
+          }
+        }
         return;
       }
 
@@ -638,9 +927,11 @@ function run() {
       subtree: true,
       characterData: true,
     });
+    globalThis._ktemAnswerPanelObserver = answerPanelObserver;
   }
 
   if (!previewSrcPoller) {
     previewSrcPoller = window.setInterval(syncMainPdfPreview, 120);
+    globalThis._ktemPreviewSrcPoller = previewSrcPoller;
   }
 }

@@ -53,6 +53,7 @@ class ChatPanel(BasePage):
             elem_id="main-pdf-preview",
         )
         self.pdf_preview_src = gr.Textbox(value="", visible=False, elem_id="main-pdf-preview-src")
+        self.preview_refresh_timer = gr.Timer(value=1.5, active=True)
 
     def render_notice_and_pager(self):
         self.pdf_preview_notice = gr.HTML(
