@@ -81,6 +81,7 @@ def if_voyageai_not_installed():
 
 def if_paddleocr_not_installed():
     try:
+        import paddle  # noqa: F401
         import paddleocr  # noqa: F401
     except ImportError:
         return True
@@ -121,5 +122,5 @@ skip_when_voyageai_not_installed = pytest.mark.skipif(
 )
 
 skip_when_paddleocr_not_installed = pytest.mark.skipif(
-    if_paddleocr_not_installed(), reason="paddleocr is not installed"
+    if_paddleocr_not_installed(), reason="paddle/paddleocr is not installed"
 )
