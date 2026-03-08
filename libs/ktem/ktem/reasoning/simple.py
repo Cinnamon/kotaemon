@@ -1,5 +1,6 @@
 import logging
 import threading
+from copy import deepcopy
 from textwrap import dedent
 from typing import Generator
 
@@ -129,6 +130,20 @@ class FullQAPipeline(BaseReasoning):
 
         active_file_name = getattr(self, "active_file_name", "")
         page_number = getattr(self, "page_number", None)
+        selected_text = getattr(self, "selected_text", "") or ""
+        selected_text_norm = " ".join(selected_text.lower().split())
+
+        def _doc_with_only_selected_text(doc: RetrievedDocument) -> RetrievedDocument:
+            selected_doc = deepcopy(doc)
+            try:
+                selected_doc.text = selected_text
+            except Exception:
+                pass
+            try:
+                selected_doc.content = selected_text
+            except Exception:
+                pass
+            return selected_doc
 
         def _is_current_page_doc(doc: RetrievedDocument) -> bool:
             if not active_file_name:
@@ -155,6 +170,20 @@ class FullQAPipeline(BaseReasoning):
             retriever_docs = retriever_node(text=query)
 
             retriever_docs = [doc for doc in retriever_docs if _is_current_page_doc(doc)]
+
+            if selected_text_norm:
+                selected_filtered_docs = []
+                for doc in retriever_docs:
+                    doc_text = (doc.text or "") if hasattr(doc, "text") else ""
+                    doc_text_norm = " ".join(doc_text.lower().split())
+                    if selected_text_norm in doc_text_norm:
+                        selected_filtered_docs.append(doc)
+                if selected_filtered_docs:
+                    retriever_docs = [
+                        _doc_with_only_selected_text(selected_filtered_docs[0])
+                    ]
+                else:
+                    retriever_docs = []
 
             retriever_docs_text = []
             retriever_docs_plot = []

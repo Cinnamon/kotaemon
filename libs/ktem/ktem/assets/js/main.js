@@ -2,6 +2,11 @@ function run() {
   let answerPanelObserver = null;
   let previewSrcPoller = null;
   let lastPreviewSrc = null;
+  let selectionPromptBox = null;
+  let selectionPromptInput = null;
+  let selectionPromptAsk = null;
+  let selectionPromptClose = null;
+  let currentSelectedPageText = "";
 
   function enforceAnswerPanelScroll() {
     let answerPanel = document.getElementById("answer-panel");
@@ -43,6 +48,7 @@ function run() {
       return;
     }
     lastPreviewSrc = nextSrc;
+    hideSelectionPrompt();
 
     if (!nextSrc) {
       iframe.style.display = "none";
@@ -108,6 +114,198 @@ function run() {
     }
 
     iframe.src = nextSrc;
+  }
+
+  function setSelectedPageText(value) {
+    let selectionField = document.querySelector(
+      "#selected-page-text textarea, #selected-page-text input"
+    );
+    if (!selectionField) {
+      return;
+    }
+
+    selectionField.value = value || "";
+    selectionField.dispatchEvent(new Event("input", { bubbles: true }));
+    selectionField.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  function getChatInputField() {
+    return document.querySelector("#chat-input textarea");
+  }
+
+  function submitChatInput() {
+    const chatInput = getChatInputField();
+    if (!chatInput) {
+      return;
+    }
+
+    const candidates = Array.from(
+      document.querySelectorAll("#chat-input-row button")
+    ).filter((btn) => {
+      if (!btn || btn.disabled) return false;
+      const style = window.getComputedStyle(btn);
+      if (style.display === "none" || style.visibility === "hidden") return false;
+      return true;
+    });
+
+    const semanticButton = candidates.find((btn) => {
+      const text = (btn.innerText || "").toLowerCase();
+      const aria = (btn.getAttribute("aria-label") || "").toLowerCase();
+      const title = (btn.getAttribute("title") || "").toLowerCase();
+      const cls = (btn.className || "").toLowerCase();
+      return (
+        text.includes("send") ||
+        text.includes("submit") ||
+        aria.includes("send") ||
+        aria.includes("submit") ||
+        title.includes("send") ||
+        title.includes("submit") ||
+        cls.includes("submit")
+      );
+    });
+
+    const submitButton =
+      semanticButton || (candidates.length ? candidates[candidates.length - 1] : null);
+
+    if (submitButton) {
+      submitButton.click();
+      window.setTimeout(() => submitButton.click(), 120);
+      return;
+    }
+
+    const form = chatInput.closest("form");
+    if (form && typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+      return;
+    }
+
+    chatInput.focus();
+    ["keydown", "keypress", "keyup"].forEach((eventName) => {
+      chatInput.dispatchEvent(
+        new KeyboardEvent(eventName, {
+          key: "Enter",
+          code: "Enter",
+          bubbles: true,
+        })
+      );
+    });
+  }
+
+  function ensureSelectionPrompt() {
+    if (selectionPromptBox) {
+      return;
+    }
+
+    selectionPromptBox = document.createElement("div");
+    selectionPromptBox.id = "ktem-selection-prompt";
+    selectionPromptBox.style.position = "fixed";
+    selectionPromptBox.style.zIndex = "9999";
+    selectionPromptBox.style.display = "none";
+    selectionPromptBox.style.width = "420px";
+    selectionPromptBox.style.maxWidth = "min(420px, calc(100vw - 24px))";
+    selectionPromptBox.style.background = "var(--input-background-fill, var(--background-fill-primary, #fff))";
+    selectionPromptBox.style.border = "1px solid var(--border-color-primary, #d4d4d8)";
+    selectionPromptBox.style.borderRadius = "10px";
+    selectionPromptBox.style.boxShadow = "0 8px 20px rgba(0,0,0,0.12)";
+    selectionPromptBox.style.padding = "8px";
+    selectionPromptBox.style.backdropFilter = "blur(4px)";
+    selectionPromptBox.style.boxSizing = "border-box";
+    selectionPromptBox.innerHTML = `
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
+        <strong style="font-size:12px; color: var(--body-text-color, inherit);">Ask About Selection</strong>
+        <button id="ktem-selection-close" type="button" style="border:none;background:transparent;cursor:pointer;font-size:14px;line-height:1;color:var(--body-text-color-subdued,inherit);">x</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input id="ktem-selection-question" type="text" placeholder="Ask a question about this selected text" style="flex:1 1 auto;min-width:0;height:34px;box-sizing:border-box;border:1px solid var(--border-color-primary,#d4d4d8);border-radius:8px;padding:0 10px;font-size:13px;background:var(--input-background-fill,#fff);color:var(--body-text-color,inherit);" />
+        <button id="ktem-selection-ask" type="button" style="height:34px;padding:0 12px;border-radius:8px;border:1px solid var(--border-color-primary,#d4d4d8);cursor:pointer;background:var(--button-primary-background-fill,var(--background-fill-secondary,#f4f4f5));color:var(--button-primary-text-color,var(--body-text-color,inherit));white-space:nowrap;">Ask</button>
+      </div>
+    `;
+    document.body.appendChild(selectionPromptBox);
+
+    selectionPromptInput = selectionPromptBox.querySelector("#ktem-selection-question");
+    selectionPromptAsk = selectionPromptBox.querySelector("#ktem-selection-ask");
+    selectionPromptClose = selectionPromptBox.querySelector("#ktem-selection-close");
+
+    selectionPromptClose.onclick = () => {
+      hideSelectionPrompt();
+      setSelectedPageText("");
+      currentSelectedPageText = "";
+    };
+    selectionPromptAsk.onclick = () => {
+      const question = (selectionPromptInput?.value || "").trim();
+      const chatInput = getChatInputField();
+      if (!chatInput) {
+        return;
+      }
+
+      const baseQuestion = question || "Please explain this selected text.";
+      const selectedBlock = (currentSelectedPageText || "").trim();
+      if (selectedBlock) {
+        chatInput.value =
+          `${baseQuestion}\n\n[Selected text from current page]\n${selectedBlock}`;
+      } else {
+        chatInput.value = baseQuestion;
+      }
+      chatInput.dispatchEvent(new Event("input", { bubbles: true }));
+      chatInput.dispatchEvent(new Event("change", { bubbles: true }));
+      window.setTimeout(() => submitChatInput(), 0);
+      hideSelectionPrompt();
+    };
+  }
+
+  function hideSelectionPrompt() {
+    if (!selectionPromptBox) {
+      return;
+    }
+    selectionPromptBox.style.display = "none";
+    if (selectionPromptInput) {
+      selectionPromptInput.value = "";
+    }
+  }
+
+  function showSelectionPromptNearRect(rectInIframe) {
+    ensureSelectionPrompt();
+    const iframe = document.getElementById("main-pdf-preview-frame");
+    if (!selectionPromptBox || !iframe) {
+      return;
+    }
+
+    const iframeRect = iframe.getBoundingClientRect();
+    const rect = rectInIframe || { left: 0, top: 0, width: 0, height: 0 };
+    const baseLeft = iframeRect.left + (rect.left || 0);
+    const baseTop = iframeRect.top + (rect.top || 0) + (rect.height || 0) + 8;
+
+    let left = Math.max(12, baseLeft);
+    let top = Math.max(12, baseTop);
+    const boxWidth = 420;
+    const boxHeight = 96;
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+
+    if (left + boxWidth > viewportWidth - 12) {
+      left = Math.max(12, viewportWidth - boxWidth - 12);
+    }
+    if (top + boxHeight > viewportHeight - 12) {
+      top = Math.max(12, iframeRect.top + (rect.top || 0) - boxHeight - 8);
+    }
+
+    selectionPromptBox.style.left = `${left}px`;
+    selectionPromptBox.style.top = `${top}px`;
+    selectionPromptBox.style.display = "block";
+    if (selectionPromptInput) {
+      selectionPromptInput.focus();
+    }
+  }
+
+  function getCurrentPageNumber() {
+    let pageField = document.querySelector(
+      "#pdf-page-number input, #pdf-page-number textarea"
+    );
+    if (!pageField) {
+      return null;
+    }
+    let page = parseInt((pageField.value || "").trim(), 10);
+    return Number.isFinite(page) && page > 0 ? page : null;
   }
 
   let main_parent = document.getElementById("chat-tab").parentNode;
@@ -394,6 +592,42 @@ function run() {
 
   enforceAnswerPanelScroll();
   syncMainPdfPreview();
+  if (!globalThis._ktemSelectionBridgeRegistered) {
+    window.addEventListener("message", (event) => {
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+
+      if (event.data?.type !== "ktem-pdf-text-selection") {
+        return;
+      }
+
+      let selectedText = (event.data.text || "").trim();
+      let selectedPage = parseInt(event.data.page || "", 10);
+      let currentPage = getCurrentPageNumber();
+
+      if (
+        Number.isFinite(selectedPage) &&
+        Number.isFinite(currentPage) &&
+        selectedPage !== currentPage
+      ) {
+        return;
+      }
+
+      if (selectedText.length > 2000) {
+        selectedText = selectedText.slice(0, 2000);
+      }
+      currentSelectedPageText = selectedText;
+      setSelectedPageText(selectedText);
+      if (!selectedText) {
+        hideSelectionPrompt();
+      } else {
+        showSelectionPromptNearRect(event.data.rect);
+      }
+    });
+    globalThis._ktemSelectionBridgeRegistered = true;
+  }
+
   if (!answerPanelObserver) {
     answerPanelObserver = new MutationObserver(() => {
       enforceAnswerPanelScroll();

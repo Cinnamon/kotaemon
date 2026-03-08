@@ -218,6 +218,8 @@ class ChatPage(BasePage):
         self._active_file_id = gr.State(value="")
         self._active_file_name = gr.State(value="")
         self._active_file_path = gr.State(value="")
+        self._active_file_total_pages = gr.State(value=1)
+        self._page_outputs_cache = gr.State(value={})
         self._last_question = gr.State(value="")
 
     def on_building_ui(self):
@@ -227,6 +229,9 @@ class ChatPage(BasePage):
             self.state_plot_history = gr.State([])
             self.state_plot_panel = gr.State(None)
             self.first_selector_choices = gr.State(None)
+            self._selected_page_text = gr.Textbox(
+                value="", visible=False, elem_id="selected-page-text"
+            )
 
             with gr.Column(scale=1, elem_id="conv-settings-panel") as self.conv_column:
                 self.chat_control = ConversationControl(self._app)
@@ -436,6 +441,7 @@ class ChatPage(BasePage):
         user_id,
         active_file_name,
         page_number,
+        selected_page_text,
         *selecteds,
     ):
         if not last_question:
@@ -469,6 +475,7 @@ class ChatPage(BasePage):
             user_id,
             active_file_name,
             page_number,
+            selected_page_text,
             *selecteds,
         ):
             final_output = output
@@ -502,12 +509,17 @@ class ChatPage(BasePage):
         if len(self._indices_input) > 1:
             self._indices_input[1].change(
                 fn=self.page_preview.on_selected_file_change,
-                inputs=[self.first_selector_choices, self._indices_input[1]],
+                inputs=[
+                    self.first_selector_choices,
+                    self._indices_input[1],
+                    self._page_outputs_cache,
+                ],
                 outputs=[
                     self._active_file_id,
                     self._active_file_name,
                     self._active_file_path,
                     self.chat_panel.page_number,
+                    self._active_file_total_pages,
                     self.chat_panel.pdf_preview_src,
                     self.chat_panel.pdf_preview_notice,
                     self._last_question,
@@ -515,8 +527,18 @@ class ChatPage(BasePage):
                     self.plot_panel,
                     self.state_plot_panel,
                     self.answer_panel,
+                    self._page_outputs_cache,
                 ],
                 show_progress="hidden",
+            ).then(
+                fn=lambda: "",
+                outputs=[self._selected_page_text],
+                show_progress="hidden",
+            ).then(
+                fn=lambda: True,
+                inputs=None,
+                outputs=[self._preview_links],
+                js=pdfview_js,
             )
 
         self.chat_panel.prev_page_btn.click(
@@ -525,9 +547,12 @@ class ChatPage(BasePage):
                 self.chat_panel.page_number,
                 self._active_file_id,
                 self._active_file_path,
+                self._page_outputs_cache,
+                self._active_file_total_pages,
             ],
             outputs=[
                 self.chat_panel.page_number,
+                self._active_file_total_pages,
                 self.chat_panel.pdf_preview_src,
                 self.chat_panel.pdf_preview_notice,
                 self._last_question,
@@ -537,6 +562,15 @@ class ChatPage(BasePage):
                 self.answer_panel,
             ],
             show_progress="hidden",
+        ).then(
+            fn=lambda: "",
+            outputs=[self._selected_page_text],
+            show_progress="hidden",
+        ).then(
+            fn=lambda: True,
+            inputs=None,
+            outputs=[self._preview_links],
+            js=pdfview_js,
         )
 
         self.chat_panel.next_page_btn.click(
@@ -545,9 +579,12 @@ class ChatPage(BasePage):
                 self.chat_panel.page_number,
                 self._active_file_id,
                 self._active_file_path,
+                self._page_outputs_cache,
+                self._active_file_total_pages,
             ],
             outputs=[
                 self.chat_panel.page_number,
+                self._active_file_total_pages,
                 self.chat_panel.pdf_preview_src,
                 self.chat_panel.pdf_preview_notice,
                 self._last_question,
@@ -557,6 +594,15 @@ class ChatPage(BasePage):
                 self.answer_panel,
             ],
             show_progress="hidden",
+        ).then(
+            fn=lambda: "",
+            outputs=[self._selected_page_text],
+            show_progress="hidden",
+        ).then(
+            fn=lambda: True,
+            inputs=None,
+            outputs=[self._preview_links],
+            js=pdfview_js,
         )
 
         self.chat_panel.page_number.change(
@@ -565,9 +611,12 @@ class ChatPage(BasePage):
                 self.chat_panel.page_number,
                 self._active_file_id,
                 self._active_file_path,
+                self._page_outputs_cache,
+                self._active_file_total_pages,
             ],
             outputs=[
                 self.chat_panel.page_number,
+                self._active_file_total_pages,
                 self.chat_panel.pdf_preview_src,
                 self.chat_panel.pdf_preview_notice,
                 self._last_question,
@@ -577,6 +626,15 @@ class ChatPage(BasePage):
                 self.answer_panel,
             ],
             show_progress="hidden",
+        ).then(
+            fn=lambda: "",
+            outputs=[self._selected_page_text],
+            show_progress="hidden",
+        ).then(
+            fn=lambda: True,
+            inputs=None,
+            outputs=[self._preview_links],
+            js=pdfview_js,
         )
 
         chat_event = (
@@ -593,6 +651,7 @@ class ChatPage(BasePage):
                     self.chat_control.conversation_id,
                     self.chat_control.conversation_rn,
                     self.first_selector_choices,
+                    self._selected_page_text,
                 ],
                 outputs=[
                     self.chat_panel.text_input,
@@ -605,6 +664,7 @@ class ChatPage(BasePage):
                     self._indices_input[1],
                     self._last_question,
                     self._command_state,
+                    self._selected_page_text,
                 ],
                 concurrency_limit=20,
                 show_progress="hidden",
@@ -625,6 +685,7 @@ class ChatPage(BasePage):
                     self._app.user_id,
                     self._active_file_name,
                     self.chat_panel.page_number,
+                    self._selected_page_text,
                 ]
                 + self._indices_input,
                 outputs=[
@@ -638,21 +699,40 @@ class ChatPage(BasePage):
                 concurrency_limit=20,
                 show_progress="minimal",
             )
+            .success(
+                fn=self.page_preview.cache_page_outputs,
+                inputs=[
+                    self._page_outputs_cache,
+                    self.chat_panel.page_number,
+                    self._last_question,
+                    self.info_panel,
+                    self.answer_panel,
+                ],
+                outputs=[self._page_outputs_cache],
+                show_progress="hidden",
+            )
             .then(
                 fn=self.page_preview.refresh_selected_file_preview,
                 inputs=[
                     self.first_selector_choices,
                     self._indices_input[1],
                     self.chat_panel.page_number,
+                    self._active_file_total_pages,
                 ],
                 outputs=[
                     self._active_file_id,
                     self._active_file_name,
                     self._active_file_path,
                     self.chat_panel.page_number,
+                    self._active_file_total_pages,
                     self.chat_panel.pdf_preview_src,
                     self.chat_panel.pdf_preview_notice,
                 ],
+                show_progress="hidden",
+            )
+            .then(
+                fn=lambda: "",
+                outputs=[self._selected_page_text],
                 show_progress="hidden",
             )
             .then(
@@ -932,17 +1012,23 @@ class ChatPage(BasePage):
 
         onConvSelect = (
             onConvSelect.then(
+                fn=lambda: {},
+                outputs=[self._page_outputs_cache],
+                show_progress="hidden",
+            ).then(
                 fn=self.page_preview.refresh_selected_file_preview,
                 inputs=[
                     self.first_selector_choices,
                     self._indices_input[1],
                     self.chat_panel.page_number,
+                    self._active_file_total_pages,
                 ],
                 outputs=[
                     self._active_file_id,
                     self._active_file_name,
                     self._active_file_path,
                     self.chat_panel.page_number,
+                    self._active_file_total_pages,
                     self.chat_panel.pdf_preview_src,
                     self.chat_panel.pdf_preview_notice,
                 ],
@@ -951,6 +1037,11 @@ class ChatPage(BasePage):
             .then(
                 fn=lambda: True,
                 js=clear_bot_message_selection_js,
+            )
+            .then(
+                fn=lambda: "",
+                outputs=[self._selected_page_text],
+                show_progress="hidden",
             )
             .then(
                 fn=lambda: True,
@@ -1099,6 +1190,7 @@ class ChatPage(BasePage):
         conv_id,
         conv_name,
         first_selector_choices,
+        selected_page_text,
         request: gr.Request,
     ):
         """Submit a message to the chatbot"""
@@ -1154,6 +1246,22 @@ class ChatPage(BasePage):
         if not chat_input_text and not chat_history:
             chat_input_text = DEFAULT_QUESTION
 
+        selection_marker = "[Selected text from current page]"
+        if selected_page_text and str(selected_page_text).strip():
+            selected_page_text = " ".join(str(selected_page_text).split())
+            if chat_input_text and selection_marker in chat_input_text:
+                pass
+            elif chat_input_text:
+                chat_input_text = (
+                    f"{chat_input_text}\n\n"
+                    f"{selection_marker}\n{selected_page_text}"
+                )
+            else:
+                chat_input_text = (
+                    "Please explain the following selected text from the current page:\n"
+                    f"{selected_page_text}"
+                )
+
         if file_ids:
             selector_output = [
                 "select",
@@ -1196,6 +1304,7 @@ class ChatPage(BasePage):
             + selector_output
             + [chat_input_text]
             + [used_command]
+            + [selected_page_text]
         )
 
     def get_recommendations(self, first_selector_choices, file_ids):
@@ -1399,6 +1508,7 @@ class ChatPage(BasePage):
         user_id: int,
         active_file_name: str,
         page_number: int,
+        selected_page_text: str,
         *selecteds,
     ):
         """Create the pipeline from settings
@@ -1498,6 +1608,7 @@ class ChatPage(BasePage):
         pipeline = reasoning_cls.get_pipeline(settings, reasoning_state, retrievers)
         pipeline.active_file_name = active_file_name
         pipeline.page_number = max(1, int(page_number or 1))
+        pipeline.selected_text = (selected_page_text or "").strip()
 
         return pipeline, reasoning_state
 
@@ -1516,11 +1627,19 @@ class ChatPage(BasePage):
         user_id,
         active_file_name,
         page_number,
+        selected_page_text,
         *selecteds,
     ):
         """Chat function"""
         chat_input, chat_output = chat_history[-1]
         chat_history = chat_history[:-1]
+
+        selection_marker = "[Selected text from current page]"
+        if (not selected_page_text) and isinstance(chat_input, str):
+            if selection_marker in chat_input:
+                selected_page_text = chat_input.split(selection_marker, 1)[1].strip()
+        if isinstance(chat_input, str) and selection_marker in chat_input:
+            chat_input = chat_input.split(selection_marker, 1)[0].strip()
 
         # if chat_input is empty, assume regen mode
         if chat_output:
@@ -1541,6 +1660,7 @@ class ChatPage(BasePage):
             user_id,
             active_file_name,
             page_number,
+            selected_page_text,
             *selecteds,
         )
         print("Reasoning state", reasoning_state)

@@ -6,6 +6,7 @@ import tempfile
 from urllib.parse import quote
 
 import gradio as gr
+from pypdf import PdfReader
 from sqlmodel import Session, select
 
 from ...assets import PDFJS_PREBUILT_DIR
@@ -27,6 +28,7 @@ class ChatPagePreviewController:
         self._app = app
         self._page_thumbnail_cache: dict[str, dict[str, str]] = {}
         self._page_preview_cache: dict[str, dict[str, str]] = {}
+        self._total_pages_cache: dict[str, int] = {}
 
     def _get_pdfjs_viewer_src(self, file_path: str, page: int) -> str:
         viewer_html_path = PDFJS_PREBUILT_DIR / "web" / "viewer.html"
@@ -161,6 +163,27 @@ class ChatPagePreviewController:
 
         return selected
 
+    def _get_total_pages(self, file_id: str, file_path: str) -> int:
+        if file_id and file_id in self._total_pages_cache:
+            return self._total_pages_cache[file_id]
+
+        total_pages = 1
+        if file_path and os.path.isfile(file_path):
+            try:
+                total_pages = max(1, len(PdfReader(file_path).pages))
+            except Exception as exc:
+                print(f"Failed to read PDF total pages: {exc}")
+
+        if file_id:
+            self._total_pages_cache[file_id] = total_pages
+        return total_pages
+
+    @staticmethod
+    def _clamp_page(page: int, total_pages: int) -> int:
+        if total_pages < 1:
+            total_pages = 1
+        return min(max(1, int(page or 1)), int(total_pages))
+
     def _ensure_pdf_preview_copy(self, file_path: str, file_name: str) -> str:
         if not file_path or not os.path.isfile(file_path):
             return ""
@@ -225,11 +248,62 @@ class ChatPagePreviewController:
             ANSWER_PLACEHOLDER_TEXT,
         )
 
-    def on_selected_file_change(self, first_selector_choices, selected_file_ids):
+    def get_cached_page_outputs(self, page_outputs_cache: dict, page_number: int):
+        if not isinstance(page_outputs_cache, dict):
+            return self.clear_page_outputs()
+
+        page_key = str(max(1, int(page_number or 1)))
+        page_output = page_outputs_cache.get(page_key, {})
+        if not isinstance(page_output, dict):
+            return self.clear_page_outputs()
+
+        last_question = page_output.get("last_question", "") or ""
+        mindmap_html = page_output.get("mindmap_html", "") or ""
+        answer_text = page_output.get("answer_text", "") or ""
+        if not (last_question or mindmap_html or answer_text):
+            return self.clear_page_outputs()
+
+        if not mindmap_html:
+            mindmap_html = MINDMAP_PLACEHOLDER_HTML
+        if not answer_text:
+            answer_text = ANSWER_PLACEHOLDER_TEXT
+
+        return (
+            last_question,
+            mindmap_html,
+            gr.update(visible=False),
+            None,
+            answer_text,
+        )
+
+    def cache_page_outputs(
+        self,
+        page_outputs_cache: dict,
+        page_number: int,
+        last_question: str,
+        mindmap_html: str,
+        answer_text: str,
+    ):
+        if not isinstance(page_outputs_cache, dict):
+            page_outputs_cache = {}
+
+        page_key = str(max(1, int(page_number or 1)))
+        updated_cache = dict(page_outputs_cache)
+        updated_cache[page_key] = {
+            "last_question": last_question or "",
+            "mindmap_html": mindmap_html or "",
+            "answer_text": answer_text or "",
+        }
+        return updated_cache
+
+    def on_selected_file_change(
+        self, first_selector_choices, selected_file_ids, page_outputs_cache
+    ):
         file_id, file_name, file_path = self.resolve_pdf_source(
             first_selector_choices, selected_file_ids
         )
-        page_number = 1
+        total_pages = self._get_total_pages(file_id, file_path)
+        page_number = self._clamp_page(1, total_pages)
         preview_src, preview_notice = self._get_pdf_preview_src_and_notice(
             file_id, file_path, page_number
         )
