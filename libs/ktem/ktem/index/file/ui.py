@@ -475,7 +475,8 @@ class FileIndexPage(BasePage):
 
         if vs_ids:
             self._index._vs.delete(vs_ids)
-        self._index._docstore.delete(ds_ids)
+        if ds_ids:
+            self._index._docstore.delete(ds_ids)
 
         gr.Info(f"File {file_name} has been deleted")
 
@@ -571,6 +572,8 @@ class FileIndexPage(BasePage):
 
     def delete_all_files(self, file_list):
         for file_id in file_list.id.values:
+            if not file_id or str(file_id) == "-":
+                continue
             self.delete_event(file_id)
 
     def set_file_id_selector(self, selected_file_id):

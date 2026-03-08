@@ -1,4 +1,5 @@
 import logging
+import os
 import threading
 from copy import deepcopy
 from textwrap import dedent
@@ -128,10 +129,12 @@ class FullQAPipeline(BaseReasoning):
         docs, doc_ids = [], []
         plot_docs = []
 
+        active_file_id = str(getattr(self, "active_file_id", "") or "")
         active_file_name = getattr(self, "active_file_name", "")
         page_number = getattr(self, "page_number", None)
         selected_text = getattr(self, "selected_text", "") or ""
         selected_text_norm = " ".join(selected_text.lower().split())
+        active_file_name_norm = os.path.basename(str(active_file_name or "")).lower()
 
         def _doc_with_only_selected_text(doc: RetrievedDocument) -> RetrievedDocument:
             selected_doc = deepcopy(doc)
@@ -145,14 +148,24 @@ class FullQAPipeline(BaseReasoning):
                 pass
             return selected_doc
 
-        def _is_current_page_doc(doc: RetrievedDocument) -> bool:
+        def _normalize_file_name(file_name: str) -> str:
+            return os.path.basename(str(file_name or "")).lower()
+
+        def _is_active_file_doc(doc: RetrievedDocument) -> bool:
+            if not active_file_name and not active_file_id:
+                return True
+
+            doc_file_id = str(doc.metadata.get("file_id", "") or "")
+            if active_file_id and doc_file_id:
+                return doc_file_id == active_file_id
+
             if not active_file_name:
                 return True
 
-            doc_file_name = doc.metadata.get("file_name", "")
-            if doc_file_name != active_file_name:
-                return False
+            doc_file_name = _normalize_file_name(doc.metadata.get("file_name", ""))
+            return bool(doc_file_name) and doc_file_name == active_file_name_norm
 
+        def _is_current_page_doc(doc: RetrievedDocument) -> bool:
             if not page_number:
                 return True
 
@@ -169,7 +182,11 @@ class FullQAPipeline(BaseReasoning):
             retriever_node = self._prepare_child(retriever, f"retriever_{idx}")
             retriever_docs = retriever_node(text=query)
 
-            retriever_docs = [doc for doc in retriever_docs if _is_current_page_doc(doc)]
+            retriever_docs = [doc for doc in retriever_docs if _is_active_file_doc(doc)]
+            if page_number:
+                page_docs = [doc for doc in retriever_docs if _is_current_page_doc(doc)]
+                if page_docs:
+                    retriever_docs = page_docs
 
             if selected_text_norm:
                 selected_filtered_docs = []
@@ -182,8 +199,18 @@ class FullQAPipeline(BaseReasoning):
                     retriever_docs = [
                         _doc_with_only_selected_text(selected_filtered_docs[0])
                     ]
+                elif retriever_docs:
+                    retriever_docs = [_doc_with_only_selected_text(retriever_docs[0])]
                 else:
-                    retriever_docs = []
+                    retriever_docs = [
+                        RetrievedDocument(
+                            text=selected_text,
+                            metadata={
+                                "file_id": active_file_id,
+                                "file_name": active_file_name,
+                            },
+                        )
+                    ]
 
             retriever_docs_text = []
             retriever_docs_plot = []

@@ -130,6 +130,9 @@ class LanceDBDocumentStore(BaseDocumentStore):
         """Delete document by id"""
         if not isinstance(ids, list):
             ids = [ids]
+        ids = [_id for _id in ids if _id]
+        if len(ids) == 0:
+            return
 
         document_collection = self.db_connection.open_table(self.collection_name)
         id_filter = ", ".join([f"'{_id}'" for _id in ids])

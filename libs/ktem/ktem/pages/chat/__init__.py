@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import re
 from copy import deepcopy
 from typing import Optional
@@ -18,6 +19,7 @@ from ktem.reasoning.prompt_optimization.suggest_followup_chat import (
     SuggestFollowupQuesPipeline,
 )
 from plotly.io import from_json
+from pypdf import PdfReader
 from sqlmodel import Session, select
 from theflow.settings import settings as flowsettings
 from theflow.utils.modules import import_dotted_string
@@ -439,6 +441,7 @@ class ChatPage(BasePage):
         chat_state,
         command_state,
         user_id,
+        active_file_id,
         active_file_name,
         page_number,
         selected_page_text,
@@ -473,6 +476,7 @@ class ChatPage(BasePage):
             chat_state,
             command_state,
             user_id,
+            active_file_id,
             active_file_name,
             page_number,
             selected_page_text,
@@ -703,6 +707,7 @@ class ChatPage(BasePage):
                     self.state_chat,
                     self._command_state,
                     self._app.user_id,
+                    self._active_file_id,
                     self._active_file_name,
                     self.chat_panel.page_number,
                     self._selected_page_text,
@@ -1515,6 +1520,43 @@ class ChatPage(BasePage):
 
         return retrieval_content, plot_content
 
+    @staticmethod
+    def _extract_pdf_page_text(
+        pdf_path: str, page_number: int, max_chars: int = 7000
+    ) -> str:
+        if not pdf_path or not os.path.isfile(pdf_path):
+            return ""
+        try:
+            reader = PdfReader(pdf_path)
+            if not reader.pages:
+                return ""
+            page_idx = max(0, min(len(reader.pages) - 1, int(page_number or 1) - 1))
+            text = reader.pages[page_idx].extract_text() or ""
+            text = " ".join(str(text).split())
+            return text[:max_chars]
+        except Exception:
+            return ""
+
+    def _get_office_page_context_text(
+        self,
+        active_file_id: str,
+        active_file_name: str,
+        page_number: int,
+    ) -> str:
+        if not active_file_id or not active_file_name:
+            return ""
+        if not self.page_preview._is_office_source(active_file_name, ""):
+            return ""
+
+        source_path = self.page_preview._resolve_file_path_by_file_id(active_file_id)
+        if not source_path:
+            return ""
+        office_pdf = self.page_preview._get_cached_office_pdf_preview(source_path)
+        if not office_pdf:
+            return ""
+
+        return self._extract_pdf_page_text(office_pdf, page_number)
+
     def create_pipeline(
         self,
         settings: dict,
@@ -1526,6 +1568,7 @@ class ChatPage(BasePage):
         state: dict,
         command_state: str | None,
         user_id: int,
+        active_file_id: str,
         active_file_name: str,
         page_number: int,
         selected_page_text: str,
@@ -1594,9 +1637,10 @@ class ChatPage(BasePage):
             elif isinstance(first_index.selector, int):
                 selected_file_ids = selecteds[first_index.selector]
 
-            _, inferred_file_name, _ = self.page_preview.resolve_pdf_source(
+            inferred_file_id, inferred_file_name, _ = self.page_preview.resolve_pdf_source(
                 None, selected_file_ids
             )
+            active_file_id = active_file_id or inferred_file_id
             active_file_name = inferred_file_name
 
         if command_state == WEB_SEARCH_COMMAND:
@@ -1626,10 +1670,18 @@ class ChatPage(BasePage):
         }
 
         pipeline = reasoning_cls.get_pipeline(settings, reasoning_state, retrievers)
-        pipeline.active_file_name = active_file_name
+        normalized_page_number = max(1, int(page_number or 1))
+        selected_text = (selected_page_text or "").strip()
+        if (not selected_text) and active_file_id and active_file_name:
+            selected_text = self._get_office_page_context_text(
+                active_file_id, active_file_name, normalized_page_number
+            )
+
         is_pdf_file = (active_file_name or "").lower().endswith(".pdf")
-        pipeline.page_number = max(1, int(page_number or 1)) if is_pdf_file else None
-        pipeline.selected_text = (selected_page_text or "").strip() if is_pdf_file else ""
+        pipeline.active_file_id = active_file_id or ""
+        pipeline.active_file_name = active_file_name
+        pipeline.page_number = normalized_page_number if is_pdf_file else None
+        pipeline.selected_text = selected_text
 
         return pipeline, reasoning_state
 
@@ -1646,6 +1698,7 @@ class ChatPage(BasePage):
         chat_state,
         command_state,
         user_id,
+        active_file_id,
         active_file_name,
         page_number,
         selected_page_text,
@@ -1679,6 +1732,7 @@ class ChatPage(BasePage):
             chat_state,
             command_state,
             user_id,
+            active_file_id,
             active_file_name,
             page_number,
             selected_page_text,

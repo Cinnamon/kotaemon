@@ -47,6 +47,7 @@ class ChatPagePreviewController:
         self._office_pdf_job_lock = threading.Lock()
         self._last_preview_file_id: str = ""
         self._force_first_page_file_id: str = ""
+        self._office_placeholder_shown: set[str] = set()
 
     @staticmethod
     def _find_soffice_binary() -> str:
@@ -217,13 +218,16 @@ class ChatPagePreviewController:
 
         ext = os.path.splitext(file_name or "")[1].lower()
         rich_html = ""
+        resolved_file_path = file_path or self._resolve_file_path_by_file_id(file_id)
+
+        # For DOCX, always prefer rich HTML extraction for temporary preview,
+        # so fonts/sizes/paragraph structure are preserved.
+        if ext == ".docx" and resolved_file_path:
+            rich_html = self._extract_docx_html(resolved_file_path)
 
         preview_text = "\n\n".join(preview_chunks).strip()
         if (not preview_text) and file_name:
-            file_path = self._resolve_file_path_by_file_id(file_id)
-            if ext == ".docx":
-                rich_html = self._extract_docx_html(file_path)
-            preview_text = self._extract_text_from_file(file_path, file_name)
+            preview_text = self._extract_text_from_file(resolved_file_path, file_name)
         if not preview_text:
             preview_text = "No text preview available for this file."
         if len(preview_text) > 9000:
@@ -919,6 +923,29 @@ class ChatPagePreviewController:
         if self._is_office_source(effective_name, effective_path):
             office_pdf = self._get_cached_office_pdf_preview(effective_path)
             if office_pdf and os.path.isfile(office_pdf):
+                show_placeholder_once = bool(
+                    file_id and file_id not in self._office_placeholder_shown
+                )
+                if show_placeholder_once:
+                    pages = self._non_pdf_preview_cache.get(file_id, [])
+                    if not pages:
+                        _ = self._get_non_pdf_preview_src(
+                            file_id, effective_name, effective_path, page
+                        )
+                        pages = self._non_pdf_preview_cache.get(file_id, [])
+                    if pages:
+                        total_pages = max(1, len(pages))
+                        page = self._clamp_page(page, total_pages)
+                        self._office_placeholder_shown.add(file_id)
+                        self._total_pages_cache[file_id] = total_pages
+                        return (
+                            page,
+                            total_pages,
+                            pages[page - 1],
+                            self._notice_html("Generating PDF preview in background..."),
+                        )
+
+            if office_pdf and os.path.isfile(office_pdf):
                 total_pages = self._safe_pdf_page_count(office_pdf, cached_total)
                 page = self._clamp_page(page, total_pages)
                 viewer_src = self._get_pdfjs_viewer_src(
@@ -1198,10 +1225,6 @@ class ChatPagePreviewController:
             return
         cached_pdf = self._get_cached_office_pdf_preview(file_path)
         if cached_pdf:
-            print(
-                "[office-preview] skip scheduling: cached pdf exists "
-                f"source={file_path} cached_pdf={cached_pdf}"
-            )
             return
 
         job_key = self._get_file_signature(file_path)
@@ -1211,34 +1234,18 @@ class ChatPagePreviewController:
             last_ts = float(self._office_pdf_job_ts.get(job_key, 0.0) or 0.0)
             is_stale = (now - last_ts) > 180 if last_ts > 0 else True
             if current_status in {"queued", "running"} and (not is_stale):
-                print(
-                    "[office-preview] skip scheduling: job active "
-                    f"status={current_status} key={job_key[:12]}"
-                )
                 return
             if current_status == "done":
                 # "done" is valid only when output file still exists.
                 if cached_pdf and os.path.isfile(cached_pdf):
-                    print(
-                        "[office-preview] skip scheduling: job done and output exists "
-                        f"key={job_key[:12]}"
-                    )
                     return
             self._office_pdf_job_status[job_key] = "queued"
             self._office_pdf_job_ts[job_key] = now
-        print(
-            "[office-preview] queued conversion "
-            f"name={file_name} key={job_key[:12]} path={file_path}"
-        )
 
         def _job():
             with self._office_pdf_job_lock:
                 self._office_pdf_job_status[job_key] = "running"
                 self._office_pdf_job_ts[job_key] = time.time()
-            print(
-                "[office-preview] running conversion "
-                f"name={file_name} key={job_key[:12]}"
-            )
             try:
                 output_pdf = self._convert_office_to_pdf_preview(file_path, file_name)
                 with self._office_pdf_job_lock:
@@ -1246,16 +1253,6 @@ class ChatPagePreviewController:
                         "done" if output_pdf and os.path.isfile(output_pdf) else "failed"
                     )
                     self._office_pdf_job_ts[job_key] = time.time()
-                if output_pdf and os.path.isfile(output_pdf):
-                    print(
-                        "[office-preview] conversion done "
-                        f"key={job_key[:12]} pdf={output_pdf}"
-                    )
-                else:
-                    print(
-                        "[office-preview] conversion failed: output missing "
-                        f"key={job_key[:12]}"
-                    )
             except Exception as exc:
                 print(f"Background office->pdf conversion failed: {exc}")
                 with self._office_pdf_job_lock:
@@ -1379,6 +1376,8 @@ class ChatPagePreviewController:
             first_selector_choices, selected_file_ids
         )
         self._force_first_page_file_id = file_id or ""
+        if file_id:
+            self._office_placeholder_shown.discard(file_id)
         page_number, total_pages, preview_src, preview_notice = self._build_preview_payload(
             file_id, file_name, file_path, 1, 1
         )
@@ -1477,10 +1476,9 @@ class ChatPagePreviewController:
         file_id, file_name, file_path = self.resolve_pdf_source(
             first_selector_choices, selected_file_ids
         )
-        prev_file_id = self._last_preview_file_id or ""
-        next_file_id = file_id or ""
-        must_force_first = bool(next_file_id and next_file_id == (self._force_first_page_file_id or ""))
-        target_page = 1 if (must_force_first or (next_file_id and next_file_id != prev_file_id)) else current_page
+        next_file_id, must_force_first, target_page = self._resolve_target_page(
+            file_id, current_page
+        )
         page_number, total_pages, preview_src, preview_notice = self._build_preview_payload(
             file_id,
             file_name,
@@ -1488,9 +1486,7 @@ class ChatPagePreviewController:
             target_page,
             total_pages,
         )
-        if must_force_first and int(page_number or 1) == 1:
-            self._force_first_page_file_id = ""
-        self._last_preview_file_id = next_file_id
+        self._sync_preview_tracking(next_file_id, must_force_first, page_number)
         return (
             file_id,
             file_name,
@@ -1501,20 +1497,26 @@ class ChatPagePreviewController:
             preview_notice,
         )
 
-    def on_preview_tick(
-        self,
-        file_id: str,
-        file_name: str,
-        file_path: str,
-        current_page: int,
-        total_pages: int,
-        current_preview_src: str,
-        current_preview_notice: str,
-    ):
-        prev_file_id = self._last_preview_file_id or ""
-        next_file_id = file_id or ""
-        must_force_first = bool(next_file_id and next_file_id == (self._force_first_page_file_id or ""))
-        target_page = 1 if (must_force_first or (next_file_id and next_file_id != prev_file_id)) else current_page
+    def on_preview_tick(self, *args):
+        # Gradio Timer payload shape can vary across versions/runtime.
+        # Accept both the expected 7 inputs and an extra leading timer value.
+        values = list(args)
+        if len(values) >= 8:
+            values = values[-7:]
+        if len(values) < 7:
+            return gr.skip(), gr.skip(), gr.skip(), gr.skip()
+        (
+            file_id,
+            file_name,
+            file_path,
+            current_page,
+            total_pages,
+            current_preview_src,
+            current_preview_notice,
+        ) = values[:7]
+        next_file_id, must_force_first, target_page = self._resolve_target_page(
+            file_id, current_page
+        )
         page_number, next_total_pages, preview_src, preview_notice = self._build_preview_payload(
             file_id,
             file_name,
@@ -1522,9 +1524,7 @@ class ChatPagePreviewController:
             target_page,
             total_pages,
         )
-        if must_force_first and int(page_number or 1) == 1:
-            self._force_first_page_file_id = ""
-        self._last_preview_file_id = next_file_id
+        self._sync_preview_tracking(next_file_id, must_force_first, page_number)
         if (
             int(page_number or 1) == int(target_page or 1)
             and int(next_total_pages or 1) == int(total_pages or 1)
@@ -1533,3 +1533,20 @@ class ChatPagePreviewController:
         ):
             return gr.skip(), gr.skip(), gr.skip(), gr.skip()
         return page_number, next_total_pages, preview_src, preview_notice
+
+    def _resolve_target_page(self, file_id: str, current_page: int):
+        next_file_id = file_id or ""
+        prev_file_id = self._last_preview_file_id or ""
+        must_force_first = bool(
+            next_file_id and next_file_id == (self._force_first_page_file_id or "")
+        )
+        file_changed = bool(next_file_id and next_file_id != prev_file_id)
+        target_page = 1 if (must_force_first or file_changed) else current_page
+        return next_file_id, must_force_first, target_page
+
+    def _sync_preview_tracking(
+        self, next_file_id: str, must_force_first: bool, page_number: int
+    ):
+        if must_force_first and int(page_number or 1) == 1:
+            self._force_first_page_file_id = ""
+        self._last_preview_file_id = next_file_id

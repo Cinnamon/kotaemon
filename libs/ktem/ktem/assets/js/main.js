@@ -12,12 +12,12 @@ function run() {
   let officeZoomLabel = null;
   let isOfficePreview = false;
   let lastNonEmptySelectionTs = 0;
-  let previewDebugLast = "";
-  let lastDocKey = "";
   let lastAssignedPreviewSrc = globalThis._ktemLastAssignedPreviewSrc || "";
   let lastStablePreviewSrc = globalThis._ktemLastStablePreviewSrc || "";
   let lastPostedPageDocKey = globalThis._ktemLastPostedPageDocKey || "";
   let lastPostedPageNumber = globalThis._ktemLastPostedPageNumber || 0;
+  let lastNonEmptyPreviewSrcTs = globalThis._ktemLastNonEmptyPreviewSrcTs || 0;
+  let lastPreviewFlowLog = "";
 
   function parsePreviewFitMode(src) {
     try {
@@ -28,16 +28,216 @@ function run() {
     }
   }
 
-  function previewDebug(payload) {
+  function findLastActiveField(selector) {
+    const fields = document.querySelectorAll(selector);
+    if (!fields || fields.length === 0) {
+      return null;
+    }
+    for (let i = fields.length - 1; i >= 0; i--) {
+      const candidate = fields[i];
+      const value = (candidate && candidate.value ? candidate.value : "").trim();
+      if (value) {
+        return candidate;
+      }
+    }
+    return fields[fields.length - 1] || null;
+  }
+
+  function getPageFromPreviewSrc(src) {
     try {
-      const text = JSON.stringify(payload);
-      if (text === previewDebugLast) {
+      const u = new URL(src, window.location.origin);
+      const queryPage = parseInt(u.searchParams.get("ktempage") || "", 10);
+      if (Number.isFinite(queryPage) && queryPage > 0) return queryPage;
+      const hashParams = new URLSearchParams((u.hash || "").replace(/^#/, ""));
+      const hashPage = parseInt(hashParams.get("page") || "", 10);
+      return Number.isFinite(hashPage) && hashPage > 0 ? hashPage : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function withPreviewPageHash(src, page) {
+    try {
+      const u = new URL(src, window.location.origin);
+      if (Number.isFinite(page) && page > 0) {
+        u.searchParams.set("ktempage", String(page));
+        u.hash = `page=${page}`;
+      }
+      return u.toString();
+    } catch (error) {
+      return src;
+    }
+  }
+
+  function toAbsolutePreviewSrc(src) {
+    try {
+      return new URL(src, window.location.origin).toString();
+    } catch (error) {
+      return src || "";
+    }
+  }
+
+  function getPreviewDocKey(src) {
+    try {
+      const u = new URL(src, window.location.origin);
+      const fileParam = u.searchParams.get("file") || "";
+      return `${u.pathname}|${fileParam}`;
+    } catch (error) {
+      return (src || "").split("#")[0];
+    }
+  }
+
+  function updateLastPostedPageSync(docKey, page) {
+    lastPostedPageDocKey = docKey || "";
+    lastPostedPageNumber = page;
+    globalThis._ktemLastPostedPageDocKey = lastPostedPageDocKey;
+    globalThis._ktemLastPostedPageNumber = lastPostedPageNumber;
+  }
+
+  function postPageChangeIfNeeded(targetIframe, targetPage, docKey, force = false) {
+    if (
+      !targetIframe ||
+      !targetIframe.contentWindow ||
+      !Number.isFinite(targetPage) ||
+      targetPage <= 0
+    ) {
+      return false;
+    }
+    const normalizedDocKey = docKey || "";
+    if (
+      !force &&
+      normalizedDocKey &&
+      normalizedDocKey === lastPostedPageDocKey &&
+      targetPage === lastPostedPageNumber
+    ) {
+      return false;
+    }
+    try {
+      targetIframe.contentWindow.postMessage(
+        { type: "ktem-pdf-page-change", page: targetPage },
+        window.location.origin
+      );
+      updateLastPostedPageSync(normalizedDocKey, targetPage);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function updateLastAssignedPreviewSrc(src) {
+    lastAssignedPreviewSrc = src || "";
+    globalThis._ktemLastAssignedPreviewSrc = lastAssignedPreviewSrc;
+  }
+
+  function updateLastStablePreviewSrc(src) {
+    lastStablePreviewSrc = src || "";
+    globalThis._ktemLastStablePreviewSrc = lastStablePreviewSrc;
+    if (lastStablePreviewSrc) {
+      lastNonEmptyPreviewSrcTs = Date.now();
+      globalThis._ktemLastNonEmptyPreviewSrcTs = lastNonEmptyPreviewSrcTs;
+    }
+  }
+
+  function clearPreviewSyncState() {
+    lastPreviewSrc = null;
+    globalThis._ktemLastPreviewSrc = lastPreviewSrc;
+    updateLastAssignedPreviewSrc("");
+    updateLastStablePreviewSrc("");
+    updateLastPostedPageSync("", 0);
+  }
+
+  function isLikelyPreviewSrc(src) {
+    if (!src || typeof src !== "string") {
+      return false;
+    }
+    const trimmed = src.trim();
+    if (!trimmed) {
+      return false;
+    }
+    if (isDataHtmlPreviewSrc(trimmed)) {
+      return true;
+    }
+    if (isInlineHtmlPreviewSrc(trimmed)) {
+      return true;
+    }
+    if (
+      trimmed.startsWith("data:image") ||
+      /\.(png|jpg|jpeg|gif|webp|svg)(\?|#|$)/i.test(trimmed)
+    ) {
+      return true;
+    }
+    if (trimmed.includes("/file=")) {
+      return true;
+    }
+    try {
+      const url = new URL(trimmed, window.location.origin);
+      return (url.pathname || "").includes("/file=");
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function isDataHtmlPreviewSrc(src) {
+    if (!src || typeof src !== "string") {
+      return false;
+    }
+    return /^data:text\/html/i.test(src.trim());
+  }
+
+  function isInlineHtmlPreviewSrc(src) {
+    if (!src || typeof src !== "string") {
+      return false;
+    }
+    const trimmed = src.trim();
+    if (!trimmed) {
+      return false;
+    }
+    return trimmed.startsWith("<");
+  }
+
+  function dataHtmlToSrcdoc(dataUri) {
+    try {
+      const value = (dataUri || "").trim();
+      if (!/^data:text\/html/i.test(value)) {
+        return "";
+      }
+      const commaPos = value.indexOf(",");
+      if (commaPos < 0) {
+        return "";
+      }
+      const meta = value.slice(0, commaPos).toLowerCase();
+      const body = value.slice(commaPos + 1);
+      if (meta.includes(";base64")) {
+        return atob(body);
+      }
+      return decodeURIComponent(body);
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function shortSrc(src) {
+    const value = (src || "").trim();
+    if (!value) {
+      return "";
+    }
+    return value.length > 180 ? `${value.slice(0, 180)}...` : value;
+  }
+
+  function logPreviewFlow(stage, payload = {}) {
+    try {
+      const normalized = {
+        stage,
+        ...payload,
+      };
+      const key = JSON.stringify(normalized);
+      if (key === lastPreviewFlowLog) {
         return;
       }
-      previewDebugLast = text;
-      console.log("[preview-sync]", payload);
+      lastPreviewFlowLog = key;
+      console.log("[preview-flow]", normalized);
     } catch (error) {
-      console.log("[preview-sync]", payload);
+      console.log("[preview-flow]", { stage });
     }
   }
 
@@ -136,32 +336,9 @@ function run() {
 
   function syncMainPdfPreview() {
     const currentPage = getCurrentPageNumber();
-    const srcFields = document.querySelectorAll(
+    const srcField = findLastActiveField(
       "#main-pdf-preview-src textarea, #main-pdf-preview-src input"
     );
-    let srcField = null;
-    if (srcFields && srcFields.length > 0) {
-      for (let i = srcFields.length - 1; i >= 0; i--) {
-        const candidate = srcFields[i];
-        const value = (candidate && candidate.value ? candidate.value : "").trim();
-        if (value) {
-          srcField = candidate;
-          break;
-        }
-      }
-      if (!srcField) {
-        srcField = srcFields[srcFields.length - 1] || null;
-      }
-    }
-    const srcCandidates = [];
-    if (srcFields && srcFields.length > 0) {
-      for (let i = 0; i < srcFields.length; i++) {
-        const value = (srcFields[i] && srcFields[i].value ? srcFields[i].value : "").trim();
-        if (value) {
-          srcCandidates.push(value.slice(0, 160));
-        }
-      }
-    }
     let iframe = document.getElementById("main-pdf-preview-frame");
     let image = document.getElementById("main-pdf-preview-image");
     let empty = document.getElementById("main-pdf-preview-empty");
@@ -171,133 +348,109 @@ function run() {
 
     let nextSrc = (srcField?.value || "").trim();
     const currentIframeSrc = (iframe.getAttribute("src") || "").trim();
-    const getPageFromSrc = (src) => {
-      try {
-        const u = new URL(src, window.location.origin);
-        const q = parseInt(u.searchParams.get("ktempage") || "", 10);
-        if (Number.isFinite(q) && q > 0) return q;
-        const h = new URLSearchParams((u.hash || "").replace(/^#/, ""));
-        const hp = parseInt(h.get("page") || "", 10);
-        return Number.isFinite(hp) && hp > 0 ? hp : null;
-      } catch (error) {
-        return null;
-      }
-    };
-    const withPageHash = (src, page) => {
-      try {
-        const u = new URL(src, window.location.origin);
-        if (Number.isFinite(page) && page > 0) {
-          u.searchParams.set("ktempage", String(page));
-          u.hash = `page=${page}`;
-        }
-        return u.toString();
-      } catch (error) {
-        return src;
-      }
-    };
-    const toAbsolute = (src) => {
-      try {
-        return new URL(src, window.location.origin).toString();
-      } catch (error) {
-        return src || "";
-      }
-    };
-    const getDocKey = (src) => {
-      try {
-        const u = new URL(src, window.location.origin);
-        const f = u.searchParams.get("file") || "";
-        return `${u.pathname}|${f}`;
-      } catch (error) {
-        return (src || "").split("#")[0];
-      }
-    };
-    const postPageChangeIfNeeded = (targetIframe, targetPage, docKey, force = false) => {
-      if (
-        !targetIframe ||
-        !targetIframe.contentWindow ||
-        !Number.isFinite(targetPage) ||
-        targetPage <= 0
-      ) {
-        return false;
-      }
-      const normalizedDocKey = docKey || "";
-      if (
-        !force &&
-        normalizedDocKey &&
-        normalizedDocKey === lastPostedPageDocKey &&
-        targetPage === lastPostedPageNumber
-      ) {
-        return false;
-      }
-      try {
-        targetIframe.contentWindow.postMessage(
-          { type: "ktem-pdf-page-change", page: targetPage },
-          window.location.origin
-        );
-        lastPostedPageDocKey = normalizedDocKey;
-        lastPostedPageNumber = targetPage;
-        globalThis._ktemLastPostedPageDocKey = lastPostedPageDocKey;
-        globalThis._ktemLastPostedPageNumber = lastPostedPageNumber;
-        return true;
-      } catch (error) {
-        return false;
-      }
-    };
-    const nextDocKey = getDocKey(nextSrc);
-    const currentDocKey = getDocKey(currentIframeSrc);
-    const chosenPage = getPageFromSrc(nextSrc);
-    const desiredPage = Number.isFinite(currentPage) && currentPage > 0 ? currentPage : chosenPage;
-    previewDebug({
-      page: currentPage,
-      candidates: srcCandidates,
-      chosen: nextSrc.slice(0, 160),
-      current: currentIframeSrc.slice(0, 160),
-      chosenPage: chosenPage,
-      desiredPage: Number.isFinite(desiredPage) && desiredPage > 0 ? desiredPage : null,
-      currentSrcPage: getPageFromSrc(currentIframeSrc),
-      lastStable: (lastStablePreviewSrc || "").slice(0, 160),
-      postedDocKey: (lastPostedPageDocKey || "").slice(0, 80),
-      postedPage: lastPostedPageNumber || null,
+    logPreviewFlow("input", {
+      currentPage,
+      nextSrc: shortSrc(nextSrc),
+      currentIframeSrc: shortSrc(currentIframeSrc),
+      lastStable: shortSrc(lastStablePreviewSrc),
+      lastAssigned: shortSrc(lastAssignedPreviewSrc),
+      sinceLastNonEmptyMs: lastNonEmptyPreviewSrcTs ? Date.now() - lastNonEmptyPreviewSrcTs : null,
     });
-    const normalizedNextSrc = toAbsolute(withPageHash(nextSrc, desiredPage));
-    const normalizedCurrentSrc = toAbsolute(currentIframeSrc);
-    const sameDoc =
-      !!nextDocKey &&
-      !!currentDocKey &&
-      nextDocKey === currentDocKey;
-
-    if (
-      (nextSrc === lastPreviewSrc || normalizedNextSrc === lastAssignedPreviewSrc) &&
-      normalizedCurrentSrc === normalizedNextSrc
-    ) {
-      return;
-    }
-    lastPreviewSrc = nextSrc;
-    globalThis._ktemLastPreviewSrc = nextSrc;
 
     if (!nextSrc) {
       // Gradio can transiently clear hidden field values during rerenders.
       // Keep rendering the last stable preview source instead of blanking UI.
-      if (lastStablePreviewSrc) {
+      const now = Date.now();
+      const withinGraceWindow =
+        lastNonEmptyPreviewSrcTs > 0 && now - lastNonEmptyPreviewSrcTs < 1200;
+      if (withinGraceWindow && lastStablePreviewSrc) {
         nextSrc = lastStablePreviewSrc;
-      } else if (currentIframeSrc) {
+        logPreviewFlow("fallback-last-stable", { nextSrc: shortSrc(nextSrc) });
+      } else if (withinGraceWindow && currentIframeSrc) {
         nextSrc = currentIframeSrc;
+        logPreviewFlow("fallback-current-iframe", { nextSrc: shortSrc(nextSrc) });
       } else {
+        logPreviewFlow("empty-reset", {});
         isOfficePreview = false;
         setOfficeZoomControlVisible(false);
         iframe.style.display = "none";
         image.style.display = "none";
         empty.style.display = "flex";
         iframe.removeAttribute("src");
+        iframe.removeAttribute("srcdoc");
         image.removeAttribute("src");
+        clearPreviewSyncState();
         return;
       }
     }
 
-    const isImage = nextSrc.startsWith("data:image") || /\.(png|jpg|jpeg|gif|webp|svg)(\?|#|$)/i.test(nextSrc);
-    if (isImage) {
+    const inlineHtmlPreview = isInlineHtmlPreviewSrc(nextSrc);
+    const dataHtmlPreview = isDataHtmlPreviewSrc(nextSrc);
+    const passthroughPreview = inlineHtmlPreview || dataHtmlPreview;
+    const nextDocKey = passthroughPreview ? "" : getPreviewDocKey(nextSrc);
+    const currentDocKey = passthroughPreview ? "" : getPreviewDocKey(currentIframeSrc);
+    const chosenPage = getPageFromPreviewSrc(nextSrc);
+    const desiredPage = Number.isFinite(currentPage) && currentPage > 0 ? currentPage : chosenPage;
+    const normalizedNextSrc = passthroughPreview
+      ? nextSrc
+      : toAbsolutePreviewSrc(withPreviewPageHash(nextSrc, desiredPage));
+    const normalizedCurrentSrc = inlineHtmlPreview
+      ? (iframe.srcdoc || "")
+      : (passthroughPreview ? currentIframeSrc : toAbsolutePreviewSrc(currentIframeSrc));
+    const sameDoc =
+      !!nextDocKey &&
+      !!currentDocKey &&
+      nextDocKey === currentDocKey;
+
+    if (!passthroughPreview && iframe.hasAttribute("srcdoc")) {
+      // Ensure PDF/image navigation is not shadowed by a leftover srcdoc.
+      iframe.removeAttribute("srcdoc");
+    }
+
+    if (
+      (nextSrc === lastPreviewSrc || normalizedNextSrc === lastAssignedPreviewSrc) &&
+      normalizedCurrentSrc === normalizedNextSrc
+    ) {
+      logPreviewFlow("no-change", {
+        nextSrc: shortSrc(nextSrc),
+        normalizedNextSrc: shortSrc(normalizedNextSrc),
+      });
+      return;
+    }
+    lastPreviewSrc = nextSrc;
+    globalThis._ktemLastPreviewSrc = nextSrc;
+
+    if (!isLikelyPreviewSrc(nextSrc)) {
+      logPreviewFlow("blocked-invalid-src", { nextSrc: shortSrc(nextSrc) });
       isOfficePreview = false;
       setOfficeZoomControlVisible(false);
+      iframe.style.display = "none";
+      image.style.display = "none";
+      empty.style.display = "flex";
+      iframe.removeAttribute("src");
+      iframe.removeAttribute("srcdoc");
+      image.removeAttribute("src");
+      clearPreviewSyncState();
+      return;
+    }
+
+    const isImage = nextSrc.startsWith("data:image") || /\.(png|jpg|jpeg|gif|webp|svg)(\?|#|$)/i.test(nextSrc);
+    logPreviewFlow("classify", {
+      nextSrc: shortSrc(nextSrc),
+      inlineHtmlPreview,
+      dataHtmlPreview,
+      passthroughPreview,
+      isImage,
+      sameDoc,
+      chosenPage,
+      desiredPage,
+      normalizedNextSrc: shortSrc(normalizedNextSrc),
+    });
+    if (isImage) {
+      logPreviewFlow("render-image", { nextSrc: shortSrc(nextSrc) });
+      isOfficePreview = false;
+      setOfficeZoomControlVisible(false);
+      iframe.removeAttribute("srcdoc");
       iframe.style.display = "none";
       empty.style.display = "none";
       image.style.display = "block";
@@ -305,9 +458,39 @@ function run() {
       return;
     }
 
+    if (inlineHtmlPreview || dataHtmlPreview) {
+      logPreviewFlow("render-html-preview", {
+        mode: inlineHtmlPreview ? "inline-html" : "data-html",
+        nextSrc: shortSrc(nextSrc),
+      });
+      isOfficePreview = false;
+      setOfficeZoomControlVisible(false);
+      image.style.display = "none";
+      empty.style.display = "none";
+      iframe.style.display = "block";
+      iframe.style.width = "100%";
+      iframe.style.height = "100%";
+      const htmlSrcdoc = inlineHtmlPreview ? nextSrc : dataHtmlToSrcdoc(nextSrc);
+      if (htmlSrcdoc) {
+        if (iframe.srcdoc !== htmlSrcdoc) {
+          iframe.srcdoc = htmlSrcdoc;
+        }
+        iframe.removeAttribute("src");
+      } else {
+        const fallbackSrc = dataHtmlPreview ? nextSrc : "about:blank";
+        iframe.removeAttribute("srcdoc");
+        iframe.setAttribute("src", fallbackSrc);
+      }
+      updateLastPostedPageSync("", 0);
+      updateLastAssignedPreviewSrc(nextSrc);
+      updateLastStablePreviewSrc(nextSrc);
+      return;
+    }
+
     image.style.display = "none";
     empty.style.display = "none";
     iframe.style.display = "block";
+    iframe.removeAttribute("srcdoc");
     const fitMode = parsePreviewFitMode(nextSrc);
     isOfficePreview = fitMode === "office";
     setOfficeZoomControlVisible(isOfficePreview);
@@ -331,12 +514,14 @@ function run() {
 
     // Avoid iframe reload flicker when switching pages within the same document.
     if (sameDoc && iframe.contentWindow) {
+      logPreviewFlow("same-doc-post-message", {
+        desiredPage,
+        nextDocKey: shortSrc(nextDocKey),
+      });
       postPageChangeIfNeeded(iframe, desiredPage, nextDocKey, false);
       if (normalizedNextSrc) {
-        lastAssignedPreviewSrc = normalizedNextSrc;
-        globalThis._ktemLastAssignedPreviewSrc = lastAssignedPreviewSrc;
-        lastStablePreviewSrc = normalizedNextSrc;
-        globalThis._ktemLastStablePreviewSrc = lastStablePreviewSrc;
+        updateLastAssignedPreviewSrc(normalizedNextSrc);
+        updateLastStablePreviewSrc(normalizedNextSrc);
       }
       return;
     }
@@ -344,22 +529,21 @@ function run() {
     nextSrc = normalizedNextSrc;
     if (normalizedCurrentSrc === normalizedNextSrc) {
       if (normalizedNextSrc) {
-        lastStablePreviewSrc = normalizedNextSrc;
-        globalThis._ktemLastStablePreviewSrc = lastStablePreviewSrc;
+        updateLastStablePreviewSrc(normalizedNextSrc);
       }
       return;
     }
-    lastDocKey = nextDocKey || lastDocKey;
-    lastPostedPageDocKey = "";
-    lastPostedPageNumber = 0;
-    globalThis._ktemLastPostedPageDocKey = lastPostedPageDocKey;
-    globalThis._ktemLastPostedPageNumber = lastPostedPageNumber;
+    updateLastPostedPageSync("", 0);
+    logPreviewFlow("assign-pdf-src", {
+      nextSrc: shortSrc(nextSrc),
+      normalizedNextSrc: shortSrc(normalizedNextSrc),
+      desiredPage,
+      fitMode: parsePreviewFitMode(nextSrc),
+    });
     iframe.src = nextSrc;
-    lastAssignedPreviewSrc = nextSrc;
-    globalThis._ktemLastAssignedPreviewSrc = lastAssignedPreviewSrc;
+    updateLastAssignedPreviewSrc(nextSrc);
     if (nextSrc) {
-      lastStablePreviewSrc = nextSrc;
-      globalThis._ktemLastStablePreviewSrc = lastStablePreviewSrc;
+      updateLastStablePreviewSrc(nextSrc);
     }
   }
 
@@ -425,6 +609,15 @@ function run() {
     selectionField.value = value || "";
     selectionField.dispatchEvent(new Event("input", { bubbles: true }));
     selectionField.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  function getSelectedPageTextValue() {
+    const field = document.querySelector(
+      "#selected-page-text textarea, #selected-page-text input"
+    );
+    const stateValue = (currentSelectedPageText || "").trim();
+    const fieldValue = (field?.value || "").trim();
+    return stateValue || fieldValue;
   }
 
   function getChatInputField() {
@@ -524,6 +717,20 @@ function run() {
     selectionPromptAsk = selectionPromptBox.querySelector("#ktem-selection-ask");
     selectionPromptClose = selectionPromptBox.querySelector("#ktem-selection-close");
 
+    if (selectionPromptInput) {
+      selectionPromptInput.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") {
+          return;
+        }
+        // Avoid sending while IME composition (e.g. Chinese input) is active.
+        if (event.isComposing || event.keyCode === 229) {
+          return;
+        }
+        event.preventDefault();
+        selectionPromptAsk?.click();
+      });
+    }
+
     selectionPromptClose.onclick = () => {
       hideSelectionPrompt();
       setSelectedPageText("");
@@ -537,8 +744,10 @@ function run() {
       }
 
       const baseQuestion = question || "Please explain this selected text.";
-      const selectedBlock = (currentSelectedPageText || "").trim();
+      const selectedBlock = getSelectedPageTextValue();
       if (selectedBlock) {
+        currentSelectedPageText = selectedBlock;
+        setSelectedPageText(selectedBlock);
         chatInput.value =
           `${baseQuestion}\n\n[Selected text from current page]\n${selectedBlock}`;
       } else {
@@ -616,94 +825,115 @@ function run() {
     return null;
   }
 
-  syncMainPdfPreview();
-
-  let main_parent = document.getElementById("chat-tab").parentNode;
-
-  main_parent.childNodes[0].classList.add("header-bar");
-  main_parent.style = "padding: 0; margin: 0";
-  main_parent.parentNode.style = "gap: 0";
-  main_parent.parentNode.parentNode.style = "padding: 0";
-
-  const version_node = document.createElement("p");
-  version_node.innerHTML = "version: KH_APP_VERSION";
-  version_node.style = "position: fixed; top: 10px; right: 10px;";
-  main_parent.appendChild(version_node);
-
-  // add favicon
-  const favicon = document.createElement("link");
-  // set favicon attributes
-  favicon.rel = "icon";
-  favicon.type = "image/svg+xml";
-  favicon.href = "/favicon.ico";
-  document.head.appendChild(favicon);
-
-  // setup conversation dropdown placeholder
-  let conv_dropdown = document.querySelector("#conversation-dropdown input");
-  conv_dropdown.placeholder = "Browse conversation";
-
-  // move info-expand-button
-  let info_expand_button = document.getElementById("info-expand-button");
-  let chat_info_panel = document.getElementById("info-expand");
-  chat_info_panel.insertBefore(
-    info_expand_button,
-    chat_info_panel.childNodes[2]
-  );
-
-  // move toggle-side-bar button
-  let chat_expand_button = document.getElementById("chat-expand-button");
-  let chat_column = document.getElementById("chat-area");
-  let conv_column = document.getElementById("conv-settings-panel");
-
-  // move setting close button
-  let setting_tab_nav_bar = document.querySelector("#settings-tab .tab-nav");
-  let setting_close_button = document.getElementById("save-setting-btn");
-  if (setting_close_button) {
-    setting_tab_nav_bar.appendChild(setting_close_button);
-  }
-
-  let default_conv_column_min_width = "min(300px, 100%)";
-  conv_column.style.minWidth = default_conv_column_min_width;
-
-  globalThis.toggleChatColumn = () => {
-    /* get flex-grow value of chat_column */
-    let flex_grow = conv_column.style.flexGrow;
-    if (flex_grow == "0") {
-      conv_column.style.flexGrow = "1";
-      conv_column.style.minWidth = default_conv_column_min_width;
-    } else {
-      conv_column.style.flexGrow = "0";
-      conv_column.style.minWidth = "0px";
+  function initMainShellLayout() {
+    const mainParent = document.getElementById("chat-tab")?.parentNode;
+    if (!mainParent) {
+      return;
     }
-  };
 
-  if (chat_column && chat_expand_button) {
-    chat_expand_button.style.flexGrow = "0";
-    chat_expand_button.style.width = "36px";
-    chat_expand_button.style.minWidth = "36px";
-    chat_expand_button.style.height = "36px";
-    chat_expand_button.style.padding = "0";
-    chat_column.insertBefore(chat_expand_button, chat_column.firstChild);
+    if (mainParent.childNodes?.[0]?.classList) {
+      mainParent.childNodes[0].classList.add("header-bar");
+    }
+    mainParent.style = "padding: 0; margin: 0";
+    if (mainParent.parentNode) {
+      mainParent.parentNode.style = "gap: 0";
+      if (mainParent.parentNode.parentNode) {
+        mainParent.parentNode.parentNode.style = "padding: 0";
+      }
+    }
+
+    const versionNode = document.createElement("p");
+    versionNode.innerHTML = "version: KH_APP_VERSION";
+    versionNode.style = "position: fixed; top: 10px; right: 10px;";
+    mainParent.appendChild(versionNode);
+
+    const favicon = document.createElement("link");
+    favicon.rel = "icon";
+    favicon.type = "image/svg+xml";
+    favicon.href = "/favicon.ico";
+    document.head.appendChild(favicon);
+
+    const convDropdown = document.querySelector("#conversation-dropdown input");
+    if (convDropdown) {
+      convDropdown.placeholder = "Browse conversation";
+    }
   }
 
-  // move share conv checkbox
-  let report_div = document.querySelector(
-    "#report-accordion > div:nth-child(3) > div:nth-child(1)"
-  );
-  let share_conv_checkbox = document.getElementById("is-public-checkbox");
-  if (share_conv_checkbox) {
-    report_div.insertBefore(share_conv_checkbox, report_div.querySelector("button"));
+  function initChatPanelControls() {
+    const infoExpandButton = document.getElementById("info-expand-button");
+    const chatInfoPanel = document.getElementById("info-expand");
+    if (infoExpandButton && chatInfoPanel && chatInfoPanel.childNodes.length >= 2) {
+      chatInfoPanel.insertBefore(infoExpandButton, chatInfoPanel.childNodes[2]);
+    }
+
+    const chatExpandButton = document.getElementById("chat-expand-button");
+    const chatColumn = document.getElementById("chat-area");
+    const convColumn = document.getElementById("conv-settings-panel");
+
+    const settingTabNavBar = document.querySelector("#settings-tab .tab-nav");
+    const settingCloseButton = document.getElementById("save-setting-btn");
+    if (settingCloseButton && settingTabNavBar) {
+      settingTabNavBar.appendChild(settingCloseButton);
+    }
+
+    const defaultConvColumnMinWidth = "min(300px, 100%)";
+    if (convColumn) {
+      convColumn.style.minWidth = defaultConvColumnMinWidth;
+    }
+
+    globalThis.toggleChatColumn = () => {
+      if (!convColumn) {
+        return;
+      }
+      const flexGrow = convColumn.style.flexGrow;
+      if (flexGrow == "0") {
+        convColumn.style.flexGrow = "1";
+        convColumn.style.minWidth = defaultConvColumnMinWidth;
+      } else {
+        convColumn.style.flexGrow = "0";
+        convColumn.style.minWidth = "0px";
+      }
+    };
+
+    if (chatColumn && chatExpandButton) {
+      chatExpandButton.style.flexGrow = "0";
+      chatExpandButton.style.width = "36px";
+      chatExpandButton.style.minWidth = "36px";
+      chatExpandButton.style.height = "36px";
+      chatExpandButton.style.padding = "0";
+      chatColumn.insertBefore(chatExpandButton, chatColumn.firstChild);
+    }
   }
 
-  // create slider toggle
-  const is_public_checkbox = document.getElementById("suggest-chat-checkbox");
-  const label_element = is_public_checkbox.getElementsByTagName("label")[0];
-  const checkbox_span = is_public_checkbox.getElementsByTagName("span")[0];
-  new_div = document.createElement("div");
+  function initReportControls() {
+    const reportDiv = document.querySelector(
+      "#report-accordion > div:nth-child(3) > div:nth-child(1)"
+    );
+    const shareConvCheckbox = document.getElementById("is-public-checkbox");
+    if (shareConvCheckbox && reportDiv) {
+      reportDiv.insertBefore(shareConvCheckbox, reportDiv.querySelector("button"));
+    }
 
-  label_element.classList.add("switch");
-  is_public_checkbox.appendChild(checkbox_span);
-  label_element.appendChild(new_div);
+    const isPublicCheckbox = document.getElementById("suggest-chat-checkbox");
+    if (!isPublicCheckbox) {
+      return;
+    }
+    const labelElement = isPublicCheckbox.getElementsByTagName("label")[0];
+    const checkboxSpan = isPublicCheckbox.getElementsByTagName("span")[0];
+    const newDiv = document.createElement("div");
+    if (!labelElement || !checkboxSpan) {
+      return;
+    }
+
+    labelElement.classList.add("switch");
+    isPublicCheckbox.appendChild(checkboxSpan);
+    labelElement.appendChild(newDiv);
+  }
+
+  syncMainPdfPreview();
+  initMainShellLayout();
+  initChatPanelControls();
+  initReportControls();
 
   // clpse
   globalThis.clpseFn = (id) => {
@@ -722,7 +952,7 @@ function run() {
     localStorage.setItem(key, value);
   };
   globalThis.getStorage = (key, value) => {
-    item = localStorage.getItem(key);
+    const item = localStorage.getItem(key);
     return item ? item : value;
   };
   globalThis.removeFromStorage = (key) => {
@@ -790,7 +1020,6 @@ function run() {
     var evidences = document.querySelectorAll(
       "#html-info-panel > div:last-child > div > details.evidence div.evidence-content"
     );
-    console.log("Indexing evidences", evidences);
 
     const segmenterEn = new Intl.Segmenter("en", { granularity: "sentence" });
     // Split sentences and save to all_segments list
@@ -806,15 +1035,19 @@ function run() {
       }
 
       var evidence_content = evidence.textContent.replace(/[\r\n]+/g, " ");
-      sentence_it = segmenterEn.segment(evidence_content)[Symbol.iterator]();
-      while ((sentence = sentence_it.next().value)) {
-        segment = sentence.segment.trim();
+      const sentenceIterator = segmenterEn
+        .segment(evidence_content)
+        [Symbol.iterator]();
+      let sentence = sentenceIterator.next().value;
+      while (sentence) {
+        const segment = sentence.segment.trim();
         if (segment) {
           all_segments.push({
             id: all_segments.length,
             text: segment,
           });
         }
+        sentence = sentenceIterator.next().value;
       }
     }
 
@@ -837,7 +1070,6 @@ function run() {
         return;
       }
       let matched_text = results[0].text;
-      console.log("query\n", selection, "\nmatched text\n", matched_text);
 
       var evidences = document.querySelectorAll(
         "#html-info-panel > div:last-child > div > details.evidence div.evidence-content"
@@ -857,7 +1089,7 @@ function run() {
         var evidence_content = evidence.textContent.replace(/[\r\n]+/g, " ");
         if (evidence_content.includes(matched_text)) {
           // select all p and li elements
-          paragraphs = evidence.querySelectorAll("p, li");
+          const paragraphs = evidence.querySelectorAll("p, li");
           for (var p of paragraphs) {
             var p_content = p.textContent.replace(/[\r\n]+/g, " ");
             if (p_content.includes(matched_text)) {
@@ -865,7 +1097,6 @@ function run() {
                 matched_text,
                 "<mark>" + matched_text + "</mark>"
               );
-              console.log("highlighted", matched_text, "in", p);
               if (modal.style.display == "block") {
                 // trigger on click event of PDF Preview link
                 var detail_elem = p;
@@ -884,7 +1115,7 @@ function run() {
       }
     });
     } catch (error) {
-      console.warn("fullTextSearch init skipped:", error);
+      // Ignore optional full-text enhancement errors.
     }
   };
 
@@ -910,9 +1141,11 @@ function run() {
 
   globalThis.fillChatInput = (event) => {
     let chatInput = document.querySelector("#chat-input textarea");
+    if (!chatInput) {
+      return;
+    }
     // fill the chat input with the clicked div text
     chatInput.value = "Explain " + event.target.textContent;
-    var evt = new Event("change");
     chatInput.dispatchEvent(new Event("input", { bubbles: true }));
     chatInput.focus();
   };
@@ -921,11 +1154,6 @@ function run() {
   if (!globalThis._ktemSelectionBridgeRegistered) {
     window.addEventListener("message", (event) => {
       if (event.origin !== window.location.origin) {
-        return;
-      }
-
-      if (event.data?.type === "ktem-office-diagnostics") {
-        console.log("[office-preview-diag][parent]", event.data.payload || null);
         return;
       }
 
@@ -958,18 +1186,20 @@ function run() {
       if (selectedText.length > 2000) {
         selectedText = selectedText.slice(0, 2000);
       }
-      currentSelectedPageText = selectedText;
-      setSelectedPageText(selectedText);
       if (!selectedText) {
         // Ignore transient empty-selection events right after a valid selection.
         if (Date.now() - lastNonEmptySelectionTs < 350) {
           return;
         }
+        currentSelectedPageText = "";
+        setSelectedPageText("");
         hideSelectionPrompt();
-      } else {
-        lastNonEmptySelectionTs = Date.now();
-        showSelectionPromptNearRect(event.data.rect);
+        return;
       }
+      currentSelectedPageText = selectedText;
+      setSelectedPageText(selectedText);
+      lastNonEmptySelectionTs = Date.now();
+      showSelectionPromptNearRect(event.data.rect);
     });
     globalThis._ktemSelectionBridgeRegistered = true;
   }
