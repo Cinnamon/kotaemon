@@ -7,7 +7,6 @@ import tempfile
 import threading
 import hashlib
 import time
-from glob import glob
 from html import escape
 import re
 import zipfile
@@ -46,31 +45,8 @@ class ChatPagePreviewController:
         self._office_pdf_job_status: dict[str, str] = {}
         self._office_pdf_job_ts: dict[str, float] = {}
         self._office_pdf_job_lock = threading.Lock()
-        self._last_preview_debug: dict[str, str] = {}
-
-    def _debug_preview_kind(
-        self,
-        file_id: str,
-        file_name: str,
-        kind: str,
-        page: int,
-        total_pages: int,
-        src: str,
-        notice: str = "",
-    ):
-        key = file_id or "__none__"
-        signature = f"{kind}|{page}/{total_pages}|{(src or '')[:180]}"
-        if self._last_preview_debug.get(key) == signature:
-            return
-        self._last_preview_debug[key] = signature
-        src_preview = (src or "").replace("\n", " ")[:260]
-        notice_preview = re.sub(r"<[^>]+>", " ", notice or "")
-        notice_preview = " ".join(notice_preview.split())[:160]
-        print(
-            "[office-preview] preview kind changed: "
-            f"file_id={file_id} name={file_name} kind={kind} page={page}/{total_pages} "
-            f"src={src_preview!r} notice={notice_preview!r}"
-        )
+        self._last_preview_file_id: str = ""
+        self._force_first_page_file_id: str = ""
 
     @staticmethod
     def _find_soffice_binary() -> str:
@@ -152,12 +128,14 @@ class ChatPagePreviewController:
         normalized_pdf_path = file_path.replace("\\", "/")
         pdf_src = f"{BASE_PATH}/file={normalized_pdf_path}"
         encoded_pdf_src = quote(pdf_src, safe="")
+        page_num = max(1, int(page or 1))
         query = (
             f"embed=1&disablehistory=true&sidebarviewonload=0"
-            f"&ktempage={max(1, int(page or 1))}&ktemv=11&ktemfit={quote(fit_mode or 'pdf', safe='')}"
+            f"&ktempage={page_num}&ktemv=12&ktemfit={quote(fit_mode or 'pdf', safe='')}"
             f"&file={encoded_pdf_src}"
         )
-        return f"{BASE_PATH}/file={normalized_viewer_path}?{query}"
+        # Keep both custom page param and standard hash page for robust PDF.js navigation.
+        return f"{BASE_PATH}/file={normalized_viewer_path}?{query}#page={page_num}"
 
     def _get_page_thumbnail(self, file_id: str, page: int) -> str:
         if not file_id:
@@ -919,118 +897,76 @@ class ChatPagePreviewController:
                 self._notice_html("Selected file is unavailable."),
             )
 
+        # 1) Native PDF: keep branch isolated from office conversion logic.
         if self._is_pdf_source(effective_name, effective_path):
             total_pages = self._safe_pdf_page_count(effective_path, cached_total)
             page = self._clamp_page(page, total_pages)
-            viewer_src = self._get_pdfjs_viewer_src(effective_path, page, fit_mode="pdf")
+            viewer_src = self._get_pdfjs_viewer_src(
+                effective_path, page, fit_mode="pdf"
+            )
             if viewer_src:
                 if file_id:
                     self._total_pages_cache[file_id] = total_pages
-                self._debug_preview_kind(
-                    file_id,
-                    effective_name,
-                    "pdf-native",
-                    page,
-                    total_pages,
-                    viewer_src,
-                    self._notice_html(""),
-                )
                 return page, total_pages, viewer_src, self._notice_html("")
 
             preview_path = effective_path.replace("\\", "/")
-            direct_pdf_src = f"{BASE_PATH}/file={preview_path}#page={page}"
+            fallback_src = f"{BASE_PATH}/file={preview_path}#page={page}"
             if file_id:
                 self._total_pages_cache[file_id] = total_pages
-            self._debug_preview_kind(
-                file_id,
-                effective_name,
-                "pdf-native-direct",
-                page,
-                total_pages,
-                direct_pdf_src,
-                self._notice_html(""),
-            )
-            return page, total_pages, direct_pdf_src, self._notice_html("")
+            return page, total_pages, fallback_src, self._notice_html("")
 
-        # Office cached PDF always has higher priority than temporary HTML preview.
-        office_pdf = self._get_cached_office_pdf_preview(effective_path)
-        if office_pdf and os.path.isfile(office_pdf):
-            total_pages = self._safe_pdf_page_count(office_pdf, cached_total)
-            page = self._clamp_page(page, total_pages)
-            viewer_src = self._get_pdfjs_viewer_src(
-                office_pdf, page, fit_mode="office"
-            )
-            if viewer_src:
+        # 2) Office files: HTML placeholder first, then cached PDF when ready.
+        if self._is_office_source(effective_name, effective_path):
+            office_pdf = self._get_cached_office_pdf_preview(effective_path)
+            if office_pdf and os.path.isfile(office_pdf):
+                total_pages = self._safe_pdf_page_count(office_pdf, cached_total)
+                page = self._clamp_page(page, total_pages)
+                viewer_src = self._get_pdfjs_viewer_src(
+                    office_pdf, page, fit_mode="office"
+                )
+                if viewer_src:
+                    if file_id:
+                        self._total_pages_cache[file_id] = total_pages
+                        self._non_pdf_preview_cache.pop(file_id, None)
+                    return page, total_pages, viewer_src, self._notice_html("")
+
+                office_pdf_path = office_pdf.replace("\\", "/")
+                fallback_src = f"{BASE_PATH}/file={office_pdf_path}#page={page}"
                 if file_id:
                     self._total_pages_cache[file_id] = total_pages
                     self._non_pdf_preview_cache.pop(file_id, None)
-                self._debug_preview_kind(
-                    file_id,
-                    effective_name,
-                    "office-pdf",
-                    page,
-                    total_pages,
-                    viewer_src,
-                    self._notice_html(""),
-                )
-                return page, total_pages, viewer_src, self._notice_html("")
+                return page, total_pages, fallback_src, self._notice_html("")
 
-            office_pdf_path = office_pdf.replace("\\", "/")
-            direct_pdf_src = f"{BASE_PATH}/file={office_pdf_path}#page={page}"
-            if file_id:
-                self._total_pages_cache[file_id] = total_pages
-                self._non_pdf_preview_cache.pop(file_id, None)
-            self._debug_preview_kind(
-                file_id,
-                effective_name,
-                "office-pdf-direct",
-                page,
-                total_pages,
-                direct_pdf_src,
-                self._notice_html(""),
-            )
-            return page, total_pages, direct_pdf_src, self._notice_html("")
-
-        if self._is_office_source(effective_name, effective_path):
             self._schedule_office_pdf_conversion(effective_path, effective_name)
 
             pages = self._non_pdf_preview_cache.get(file_id, [])
             if not pages:
-                _ = self._get_non_pdf_preview_src(file_id, effective_name, effective_path, page)
+                _ = self._get_non_pdf_preview_src(
+                    file_id, effective_name, effective_path, page
+                )
                 pages = self._non_pdf_preview_cache.get(file_id, [])
             total_pages = max(1, len(pages or []))
             page = self._clamp_page(page, total_pages)
-
-            non_pdf_src = (
+            placeholder_src = (
                 pages[page - 1]
                 if pages
                 else self._get_non_pdf_preview_src(
                     file_id, effective_name, effective_path, page
                 )
             )
-
             status = self._get_office_job_status(effective_path)
-            if status in {"queued", "running", ""}:
-                notice = "Generating PDF preview in background..."
-            elif status == "failed":
-                notice = "High-fidelity PDF preview failed. Showing text preview."
+            if status == "failed":
+                notice = "PDF conversion failed. Showing text preview."
             else:
-                notice = ""
-
+                notice = "Generating PDF preview in background..."
             if file_id:
                 self._total_pages_cache[file_id] = total_pages
-            self._debug_preview_kind(
-                file_id,
-                effective_name,
-                "office-html",
-                page,
-                total_pages,
-                non_pdf_src,
-                self._notice_html(notice),
-            )
-            return page, total_pages, non_pdf_src, self._notice_html(notice)
+            return page, total_pages, placeholder_src, self._notice_html(notice)
 
-        non_pdf_src = self._get_non_pdf_preview_src(file_id, effective_name, effective_path, page)
+        # 3) Other non-PDF files: preview text only.
+        non_pdf_src = self._get_non_pdf_preview_src(
+            file_id, effective_name, effective_path, page
+        )
         pages = self._non_pdf_preview_cache.get(file_id, [])
         total_pages = max(1, len(pages or []))
         page = self._clamp_page(page, total_pages)
@@ -1039,15 +975,6 @@ class ChatPagePreviewController:
         if file_id:
             self._total_pages_cache[file_id] = total_pages
         if non_pdf_src:
-            self._debug_preview_kind(
-                file_id,
-                effective_name,
-                "nonpdf-html",
-                page,
-                total_pages,
-                non_pdf_src,
-                self._notice_html(""),
-            )
             return page, total_pages, non_pdf_src, self._notice_html("")
 
         return (
@@ -1250,15 +1177,6 @@ class ChatPagePreviewController:
             with self._office_pdf_job_lock:
                 self._office_pdf_job_status[cache_key] = "done"
             return recovered_pdf
-        # Fallback: pick newest valid converted PDF for same stem.
-        pattern = os.path.join(preview_dir, f"{stem}_*.pdf")
-        candidates = sorted(glob(pattern), key=lambda p: os.path.getmtime(p), reverse=True)
-        for candidate in candidates:
-            if self._is_valid_pdf(candidate):
-                self._office_pdf_cache[cache_key] = candidate
-                with self._office_pdf_job_lock:
-                    self._office_pdf_job_status[cache_key] = "done"
-                return candidate
         return ""
 
     @staticmethod
@@ -1395,9 +1313,6 @@ class ChatPagePreviewController:
 
         resolved_path = self._ensure_pdf_preview_copy(resolved_path, file_name)
 
-        if resolved_path and self._is_office_source(file_name, resolved_path):
-            self._schedule_office_pdf_conversion(resolved_path, file_name)
-
         return file_id, file_name, resolved_path
 
     def clear_page_outputs(self):
@@ -1463,6 +1378,7 @@ class ChatPagePreviewController:
         file_id, file_name, file_path = self.resolve_pdf_source(
             first_selector_choices, selected_file_ids
         )
+        self._force_first_page_file_id = file_id or ""
         page_number, total_pages, preview_src, preview_notice = self._build_preview_payload(
             file_id, file_name, file_path, 1, 1
         )
@@ -1561,13 +1477,20 @@ class ChatPagePreviewController:
         file_id, file_name, file_path = self.resolve_pdf_source(
             first_selector_choices, selected_file_ids
         )
+        prev_file_id = self._last_preview_file_id or ""
+        next_file_id = file_id or ""
+        must_force_first = bool(next_file_id and next_file_id == (self._force_first_page_file_id or ""))
+        target_page = 1 if (must_force_first or (next_file_id and next_file_id != prev_file_id)) else current_page
         page_number, total_pages, preview_src, preview_notice = self._build_preview_payload(
             file_id,
             file_name,
             file_path,
-            current_page,
+            target_page,
             total_pages,
         )
+        if must_force_first and int(page_number or 1) == 1:
+            self._force_first_page_file_id = ""
+        self._last_preview_file_id = next_file_id
         return (
             file_id,
             file_name,
@@ -1588,15 +1511,22 @@ class ChatPagePreviewController:
         current_preview_src: str,
         current_preview_notice: str,
     ):
+        prev_file_id = self._last_preview_file_id or ""
+        next_file_id = file_id or ""
+        must_force_first = bool(next_file_id and next_file_id == (self._force_first_page_file_id or ""))
+        target_page = 1 if (must_force_first or (next_file_id and next_file_id != prev_file_id)) else current_page
         page_number, next_total_pages, preview_src, preview_notice = self._build_preview_payload(
             file_id,
             file_name,
             file_path,
-            current_page,
+            target_page,
             total_pages,
         )
+        if must_force_first and int(page_number or 1) == 1:
+            self._force_first_page_file_id = ""
+        self._last_preview_file_id = next_file_id
         if (
-            int(page_number or 1) == int(current_page or 1)
+            int(page_number or 1) == int(target_page or 1)
             and int(next_total_pages or 1) == int(total_pages or 1)
             and (preview_src or "") == (current_preview_src or "")
             and (preview_notice or "") == (current_preview_notice or "")

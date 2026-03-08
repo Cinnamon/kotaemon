@@ -11,7 +11,13 @@ function run() {
   let officeZoomSlider = null;
   let officeZoomLabel = null;
   let isOfficePreview = false;
-  let iframeLoadWatchdog = null;
+  let lastNonEmptySelectionTs = 0;
+  let previewDebugLast = "";
+  let lastDocKey = "";
+  let lastAssignedPreviewSrc = globalThis._ktemLastAssignedPreviewSrc || "";
+  let lastStablePreviewSrc = globalThis._ktemLastStablePreviewSrc || "";
+  let lastPostedPageDocKey = globalThis._ktemLastPostedPageDocKey || "";
+  let lastPostedPageNumber = globalThis._ktemLastPostedPageNumber || 0;
 
   function parsePreviewFitMode(src) {
     try {
@@ -22,69 +28,17 @@ function run() {
     }
   }
 
-  function getPreviewFamily(src) {
-    const value = (src || "").trim();
-    if (!value) {
-      return "empty";
+  function previewDebug(payload) {
+    try {
+      const text = JSON.stringify(payload);
+      if (text === previewDebugLast) {
+        return;
+      }
+      previewDebugLast = text;
+      console.log("[preview-sync]", payload);
+    } catch (error) {
+      console.log("[preview-sync]", payload);
     }
-    if (value.startsWith("data:image") || /\.(png|jpg|jpeg|gif|webp|svg)(\?|#|$)/i.test(value)) {
-      return "image";
-    }
-    if (value.startsWith("data:text/html")) {
-      return "office-html";
-    }
-    const fitMode = parsePreviewFitMode(value);
-    if (fitMode === "office") {
-      return "office-pdf";
-    }
-    if (fitMode === "pdf") {
-      return "pdf-viewer";
-    }
-    return "other";
-  }
-
-  function replacePreviewIframe() {
-    const currentIframe = document.getElementById("main-pdf-preview-frame");
-    if (!currentIframe || !currentIframe.parentNode) {
-      return currentIframe;
-    }
-
-    const nextIframe = currentIframe.cloneNode(false);
-    nextIframe.removeAttribute("src");
-    nextIframe.style.display = "block";
-    nextIframe.style.width = "100%";
-    nextIframe.style.height = "100%";
-    currentIframe.parentNode.replaceChild(nextIframe, currentIframe);
-    return nextIframe;
-  }
-
-  function scorePreviewSrc(src) {
-    const value = (src || "").trim();
-    if (!value) {
-      return 0;
-    }
-
-    if (value.startsWith("data:image") || /\.(png|jpg|jpeg|gif|webp|svg)(\?|#|$)/i.test(value)) {
-      return 100;
-    }
-
-    if (value.startsWith("data:text/html")) {
-      return 200;
-    }
-
-    const fitMode = parsePreviewFitMode(value);
-    if (fitMode === "office") {
-      return 500;
-    }
-    if (fitMode === "pdf") {
-      return 450;
-    }
-
-    if (/\.pdf(\?|#|$)/i.test(value)) {
-      return 400;
-    }
-
-    return 250;
   }
 
   function ensureOfficeZoomControl() {
@@ -181,25 +135,31 @@ function run() {
   }
 
   function syncMainPdfPreview() {
+    const currentPage = getCurrentPageNumber();
     const srcFields = document.querySelectorAll(
       "#main-pdf-preview-src textarea, #main-pdf-preview-src input"
     );
     let srcField = null;
     if (srcFields && srcFields.length > 0) {
-      // Gradio can keep stale hidden inputs during rerender. Prefer the richest
-      // preview source so an updated PDF viewer URL wins over an older HTML placeholder.
-      let bestScore = -1;
-      for (let i = 0; i < srcFields.length; i++) {
+      for (let i = srcFields.length - 1; i >= 0; i--) {
         const candidate = srcFields[i];
         const value = (candidate && candidate.value ? candidate.value : "").trim();
-        const score = scorePreviewSrc(value);
-        if (score > bestScore || (score === bestScore && value)) {
-          bestScore = score;
+        if (value) {
           srcField = candidate;
+          break;
         }
       }
       if (!srcField) {
         srcField = srcFields[srcFields.length - 1] || null;
+      }
+    }
+    const srcCandidates = [];
+    if (srcFields && srcFields.length > 0) {
+      for (let i = 0; i < srcFields.length; i++) {
+        const value = (srcFields[i] && srcFields[i].value ? srcFields[i].value : "").trim();
+        if (value) {
+          srcCandidates.push(value.slice(0, 160));
+        }
       }
     }
     let iframe = document.getElementById("main-pdf-preview-frame");
@@ -209,24 +169,129 @@ function run() {
       return;
     }
 
-    let nextSrc = (srcField.value || "").trim();
+    let nextSrc = (srcField?.value || "").trim();
     const currentIframeSrc = (iframe.getAttribute("src") || "").trim();
-    if (nextSrc === lastPreviewSrc && currentIframeSrc === nextSrc) {
+    const getPageFromSrc = (src) => {
+      try {
+        const u = new URL(src, window.location.origin);
+        const q = parseInt(u.searchParams.get("ktempage") || "", 10);
+        if (Number.isFinite(q) && q > 0) return q;
+        const h = new URLSearchParams((u.hash || "").replace(/^#/, ""));
+        const hp = parseInt(h.get("page") || "", 10);
+        return Number.isFinite(hp) && hp > 0 ? hp : null;
+      } catch (error) {
+        return null;
+      }
+    };
+    const withPageHash = (src, page) => {
+      try {
+        const u = new URL(src, window.location.origin);
+        if (Number.isFinite(page) && page > 0) {
+          u.searchParams.set("ktempage", String(page));
+          u.hash = `page=${page}`;
+        }
+        return u.toString();
+      } catch (error) {
+        return src;
+      }
+    };
+    const toAbsolute = (src) => {
+      try {
+        return new URL(src, window.location.origin).toString();
+      } catch (error) {
+        return src || "";
+      }
+    };
+    const getDocKey = (src) => {
+      try {
+        const u = new URL(src, window.location.origin);
+        const f = u.searchParams.get("file") || "";
+        return `${u.pathname}|${f}`;
+      } catch (error) {
+        return (src || "").split("#")[0];
+      }
+    };
+    const postPageChangeIfNeeded = (targetIframe, targetPage, docKey, force = false) => {
+      if (
+        !targetIframe ||
+        !targetIframe.contentWindow ||
+        !Number.isFinite(targetPage) ||
+        targetPage <= 0
+      ) {
+        return false;
+      }
+      const normalizedDocKey = docKey || "";
+      if (
+        !force &&
+        normalizedDocKey &&
+        normalizedDocKey === lastPostedPageDocKey &&
+        targetPage === lastPostedPageNumber
+      ) {
+        return false;
+      }
+      try {
+        targetIframe.contentWindow.postMessage(
+          { type: "ktem-pdf-page-change", page: targetPage },
+          window.location.origin
+        );
+        lastPostedPageDocKey = normalizedDocKey;
+        lastPostedPageNumber = targetPage;
+        globalThis._ktemLastPostedPageDocKey = lastPostedPageDocKey;
+        globalThis._ktemLastPostedPageNumber = lastPostedPageNumber;
+        return true;
+      } catch (error) {
+        return false;
+      }
+    };
+    const nextDocKey = getDocKey(nextSrc);
+    const currentDocKey = getDocKey(currentIframeSrc);
+    const chosenPage = getPageFromSrc(nextSrc);
+    const desiredPage = Number.isFinite(currentPage) && currentPage > 0 ? currentPage : chosenPage;
+    previewDebug({
+      page: currentPage,
+      candidates: srcCandidates,
+      chosen: nextSrc.slice(0, 160),
+      current: currentIframeSrc.slice(0, 160),
+      chosenPage: chosenPage,
+      desiredPage: Number.isFinite(desiredPage) && desiredPage > 0 ? desiredPage : null,
+      currentSrcPage: getPageFromSrc(currentIframeSrc),
+      lastStable: (lastStablePreviewSrc || "").slice(0, 160),
+      postedDocKey: (lastPostedPageDocKey || "").slice(0, 80),
+      postedPage: lastPostedPageNumber || null,
+    });
+    const normalizedNextSrc = toAbsolute(withPageHash(nextSrc, desiredPage));
+    const normalizedCurrentSrc = toAbsolute(currentIframeSrc);
+    const sameDoc =
+      !!nextDocKey &&
+      !!currentDocKey &&
+      nextDocKey === currentDocKey;
+
+    if (
+      (nextSrc === lastPreviewSrc || normalizedNextSrc === lastAssignedPreviewSrc) &&
+      normalizedCurrentSrc === normalizedNextSrc
+    ) {
       return;
     }
     lastPreviewSrc = nextSrc;
     globalThis._ktemLastPreviewSrc = nextSrc;
-    hideSelectionPrompt();
 
     if (!nextSrc) {
-      isOfficePreview = false;
-      setOfficeZoomControlVisible(false);
-      iframe.style.display = "none";
-      image.style.display = "none";
-      empty.style.display = "flex";
-      iframe.removeAttribute("src");
-      image.removeAttribute("src");
-      return;
+      // Gradio can transiently clear hidden field values during rerenders.
+      // Keep rendering the last stable preview source instead of blanking UI.
+      if (lastStablePreviewSrc) {
+        nextSrc = lastStablePreviewSrc;
+      } else if (currentIframeSrc) {
+        nextSrc = currentIframeSrc;
+      } else {
+        isOfficePreview = false;
+        setOfficeZoomControlVisible(false);
+        iframe.style.display = "none";
+        image.style.display = "none";
+        empty.style.display = "flex";
+        iframe.removeAttribute("src");
+        image.removeAttribute("src");
+        return;
+      }
     }
 
     const isImage = nextSrc.startsWith("data:image") || /\.(png|jpg|jpeg|gif|webp|svg)(\?|#|$)/i.test(nextSrc);
@@ -247,151 +312,106 @@ function run() {
     isOfficePreview = fitMode === "office";
     setOfficeZoomControlVisible(isOfficePreview);
 
-    const getViewerDocumentKey = (src) => {
-      try {
-        let url = new URL(src, window.location.origin);
-        url.hash = "";
-        url.searchParams.delete("ktempage");
-        return `${url.origin}${url.pathname}?${url.searchParams.toString()}`;
-      } catch (error) {
-        return src.split("#")[0].replace(/([?&])ktempage=\d+(&?)/, "$1").replace(/[?&]$/, "");
-      }
-    };
-
-    const getTargetPage = (src) => {
-      try {
-        let url = new URL(src, window.location.origin);
-        let queryPage = parseInt(url.searchParams.get("ktempage") || "", 10);
-        if (Number.isFinite(queryPage) && queryPage > 0) {
-          return queryPage;
-        }
-        let hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
-        let hashPage = parseInt(hashParams.get("page") || "", 10);
-        return Number.isFinite(hashPage) && hashPage > 0 ? hashPage : 1;
-      } catch (error) {
-        return 1;
-      }
-    };
-
-    let currentSrc = iframe.getAttribute("src") || "";
-    let currentBase = getViewerDocumentKey(currentSrc);
-    let nextBase = getViewerDocumentKey(nextSrc);
-    const currentFamily = getPreviewFamily(currentSrc);
-    const nextFamily = getPreviewFamily(nextSrc);
-
-    const requiresHardReload = currentFamily !== nextFamily;
-    console.log("[office-preview-ui] sync", {
-      currentFamily,
-      nextFamily,
-      requiresHardReload,
-      currentSrc: currentSrc.slice(0, 260),
-      nextSrc: nextSrc.slice(0, 260),
-    });
-
-    if (!requiresHardReload && currentSrc && currentBase === nextBase && iframe.contentWindow) {
-      try {
-        iframe.contentWindow.postMessage({
-          type: "ktem-pdf-page-change",
-          page: getTargetPage(nextSrc),
-        }, window.location.origin);
-        return;
-      } catch (error) {
-        console.error("Failed to update preview page in place", error);
-      }
-    }
-
-    if (requiresHardReload) {
-      iframe = replacePreviewIframe();
-      console.log("[office-preview-ui] iframe replaced", {
-        nextFamily,
-        nextSrc: nextSrc.slice(0, 260),
-      });
-    }
-
-    if (!iframe) {
-      return;
-    }
-
-    const absoluteNextSrc = (() => {
-      try {
-        return new URL(nextSrc, window.location.origin).toString();
-      } catch (error) {
-        return nextSrc;
-      }
-    })();
-
-    if (iframeLoadWatchdog) {
-      window.clearTimeout(iframeLoadWatchdog);
-      iframeLoadWatchdog = null;
-    }
-
     iframe.onload = () => {
-      if (iframeLoadWatchdog) {
-        window.clearTimeout(iframeLoadWatchdog);
-        iframeLoadWatchdog = null;
-      }
-      console.log("[office-preview-ui] iframe onload", {
-        nextFamily,
-        iframeSrc: (iframe.getAttribute("src") || "").slice(0, 260),
-      });
-      if (!isOfficePreview || !iframe.contentWindow) {
+      bindIframeSelectionFallback(iframe);
+      if (!iframe.contentWindow) {
         return;
       }
-      iframe.contentWindow.postMessage(
-        { type: "ktem-pdf-zoom-request" },
-        window.location.origin
-      );
-    };
-
-    iframe.onerror = (error) => {
-      if (iframeLoadWatchdog) {
-        window.clearTimeout(iframeLoadWatchdog);
-        iframeLoadWatchdog = null;
+      postPageChangeIfNeeded(iframe, desiredPage, nextDocKey, true);
+      if (isOfficePreview) {
+        iframe.contentWindow.postMessage(
+          { type: "ktem-pdf-zoom-request" },
+          window.location.origin
+        );
       }
-      console.error("[office-preview-ui] iframe onerror", {
-        nextFamily,
-        assignedSrc: absoluteNextSrc.slice(0, 260),
-        error,
-      });
     };
-
     iframe.style.display = "block";
     iframe.style.width = "100%";
     iframe.style.height = "100%";
 
-    const assignSrc = () => {
-      iframe.src = absoluteNextSrc;
-      console.log("[office-preview-ui] iframe src assigned", {
-        nextFamily,
-        assignedSrc: absoluteNextSrc.slice(0, 260),
-      });
-      iframeLoadWatchdog = window.setTimeout(() => {
-        try {
-          console.warn("[office-preview-ui] iframe load timeout, forcing location.replace", {
-            nextFamily,
-            assignedSrc: absoluteNextSrc.slice(0, 260),
-          });
-          if (iframe.contentWindow) {
-            iframe.contentWindow.location.replace(absoluteNextSrc);
-          } else {
-            iframe.src = absoluteNextSrc;
-          }
-        } catch (error) {
-          console.error("[office-preview-ui] iframe watchdog failed", {
-            nextFamily,
-            assignedSrc: absoluteNextSrc.slice(0, 260),
-            error,
-          });
+    // Avoid iframe reload flicker when switching pages within the same document.
+    if (sameDoc && iframe.contentWindow) {
+      postPageChangeIfNeeded(iframe, desiredPage, nextDocKey, false);
+      if (normalizedNextSrc) {
+        lastAssignedPreviewSrc = normalizedNextSrc;
+        globalThis._ktemLastAssignedPreviewSrc = lastAssignedPreviewSrc;
+        lastStablePreviewSrc = normalizedNextSrc;
+        globalThis._ktemLastStablePreviewSrc = lastStablePreviewSrc;
+      }
+      return;
+    }
+
+    nextSrc = normalizedNextSrc;
+    if (normalizedCurrentSrc === normalizedNextSrc) {
+      if (normalizedNextSrc) {
+        lastStablePreviewSrc = normalizedNextSrc;
+        globalThis._ktemLastStablePreviewSrc = lastStablePreviewSrc;
+      }
+      return;
+    }
+    lastDocKey = nextDocKey || lastDocKey;
+    lastPostedPageDocKey = "";
+    lastPostedPageNumber = 0;
+    globalThis._ktemLastPostedPageDocKey = lastPostedPageDocKey;
+    globalThis._ktemLastPostedPageNumber = lastPostedPageNumber;
+    iframe.src = nextSrc;
+    lastAssignedPreviewSrc = nextSrc;
+    globalThis._ktemLastAssignedPreviewSrc = lastAssignedPreviewSrc;
+    if (nextSrc) {
+      lastStablePreviewSrc = nextSrc;
+      globalThis._ktemLastStablePreviewSrc = lastStablePreviewSrc;
+    }
+  }
+
+  function bindIframeSelectionFallback(iframe) {
+    if (!iframe || iframe._ktemSelectionFallbackBound) {
+      return;
+    }
+    iframe._ktemSelectionFallbackBound = true;
+
+    const attach = () => {
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (!doc || doc._ktemSelectionFallbackAttached) {
+          return;
         }
-      }, 1500);
+        doc._ktemSelectionFallbackAttached = true;
+        doc.addEventListener("mouseup", () => {
+          try {
+            const sel = iframe.contentWindow?.getSelection?.();
+            const text = (sel && sel.toString ? sel.toString() : "").trim();
+            if (!text) {
+              if (Date.now() - lastNonEmptySelectionTs >= 200) {
+                hideSelectionPrompt();
+              }
+              return;
+            }
+            let rect = { left: 0, top: 0, width: 0, height: 0 };
+            const range = sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+            if (range) {
+              const r = range.getBoundingClientRect();
+              rect = {
+                left: Number.isFinite(r.left) ? r.left : 0,
+                top: Number.isFinite(r.top) ? r.top : 0,
+                width: Number.isFinite(r.width) ? r.width : 0,
+                height: Number.isFinite(r.height) ? r.height : 0,
+              };
+            }
+            currentSelectedPageText = text.slice(0, 2000);
+            setSelectedPageText(currentSelectedPageText);
+            lastNonEmptySelectionTs = Date.now();
+            showSelectionPromptNearRect(rect);
+          } catch (error) {
+            // ignore fallback selection errors
+          }
+        });
+      } catch (error) {
+        // ignore iframe access errors
+      }
     };
 
-    if (requiresHardReload) {
-      iframe.src = "about:blank";
-      window.requestAnimationFrame(assignSrc);
-    } else {
-      assignSrc();
-    }
+    iframe.addEventListener("load", attach);
+    attach();
   }
 
   function setSelectedPageText(value) {
@@ -575,15 +595,25 @@ function run() {
     }
   }
 
+  function isSelectionPromptVisible() {
+    return !!selectionPromptBox && selectionPromptBox.style.display !== "none";
+  }
+
   function getCurrentPageNumber() {
-    let pageField = document.querySelector(
+    const pageFields = document.querySelectorAll(
       "#pdf-page-number input, #pdf-page-number textarea"
     );
-    if (!pageField) {
+    if (!pageFields || pageFields.length === 0) {
       return null;
     }
-    let page = parseInt((pageField.value || "").trim(), 10);
-    return Number.isFinite(page) && page > 0 ? page : null;
+    for (let i = pageFields.length - 1; i >= 0; i--) {
+      const value = (pageFields[i]?.value || "").trim();
+      const page = parseInt(value, 10);
+      if (Number.isFinite(page) && page > 0) {
+        return page;
+      }
+    }
+    return null;
   }
 
   syncMainPdfPreview();
@@ -731,11 +761,22 @@ function run() {
   };
 
   globalThis.fullTextSearch = () => {
+    try {
+      if (typeof MiniSearch === "undefined") {
+        return;
+      }
+
     // Assign text selection event to last bot message
     var bot_messages = document.querySelectorAll(
       "div#main-chat-bot div.message-row.bot-row"
     );
+    if (!bot_messages || bot_messages.length === 0) {
+      return;
+    }
     var last_bot_message = bot_messages[bot_messages.length - 1];
+    if (!last_bot_message || !last_bot_message.classList) {
+      return;
+    }
 
     // check if the last bot message has class "text_selection"
     if (last_bot_message.classList.contains("text_selection")) {
@@ -787,6 +828,9 @@ function run() {
 
     last_bot_message.addEventListener("mouseup", () => {
       let selection = window.getSelection().toString();
+      if (!selection || !selection.trim()) {
+        return;
+      }
       let results = miniSearch.search(selection);
 
       if (results.length == 0) {
@@ -839,6 +883,9 @@ function run() {
         }
       }
     });
+    } catch (error) {
+      console.warn("fullTextSearch init skipped:", error);
+    }
   };
 
   globalThis.spawnDocument = (content, options) => {
@@ -914,12 +961,31 @@ function run() {
       currentSelectedPageText = selectedText;
       setSelectedPageText(selectedText);
       if (!selectedText) {
+        // Ignore transient empty-selection events right after a valid selection.
+        if (Date.now() - lastNonEmptySelectionTs < 350) {
+          return;
+        }
         hideSelectionPrompt();
       } else {
+        lastNonEmptySelectionTs = Date.now();
         showSelectionPromptNearRect(event.data.rect);
       }
     });
     globalThis._ktemSelectionBridgeRegistered = true;
+  }
+
+  if (!globalThis._ktemSelectionPromptOutsideCloseRegistered) {
+    document.addEventListener("mousedown", (event) => {
+      if (!isSelectionPromptVisible()) {
+        return;
+      }
+      const target = event.target;
+      if (selectionPromptBox && selectionPromptBox.contains(target)) {
+        return;
+      }
+      hideSelectionPrompt();
+    });
+    globalThis._ktemSelectionPromptOutsideCloseRegistered = true;
   }
 
   if (!answerPanelObserver) {
