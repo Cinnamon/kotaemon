@@ -1,9 +1,3 @@
-"""Tests for kotaemon.agents.tools.mcp module.
-
-Covers config parsing, JSON Schema -> Pydantic model building,
-tool formatting, and MCPTool construction (without real MCP servers).
-"""
-
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -20,12 +14,12 @@ from kotaemon.agents.tools.mcp import (
 )
 
 # ---------------------------------------------------------------------------
-# _json_schema_type_to_python — parametrized to avoid 7 near-identical tests
+# _json_schema_type_to_python
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
-    "json_type, expected",
+    ("json_type", "expected"),
     [
         ("string", str),
         ("integer", int),
@@ -36,7 +30,8 @@ from kotaemon.agents.tools.mcp import (
         ("unknown_type", str),  # fallback
     ],
 )
-def test_json_schema_type_to_python(json_type, expected):
+def test_json_schema_type_to_python(json_type: str, expected: type) -> None:
+    """Maps JSON Schema types to Python types with fallback to str."""
     assert _json_schema_type_to_python(json_type) is expected
 
 
@@ -45,36 +40,39 @@ def test_json_schema_type_to_python(json_type, expected):
 # ---------------------------------------------------------------------------
 
 
-class TestBuildArgsModel:
-    def test_model_fields_and_name(self):
-        """Required + optional fields and the generated model name."""
-        schema = {
-            "properties": {
-                "url": {"type": "string", "description": "The URL to fetch"},
-                "timeout": {"type": "integer", "description": "Timeout in seconds"},
-            },
-            "required": ["url"],
-        }
-        model = build_args_model("fetch", schema)
-        assert model.__name__ == "MCPArgs_fetch"
-        assert model.model_fields["url"].is_required()
-        assert not model.model_fields["timeout"].is_required()
+def test_build_args_model_fields_and_name() -> None:
+    """Required + optional fields and the generated model name."""
+    schema = {
+        "properties": {
+            "url": {"type": "string", "description": "The URL to fetch"},
+            "timeout": {"type": "integer", "description": "Timeout in seconds"},
+        },
+        "required": ["url"],
+    }
+    model = build_args_model("fetch", schema)
+    assert model.__name__ == "MCPArgs_fetch"
+    assert model.model_fields["url"].is_required()
+    assert not model.model_fields["timeout"].is_required()
 
-    def test_optional_field_preserves_default(self):
-        schema = {
-            "properties": {
-                "limit": {
-                    "type": "integer",
-                    "description": "Max results",
-                    "default": 10,
-                },
-            },
-            "required": [],
-        }
-        assert build_args_model("search", schema).model_fields["limit"].default == 10
 
-    def test_empty_schema_produces_no_fields(self):
-        assert len(build_args_model("empty", {}).model_fields) == 0
+def test_build_args_model_optional_field_preserves_default() -> None:
+    """Optional field with default preserves that default."""
+    schema = {
+        "properties": {
+            "limit": {
+                "type": "integer",
+                "description": "Max results",
+                "default": 10,
+            },
+        },
+        "required": [],
+    }
+    assert build_args_model("search", schema).model_fields["limit"].default == 10
+
+
+def test_build_args_model_empty_schema_produces_no_fields() -> None:
+    """Empty schema produces model with no fields."""
+    assert len(build_args_model("empty", {}).model_fields) == 0
 
 
 # ---------------------------------------------------------------------------
@@ -82,59 +80,62 @@ class TestBuildArgsModel:
 # ---------------------------------------------------------------------------
 
 
-class TestParseMcpConfig:
-    def test_full_stdio_config(self):
-        config = {
-            "transport": "stdio",
-            "command": "uvx",
-            "args": ["mcp-server-fetch"],
-            "env": {"KEY": "value"},
+def test_parse_mcp_config_full_stdio() -> None:
+    """Full stdio config is parsed correctly."""
+    config = {
+        "transport": "stdio",
+        "command": "uvx",
+        "args": ["mcp-server-fetch"],
+        "env": {"KEY": "value"},
+    }
+    parsed = parse_mcp_config(config)
+    assert parsed == {
+        "transport": "stdio",
+        "command": "uvx",
+        "args": ["mcp-server-fetch"],
+        "env": {"KEY": "value"},
+    }
+
+
+def test_parse_mcp_config_defaults_for_empty() -> None:
+    """Empty config uses defaults."""
+    parsed = parse_mcp_config({})
+    assert parsed["transport"] == "stdio"
+    assert parsed["command"] == ""
+    assert parsed["args"] == []
+    assert parsed["env"] == {}
+
+
+def test_parse_mcp_config_auto_split_multi_word_command() -> None:
+    """stdio with no explicit args: space-delimited command is split."""
+    parsed = parse_mcp_config({"command": "npx -y mcp-remote https://example.com/sse"})
+    assert parsed["command"] == "npx"
+    assert parsed["args"] == ["-y", "mcp-remote", "https://example.com/sse"]
+
+
+def test_parse_mcp_config_no_split_when_args_provided() -> None:
+    """Explicit args suppress the auto-split."""
+    parsed = parse_mcp_config(
+        {
+            "command": "npx -y mcp-remote https://example.com/sse",
+            "args": ["--flag"],
         }
-        parsed = parse_mcp_config(config)
-        assert parsed == {
-            "transport": "stdio",
-            "command": "uvx",
-            "args": ["mcp-server-fetch"],
-            "env": {"KEY": "value"},
+    )
+    assert parsed["command"] == "npx -y mcp-remote https://example.com/sse"
+    assert parsed["args"] == ["--flag"]
+
+
+def test_parse_mcp_config_sse_uses_url_as_command() -> None:
+    """For SSE, the url field becomes the effective command."""
+    parsed = parse_mcp_config(
+        {
+            "transport": "sse",
+            "url": "http://localhost:8080/sse",
+            "command": "ignored",
         }
-
-    def test_defaults_for_empty_config(self):
-        parsed = parse_mcp_config({})
-        assert parsed["transport"] == "stdio"
-        assert parsed["command"] == ""
-        assert parsed["args"] == []
-        assert parsed["env"] == {}
-
-    def test_auto_split_multi_word_command(self):
-        """stdio with no explicit args: space-delimited command is split."""
-        parsed = parse_mcp_config(
-            {"command": "npx -y mcp-remote https://example.com/sse"}
-        )
-        assert parsed["command"] == "npx"
-        assert parsed["args"] == ["-y", "mcp-remote", "https://example.com/sse"]
-
-    def test_no_split_when_args_already_provided(self):
-        """Explicit args suppress the auto-split."""
-        parsed = parse_mcp_config(
-            {
-                "command": "npx -y mcp-remote https://example.com/sse",
-                "args": ["--flag"],
-            }
-        )
-        assert parsed["command"] == "npx -y mcp-remote https://example.com/sse"
-        assert parsed["args"] == ["--flag"]
-
-    def test_sse_transport_uses_url_as_command(self):
-        """For SSE, the url field becomes the effective command."""
-        parsed = parse_mcp_config(
-            {
-                "transport": "sse",
-                "url": "http://localhost:8080/sse",
-                "command": "ignored",
-            }
-        )
-        assert parsed["transport"] == "sse"
-        assert parsed["command"] == "http://localhost:8080/sse"
+    )
+    assert parsed["transport"] == "sse"
+    assert parsed["command"] == "http://localhost:8080/sse"
 
 
 # ---------------------------------------------------------------------------
@@ -142,40 +143,39 @@ class TestParseMcpConfig:
 # ---------------------------------------------------------------------------
 
 
-class TestMakeTool:
-    def test_creates_mcp_tool_with_schema(self):
-        parsed = {
-            "transport": "stdio",
-            "command": "uvx",
-            "args": ["mcp-server-fetch"],
-            "env": {},
-        }
-        tool_info = SimpleNamespace(
-            name="fetch",
-            description="Fetch a URL",
-            inputSchema={
-                "properties": {
-                    "url": {"type": "string", "description": "URL to fetch"}
-                },
-                "required": ["url"],
-            },
-        )
-        tool = _make_tool(parsed, tool_info)
+def test_make_tool_creates_mcp_tool_with_schema() -> None:
+    """_make_tool creates MCPTool with correct attributes."""
+    parsed = {
+        "transport": "stdio",
+        "command": "uvx",
+        "args": ["mcp-server-fetch"],
+        "env": {},
+    }
+    tool_info = SimpleNamespace(
+        name="fetch",
+        description="Fetch a URL",
+        inputSchema={
+            "properties": {"url": {"type": "string", "description": "URL to fetch"}},
+            "required": ["url"],
+        },
+    )
+    tool = _make_tool(parsed, tool_info)
 
-        assert isinstance(tool, MCPTool)
-        assert tool.name == "fetch"
-        assert tool.description == "Fetch a URL"
-        assert tool.server_transport == "stdio"
-        assert tool.server_command == "uvx"
-        assert tool.server_args == ["mcp-server-fetch"]
+    assert isinstance(tool, MCPTool)
+    assert tool.name == "fetch"
+    assert tool.description == "Fetch a URL"
+    assert tool.server_transport == "stdio"
+    assert tool.server_command == "uvx"
+    assert tool.server_args == ["mcp-server-fetch"]
 
-    def test_missing_schema_and_description_uses_defaults(self):
-        """No inputSchema → args_schema is None; None description → auto-generated."""
-        parsed = {"transport": "stdio", "command": "uvx", "args": [], "env": {}}
-        tool_info = SimpleNamespace(name="ping", description=None)
-        tool = _make_tool(parsed, tool_info)
-        assert tool.description == "MCP tool: ping"
-        assert tool.args_schema is None
+
+def test_make_tool_missing_schema_and_description_uses_defaults() -> None:
+    """No inputSchema -> args_schema is None; None description -> auto-generated."""
+    parsed = {"transport": "stdio", "command": "uvx", "args": [], "env": {}}
+    tool_info = SimpleNamespace(name="ping", description=None)
+    tool = _make_tool(parsed, tool_info)
+    assert tool.description == "MCP tool: ping"
+    assert tool.args_schema is None
 
 
 # ---------------------------------------------------------------------------
@@ -183,34 +183,40 @@ class TestMakeTool:
 # ---------------------------------------------------------------------------
 
 
-class TestFormatToolList:
-    def test_all_tools_enabled_by_default(self):
-        tool_infos = [
-            {"name": "fetch", "description": "Fetch a URL"},
-            {"name": "search", "description": "Search the web"},
-        ]
-        result = format_tool_list(tool_infos)
-        assert "2" in result
-        assert "fetch" in result and "search" in result
-        assert "All tools enabled" in result
+def test_format_tool_list_all_enabled_by_default() -> None:
+    """All tools enabled when no filter specified."""
+    tool_infos = [
+        {"name": "fetch", "description": "Fetch a URL"},
+        {"name": "search", "description": "Search the web"},
+    ]
+    result = format_tool_list(tool_infos)
+    assert "2" in result
+    assert "fetch" in result and "search" in result
+    assert "All tools enabled" in result
 
-    def test_partial_filter_shows_counts_and_icons(self):
-        tool_infos = [
-            {"name": "fetch", "description": "Fetch a URL"},
-            {"name": "search", "description": "Search the web"},
-        ]
-        result = format_tool_list(tool_infos, enabled_tools=["fetch"])
-        assert "1/2 tool(s) enabled" in result
-        assert "✅" in result  # fetch enabled
-        assert "⬜" in result  # search disabled
 
-    def test_long_description_is_truncated(self):
-        result = format_tool_list([{"name": "tool", "description": "A" * 200}])
-        assert "A" * 121 not in result
+def test_format_tool_list_partial_filter() -> None:
+    """Partial filter shows counts and icons."""
+    tool_infos = [
+        {"name": "fetch", "description": "Fetch a URL"},
+        {"name": "search", "description": "Search the web"},
+    ]
+    result = format_tool_list(tool_infos, enabled_tools=["fetch"])
+    assert "1/2 tool(s) enabled" in result
+    assert "✅" in result  # fetch enabled
+    assert "⬜" in result  # search disabled
 
-    def test_none_description_shows_placeholder(self):
-        result = format_tool_list([{"name": "tool", "description": None}])
-        assert "No description" in result
+
+def test_format_tool_list_long_description_truncated() -> None:
+    """Long descriptions are truncated."""
+    result = format_tool_list([{"name": "tool", "description": "A" * 200}])
+    assert "A" * 121 not in result
+
+
+def test_format_tool_list_none_description_shows_placeholder() -> None:
+    """None description shows placeholder."""
+    result = format_tool_list([{"name": "tool", "description": None}])
+    assert "No description" in result
 
 
 # ---------------------------------------------------------------------------
@@ -218,43 +224,45 @@ class TestFormatToolList:
 # ---------------------------------------------------------------------------
 
 
-class TestCreateToolsFromConfig:
-    def _make_mock_tools(self):
-        return [
-            MCPTool(
-                name="fetch",
-                description="Fetch",
-                server_transport="stdio",
-                server_command="uvx",
-                mcp_tool_name="fetch",
-            ),
-            MCPTool(
-                name="search",
-                description="Search",
-                server_transport="stdio",
-                server_command="uvx",
-                mcp_tool_name="search",
-            ),
-        ]
+def _make_mock_tools() -> list[MCPTool]:
+    """Create mock MCPTool list for testing."""
+    return [
+        MCPTool(
+            name="fetch",
+            description="Fetch",
+            server_transport="stdio",
+            server_command="uvx",
+            mcp_tool_name="fetch",
+        ),
+        MCPTool(
+            name="search",
+            description="Search",
+            server_transport="stdio",
+            server_command="uvx",
+            mcp_tool_name="search",
+        ),
+    ]
 
-    @patch("kotaemon.agents.tools.mcp._run_async")
-    def test_no_filter_returns_all(self, mock_run_async):
-        mock_run_async.return_value = self._make_mock_tools()
-        tools = create_tools_from_config({"command": "uvx"})
-        assert len(tools) == 2
 
-    @patch("kotaemon.agents.tools.mcp._run_async")
-    def test_enabled_tools_filter(self, mock_run_async):
-        """Non-empty filter returns only nominated tools; empty list returns all."""
-        mock_run_async.return_value = self._make_mock_tools()
-        filtered = create_tools_from_config({"command": "uvx"}, enabled_tools=["fetch"])
-        assert len(filtered) == 1
-        assert filtered[0].mcp_tool_name == "fetch"
+@patch("kotaemon.agents.tools.mcp._run_async")
+def test_create_tools_from_config_no_filter_returns_all(mock_run_async) -> None:
+    """No filter returns all tools."""
+    mock_run_async.return_value = _make_mock_tools()
+    tools = create_tools_from_config({"command": "uvx"})
+    assert len(tools) == 2
 
-        # Empty list == no filter
-        mock_run_async.return_value = self._make_mock_tools()
-        all_tools = create_tools_from_config({"command": "uvx"}, enabled_tools=[])
-        assert len(all_tools) == 2
+
+@patch("kotaemon.agents.tools.mcp._run_async")
+def test_create_tools_from_config_enabled_filter(mock_run_async) -> None:
+    """Non-empty filter returns only nominated tools; empty list returns all."""
+    mock_run_async.return_value = _make_mock_tools()
+    filtered = create_tools_from_config({"command": "uvx"}, enabled_tools=["fetch"])
+    assert len(filtered) == 1
+    assert filtered[0].mcp_tool_name == "fetch"
+
+    mock_run_async.return_value = _make_mock_tools()
+    all_tools = create_tools_from_config({"command": "uvx"}, enabled_tools=[])
+    assert len(all_tools) == 2
 
 
 # ---------------------------------------------------------------------------
@@ -262,39 +270,46 @@ class TestCreateToolsFromConfig:
 # ---------------------------------------------------------------------------
 
 
-class TestMCPToolFormatResult:
-    def _make_tool(self):
-        return MCPTool(
-            name="test",
-            description="Test tool",
-            server_transport="stdio",
-            server_command="echo",
-            mcp_tool_name="test",
-        )
+@pytest.fixture
+def mcp_tool() -> MCPTool:
+    """Create a test MCPTool instance."""
+    return MCPTool(
+        name="test",
+        description="Test tool",
+        server_transport="stdio",
+        server_command="echo",
+        mcp_tool_name="test",
+    )
 
-    def test_text_content_joined(self):
-        result = self._make_tool()._format_result(
-            SimpleNamespace(
-                isError=False,
-                content=[SimpleNamespace(text="Hello"), SimpleNamespace(text="World")],
-            )
-        )
-        assert result == "Hello\nWorld"
 
-    def test_error_flag(self):
-        result = self._make_tool()._format_result(
-            SimpleNamespace(
-                isError=True,
-                content="Something went wrong",
-            )
+def test_mcp_tool_format_result_text_joined(mcp_tool: MCPTool) -> None:
+    """Text content is joined with newlines."""
+    result = mcp_tool._format_result(
+        SimpleNamespace(
+            isError=False,
+            content=[SimpleNamespace(text="Hello"), SimpleNamespace(text="World")],
         )
-        assert "MCP Tool Error" in result
+    )
+    assert result == "Hello\nWorld"
 
-    def test_binary_content(self):
-        result = self._make_tool()._format_result(
-            SimpleNamespace(
-                isError=False,
-                content=[SimpleNamespace(data=b"bytes", mimeType="image/png")],
-            )
+
+def test_mcp_tool_format_result_error_flag(mcp_tool: MCPTool) -> None:
+    """Error flag produces error message."""
+    result = mcp_tool._format_result(
+        SimpleNamespace(
+            isError=True,
+            content="Something went wrong",
         )
-        assert "[Binary data: image/png]" in result
+    )
+    assert "MCP Tool Error" in result
+
+
+def test_mcp_tool_format_result_binary_content(mcp_tool: MCPTool) -> None:
+    """Binary content shows mime type placeholder."""
+    result = mcp_tool._format_result(
+        SimpleNamespace(
+            isError=False,
+            content=[SimpleNamespace(data=b"bytes", mimeType="image/png")],
+        )
+    )
+    assert "[Binary data: image/png]" in result
