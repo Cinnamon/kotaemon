@@ -34,6 +34,7 @@ from kotaemon.indices.qa.utils import replace_think_tag_with_details
 from kotaemon.llms import ChatLLM
 
 from ..utils import SUPPORTED_LANGUAGE_MAP
+from ..utils.render import set_render_language
 from .base import BaseReasoning
 
 logger = logging.getLogger(__name__)
@@ -376,9 +377,15 @@ class FullQAPipeline(BaseReasoning):
         answer_pipeline.use_multimodal = settings[f"{prefix}.use_multimodal"]
         answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
         answer_pipeline.qa_template = settings[f"{prefix}.qa_prompt"]
-        answer_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
-            settings["reasoning.lang"], "English"
-        )
+        lang_code = settings["reasoning.lang"]
+        answer_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(lang_code, "English")
+        print(f"[LANGUAGE] Pipeline language set: code={lang_code}, name={answer_pipeline.lang}")
+        logger.info(f"Pipeline language set: code={lang_code}, name={answer_pipeline.lang}")
+
+        # Set render language for UI translations
+        set_render_language(lang_code)
+        print(f"[LANGUAGE] Render language set to: {lang_code}")
+        logger.info(f"Render language set to: {lang_code}")
 
         pipeline.add_query_context.llm = llm
         pipeline.add_query_context.n_last_interactions = settings[

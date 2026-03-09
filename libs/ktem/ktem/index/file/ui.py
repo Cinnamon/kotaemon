@@ -14,7 +14,8 @@ from gradio.data_classes import FileData
 from gradio.utils import NamedString
 from ktem.app import BasePage
 from ktem.db.engine import engine
-from ktem.utils.render import Render
+from ktem.utils.render import Render, get_render_language
+from ktem.utils.lang import get_ui_text
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
@@ -428,7 +429,9 @@ class FileIndexPage(BasePage):
 
                     header_prefix = f"[{idx+1}/{len(docs)}]"
                     if doc.metadata.get("page_label"):
-                        header_prefix += f" [Page {doc.metadata['page_label']}]"
+                        lang_code = get_render_language()
+                        page_text = get_ui_text("evidence.page", lang_code)
+                        header_prefix += f" [{page_text} {doc.metadata['page_label']}]"
 
                     chunks.append(
                         Render.collapsible(
@@ -1626,18 +1629,21 @@ class FileSelector(BasePage):
         return "disabled", [], 1
 
     def on_building_ui(self):
+        from ktem.pages.settings import get_current_language
+
         default_mode, default_selector, user_id = self.default()
+        _lang = get_current_language()
 
         self.mode = gr.Radio(
             value=default_mode,
             choices=[
-                ("Search All", "all"),
-                ("Search In File(s)", "select"),
+                (get_ui_text("file_upload.search_all", _lang), "all"),
+                (get_ui_text("file_upload.search_in_files", _lang), "select"),
             ],
             container=False,
         )
         self.selector = gr.Dropdown(
-            label="Files",
+            label=get_ui_text("nav.files", _lang),
             value=default_selector,
             choices=[],
             multiselect=True,
