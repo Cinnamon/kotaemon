@@ -444,6 +444,23 @@ class FileIndexPage(BasePage):
             gr.update(visible=file_id is not None),
         )
 
+    def _delete_matching_paths(self, cache_dir: Path, stem: str) -> None:
+        """Delete files matching the document stem in the given cache directory."""
+        if not cache_dir.exists():
+            return
+            
+        # Match exactly {stem}.* and {stem}_* to prevent overly broad deletion
+        patterns = [f"{stem}.*", f"{stem}_*"]
+        for pattern in patterns:
+            for file_path in cache_dir.glob(pattern):
+                try:
+                    if file_path.is_file():
+                        file_path.unlink()
+                    elif file_path.is_dir():
+                        shutil.rmtree(file_path)
+                except OSError as e:
+                    print(f"Warning: Failed to delete {file_path}: {e}")
+
     def _delete_physical_files(self, file_name: str) -> None:
         """Delete physical files associated with a document.
 
@@ -458,33 +475,13 @@ class FileIndexPage(BasePage):
 
         # Delete chunk cache files
         try:
-            chunks_dir = Path(flowsettings.KH_CHUNKS_OUTPUT_DIR)
-            if chunks_dir.exists():
-                for file_path in chunks_dir.iterdir():
-                    if file_stem in file_path.name:
-                        try:
-                            if file_path.is_file():
-                                file_path.unlink()
-                            elif file_path.is_dir():
-                                shutil.rmtree(file_path)
-                        except OSError as e:
-                            print(f"Warning: Failed to delete {file_path}: {e}")
+            self._delete_matching_paths(Path(flowsettings.KH_CHUNKS_OUTPUT_DIR), file_stem)
         except Exception as e:
             print(f"Warning: Error cleaning chunks cache: {e}")
 
         # Delete markdown cache files
         try:
-            markdown_dir = Path(flowsettings.KH_MARKDOWN_OUTPUT_DIR)
-            if markdown_dir.exists():
-                for file_path in markdown_dir.iterdir():
-                    if file_stem in file_path.name:
-                        try:
-                            if file_path.is_file():
-                                file_path.unlink()
-                            elif file_path.is_dir():
-                                shutil.rmtree(file_path)
-                        except OSError as e:
-                            print(f"Warning: Failed to delete {file_path}: {e}")
+            self._delete_matching_paths(Path(flowsettings.KH_MARKDOWN_OUTPUT_DIR), file_stem)
         except Exception as e:
             print(f"Warning: Error cleaning markdown cache: {e}")
 
