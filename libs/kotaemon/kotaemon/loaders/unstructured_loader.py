@@ -1,7 +1,7 @@
 """Unstructured file reader.
 
 A parser for unstructured text files using Unstructured.io.
-Supports .txt, .docx, .pptx, .jpg, .png, .eml, .html, and .pdf documents.
+Supports .txt, .docx, .pptx, .ppt, .jpg, .png, .eml, .html, and .pdf documents.
 
 To use .doc and .xls parser, install
 
@@ -231,6 +231,7 @@ class UnstructuredReader(BaseReader):
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
             "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
+            "application/vnd.ms-powerpoint": ".ppt",
         }
         inferred_ext = ext_map.get(content_type or "", "")
         return f"{path_name}{inferred_ext}" if inferred_ext else path_name

@@ -379,7 +379,7 @@ GRAPHRAG_INDICES = [
         "config": {
             "supported_file_types": (
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
-                ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
+                ".ppt, .pptx, .csv, .html, .mhtml, .txt, .md, .zip"
             ),
             "private": True,
         },
@@ -394,7 +394,7 @@ KH_INDICES = [
         "config": {
             "supported_file_types": (
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
-                ".pptx, .csv, .html, .mhtml, .txt, .md, .zip"
+                ".ppt, .pptx, .csv, .html, .mhtml, .txt, .md, .zip"
             ),
             "private": True,
         },

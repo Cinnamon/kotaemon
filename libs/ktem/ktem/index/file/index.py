@@ -305,6 +305,18 @@ class FileIndex(BaseIndex):
 
         self._index_ui_cls = FileIndexPage
 
+    def _normalize_supported_file_types(self) -> None:
+        types_str = self.config.get("supported_file_types", "")
+        if not isinstance(types_str, str):
+            return
+        parts = [part.strip() for part in types_str.split(",") if part.strip()]
+        if not parts:
+            return
+        lower_parts = {part.lower() for part in parts}
+        if ".pptx" in lower_parts and ".ppt" not in lower_parts:
+            parts.append(".ppt")
+        self.config["supported_file_types"] = ", ".join(parts)
+
     def on_create(self):
         """Create the index for the first time
 
@@ -346,6 +358,7 @@ class FileIndex(BaseIndex):
     def on_start(self):
         """Setup the classes and hooks"""
         self._setup_resources()
+        self._normalize_supported_file_types()
         self._setup_indexing_cls()
         self._setup_retriever_cls()
         self._setup_file_index_ui_cls()
@@ -390,7 +403,10 @@ class FileIndex(BaseIndex):
             },
             "supported_file_types": {
                 "name": "Supported file types",
-                "value": ".pdf, .txt",
+                "value": (
+                    ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
+                    ".ppt, .pptx, .csv, .html, .mhtml, .txt, .md, .zip"
+                ),
                 "component": "text",
                 "info": "The file types that can be indexed, separated by comma.",
             },

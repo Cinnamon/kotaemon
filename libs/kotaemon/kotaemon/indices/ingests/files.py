@@ -43,6 +43,7 @@ KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
     ".xlsx": PandasExcelReader(),
     ".docx": unstructured,
     ".pptx": unstructured,
+    ".ppt": unstructured,
     ".xls": unstructured,
     ".doc": unstructured,
     ".html": HtmlReader(),
@@ -65,6 +66,7 @@ class DocumentIngestor(BaseComponent):
         - pdf
         - xlsx, xls
         - docx, doc
+        - pptx, ppt
 
     Args:
         pdf_mode: mode for pdf extraction, one of "normal", "mathpix", "ocr"
