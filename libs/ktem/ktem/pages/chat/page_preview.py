@@ -16,7 +16,7 @@ from .page_preview_document import (
 from .page_preview_models import PreviewPayloadRequest
 from .page_preview_non_pdf import NonPdfPreviewService
 from .page_preview_office import OfficePreviewConversionService
-from .page_preview_presentation import extract_pptx_text
+from .page_preview_presentation import PresentationPreviewService, extract_pptx_text
 from .page_preview_resolver import PreviewFileResolver
 from .page_preview_service import PreviewPayloadService
 from .page_preview_spreadsheet import extract_xlsx_text
@@ -52,6 +52,7 @@ class ChatPagePreviewController:
         self._file_name_cache: dict[str, str] = {}
         self._file_resolver = PreviewFileResolver(app, self._file_name_cache)
         self._non_pdf_preview_service = NonPdfPreviewService(self)
+        self._presentation_preview_service = PresentationPreviewService(self)
         self._office_conversion = OfficePreviewConversionService(logger=logger)
         self._preview_payload_service = PreviewPayloadService(self)
         self._last_preview_file_id: str = ""
@@ -158,6 +159,9 @@ class ChatPagePreviewController:
 
     def _extract_text_from_file(self, file_path: str, file_name: str) -> str:
         return self._non_pdf_preview_service.extract_text_from_file(file_path, file_name)
+
+    def _get_presentation_preview_src(self, file_id: str, file_path: str, page: int) -> str:
+        return self._presentation_preview_service.get_preview_src(file_id, file_path, page)
 
     def _get_page_preview_image(self, file_id: str, file_path: str, page: int) -> str:
         if not file_id or not file_path or not os.path.isfile(file_path):
@@ -286,6 +290,33 @@ class ChatPagePreviewController:
         if not source_path:
             return ""
         return self.get_cached_office_pdf(source_path)
+
+    def get_page_context_text(
+        self,
+        file_id: str,
+        file_name: str,
+        page_number: int,
+        max_chars: int = 7000,
+    ) -> str:
+        if not file_id or not file_name:
+            return ""
+
+        source_path = self.resolve_file_path(file_id)
+        if not source_path:
+            return ""
+
+        source_extension = self._detect_office_extension(file_name, source_path)
+        if source_extension == ".pptx":
+            return self._presentation_preview_service.extract_slide_text(
+                source_path,
+                page_number,
+                max_chars=max_chars,
+            )
+
+        office_pdf = self.get_cached_office_pdf(source_path)
+        if not office_pdf:
+            return ""
+        return office_pdf
 
     def clear_page_outputs(self):
         return (

@@ -1541,14 +1541,16 @@ class ChatPage(BasePage):
         active_file_name: str,
         page_number: int,
     ) -> str:
-        office_pdf = self.page_preview.get_office_page_context_pdf_path(
+        page_context = self.page_preview.get_page_context_text(
             active_file_id,
             active_file_name,
+            page_number,
         )
-        if not office_pdf:
+        if not page_context:
             return ""
-
-        return self._extract_pdf_page_text(office_pdf, page_number)
+        if os.path.isfile(page_context):
+            return self._extract_pdf_page_text(page_context, page_number)
+        return page_context
 
     def create_pipeline(
         self,

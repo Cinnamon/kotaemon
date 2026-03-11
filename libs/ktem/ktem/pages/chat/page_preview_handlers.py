@@ -162,6 +162,27 @@ class DocumentOfficePreviewHandler(_OfficeFamilyPreviewHandler):
 class PresentationOfficePreviewHandler(_OfficeFamilyPreviewHandler):
     supported_extensions = (".pptx", ".ppt")
 
+    def build(self, context: PreviewPayloadContext) -> PreviewPayload:
+        if context.source_extension == ".pptx":
+            preview_src = self._controller._get_presentation_preview_src(
+                context.file_id,
+                context.effective_path,
+                context.page,
+            )
+            pages = self._controller._non_pdf_preview_cache.get(context.file_id, [])
+            if preview_src and pages:
+                total_pages = max(1, len(pages))
+                page = self._controller._clamp_page(context.page, total_pages)
+                if context.file_id:
+                    self._controller._total_pages_cache[context.file_id] = total_pages
+                return PreviewPayload(
+                    page,
+                    total_pages,
+                    pages[page - 1],
+                    self._controller._notice_html(""),
+                )
+        return super().build(context)
+
 
 class SpreadsheetOfficePreviewHandler(_OfficeFamilyPreviewHandler):
     supported_extensions = (".xlsx", ".xls")

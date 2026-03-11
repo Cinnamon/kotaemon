@@ -411,6 +411,9 @@ function run() {
       iframe.style.display = "block";
       iframe.style.width = "100%";
       iframe.style.height = "100%";
+      iframe.onload = () => {
+        bindIframeSelectionFallback(iframe);
+      };
       const htmlSrcdoc = inlineHtmlPreview ? nextSrc : dataHtmlToSrcdoc(nextSrc);
       if (htmlSrcdoc) {
         if (iframe.srcdoc !== htmlSrcdoc) {
@@ -422,6 +425,7 @@ function run() {
         iframe.removeAttribute("srcdoc");
         iframe.setAttribute("src", fallbackSrc);
       }
+      bindIframeSelectionFallback(iframe);
       updateLastPostedPageSync("", 0);
       updateLastAssignedPreviewSrc(nextSrc);
       updateLastStablePreviewSrc(nextSrc);
