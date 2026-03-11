@@ -1541,15 +1541,10 @@ class ChatPage(BasePage):
         active_file_name: str,
         page_number: int,
     ) -> str:
-        if not active_file_id or not active_file_name:
-            return ""
-        if not self.page_preview._is_office_source(active_file_name, ""):
-            return ""
-
-        source_path = self.page_preview._resolve_file_path_by_file_id(active_file_id)
-        if not source_path:
-            return ""
-        office_pdf = self.page_preview._get_cached_office_pdf_preview(source_path)
+        office_pdf = self.page_preview.get_office_page_context_pdf_path(
+            active_file_id,
+            active_file_name,
+        )
         if not office_pdf:
             return ""
 

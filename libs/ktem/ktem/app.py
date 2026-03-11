@@ -185,9 +185,6 @@ class BaseApp:
         """
         external_js = (
             "<script type='module' "
-            "src='https://cdn.skypack.dev/pdfjs-viewer-element'>"
-            "</script>"
-            "<script type='module' "
             "src='https://cdnjs.cloudflare.com/ajax/libs/tributejs/5.1.3/tribute.min.js'>"  # noqa
             f"{markmap_js}"
             "<script src='https://cdn.jsdelivr.net/npm/markmap-autoloader@0.16'></script>"  # noqa
