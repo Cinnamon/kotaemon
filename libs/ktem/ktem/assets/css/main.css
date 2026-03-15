@@ -291,6 +291,58 @@ button.selected {
   overflow-y: auto !important;
 }
 
+/* Answer panel chat bubble styles */
+#answer-panel .chat-message {
+  margin: 12px 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  max-width: 85%;
+  position: relative;
+  word-wrap: break-word;
+}
+
+#answer-panel .chat-message.user {
+  background-color: var(--color-accent-soft);
+  color: var(--body-text-color);
+  margin-left: auto;
+  border-bottom-right-radius: 4px;
+}
+
+#answer-panel .chat-message.assistant {
+  background-color: var(--background-fill-secondary);
+  color: var(--body-text-color);
+  margin-right: auto;
+  border-bottom-left-radius: 4px;
+}
+
+#answer-panel .chat-message-content {
+  line-height: 1.6;
+}
+
+#answer-panel .typing-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#answer-panel .typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background-color: var(--body-text-color-subdued);
+  border-radius: 50%;
+  display: inline-block;
+  animation: typing 1.4s infinite;
+  opacity: 0.6;
+}
+
+#answer-panel .typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+#answer-panel .typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
 #html-info-panel {
   overflow-x: hidden !important;
   overflow-y: auto !important;
@@ -758,6 +810,74 @@ details.evidence {
 
   100% {
     opacity: 100%;
+  }
+}
+
+/* Chat bubble styles for message format */
+#main-chat-bot .message-wrap {
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+#main-chat-bot .message {
+  max-width: 85%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  position: relative;
+  word-wrap: break-word;
+}
+
+#main-chat-bot .message.user {
+  background-color: var(--color-accent-soft);
+  color: var(--body-text-color);
+  margin-left: auto;
+  border-bottom-right-radius: 4px;
+}
+
+#main-chat-bot .message.assistant {
+  background-color: var(--background-fill-secondary);
+  color: var(--body-text-color);
+  margin-right: auto;
+  border-bottom-left-radius: 4px;
+}
+
+#main-chat-bot .message-content {
+  line-height: 1.6;
+}
+
+/* Typing indicator animation */
+.typing-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background-color: var(--body-text-color-subdued);
+  border-radius: 50%;
+  display: inline-block;
+  animation: typing 1.4s infinite;
+  opacity: 0.6;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
   }
 }
 

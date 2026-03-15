@@ -426,6 +426,38 @@ class ChatPage(BasePage):
             plot = gr.update(visible=False)
         return plot
 
+    def _format_chat_message(self, content: str, role: str) -> str:
+        """Format a chat message as a bubble"""
+        import html
+        
+        escaped_content = html.escape(content)
+        return f'<div class="chat-message {role}"><div class="chat-message-content">{escaped_content}</div></div>'
+
+    def _generate_answer_panel_html(self, preserved_history: list, user_input: str, ai_response: str, is_thinking: bool = False) -> str:
+        """Generate HTML for answer panel with chat bubbles"""
+        messages_html = ""
+        
+        # Add preserved history (convert tuple format to display)
+        for item in preserved_history:
+            if isinstance(item, (list, tuple)) and len(item) == 2:
+                # Tuple format: (user_msg, ai_msg)
+                user_msg, ai_msg = item
+                if user_msg:
+                    messages_html += self._format_chat_message(str(user_msg), "user")
+                if ai_msg:
+                    messages_html += self._format_chat_message(str(ai_msg), "assistant")
+        
+        # Add current exchange
+        if user_input:
+            messages_html += self._format_chat_message(user_input, "user")
+        
+        if is_thinking:
+            messages_html += '<div class="chat-message assistant"><div class="chat-message-content"><div class="typing-indicator"><span></span><span></span><span></span></div></div></div>'
+        elif ai_response:
+            messages_html += self._format_chat_message(ai_response, "assistant")
+        
+        return messages_html
+
     def rerun_page_answer(
         self,
         last_question,
@@ -1688,8 +1720,11 @@ class ChatPage(BasePage):
         *selecteds,
     ):
         """Chat function"""
-        chat_input, chat_output = chat_history[-1]
-        chat_history = chat_history[:-1]
+        # Extract the latest user input and any existing output
+        chat_input, chat_output = chat_history[-1] if chat_history else ("", None)
+        
+        # Preserve the chat history excluding the latest entry which has the user input and None output
+        preserved_history = chat_history[:-1] if chat_history else []
 
         selection_marker = "[Selected text from current page]"
         if (not selected_page_text) and isinstance(chat_input, str):
@@ -1697,10 +1732,6 @@ class ChatPage(BasePage):
                 selected_page_text = chat_input.split(selection_marker, 1)[1].strip()
         if isinstance(chat_input, str) and selection_marker in chat_input:
             chat_input = chat_input.split(selection_marker, 1)[0].strip()
-
-        # if chat_input is empty, assume regen mode
-        if chat_output:
-            chat_state["app"]["regen"] = True
 
         queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
 
@@ -1728,17 +1759,22 @@ class ChatPage(BasePage):
         msg_placeholder = getattr(
             flowsettings, "KH_CHAT_MSG_PLACEHOLDER", "Thinking ..."
         )
+        
+        # Generate answer panel HTML with chat bubbles and thinking indicator
+        answer_html = self._generate_answer_panel_html(preserved_history, chat_input, "", is_thinking=True)
+        
+        # Initially show the user's question with a placeholder for AI response
         yield (
-            chat_history + [(chat_input, text or msg_placeholder)],
+            preserved_history + [(chat_input, text or msg_placeholder)],
             mindmap_html,
             plot_gr,
             plot,
             chat_state,
-            text,
+            answer_html,
         )
 
         try:
-            for response in pipeline.stream(chat_input, conversation_id, chat_history):
+            for response in pipeline.stream(chat_input, conversation_id, preserved_history):
 
                 if not isinstance(response, Document):
                     continue
@@ -1767,13 +1803,17 @@ class ChatPage(BasePage):
 
                 chat_state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
 
+                # Generate answer panel HTML with chat bubbles
+                answer_html = self._generate_answer_panel_html(preserved_history, chat_input, text, is_thinking=(not text))
+                
+                # Update the chat history with the latest response
                 yield (
-                    chat_history + [(chat_input, text or msg_placeholder)],
+                    preserved_history + [(chat_input, text or msg_placeholder)],
                     mindmap_html,
                     plot_gr,
                     plot,
                     chat_state,
-                    text,
+                    answer_html,
                 )
         except ValueError as e:
             logger.warning("Chat pipeline ValueError: %s", e)
@@ -1782,13 +1822,16 @@ class ChatPage(BasePage):
             empty_msg = getattr(
                 flowsettings, "KH_CHAT_EMPTY_MSG_PLACEHOLDER", "(Sorry, I don't know)"
             )
+            # Generate answer panel HTML with chat bubbles
+            answer_html = self._generate_answer_panel_html(preserved_history, chat_input, text or empty_msg, is_thinking=False)
+            
             yield (
-                chat_history + [(chat_input, text or empty_msg)],
+                preserved_history + [(chat_input, text or empty_msg)],
                 mindmap_html,
                 plot_gr,
                 plot,
                 chat_state,
-                text or empty_msg,
+                answer_html,
             )
 
     def check_and_suggest_name_conv(self, chat_history):
