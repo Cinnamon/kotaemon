@@ -186,31 +186,62 @@ function() {
 
     // Auto-scroll answer panel to bottom when content updates
     setTimeout(() => {
-        // Find the correct scrollable element in Gradio Markdown structure
-        var answer_expand = document.querySelector("#answer-expand");
-        if (answer_expand) {
-            // Try multiple possible scroll containers
-            var scroll_targets = [
-                answer_expand.querySelector(".gradio-markdown"),
-                answer_expand.querySelector(".markdown"),
-                answer_expand.querySelector(".prose"),
-                answer_expand.querySelector(".wrap"),
-                document.querySelector("#answer-panel .wrap"),
-                document.querySelector("#answer-panel .prose")
-            ];
-            
-            for (var i = 0; i < scroll_targets.length; i++) {
-                var el = scroll_targets[i];
-                if (el && el.scrollHeight > el.clientHeight) {
-                    el.scrollTo({
-                        top: el.scrollHeight,
-                        behavior: 'smooth'
-                    });
-                    break;
+        // Find the correct scrollable element - answer-panel is the scroll container
+        var answer_panel = document.querySelector("#answer-panel");
+        if (answer_panel) {
+            // Check if this element itself scrolls
+            if (answer_panel.scrollHeight > answer_panel.clientHeight) {
+                answer_panel.scrollTo({
+                    top: answer_panel.scrollHeight,
+                    behavior: 'smooth'
+                });
+            } else {
+                // Otherwise try direct children
+                var children = answer_panel.children;
+                for (var i = 0; i < children.length; i++) {
+                    var child = children[i];
+                    if (child && child.scrollHeight > child.clientHeight) {
+                        child.scrollTo({
+                            top: child.scrollHeight,
+                            behavior: 'smooth'
+                        });
+                        break;
+                    }
                 }
             }
         }
-    }, 50);
+    }, 30);
+    
+    // Setup MutationObserver to auto-scroll on content changes (real-time streaming)
+    setTimeout(() => {
+        var answer_expand = document.querySelector("#answer-expand");
+        if (answer_expand) {
+            var observer = new MutationObserver(function(mutations) {
+                var answer_panel = document.querySelector("#answer-panel");
+                if (answer_panel) {
+                    // Scroll immediately without smooth animation for real-time following
+                    if (answer_panel.scrollHeight > answer_panel.clientHeight) {
+                        answer_panel.scrollTop = answer_panel.scrollHeight;
+                    } else {
+                        var children = answer_panel.children;
+                        for (var i = 0; i < children.length; i++) {
+                            var child = children[i];
+                            if (child && child.scrollHeight > child.clientHeight) {
+                                child.scrollTop = child.scrollHeight;
+                                break;
+                            }
+                        }
+                    }
+                }
+            });
+            
+            observer.observe(answer_expand, {
+                childList: true,
+                subtree: true,
+                characterData: true
+            });
+        }
+    }, 100);
     
     // Initialize drag-to-pan for all file previews
     setTimeout(() => {
@@ -287,27 +318,23 @@ function(_, __) {
 scroll_answer_panel_js = """
 function() {
     setTimeout(() => {
-        // Find the correct scrollable element in Gradio Markdown structure
-        var answer_expand = document.querySelector("#answer-expand");
-        if (answer_expand) {
-            var scroll_targets = [
-                answer_expand.querySelector(".gradio-markdown"),
-                answer_expand.querySelector(".markdown"),
-                answer_expand.querySelector(".prose"),
-                answer_expand.querySelector(".wrap"),
-                document.querySelector("#answer-panel .wrap"),
-                document.querySelector("#answer-panel .prose")
-            ];
-            
-            for (var i = 0; i < scroll_targets.length; i++) {
-                var el = scroll_targets[i];
-                if (el && el.scrollHeight > el.clientHeight) {
-                    el.scrollTop = el.scrollHeight;
-                    break;
+        // Find the correct scrollable element - answer-panel is the scroll container
+        var answer_panel = document.querySelector("#answer-panel");
+        if (answer_panel) {
+            if (answer_panel.scrollHeight > answer_panel.clientHeight) {
+                answer_panel.scrollTop = answer_panel.scrollHeight;
+            } else {
+                var children = answer_panel.children;
+                for (var i = 0; i < children.length; i++) {
+                    var child = children[i];
+                    if (child && child.scrollHeight > child.clientHeight) {
+                        child.scrollTop = child.scrollHeight;
+                        break;
+                    }
                 }
             }
         }
-    }, 50);
+    }, 30);
 }
 """
 
@@ -653,10 +680,9 @@ class ChatPage(BasePage):
         """Generate HTML for answer panel with chat bubbles"""
         messages_html = ""
         
-        # Add preserved history (convert tuple format to display)
+        # Add preserved history (previous Q&A on the same page)
         for item in preserved_history:
             if isinstance(item, (list, tuple)) and len(item) == 2:
-                # Tuple format: (user_msg, ai_msg)
                 user_msg, ai_msg = item
                 if user_msg:
                     messages_html += self._format_chat_message(str(user_msg), "user")
@@ -780,6 +806,10 @@ class ChatPage(BasePage):
                     self.answer_panel,
                     self._page_outputs_cache,
                 ],
+                show_progress="hidden",
+            ).then(
+                fn=lambda: [],
+                outputs=[self.chat_panel.chatbot],
                 show_progress="hidden",
             ).then(
                 fn=lambda: "",
