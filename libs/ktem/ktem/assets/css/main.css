@@ -124,6 +124,34 @@ button.selected {
   position: relative;
 }
 
+/* 【新增】Universal panning/drag support for all file previews */
+.pdf-preview-shell,
+.docx-preview,
+.pptx-preview-shell,
+.xlsx-preview-shell {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.pdf-preview-shell:active,
+.docx-preview:active,
+.pptx-preview-shell:active,
+.xlsx-preview-shell:active {
+  cursor: grabbing;
+}
+
+/* Enable smooth scrolling for preview containers */
+.pdf-preview-viewer-wrap,
+.docx-preview,
+.pptx-preview-shell,
+.xlsx-preview-shell {
+  overflow: auto !important;
+  scroll-behavior: smooth;
+}
+
 #main-pdf-preview-frame,
 #main-pdf-preview-image,
 #main-pdf-preview-empty {

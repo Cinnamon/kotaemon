@@ -184,6 +184,71 @@ function() {
         }
     }, 250);
 
+    // Auto-scroll answer panel to bottom when content updates
+    setTimeout(() => {
+        var answer_panel = document.querySelector("#answer-panel .wrap");
+        if (answer_panel) {
+            answer_panel.scrollTop = answer_panel.scrollHeight;
+        }
+    }, 50);
+    
+    // 【新增】Initialize drag-to-pan for all file previews
+    setTimeout(() => {
+        function initDragPan(container) {
+            if (!container || container.dataset.dragInitialized === 'true') return;
+            
+            let isDragging = false;
+            let startX = 0, startY = 0;
+            let scrollLeft = 0, scrollTop = 0;
+            
+            const onMouseDown = (e) => {
+                isDragging = true;
+                startX = e.pageX - container.offsetLeft;
+                startY = e.pageY - container.offsetTop;
+                scrollLeft = container.scrollLeft;
+                scrollTop = container.scrollTop;
+                container.style.cursor = 'grabbing';
+                container.style.userSelect = 'none';
+                e.preventDefault();
+            };
+            
+            const onMouseLeave = () => {
+                isDragging = false;
+                container.style.cursor = 'grab';
+                container.style.userSelect = '';
+            };
+            
+            const onMouseUp = () => {
+                isDragging = false;
+                container.style.cursor = 'grab';
+                container.style.userSelect = '';
+            };
+            
+            const onMouseMove = (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                const x = e.pageX - container.offsetLeft;
+                const y = e.pageY - container.offsetTop;
+                const walkX = (x - startX) * 1.5;
+                const walkY = (y - startY) * 1.5;
+                container.scrollLeft = scrollLeft - walkX;
+                container.scrollTop = scrollTop - walkY;
+            };
+            
+            container.addEventListener('mousedown', onMouseDown);
+            container.addEventListener('mouseleave', onMouseLeave);
+            container.addEventListener('mouseup', onMouseUp);
+            container.addEventListener('mousemove', onMouseMove);
+            
+            container.dataset.dragInitialized = 'true';
+        }
+        
+        ['.pdf-preview-shell', '.docx-preview', '.pptx-preview-shell', '.xlsx-preview-shell']
+            .forEach(selector => {
+                document.querySelectorAll(selector).forEach(el => initDragPan(el));
+            });
+    }, 150);
+
     return [links.length]
 }
 """.replace(
@@ -195,6 +260,121 @@ fetch_api_key_js = """
 function(_, __) {
     api_key = getStorage('google_api_key', '');
     return [api_key, _];
+}
+"""
+
+# Auto-scroll answer panel to bottom
+scroll_answer_panel_js = """
+function() {
+    setTimeout(() => {
+        var answer_panel = document.querySelector("#answer-panel .wrap");
+        if (answer_panel) {
+            answer_panel.scrollTop = answer_panel.scrollHeight;
+        }
+    }, 30);
+}
+"""
+
+# 【新增】Enable drag-to-pan for all file previews
+preview_drag_pan_js = """
+function() {
+    function initDragPan(container) {
+        if (!container || container.dataset.dragInitialized === 'true') return;
+        
+        let isDragging = false;
+        let startX = 0, startY = 0;
+        let scrollLeft = 0, scrollTop = 0;
+        
+        const onMouseDown = (e) => {
+            isDragging = true;
+            startX = e.pageX - container.offsetLeft;
+            startY = e.pageY - container.offsetTop;
+            scrollLeft = container.scrollLeft;
+            scrollTop = container.scrollTop;
+            container.style.cursor = 'grabbing';
+            container.style.userSelect = 'none';
+            e.preventDefault();
+        };
+        
+        const onMouseLeave = () => {
+            isDragging = false;
+            container.style.cursor = 'grab';
+            container.style.userSelect = '';
+        };
+        
+        const onMouseUp = () => {
+            isDragging = false;
+            container.style.cursor = 'grab';
+            container.style.userSelect = '';
+        };
+        
+        const onMouseMove = (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const x = e.pageX - container.offsetLeft;
+            const y = e.pageY - container.offsetTop;
+            const walkX = (x - startX) * 1.5; // Scroll speed multiplier
+            const walkY = (y - startY) * 1.5;
+            container.scrollLeft = scrollLeft - walkX;
+            container.scrollTop = scrollTop - walkY;
+        };
+        
+        // Touch support
+        const onTouchStart = (e) => {
+            if (e.touches.length !== 1) return;
+            isDragging = true;
+            const touch = e.touches[0];
+            startX = touch.pageX - container.offsetLeft;
+            startY = touch.pageY - container.offsetTop;
+            scrollLeft = container.scrollLeft;
+            scrollTop = container.scrollTop;
+            e.preventDefault();
+        };
+        
+        const onTouchEnd = () => {
+            isDragging = false;
+        };
+        
+        const onTouchMove = (e) => {
+            if (!isDragging || e.touches.length !== 1) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            const x = touch.pageX - container.offsetLeft;
+            const y = touch.pageY - container.offsetTop;
+            const walkX = (x - startX) * 1.5;
+            const walkY = (y - startY) * 1.5;
+            container.scrollLeft = scrollLeft - walkX;
+            container.scrollTop = scrollTop - walkY;
+        };
+        
+        // Mouse events
+        container.addEventListener('mousedown', onMouseDown);
+        container.addEventListener('mouseleave', onMouseLeave);
+        container.addEventListener('mouseup', onMouseUp);
+        container.addEventListener('mousemove', onMouseMove);
+        
+        // Touch events
+        container.addEventListener('touchstart', onTouchStart, { passive: false });
+        container.addEventListener('touchend', onTouchEnd);
+        container.addEventListener('touchmove', onTouchMove, { passive: false });
+        
+        container.dataset.dragInitialized = 'true';
+    }
+    
+    // Initialize on all preview containers
+    setTimeout(() => {
+        const selectors = [
+            '.pdf-preview-shell',
+            '.docx-preview',
+            '.pptx-preview-shell',
+            '.xlsx-preview-shell'
+        ];
+        
+        selectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => initDragPan(el));
+        });
+    }, 100);
 }
 """
 
@@ -796,6 +976,12 @@ class ChatPage(BasePage):
                 inputs=None,
                 outputs=[self._preview_links],
                 js=pdfview_js,
+            )
+            .then(
+                fn=None,
+                inputs=None,
+                outputs=None,
+                js=scroll_answer_panel_js,
             )
             .success(
                 fn=self.check_and_suggest_name_conv,
