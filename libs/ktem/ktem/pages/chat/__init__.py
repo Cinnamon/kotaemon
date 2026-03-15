@@ -836,8 +836,7 @@ class ChatPage(BasePage):
             ],
             "show_progress": "hidden",
         }
-        # chat suggestion toggle
-        chat_event = chat_event.success(**onSuggestChatEvent)
+        # chat_event = chat_event.success(**onSuggestChatEvent)
 
         # final data persist
         if not KH_DEMO_MODE:
@@ -904,6 +903,18 @@ class ChatPage(BasePage):
                 fn=lambda: "",
                 outputs=[self._last_question],
             ).then(
+                fn=self.suggest_chat_conv,
+                inputs=[
+                    self._app.settings_state,
+                    self.language,
+                    self.chat_panel.chatbot,
+                    self._use_suggestion,
+                ],
+                outputs=[
+                    self.followup_questions_ui,
+                    self.followup_questions,
+                ],
+            ).then(
                 fn=None,
                 inputs=None,
                 js=chat_input_focus_js,
@@ -946,6 +957,18 @@ class ChatPage(BasePage):
             ).then(
                 fn=lambda: "",
                 outputs=[self._last_question],
+            ).then(
+                fn=self.suggest_chat_conv,
+                inputs=[
+                    self._app.settings_state,
+                    self.language,
+                    self.chat_panel.chatbot,
+                    self._use_suggestion,
+                ],
+                outputs=[
+                    self.followup_questions_ui,
+                    self.followup_questions,
+                ],
             ).then(
                 fn=None,
                 inputs=None,
@@ -1056,6 +1079,19 @@ class ChatPage(BasePage):
                 outputs=[
                     self.chat_control._new_delete,
                     self.chat_control._delete_confirm,
+                ],
+            )
+            .then(
+                fn=self.suggest_chat_conv,
+                inputs=[
+                    self._app.settings_state,
+                    self.language,
+                    self.chat_panel.chatbot,
+                    self._use_suggestion,
+                ],
+                outputs=[
+                    self.followup_questions_ui,
+                    self.followup_questions,
                 ],
             )
         )
@@ -1451,6 +1487,18 @@ class ChatPage(BasePage):
                     self.chat_control.btn_new,
                     self.chat_control.btn_demo_logout,
                     self.chat_control.btn_demo_login,
+                ],
+            ).then(
+                fn=self.suggest_chat_conv,
+                inputs=[
+                    self._app.settings_state,
+                    self.language,
+                    self.chat_panel.chatbot,
+                    self._use_suggestion,
+                ],
+                outputs=[
+                    self.followup_questions_ui,
+                    self.followup_questions,
                 ],
             ).then(
                 fn=None,
