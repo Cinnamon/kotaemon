@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from kotaemon.base.schema import AIMessage, HumanMessage, LLMInterface, SystemMessage
-from kotaemon.llms import AzureChatOpenAI, LlamaCppChat
+from kotaemon.llms import AzureChatOpenAI, ChatMiniMax, LlamaCppChat
 
 try:
     pass
@@ -71,6 +71,33 @@ def test_azureopenai_model(openai_completion):
         output, LLMInterface
     ), "Output for single text is not LLMInterface"
     openai_completion.assert_called()
+
+
+@patch(
+    "openai.resources.chat.completions.Completions.create",
+    side_effect=lambda *args, **kwargs: _openai_chat_completion_response,
+)
+def test_minimax_model(openai_completion):
+    model = ChatMiniMax(
+        api_key="dummy",
+        model="MiniMax-M2.5",
+    )
+    output = model("hello world")
+    assert isinstance(output, LLMInterface), "Output is not LLMInterface"
+    openai_completion.assert_called()
+
+    # verify temperature clamping: zero should become 0.01
+    model_zero_temp = ChatMiniMax(
+        api_key="dummy",
+        model="MiniMax-M2.5",
+        temperature=0,
+    )
+    params = model_zero_temp.prepare_params()
+    assert params["temperature"] == 0.01, "Temperature 0 should be clamped to 0.01"
+
+    # verify response_format is stripped
+    params_with_rf = model.prepare_params(response_format={"type": "json_object"})
+    assert "response_format" not in params_with_rf, "response_format should be removed"
 
 
 @skip_llama_cpp_not_installed

@@ -55,7 +55,7 @@ documents and developers who want to build their own RAG pipeline.
 ### For end users
 
 - **Clean & Minimalistic UI**: A user-friendly interface for RAG-based QA.
-- **Support for Various LLMs**: Compatible with LLM API providers (OpenAI, AzureOpenAI, Cohere, etc.) and local LLMs (via `ollama` and `llama-cpp-python`).
+- **Support for Various LLMs**: Compatible with LLM API providers (OpenAI, AzureOpenAI, Cohere, MiniMax, etc.) and local LLMs (via `ollama` and `llama-cpp-python`).
 - **Easy Installation**: Simple scripts to get you started quickly.
 
 ### For developers
@@ -68,7 +68,7 @@ documents and developers who want to build their own RAG pipeline.
 
 - **Host your own document QA (RAG) web-UI**: Support multi-user login, organize your files in private/public collections, collaborate and share your favorite chat with others.
 
-- **Organize your LLM & Embedding models**: Support both local LLMs & popular API providers (OpenAI, Azure, Ollama, Groq).
+- **Organize your LLM & Embedding models**: Support both local LLMs & popular API providers (OpenAI, Azure, Ollama, Groq, MiniMax).
 
 - **Hybrid RAG pipeline**: Sane default RAG pipeline with hybrid (full-text & vector) retriever and re-ranking to ensure best retrieval quality.
 
@@ -339,6 +339,18 @@ This file provides another way to configure your models and credentials.
     AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-35-turbo
     AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT=text-embedding-ada-002
     ```
+
+  - **MiniMax**
+
+    [MiniMax](https://www.minimaxi.com) offers large language models with a 204,800-token
+    context window via an OpenAI-compatible API. Set `MINIMAX_API_KEY` in your `.env` file
+    to enable MiniMax models.
+
+    ```shell
+    MINIMAX_API_KEY=<your MiniMax API key here>
+    ```
+
+    Available models: `MiniMax-M2.5`, `MiniMax-M2.5-highspeed`.
 
   - **Local Models**
 
