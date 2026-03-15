@@ -328,11 +328,11 @@ class ChatPagePreviewController:
             ANSWER_PLACEHOLDER_TEXT,
         )
 
-    def get_cached_page_outputs(self, page_outputs_cache: dict, page_number: int):
+    def get_cached_page_outputs(self, page_outputs_cache: dict, page_number: int, file_id: str = ""):
         if not isinstance(page_outputs_cache, dict):
             return self.clear_page_outputs()
 
-        page_key = str(max(1, int(page_number or 1)))
+        page_key = f"{file_id or 'default'}_{max(1, int(page_number or 1))}"
         page_output = page_outputs_cache.get(page_key, {})
         if not isinstance(page_output, dict):
             return self.clear_page_outputs()
@@ -363,11 +363,12 @@ class ChatPagePreviewController:
         last_question: str,
         mindmap_html: str,
         answer_text: str,
+        file_id: str = "",
     ):
         if not isinstance(page_outputs_cache, dict):
             page_outputs_cache = {}
 
-        page_key = str(max(1, int(page_number or 1)))
+        page_key = f"{file_id or 'default'}_{max(1, int(page_number or 1))}"
         updated_cache = dict(page_outputs_cache)
         updated_cache[page_key] = {
             "last_question": last_question or "",
@@ -438,7 +439,7 @@ class ChatPagePreviewController:
                 total_pages,
                 preview_src,
                 preview_notice,
-                *self.get_cached_page_outputs(page_outputs_cache, next_page),
+                *self.get_cached_page_outputs(page_outputs_cache, next_page, file_id),
             )
         finally:
             self._page_change_lock[lock_key] = False
@@ -494,7 +495,7 @@ class ChatPagePreviewController:
                 total_pages,
                 preview_src,
                 preview_notice,
-                *self.get_cached_page_outputs(page_outputs_cache, next_page),
+                *self.get_cached_page_outputs(page_outputs_cache, next_page, file_id),
             )
         finally:
             self._page_change_lock[lock_key] = False
@@ -556,12 +557,22 @@ class ChatPagePreviewController:
         if file_name and file_name.lower().endswith(('.txt', '.md', '.html', '.htm', '.mhtml')):
             return gr.skip(), gr.skip(), gr.skip(), gr.skip()
         
-        # Skip if Office conversion is done and already displayed
-        if file_path:
+        # Check Office conversion status, but still update if PDF is ready
+        # Don't skip just because conversion is done - we need to check if preview has been updated to PDF
+        is_office_file = file_name and file_name.lower().endswith(('.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'))
+        office_pdf_ready = False
+        if is_office_file and file_path:
             try:
                 job_status = self._get_office_job_status(file_path)
-                if job_status == "done" and current_preview_src:
-                    return gr.skip(), gr.skip(), gr.skip(), gr.skip()
+                if job_status == "done":
+                    # Check if we already have the converted PDF
+                    cached_pdf = self._get_cached_office_pdf_preview(file_path)
+                    if cached_pdf and os.path.isfile(cached_pdf):
+                        office_pdf_ready = True
+                        # Continue to build preview payload with the PDF
+                    else:
+                        # Conversion done but PDF not found, continue checking
+                        pass
             except Exception:
                 pass  # Continue processing if status check fails
         

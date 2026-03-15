@@ -124,7 +124,7 @@ button.selected {
   position: relative;
 }
 
-/* 【新增】Universal panning/drag support for all file previews */
+/* Universal panning/drag support for all file previews */
 .pdf-preview-shell,
 .docx-preview,
 .pptx-preview-shell,

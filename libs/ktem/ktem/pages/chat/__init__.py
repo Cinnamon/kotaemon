@@ -186,13 +186,33 @@ function() {
 
     // Auto-scroll answer panel to bottom when content updates
     setTimeout(() => {
-        var answer_panel = document.querySelector("#answer-panel .wrap");
-        if (answer_panel) {
-            answer_panel.scrollTop = answer_panel.scrollHeight;
+        // Find the correct scrollable element in Gradio Markdown structure
+        var answer_expand = document.querySelector("#answer-expand");
+        if (answer_expand) {
+            // Try multiple possible scroll containers
+            var scroll_targets = [
+                answer_expand.querySelector(".gradio-markdown"),
+                answer_expand.querySelector(".markdown"),
+                answer_expand.querySelector(".prose"),
+                answer_expand.querySelector(".wrap"),
+                document.querySelector("#answer-panel .wrap"),
+                document.querySelector("#answer-panel .prose")
+            ];
+            
+            for (var i = 0; i < scroll_targets.length; i++) {
+                var el = scroll_targets[i];
+                if (el && el.scrollHeight > el.clientHeight) {
+                    el.scrollTo({
+                        top: el.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                    break;
+                }
+            }
         }
     }, 50);
     
-    // 【新增】Initialize drag-to-pan for all file previews
+    // Initialize drag-to-pan for all file previews
     setTimeout(() => {
         function initDragPan(container) {
             if (!container || container.dataset.dragInitialized === 'true') return;
@@ -267,15 +287,31 @@ function(_, __) {
 scroll_answer_panel_js = """
 function() {
     setTimeout(() => {
-        var answer_panel = document.querySelector("#answer-panel .wrap");
-        if (answer_panel) {
-            answer_panel.scrollTop = answer_panel.scrollHeight;
+        // Find the correct scrollable element in Gradio Markdown structure
+        var answer_expand = document.querySelector("#answer-expand");
+        if (answer_expand) {
+            var scroll_targets = [
+                answer_expand.querySelector(".gradio-markdown"),
+                answer_expand.querySelector(".markdown"),
+                answer_expand.querySelector(".prose"),
+                answer_expand.querySelector(".wrap"),
+                document.querySelector("#answer-panel .wrap"),
+                document.querySelector("#answer-panel .prose")
+            ];
+            
+            for (var i = 0; i < scroll_targets.length; i++) {
+                var el = scroll_targets[i];
+                if (el && el.scrollHeight > el.clientHeight) {
+                    el.scrollTop = el.scrollHeight;
+                    break;
+                }
+            }
         }
-    }, 30);
+    }, 50);
 }
 """
 
-# 【新增】Enable drag-to-pan for all file previews
+# Enable drag-to-pan for all file previews
 preview_drag_pan_js = """
 function() {
     function initDragPan(container) {
@@ -943,27 +979,9 @@ class ChatPage(BasePage):
                     self._last_question,
                     self.info_panel,
                     self.answer_panel,
+                    self._active_file_id,
                 ],
                 outputs=[self._page_outputs_cache],
-                show_progress="hidden",
-            )
-            .then(
-                fn=self.page_preview.refresh_selected_file_preview,
-                inputs=[
-                    self.first_selector_choices,
-                    self._indices_input[1],
-                    self.chat_panel.page_number,
-                    self._active_file_total_pages,
-                ],
-                outputs=[
-                    self._active_file_id,
-                    self._active_file_name,
-                    self._active_file_path,
-                    self.chat_panel.page_number,
-                    self._active_file_total_pages,
-                    self.chat_panel.pdf_preview_src,
-                    self.chat_panel.pdf_preview_notice,
-                ],
                 show_progress="hidden",
             )
             .then(
@@ -975,7 +993,7 @@ class ChatPage(BasePage):
                 fn=lambda: True,
                 inputs=None,
                 outputs=[self._preview_links],
-                js=pdfview_js,
+                js=pdfview_js,  # 这里已经包含了自动滚动和拖动初始化
             )
             .then(
                 fn=None,

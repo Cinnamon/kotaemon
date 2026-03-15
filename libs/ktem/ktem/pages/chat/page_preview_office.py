@@ -159,6 +159,22 @@ class OfficePreviewConversionService:
             with self._office_pdf_job_lock:
                 self._office_pdf_job_status[cache_key] = "done"
             return recovered_pdf
+        
+        # Also check for PDFs that might exist from previous sessions
+        # Try to find any PDF with matching stem in the preview directory
+        try:
+            if os.path.isdir(preview_dir):
+                for filename in os.listdir(preview_dir):
+                    if filename.startswith(stem + "_") and filename.endswith(".pdf"):
+                        candidate_path = os.path.join(preview_dir, filename)
+                        if os.path.isfile(candidate_path) and is_valid_pdf(candidate_path):
+                            self._office_pdf_cache[cache_key] = candidate_path
+                            with self._office_pdf_job_lock:
+                                self._office_pdf_job_status[cache_key] = "done"
+                            return candidate_path
+        except Exception:
+            pass  # Ignore errors when scanning preview directory
+        
         return ""
 
     def schedule_conversion(self, file_path: str, file_name: str):
