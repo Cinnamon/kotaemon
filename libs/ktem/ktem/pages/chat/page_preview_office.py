@@ -19,24 +19,48 @@ class OfficePreviewConversionService:
 
     @staticmethod
     def find_soffice_binary() -> str:
+        # 1. Check environment variable first (works on all platforms)
         env_path = os.environ.get("SOFFICE_PATH", "").strip()
         if env_path and os.path.isfile(env_path):
             return env_path
 
-        for cmd in ("soffice", "soffice.com", "soffice.exe"):
+        # 2. Try to find in system PATH (cross-platform)
+        for cmd in ("soffice",):
             found = shutil.which(cmd)
             if found and os.path.isfile(found):
                 return found
 
-        candidates = [
-            r"C:\Program Files\LibreOffice\program\soffice.com",
+        # 3. Common installation paths for different platforms
+        candidates = []
+        
+        # Linux/Unix paths
+        candidates.extend([
+            "/usr/bin/soffice",
+            "/usr/local/bin/soffice",
+            "/snap/bin/soffice",
+            "/opt/libreoffice/program/soffice",
+            "/usr/lib/libreoffice/program/soffice",
+            "/usr/lib64/libreoffice/program/soffice",
+        ])
+        
+        # macOS paths
+        candidates.extend([
+            "/Applications/LibreOffice.app/Contents/MacOS/soffice",
+            "/Applications/OpenOffice.app/Contents/MacOS/soffice",
+        ])
+        
+        # Windows paths (generic, not user-specific)
+        candidates.extend([
             r"C:\Program Files\LibreOffice\program\soffice.exe",
-            r"C:\Program Files (x86)\LibreOffice\program\soffice.com",
             r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
-        ]
+            r"C:\Program Files\OpenOffice\program\soffice.exe",
+            r"C:\Program Files (x86)\OpenOffice\program\soffice.exe",
+        ])
+        
         for path in candidates:
             if os.path.isfile(path):
                 return path
+        
         return ""
 
     def get_status(self, file_path: str) -> str:
