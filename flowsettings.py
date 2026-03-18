@@ -275,7 +275,7 @@ KH_LLMS["minimax"] = {
     "spec": {
         "__type__": "kotaemon.llms.ChatMiniMax",
         "base_url": "https://api.minimax.io/v1",
-        "model": "MiniMax-M2.5",
+        "model": "MiniMax-M2.7",
         "api_key": config("MINIMAX_API_KEY", default="your-key"),
         "temperature": 1.0,
     },

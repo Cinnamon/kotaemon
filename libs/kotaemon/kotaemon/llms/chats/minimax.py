@@ -9,7 +9,8 @@ class ChatMiniMax(ChatOpenAI):
     """MiniMax chat model, using the OpenAI-compatible API
 
     MiniMax provides large language models accessible via an OpenAI-compatible
-    endpoint. Supported models: MiniMax-M2.5, MiniMax-M2.5-highspeed.
+    endpoint. Supported models: MiniMax-M2.7, MiniMax-M2.7-highspeed,
+    MiniMax-M2.5, MiniMax-M2.5-highspeed.
 
     Both models support a 204,800-token context window.
 
@@ -22,7 +23,7 @@ class ChatMiniMax(ChatOpenAI):
         base_url: API base URL. Defaults to the global endpoint
             ``https://api.minimax.io/v1``. The China endpoint
             ``https://api.minimaxi.com/v1`` is also available.
-        model: Model ID to use. Defaults to ``MiniMax-M2.5``.
+        model: Model ID to use. Defaults to ``MiniMax-M2.7``.
         api_key: MiniMax API key (``MINIMAX_API_KEY``).
     """
 
@@ -34,8 +35,8 @@ class ChatMiniMax(ChatOpenAI):
         ),
     )
     model: str = Param(
-        "MiniMax-M2.5",
-        help="MiniMax model ID (MiniMax-M2.5 or MiniMax-M2.5-highspeed)",
+        "MiniMax-M2.7",
+        help="MiniMax model ID (MiniMax-M2.7, MiniMax-M2.7-highspeed, MiniMax-M2.5, or MiniMax-M2.5-highspeed)",
         required=True,
     )
     temperature: Optional[float] = Param(

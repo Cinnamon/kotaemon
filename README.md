@@ -350,7 +350,7 @@ This file provides another way to configure your models and credentials.
     MINIMAX_API_KEY=<your MiniMax API key here>
     ```
 
-    Available models: `MiniMax-M2.5`, `MiniMax-M2.5-highspeed`.
+    Available models: `MiniMax-M2.7`, `MiniMax-M2.7-highspeed`, `MiniMax-M2.5`, `MiniMax-M2.5-highspeed`.
 
   - **Local Models**
 
