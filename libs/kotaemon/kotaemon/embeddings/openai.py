@@ -48,7 +48,7 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
     _dependencies = ["openai"]
 
     api_key: str = Param(None, help="API key", required=True)
-    timeout: Optional[float] = Param(None, help="Timeout for the API request.")
+    timeout: Optional[float] = Param(60.0, help="Timeout for the API request (default: 60 seconds).")
     max_retries: Optional[int] = Param(
         None, help="Maximum number of retries for the API request."
     )
