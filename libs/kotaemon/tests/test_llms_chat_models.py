@@ -50,6 +50,8 @@ def test_azureopenai_model(openai_completion):
         api_version="2024-05-01-preview",
         azure_deployment="gpt-4o",
         azure_endpoint="https://test.openai.azure.com/",
+        request_timeout=60,
+        max_retries=3,
     )
     # test for str input - stream mode
     output = model("hello world")
