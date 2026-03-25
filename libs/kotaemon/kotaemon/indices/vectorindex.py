@@ -281,9 +281,15 @@ class VectorRetrieval(BaseRetrieval):
             len(raw_thumbnail_docs),
         )
         additional_docs = []
+        matched_thumbnail_ids: set[str] = set()
 
         for thumbnail_doc in linked_thumbnail_docs:
-            text_doc = text_thumbnail_docs[thumbnail_doc.doc_id]
+            text_doc = text_thumbnail_docs.get(thumbnail_doc.doc_id)
+            if text_doc is None:
+                # Skip thumbnails whose doc_id doesn't match any
+                # text chunk's thumbnail_doc_id (e.g. due to stale index data)
+                continue
+            matched_thumbnail_ids.add(thumbnail_doc.doc_id)
             doc_dict = thumbnail_doc.to_dict()
             doc_dict["_id"] = text_doc.doc_id
             doc_dict["content"] = text_doc.content
@@ -293,6 +299,11 @@ class VectorRetrieval(BaseRetrieval):
                     doc_dict["metadata"][key] = text_doc.metadata[key]
 
             additional_docs.append(RetrievedDocument(**doc_dict, score=text_doc.score))
+
+        # Add back text chunks whose thumbnails could not be matched
+        for tid, text_doc in text_thumbnail_docs.items():
+            if tid not in matched_thumbnail_ids:
+                non_thumbnail_docs.append(text_doc)
 
         result = additional_docs + non_thumbnail_docs
 
