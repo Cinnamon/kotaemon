@@ -1,4 +1,5 @@
 import base64
+import logging
 from io import BytesIO
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -9,6 +10,8 @@ from llama_index.readers.file import PDFReader
 from PIL import Image
 
 from kotaemon.base import Document
+
+logger = logging.getLogger(__name__)
 
 PDF_LOADER_DPI = config("PDF_LOADER_DPI", default=40, cast=int)
 
@@ -93,7 +96,7 @@ class PDFThumbnailReader(PDFReader):
         documents = filtered_docs
         page_numbers = list(range(len(page_numbers_str)))
 
-        print("Page numbers:", len(page_numbers))
+        logger.debug("Page numbers: %s", len(page_numbers))
         page_thumbnails = get_page_thumbnails(file, page_numbers)
 
         documents.extend(

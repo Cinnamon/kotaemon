@@ -101,8 +101,8 @@ class DocSearchTool(BaseTool):
                         + " \n<br>"
                     )
 
-            print("Retrieved #{}: {}".format(_id, retrieved_content[:100]))
-            print("Score", retrieved_item.metadata.get("reranking_score", None))
+            logger.debug("Retrieved #%s: %s", _id, retrieved_content[:100])
+            logger.debug("Score %s", retrieved_item.metadata.get("reranking_score", None))
 
         # trim context by trim_len
         if evidence:

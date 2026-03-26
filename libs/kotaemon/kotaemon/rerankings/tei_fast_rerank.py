@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
 import requests
@@ -7,6 +8,8 @@ import requests
 from kotaemon.base import Document, Param
 
 from .base import BaseReranking
+
+logger = logging.getLogger(__name__)
 
 session = requests.session()
 
@@ -56,7 +59,7 @@ class TeiFastReranking(BaseReranking):
         """Use the deployed TEI rerankings service to re-order documents
         with their relevance score"""
         if not self.endpoint_url:
-            print("TEI API reranking URL not found. Skipping rerankings.")
+            logger.warning("TEI API reranking URL not found. Skipping rerankings.")
             return documents
 
         compressed_docs: list[Document] = []

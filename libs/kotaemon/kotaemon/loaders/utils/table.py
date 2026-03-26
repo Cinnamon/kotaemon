@@ -1,8 +1,11 @@
 import csv
+import logging
 from io import StringIO
 from typing import List, Optional, Tuple
 
 from .box import get_rect_iou
+
+logger = logging.getLogger(__name__)
 
 
 def check_col_conflicts(
@@ -203,7 +206,7 @@ def extract_tables_from_csv_string(
         if cur_rows:
             table_csv_list.append(make_markdown_table(cur_rows))
         else:
-            print("table not matched", table)
+            logger.warning("table not matched %s", table)
 
     non_table_rows = [
         row for row_id, row in enumerate(rows) if row_id not in used_row_ids

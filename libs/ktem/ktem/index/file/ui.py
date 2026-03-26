@@ -1,5 +1,6 @@
 import html
 import json
+import logging
 import os
 import shutil
 import tempfile
@@ -22,6 +23,8 @@ from theflow.settings import settings as flowsettings
 from ...utils.commands import WEB_SEARCH_COMMAND
 from ...utils.rate_limit import check_rate_limit
 from .utils import download_arxiv_pdf, is_arxiv_url
+
+logger = logging.getLogger(__name__)
 
 KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
@@ -596,7 +599,7 @@ class FileIndexPage(BasePage):
             # quick file upload event registration of first Index only
             if self._index.id == 1:
                 self.quick_upload_state = gr.State(value=[])
-                print("Setting up quick upload event")
+                logger.info("Setting up quick upload event")
 
                 # override indexing function from chat page
                 self._app.chat_page.first_indexing_url_fn = (
@@ -721,7 +724,7 @@ class FileIndexPage(BasePage):
                 )
 
         except Exception as e:
-            print(e)
+            logger.warning("%s", e)
 
     def on_register_events(self):
         """Register all events to the app"""
@@ -1085,7 +1088,7 @@ class FileIndexPage(BasePage):
                     n_zip_file += 1
 
         if n_zip_file > 0:
-            print(f"Update zip files: {n_zip_file}")
+            logger.info("Update zip files: %s", n_zip_file)
 
         return remaining_files, errors
 
@@ -1171,7 +1174,7 @@ class FileIndexPage(BasePage):
             selected_files: the list of files already selected
             settings: the settings of the app
         """
-        print("Overriding with default loaders")
+        logger.info("Overriding with default loaders")
         exist_ids = []
         to_process_files = []
         for str_file_path in files:

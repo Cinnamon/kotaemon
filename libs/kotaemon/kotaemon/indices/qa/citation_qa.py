@@ -1,3 +1,4 @@
+import logging
 import threading
 from collections import defaultdict
 from typing import Generator
@@ -30,6 +31,8 @@ try:
     from ktem.utils.render import Render
 except ImportError:
     raise ImportError("Please install `ktem` to use this component")
+
+logger = logging.getLogger(__name__)
 
 MAX_IMAGES = 10
 CITATION_TIMEOUT = 5.0
@@ -196,7 +199,7 @@ class AnswerWithContextPipeline(BaseComponent):
         **kwargs,
     ) -> Generator[Document, None, Document]:
         history = kwargs.get("history", [])
-        print(f"Got {len(images)} images")
+        logger.debug("Got %s images", len(images))
         # check if evidence exists, use QA prompt
         if evidence:
             prompt, evidence = self.get_prompt(question, evidence, evidence_mode)
@@ -261,13 +264,15 @@ class AnswerWithContextPipeline(BaseComponent):
 
         try:
             # try streaming first
-            print("Trying LLM streaming")
+            logger.info("Trying LLM streaming")
             for out_msg in self.llm.stream(messages):
                 output += out_msg.text
                 logprobs += out_msg.logprobs
                 yield Document(channel="chat", content=out_msg.text)
         except NotImplementedError:
-            print("Streaming is not supported, falling back to normal processing")
+            logger.warning(
+                "Streaming is not supported, falling back to normal processing"
+            )
             output = self.llm(messages).text
             yield Document(channel="chat", content=output)
 
@@ -376,7 +381,7 @@ class AnswerWithContextPipeline(BaseComponent):
                 )
             )
 
-        print("Got {} cited docs".format(len(with_citation)))
+        logger.info("Got %s cited docs", len(with_citation))
 
         sorted_not_detected_items_with_scores = [
             (id_, id2docs[id_].metadata.get("llm_trulens_score", 0.0))

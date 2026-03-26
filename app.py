@@ -1,6 +1,10 @@
 import os
 
-from theflow.settings import settings as flowsettings
+from ktem.logging_config import setup_logging
+
+setup_logging()
+
+from theflow.settings import settings as flowsettings  # noqa: E402
 
 KH_APP_DATA_DIR = getattr(flowsettings, "KH_APP_DATA_DIR", ".")
 KH_GRADIO_SHARE = getattr(flowsettings, "KH_GRADIO_SHARE", False)

@@ -1,3 +1,4 @@
+import logging
 from abc import abstractmethod
 from typing import List, Optional
 
@@ -5,6 +6,8 @@ from theflow import SessionFunction
 
 from kotaemon.base import BaseComponent, LLMInterface
 from kotaemon.base.schema import AIMessage, BaseMessage, HumanMessage, SystemMessage
+
+logger = logging.getLogger(__name__)
 
 
 class BaseChatBot(BaseComponent):
@@ -87,7 +90,7 @@ class ChatConversation(SessionFunction):
     def terminal_session(self):
         """Create a terminal session"""
         self.start_session()
-        print(">> Start chat:")
+        logger.info(">> Start chat:")
 
         while True:
             human = HumanMessage(content=input("Human: "))
@@ -96,9 +99,9 @@ class ChatConversation(SessionFunction):
 
             output = self(human)
             if output is None:
-                print("AI: <No response>")
+                logger.info("AI: <No response>")
             else:
-                print("AI:", output.content)
+                logger.info("AI: %s", output.content)
 
             if self.check_end(history=self.history, bot_message=output):
                 break

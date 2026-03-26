@@ -1,4 +1,5 @@
 import email
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -6,6 +7,8 @@ from llama_index.core.readers.base import BaseReader
 from theflow.settings import settings as flowsettings
 
 from kotaemon.base import Document
+
+logger = logging.getLogger(__name__)
 
 
 class HtmlReader(BaseReader):
@@ -152,9 +155,9 @@ class MhtmlReader(BaseReader):
                     if text:
                         page.append(text)
         # save the page into markdown format
-        print(self.cache_dir)
+        logger.debug("MhtmlReader cache_dir: %s", self.cache_dir)
         if self.cache_dir is not None:
-            print(Path(self.cache_dir) / f"{file_name.stem}.md")
+            logger.debug("MhtmlReader markdown path: %s", Path(self.cache_dir) / f"{file_name.stem}.md")
             with open(Path(self.cache_dir) / f"{file_name.stem}.md", "w") as f:
                 f.write(page[0])
 

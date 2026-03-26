@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 import time
 from pathlib import Path
@@ -11,6 +12,8 @@ from llama_index.core.readers.base import BaseReader
 from kotaemon.base import Document
 
 from .utils.table import strip_special_chars_markdown
+
+logger = logging.getLogger(__name__)
 
 
 # MathpixPDFLoader implementation taken largely from Daniel Gross's:
@@ -87,9 +90,10 @@ class MathpixPDFReader(BaseReader):
             response = requests.get(url, headers=self._mathpix_headers)
             response_data = response.json()
             status = response_data.get("status", None)
-            print(
-                f"Processing status: {status},"
-                f"Progress: {response_data.get('percent_done', 0)}%"
+            logger.info(
+                "Processing status: %s, Progress: %s%%",
+                status,
+                response_data.get("percent_done", 0),
             )
 
             if status == "completed":
@@ -103,7 +107,7 @@ class MathpixPDFReader(BaseReader):
                 time.sleep(5)
                 continue
             else:
-                print(f"Unknown status: {response_data}")
+                logger.warning("Unknown status: %s", response_data)
                 time.sleep(5)
 
         raise TimeoutError(
@@ -117,7 +121,7 @@ class MathpixPDFReader(BaseReader):
         if response.status_code != 200:
             raise ValueError(f"Failed to get processed PDF: {response.text}")
         content = response.content.decode("utf-8")
-        print(f"Retrieved content length: {len(content)}")  # Debug print
+        logger.debug("Retrieved content length: %s", len(content))
         return content
 
     def clean_pdf(self, contents: str) -> str:
@@ -163,8 +167,8 @@ class MathpixPDFReader(BaseReader):
         Returns:
             Tuple of (tables, texts) where each is a list of (page_num, content) tuples
         """
-        print("Starting markdown parsing...")
-        print(f"Content length: {len(content)}")
+        logger.debug("Starting markdown parsing...")
+        logger.debug("Content length: %s", len(content))
 
         # Split by page markers if present
         pages = re.split(r"(?m)^# Page \d+\n", content)
@@ -196,7 +200,9 @@ class MathpixPDFReader(BaseReader):
                         (page_num, chunk.strip())
                     )  # Store as tuple with page number
 
-        print(f"Found {len(tables)} tables and {len(texts)} text sections")
+        logger.debug(
+            "Found %s tables and %s text sections", len(tables), len(texts)
+        )
         return tables, texts
 
     def load_data(
@@ -281,7 +287,7 @@ class MathpixPDFReader(BaseReader):
             content = load_kwargs["response_content"]
         else:
             pdf_id = self.send_pdf(file_path)
-            print(f"PDF ID: {pdf_id}")
+            logger.info("PDF ID: %s", pdf_id)
             content = self.get_processed_pdf(pdf_id)
 
         if self.should_clean_pdf:
@@ -335,4 +341,4 @@ class MathpixPDFReader(BaseReader):
                 metadata.update(extra_info)
             yield Document(text=content.strip(), metadata=metadata)
 
-        print(f"Completed processing PDF: {file_path}")
+        logger.info("Completed processing PDF: %s", file_path)

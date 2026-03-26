@@ -1,4 +1,5 @@
 import base64
+import logging
 from collections import defaultdict
 from io import BytesIO
 from pathlib import Path
@@ -9,6 +10,8 @@ from kotaemon.base import Document, Param
 from .azureai_document_intelligence_loader import crop_image
 from .base import BaseReader
 from .utils.adobe import generate_single_figure_caption, make_markdown_table
+
+logger = logging.getLogger(__name__)
 
 
 class DoclingReader(BaseReader):
@@ -86,7 +89,7 @@ class DoclingReader(BaseReader):
                     caption_text = result_dict["texts"][int(text_id)]["text"]
                     extractive_captions.append(caption_text)
                 except (ValueError, TypeError, IndexError) as e:
-                    print(e)
+                    logger.warning("Docling caption ref lookup failed: %s", e)
                     continue
 
             # read & crop image
@@ -109,7 +112,11 @@ class DoclingReader(BaseReader):
 
                 img = crop_image(file_path, bbox, page_number - 1)
             except KeyError as e:
-                print(e, list(result_dict["pages"].keys()))
+                logger.warning(
+                    "%s; page keys: %s",
+                    e,
+                    list(result_dict["pages"].keys()),
+                )
                 continue
 
             # convert img to base64
@@ -161,7 +168,7 @@ class DoclingReader(BaseReader):
                     caption_text = result_dict["texts"][int(text_id)]["text"]
                     extractive_captions.append(caption_text)
                 except (ValueError, TypeError, IndexError) as e:
-                    print(e)
+                    logger.warning("Docling table caption ref lookup failed: %s", e)
                     continue
             # join the extractive and generative captions
             caption = "\n".join(extractive_captions)

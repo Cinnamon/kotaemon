@@ -27,6 +27,8 @@ from ..pipelines import BaseFileIndexRetriever
 from .pipelines import GraphRAGIndexingPipeline
 from .visualize import create_knowledge_graph, visualize_graph
 
+logger = logging.getLogger(__name__)
+
 try:
     from nano_graphrag import GraphRAG, QueryParam
     from nano_graphrag._op import (
@@ -37,12 +39,10 @@ try:
     from nano_graphrag._utils import EmbeddingFunc, compute_args_hash
 
 except ImportError:
-    print(
-        (
-            "Nano-GraphRAG dependencies not installed. "
-            "Try `pip install nano-graphrag` to install. "
-            "Nano-GraphRAG retriever pipeline will not work properly."
-        )
+    logger.warning(
+        "Nano-GraphRAG dependencies not installed. "
+        "Try `pip install nano-graphrag` to install. "
+        "Nano-GraphRAG retriever pipeline will not work properly."
     )
 
 
@@ -94,8 +94,8 @@ def get_llm_func(model):
             logging.error(f"Failed to call LLM API after 3 retries: {str(e)}")
             raise
 
-        print("-" * 50)
-        print(output, "\n", "-" * 50)
+        logger.debug("%s", "-" * 50)
+        logger.debug("%s\n%s", output, "-" * 50)
 
         if hashing_kv is not None:
             await hashing_kv.upsert({args_hash: {"return": output, "model": "model"}})
@@ -124,7 +124,7 @@ def get_default_models_wrapper():
         max_token_size=8192,
         func=get_embedding_func(default_embedding),
     )
-    print("GraphRAG embedding dim", default_embedding_dim)
+    logger.info("GraphRAG embedding dim %s", default_embedding_dim)
 
     default_llm = llms.get_default()
     llm_func = get_llm_func(default_llm)
@@ -306,7 +306,7 @@ class NanoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
             )
             return settings_dict
         except ImportError as e:
-            print(e)
+            logger.warning("%s", e)
             return {}
 
     def call_graphrag_index(self, graph_id: str, docs: list[Document]):
@@ -326,9 +326,10 @@ class NanoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
             default_llm,
             default_embedding,
         ) = get_default_models_wrapper()
-        print(
-            f"Indexing GraphRAG with LLM {default_llm} "
-            f"and Embedding {default_embedding}..."
+        logger.info(
+            "Indexing GraphRAG with LLM %s and Embedding %s...",
+            default_llm,
+            default_embedding,
         )
 
         all_docs = [
@@ -443,7 +444,7 @@ class NanoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             llm_func=llm_func,
             embedding_func=embedding_func,
         )
-        print("search_type", self.search_type)
+        logger.debug("search_type %s", self.search_type)
         query_params = QueryParam(mode=self.search_type, only_need_context=True)
 
         return graphrag_func, query_params

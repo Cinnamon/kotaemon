@@ -1,10 +1,13 @@
 import hashlib
+import logging
 
 import gradio as gr
 from ktem.app import BasePage
 from ktem.db.models import User, engine
 from ktem.pages.resources.user import create_user
 from sqlmodel import Session, select
+
+logger = logging.getLogger(__name__)
 
 fetch_creds = """
 function() {
@@ -103,10 +106,10 @@ class LoginPage(BasePage):
                 result = session.exec(stmt).all()
 
             if result:
-                print("Existing user:", user)
+                logger.info("SSO existing user: %r", user)
                 return user_id, "", ""
             else:
-                print("Creating new user:", user)
+                logger.info("Creating new SSO user: %r", user)
                 create_user(
                     usn=user["email"],
                     pwd="",

@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 import subprocess
@@ -19,6 +20,8 @@ from kotaemon.base import Document, Param, RetrievedDocument
 from ..pipelines import BaseFileIndexRetriever, IndexDocumentPipeline, IndexPipeline
 from .visualize import create_knowledge_graph, visualize_graph
 
+logger = logging.getLogger(__name__)
+
 try:
     from graphrag.query.context_builder.entity_extraction import EntityVectorStoreKey
     from graphrag.query.indexer_adapters import (
@@ -35,12 +38,10 @@ try:
     )
     from graphrag.vector_stores.lancedb import LanceDBVectorStore
 except ImportError:
-    print(
-        (
-            "GraphRAG dependencies not installed. "
-            "Try `pip install graphrag future` to install. "
-            "GraphRAG retriever pipeline will not work properly."
-        )
+    logger.warning(
+        "GraphRAG dependencies not installed. "
+        "Try `pip install graphrag future` to install. "
+        "GraphRAG retriever pipeline will not work properly."
     )
 
 
@@ -132,7 +133,7 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
             text="[GraphRAG] Creating index... This can take a long time.",
         )
         result = subprocess.run(command, capture_output=True, text=True)
-        print(result.stdout)
+        logger.debug("%s", result.stdout)
         command = command[:-1]
 
         # copy customized GraphRAG config file if it exists
@@ -143,7 +144,7 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
                 shutil.copy(setting_file_path, destination_file_path)
             except shutil.Error:
                 # Handle the error if the file copy fails
-                print("failed to copy customized GraphRAG config file. ")
+                logger.warning("failed to copy customized GraphRAG config file. ")
 
         # Run the command and stream stdout
         with subprocess.Popen(command, stdout=subprocess.PIPE, text=True) as process:
@@ -235,7 +236,7 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
         _ = store_entity_semantic_embeddings(
             entities=entities, vectorstore=description_embedding_store
         )
-        print(f"Entity count: {len(entity_df)}")
+        logger.info("Entity count: %s", len(entity_df))
 
         # Read relationships
         relationship_df = pd.read_parquet(f"{INPUT_DIR}/{RELATIONSHIP_TABLE}.parquet")

@@ -1,12 +1,18 @@
 # Disable telemetry with monkey patching
 import logging
+import pprint
 
 logger = logging.getLogger(__name__)
 try:
     import posthog
 
     def capture(*args, **kwargs):
-        logger.info("posthog.capture called with args: %s, kwargs: %s", args, kwargs)
+        payload = pprint.pformat(
+            {"args": args, "kwargs": kwargs},
+            width=100,
+            compact=False,
+        )
+        logger.info("posthog.capture called:\n%s", payload)
 
     posthog.capture = capture
 except ImportError:

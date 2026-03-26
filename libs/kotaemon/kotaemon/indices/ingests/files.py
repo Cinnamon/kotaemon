@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Type
 
@@ -24,6 +25,8 @@ from kotaemon.loaders import (
     UnstructuredReader,
     WebReader,
 )
+
+logger = logging.getLogger(__name__)
 
 web_reader = WebReader()
 unstructured = UnstructuredReader()
@@ -124,9 +127,13 @@ class DocumentIngestor(BaseComponent):
             file_paths = [file_paths]
 
         documents = self._get_reader(input_files=file_paths)()
-        print(f"Read {len(file_paths)} files into {len(documents)} documents.")
+        logger.info(
+            "Read %s files into %s documents.", len(file_paths), len(documents)
+        )
         nodes = self.text_splitter(documents)
-        print(f"Transform {len(documents)} documents into {len(nodes)} nodes.")
+        logger.info(
+            "Transform %s documents into %s nodes.", len(documents), len(nodes)
+        )
         self.log_progress(".num_docs", num_docs=len(nodes))
 
         # document parsers call

@@ -1,4 +1,7 @@
+import logging
 import re
+
+logger = logging.getLogger(__name__)
 
 
 def sync_retrieval_n_message(
@@ -40,4 +43,4 @@ def get_urls(input_str: str) -> tuple[list[str], str]:
 
 
 if __name__ == "__main__":
-    print(sync_retrieval_n_message([[""], [""], [""]], []))
+    logger.info("%s", sync_retrieval_n_message([[""], [""], [""]], []))

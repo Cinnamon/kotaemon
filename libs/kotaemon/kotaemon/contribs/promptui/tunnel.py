@@ -39,7 +39,7 @@ class Tunnel:
     @staticmethod
     def download_binary():
         if not Path(BINARY_PATH).exists():
-            print("First time setting tunneling...")
+            logger.info("First time setting tunneling...")
             resp = requests.get(BINARY_URL)
 
             if resp.status_code == 404:
@@ -76,7 +76,9 @@ class Tunnel:
 
     def kill(self):
         if self.proc is not None:
-            print(f"Killing tunnel 127.0.0.1:{self.local_port} <> {self.url}")
+            logger.info(
+                "Killing tunnel 127.0.0.1:%s <> %s", self.local_port, self.url
+            )
             self.proc.terminate()
             self.proc = None
 

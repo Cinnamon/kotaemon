@@ -1,3 +1,4 @@
+import logging
 import re
 import threading
 from collections import defaultdict
@@ -12,6 +13,8 @@ from kotaemon.llms import PromptTemplate
 from .citation_qa import CITATION_TIMEOUT, MAX_IMAGES, AnswerWithContextPipeline
 from .format_context import EVIDENCE_MODE_FIGURE
 from .utils import find_start_end_phrase
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_QA_CITATION_PROMPT = """
 Use the following pieces of context to answer the question at the end.
@@ -199,7 +202,7 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
         **kwargs,
     ) -> Generator[Document, None, Document]:
         history = kwargs.get("history", [])
-        print(f"Got {len(images)} images")
+        logger.debug("Got %s images", len(images))
         # check if evidence exists, use QA prompt
         if evidence:
             prompt, evidence = self.get_prompt(question, evidence, evidence_mode)
@@ -256,7 +259,7 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
 
         try:
             # try streaming first
-            print("Trying LLM streaming")
+            logger.info("Trying LLM streaming")
             for out_msg in self.llm.stream(messages):
                 if evidence:
                     if START_ANSWER in output:
@@ -285,7 +288,9 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
                 output += out_msg.text
                 logprobs += out_msg.logprobs
         except NotImplementedError:
-            print("Streaming is not supported, falling back to normal processing")
+            logger.warning(
+                "Streaming is not supported, falling back to normal processing"
+            )
             output = self.llm(messages).text
             yield Document(channel="chat", content=output)
 

@@ -1,8 +1,11 @@
+import logging
 from typing import List, Optional, Union
 
 from kotaemon.base import Document
 
 from .base import BaseDocumentStore
+
+logger = logging.getLogger(__name__)
 
 MAX_DOCS_TO_GET = 10**4
 
@@ -94,8 +97,8 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
             requests.append(request)
 
         success, failed = self.es_bulk(self.client, requests)
-        print("Added/Updated documents to index", success)
-        print("Failed documents to index", failed)
+        logger.info("Added/Updated documents to index %s", success)
+        logger.info("Failed documents to index %s", failed)
 
         if refresh_indices:
             self.client.indices.refresh(index=self.index_name)

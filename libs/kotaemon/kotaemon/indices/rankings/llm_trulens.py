@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
@@ -11,6 +12,8 @@ from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import BaseLLM, PromptTemplate
 
 from .llm import LLMReranking
+
+logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT_TEMPLATE = PromptTemplate(
     """You are a RELEVANCE grader; providing the relevance of the given CONTEXT to the given QUESTION.
@@ -174,8 +177,8 @@ class LLMTrulensScoring(LLMReranking):
             doc.metadata["llm_trulens_score"] = score
             filtered_docs.append(doc)
 
-        print(
-            "LLM rerank scores",
+        logger.debug(
+            "LLM rerank scores %s",
             [doc.metadata["llm_trulens_score"] for doc in filtered_docs],
         )
 

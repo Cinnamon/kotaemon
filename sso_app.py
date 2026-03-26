@@ -1,6 +1,10 @@
 import os
 
-import gradiologin as grlogin
+from ktem.logging_config import setup_logging
+
+setup_logging()
+
+import gradiologin as grlogin  # noqa: E402
 from decouple import config
 from fastapi import FastAPI
 from fastapi.responses import FileResponse

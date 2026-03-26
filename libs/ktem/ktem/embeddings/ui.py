@@ -1,3 +1,4 @@
+import logging
 from copy import deepcopy
 
 import gradio as gr
@@ -8,6 +9,8 @@ from ktem.utils.file import YAMLNoDateSafeLoader
 from theflow.utils.modules import deserialize
 
 from .manager import embedding_models_manager
+
+logger = logging.getLogger(__name__)
 
 
 def format_description(cls):
@@ -371,7 +374,7 @@ class EmbeddingManagement(BasePage):
 
             gr.Info(f"Embedding {selected_emb_name} connect successfully")
         except Exception as e:
-            print(e)
+            logger.warning("%s", e)
             log_content += (
                 f"<mark style='color: yellow; background: red'>- Connection failed. "
                 f"Got error:\n {str(e)}</mark>"

@@ -273,7 +273,6 @@ class ReactAgent(BaseAgent):
 
         self.clear()
         logging.info(f"Running {self.name} with instruction: {instruction}")
-        print(f"Running {self.name} with instruction: {instruction}")
         total_cost = 0.0
         total_token = 0
         status = "failed"
@@ -282,13 +281,11 @@ class ReactAgent(BaseAgent):
         for step_count in range(1, max_iterations + 1):
             prompt = self._compose_prompt(instruction)
             logging.info(f"Prompt: {prompt}")
-            print(f"Prompt: {prompt}")
             response = self.llm(
                 prompt, stop=["Observation:"]
             )  # TODO: could cause bugs if llm doesn't have `stop` as a parameter
             response_text = response.text
             logging.info(f"Response: {response_text}")
-            print(f"Response: {response_text}")
             action_step = self._parse_output(response_text)
             if action_step is None:
                 raise ValueError("Invalid action")
@@ -302,9 +299,7 @@ class ReactAgent(BaseAgent):
                 action_name = action_step.tool
                 tool_input = action_step.tool_input
                 logging.info(f"Action: {action_name}")
-                print(f"Action: {action_name}")
                 logging.info(f"Tool Input: {tool_input}")
-                print(f"Tool Input: {tool_input}")
                 function_map = self._format_function_map()
                 if action_name not in function_map:
                     available = ", ".join(function_map.keys())
@@ -320,7 +315,6 @@ class ReactAgent(BaseAgent):
                 # don't limit each. Fix this number regarding to the LLM capacity.
                 result = self._trim(result)
                 logging.info(f"Result: {result}")
-                print(f"Result: {result}")
 
             self.intermediate_steps.append((action_step, result))
             if is_finished_chain:

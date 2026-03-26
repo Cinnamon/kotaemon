@@ -1,3 +1,4 @@
+import logging
 from typing import Any, List, Optional, Union
 
 from kotaemon.agents.base import BaseLLM, BaseTool
@@ -6,6 +7,8 @@ from kotaemon.base import BaseComponent
 from kotaemon.llms import PromptTemplate
 
 from .prompt import few_shot_planner_prompt, zero_shot_planner_prompt
+
+logger = logging.getLogger(__name__)
 
 
 class Planner(BaseComponent):
@@ -96,7 +99,9 @@ class Planner(BaseComponent):
             self.log_progress(".planner", response=response)
             output.info("Planner run successful.")
         except NotImplementedError:
-            print("Streaming is not supported, falling back to normal run")
+            logger.warning(
+                "Streaming is not supported, falling back to normal run"
+            )
             response = self.model(prompt)
             yield response
         except ValueError as e:

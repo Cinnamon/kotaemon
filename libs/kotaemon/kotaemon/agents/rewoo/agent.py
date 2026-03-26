@@ -18,6 +18,8 @@ from kotaemon.llms import BaseLLM, PromptTemplate
 from .planner import Planner
 from .solver import Solver
 
+logger = logging.getLogger(__name__)
+
 
 class RewooAgent(BaseAgent):
     """Distributive RewooAgent class inherited from BaseAgent.
@@ -170,9 +172,9 @@ class RewooAgent(BaseAgent):
             tool_input = tool_input[:-1]
             # find variables in input and replace with previous evidences
             for var in re.findall(r"#E\d+", tool_input):
-                print("Tool input: ", tool_input)
-                print("Var: ", var)
-                print("Worker evidences: ", worker_evidences)
+                logger.debug("Tool input: %s", tool_input)
+                logger.debug("Var: %s", var)
+                logger.debug("Worker evidences: %s", worker_evidences)
                 if var in worker_evidences:
                     tool_input = tool_input.replace(
                         var, worker_evidences.get(var, "") or ""
@@ -325,7 +327,7 @@ class RewooAgent(BaseAgent):
             planner_text_output
         )
 
-        print("Planner output:", planner_text_output)
+        logger.info("Planner output: %s", planner_text_output)
         # output planner to info panel
         yield AgentOutput(
             text="",

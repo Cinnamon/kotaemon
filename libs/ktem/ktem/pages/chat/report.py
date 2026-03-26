@@ -1,9 +1,12 @@
+import logging
 from typing import Optional
 
 import gradio as gr
 from ktem.app import BasePage
 from ktem.db.models import IssueReport, engine
 from sqlmodel import Session
+
+logger = logging.getLogger(__name__)
 
 
 class ReportIssue(BasePage):
@@ -62,7 +65,7 @@ class ReportIssue(BasePage):
                 elif isinstance(index.selector, tuple):
                     selecteds_[str(index.id)] = [selecteds[_] for _ in index.selector]
                 else:
-                    print(f"Unknown selector type: {index.selector}")
+                    logger.warning("Unknown selector type: %s", index.selector)
 
         with Session(engine) as session:
             issue = IssueReport(

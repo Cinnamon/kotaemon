@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Optional, Sequence
@@ -11,6 +12,8 @@ from kotaemon.base import RetrievedDocument
 from kotaemon.indices.rankings import BaseReranking, LLMReranking, LLMTrulensScoring
 
 from ..pipelines import BaseFileIndexRetriever, IndexDocumentPipeline, IndexPipeline
+
+logger = logging.getLogger(__name__)
 
 
 class KnetIndexingPipeline(IndexDocumentPipeline):
@@ -69,7 +72,7 @@ class KnetRetrievalPipeline(BaseFileIndexRetriever):
             text: the text to retrieve similar documents
             doc_ids: list of document ids to constraint the retrieval
         """
-        print("searching in doc_ids", doc_ids)
+        logger.debug("searching in doc_ids %s", doc_ids)
         if not doc_ids:
             return []
 

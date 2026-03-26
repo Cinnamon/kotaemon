@@ -15,6 +15,8 @@ from decouple import config
 
 from kotaemon.loaders.utils.gpt4v import generate_gpt4v
 
+logger = logging.getLogger(__name__)
+
 
 def request_adobe_service(file_path: str, output_path: str = "") -> str:
     """Main function to call the adobe service, and unzip the results.
@@ -216,7 +218,7 @@ def generate_single_figure_caption(vlm_endpoint: str, figure: str) -> str:
             if "sorry" in output.lower():
                 output = ""
         except Exception as e:
-            print(f"Error generating caption: {e}")
+            logger.warning("Error generating caption: %s", e)
 
     return output
 

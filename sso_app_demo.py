@@ -1,6 +1,10 @@
 import os
 
-import gradio as gr
+from ktem.logging_config import setup_logging
+
+setup_logging()
+
+import gradio as gr  # noqa: E402
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from decouple import config
 from fastapi import FastAPI, Request

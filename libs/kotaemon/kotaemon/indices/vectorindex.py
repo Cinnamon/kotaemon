@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import threading
 import uuid
 from pathlib import Path
@@ -13,6 +14,8 @@ from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 from .base import BaseIndexing, BaseRetrieval
 from .rankings import BaseReranking, LLMReranking
+
+logger = logging.getLogger(__name__)
 
 VECTOR_STORE_FNAME = "vectorstore"
 DOC_STORE_FNAME = "docstore"
@@ -78,15 +81,15 @@ class VectorIndexing(BaseIndexing):
 
     def add_to_docstore(self, docs: list[Document]):
         if self.doc_store:
-            print("Adding documents to doc store")
+            logger.debug("Adding documents to doc store")
             self.doc_store.add(docs)
 
     def add_to_vectorstore(self, docs: list[Document]):
         # in case we want to skip embedding
         if self.vector_store:
-            print(f"Getting embeddings for {len(docs)} nodes")
+            logger.debug("Getting embeddings for %d nodes", len(docs))
             embeddings = self.embedding(docs)
-            print("Adding embeddings to vector store")
+            logger.debug("Adding embeddings to vector store")
             self.vector_store.add(
                 embeddings=embeddings,
                 ids=[t.doc_id for t in docs],
@@ -233,8 +236,8 @@ class VectorRetrieval(BaseRetrieval):
                 RetrievedDocument(**doc.to_dict(), score=score)
                 for doc, score in zip(vs_docs, vs_scores)
             ]
-            print(f"Got {len(vs_docs)} from vectorstore")
-            print(f"Got {len(ds_docs)} from docstore")
+            logger.info("Got %d from vectorstore", len(vs_docs))
+            logger.info("Got %d from docstore", len(ds_docs))
 
         # use additional reranker to re-order the document list
         if self.rerankers and text:
@@ -245,7 +248,7 @@ class VectorRetrieval(BaseRetrieval):
                 result = reranker.run(documents=result, query=text)
 
         result = self._filter_docs(result, top_k=top_k)
-        print(f"Got raw {len(result)} retrieved documents")
+        logger.info("Got raw %d retrieved documents", len(result))
 
         # add page thumbnails to the result if exists
         thumbnail_doc_ids: set[str] = set()
@@ -272,12 +275,10 @@ class VectorRetrieval(BaseRetrieval):
                 non_thumbnail_docs.append(doc)
 
         linked_thumbnail_docs = self.doc_store.get(list(thumbnail_doc_ids))
-        print(
-            "thumbnail docs",
+        logger.debug(
+            "thumbnail docs %d, non-thumbnail docs %d, raw-thumbnail docs %d",
             len(linked_thumbnail_docs),
-            "non-thumbnail docs",
             len(non_thumbnail_docs),
-            "raw-thumbnail docs",
             len(raw_thumbnail_docs),
         )
         additional_docs = []

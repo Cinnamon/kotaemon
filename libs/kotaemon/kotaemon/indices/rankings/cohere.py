@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import logging
+
 from decouple import config
 
 from kotaemon.base import Document
 
 from .base import BaseReranking
+
+logger = logging.getLogger(__name__)
 
 
 class CohereReranking(BaseReranking):
@@ -36,10 +40,10 @@ class CohereReranking(BaseReranking):
                 if ktem_cohere_api_key != "your-key":
                     self.cohere_api_key = ktem_cohere_api_key
             except Exception as e:
-                print("Cannot get Cohere API key from `ktem`", e)
+                logger.warning("Cannot get Cohere API key from ktem: %s", e)
 
         if not self.cohere_api_key:
-            print("Cohere API key not found. Skipping rerankings.")
+            logger.warning("Cohere API key not found. Skipping rerankings.")
             return documents
 
         cohere_client = cohere.Client(self.cohere_api_key)

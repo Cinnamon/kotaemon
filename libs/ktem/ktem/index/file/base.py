@@ -1,7 +1,10 @@
+import logging
 from pathlib import Path
 from typing import Generator, Optional
 
 from kotaemon.base import BaseComponent, Document, Param
+
+logger = logging.getLogger(__name__)
 
 
 class BaseFileIndexRetriever(BaseComponent):
@@ -154,7 +157,7 @@ class BaseFileIndexIndexing(BaseComponent):
         Args:
             msg: the message to log
         """
-        print(msg)
+        logger.warning("%s", msg)
 
     def rebuild_index(self):
         """Rebuild the index"""

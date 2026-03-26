@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 
 import requests
@@ -10,6 +11,8 @@ SEMANTIC_SCHOLAR_RECOMMEND_URL = (
     "https://api.semanticscholar.org/recommendations/v1/papers/"  # noqa
 )
 CACHE_TIME = 60 * 60 * 6  # 6 hours
+
+logger = logging.getLogger(__name__)
 
 
 # Function to parse the date string
@@ -29,7 +32,7 @@ def get_recommendations_from_semantic_scholar(semantic_scholar_id: str):
         )
         return r.json()["recommendedPapers"]
     except KeyError as e:
-        print(e)
+        logger.warning("%s", e)
         return []
 
 
@@ -61,7 +64,7 @@ def get_paper_id_from_name(paper_name):
         items = response.json()
         paper_id = items.get("data", [])[0].get("paperId")
     except Exception as e:
-        print(e)
+        logger.warning("%s", e)
         return None
 
     return paper_id
@@ -108,7 +111,7 @@ def fetch_papers(top_n=5):
             for item in recent_items[:top_n]
         ]
     except Exception as e:
-        print(e)
+        logger.warning("%s", e)
         return []
 
     return output_items

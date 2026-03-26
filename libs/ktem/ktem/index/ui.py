@@ -1,3 +1,5 @@
+import logging
+
 import gradio as gr
 import pandas as pd
 import yaml
@@ -5,6 +7,8 @@ from ktem.app import BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
 
 from .manager import IndexManager
+
+logger = logging.getLogger(__name__)
 
 
 # UGLY way to restart gradio server by updating atime
@@ -14,7 +18,7 @@ def update_current_module_atime():
 
     # Define the file path
     file_path = __file__
-    print("Updating atime for", file_path)
+    logger.info("Updating atime for %s", file_path)
 
     # Get the current time
     current_time = time.time()

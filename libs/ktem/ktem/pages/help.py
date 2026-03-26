@@ -1,3 +1,4 @@
+import logging
 from importlib.metadata import version
 from pathlib import Path
 
@@ -9,6 +10,8 @@ from theflow.settings import settings
 KH_DEMO_MODE = getattr(settings, "KH_DEMO_MODE", False)
 HF_SPACE_URL = config("HF_SPACE_URL", default="")
 
+logger = logging.getLogger(__name__)
+
 
 def get_remote_doc(url: str) -> str:
     try:
@@ -16,7 +19,7 @@ def get_remote_doc(url: str) -> str:
         res.raise_for_status()
         return res.text
     except Exception as e:
-        print(f"Failed to fetch document from {url}: {e}")
+        logger.warning("Failed to fetch document from %s: %s", url, e)
         return ""
 
 
@@ -27,7 +30,7 @@ def download_changelogs(release_url: str) -> str:
 
         return changelogs
     except Exception as e:
-        print(f"Failed to fetch changelogs from {release_url}: {e}")
+        logger.warning("Failed to fetch changelogs from %s: %s", release_url, e)
         return ""
 
 

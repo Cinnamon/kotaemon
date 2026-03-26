@@ -136,7 +136,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                     flatten_doc_ids.append(doc_id)
             doc_ids = flatten_doc_ids
 
-        print("searching in doc_ids", doc_ids)
+        logger.debug("searching in doc_ids: %s", doc_ids)
         if not doc_ids:
             logger.info(f"Skip retrieval because of no selected files: {self}")
             return []
@@ -171,9 +171,9 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
 
         # rerank
         s_time = time.time()
-        print(f"retrieval_kwargs: {retrieval_kwargs.keys()}")
+        logger.debug("retrieval_kwargs: %s", list(retrieval_kwargs.keys()))
         docs = self.vector_retrieval(text=text, top_k=self.top_k, **retrieval_kwargs)
-        print("retrieval step took", time.time() - s_time)
+        logger.info("retrieval step took %.3fs", time.time() - s_time)
 
         if not self.get_extra_table:
             return docs
@@ -206,7 +206,7 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                     if doc.doc_id not in retrieved_id:
                         docs.append(doc)
             except Exception:
-                print("Error retrieving additional tables")
+                logger.warning("Error retrieving additional tables")
 
         return docs
 
@@ -364,7 +364,7 @@ class IndexPipeline(BaseComponent):
             else:
                 non_text_docs.append(doc)
 
-        print(f"Got {len(thumbnail_docs)} page thumbnails")
+        logger.debug("Got %d page thumbnails", len(thumbnail_docs))
         page_label_to_thumbnail = {
             doc.metadata["page_label"]: doc.doc_id for doc in thumbnail_docs
         }
@@ -411,14 +411,14 @@ class IndexPipeline(BaseComponent):
 
         # run vector indexing in thread if specified
         if self.run_embedding_in_thread:
-            print("Running embedding in thread")
+            logger.debug("Running embedding in thread")
             threading.Thread(
                 target=lambda: list(insert_chunks_to_vectorstore())
             ).start()
         else:
             yield from insert_chunks_to_vectorstore()
 
-        print("indexing step took", time.time() - s_time)
+        logger.info("indexing step took %.3fs", time.time() - s_time)
         return n_chunks
 
     def handle_chunks_docstore(self, chunks, file_id):
@@ -673,7 +673,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
     @Param.auto(depends_on="reader_mode")
     def readers(self):
         readers = deepcopy(KH_DEFAULT_FILE_EXTRACTORS)
-        print("reader_mode", self.reader_mode)
+        logger.debug("reader_mode: %s", self.reader_mode)
         if self.reader_mode == "adobe":
             readers[".pdf"] = adobe_reader
         elif self.reader_mode == "azure-di":
@@ -708,7 +708,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
     @classmethod
     def get_pipeline(cls, user_settings, index_settings) -> BaseFileIndexIndexing:
         use_quick_index_mode = user_settings.get("quick_index_mode", False)
-        print("use_quick_index_mode", use_quick_index_mode)
+        logger.debug("use_quick_index_mode: %s", use_quick_index_mode)
         obj = cls(
             embedding=embedding_models_manager[
                 index_settings.get(
@@ -749,9 +749,8 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                     "the suitable pipeline for this file type in the settings."
                 )
 
-        print(f"Chunk size: {chunk_size}, chunk overlap: {chunk_overlap}")
-
-        print("Using reader", reader)
+        logger.debug("Chunk size: %d, chunk overlap: %d", chunk_size, chunk_overlap)
+        logger.debug("Using reader: %s", type(reader).__name__)
         pipeline: IndexPipeline = IndexPipeline(
             loader=reader,
             splitter=TokenSplitter(

@@ -1,3 +1,4 @@
+import logging
 from typing import Optional, Type
 
 from ktem.db.models import engine
@@ -7,6 +8,8 @@ from theflow.utils.modules import import_dotted_string
 
 from .base import BaseIndex
 from .models import Index
+
+logger = logging.getLogger(__name__)
 
 
 class IndexManager:
@@ -127,7 +130,7 @@ class IndexManager:
                 # clean up
                 index.on_delete()
             except Exception as e:
-                print(f"Error while deleting index {index.name}: {e}")
+                logger.warning("Error while deleting index %s: %s", index.name, e)
 
             # remove from database
             with Session(engine) as sess:

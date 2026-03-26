@@ -1,4 +1,5 @@
 import hashlib
+import logging
 
 import gradio as gr
 from ktem.app import BasePage
@@ -9,6 +10,7 @@ from theflow.settings import settings as flowsettings
 
 KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
 
+logger = logging.getLogger(__name__)
 
 signout_js = """
 function(u, c, pw, pwc) {
@@ -255,7 +257,7 @@ class SettingsPage(BasePage):
 
         errors = validate_password(password, password_confirm)
         if errors:
-            print(errors)
+            logger.warning("%s", errors)
             gr.Warning(errors)
             return password, password_confirm
 

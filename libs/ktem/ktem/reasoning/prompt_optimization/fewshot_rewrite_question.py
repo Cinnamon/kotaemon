@@ -1,4 +1,5 @@
 import json
+import logging
 import uuid
 from pathlib import Path
 
@@ -14,6 +15,8 @@ from kotaemon.base import AIMessage, Document, HumanMessage, Node, SystemMessage
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.llms import ChatLLM
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
+
+logger = logging.getLogger(__name__)
 
 
 class FewshotRewriteQuestionPipeline(RewriteQuestionPipeline):
@@ -38,7 +41,7 @@ class FewshotRewriteQuestionPipeline(RewriteQuestionPipeline):
     k: int = getattr(flowsettings, "N_PROMPT_OPT_EXAMPLES", 3)
 
     def add_documents(self, examples, batch_size: int = 50):
-        print("Adding fewshot examples for rewriting")
+        logger.info("Adding fewshot examples for rewriting")
         documents = []
         for example in examples:
             doc = Document(

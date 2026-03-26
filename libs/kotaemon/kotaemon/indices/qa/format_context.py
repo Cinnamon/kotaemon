@@ -1,10 +1,13 @@
 import html
+import logging
 from functools import partial
 
 import tiktoken
 
 from kotaemon.base import BaseComponent, Document, RetrievedDocument
 from kotaemon.indices.splitters import TokenSplitter
+
+logger = logging.getLogger(__name__)
 
 EVIDENCE_MODE_TEXT = 0
 EVIDENCE_MODE_TABLE = 1
@@ -105,10 +108,10 @@ class PrepareEvidencePipeline(BaseComponent):
             evidence_mode = EVIDENCE_MODE_TABLE
 
         # trim context by trim_len
-        print("len (original)", len(evidence))
+        logger.debug("len (original) %s", len(evidence))
         if evidence:
             texts = evidence_trim_func([Document(text=evidence)])
             evidence = texts[0].text
-            print("len (trimmed)", len(evidence))
+            logger.debug("len (trimmed) %s", len(evidence))
 
         return Document(content=(evidence_mode, evidence, images))
