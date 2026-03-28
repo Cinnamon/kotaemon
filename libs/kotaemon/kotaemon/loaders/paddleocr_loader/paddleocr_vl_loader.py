@@ -15,7 +15,7 @@ class PaddleOCRVLReader(BaseReader):
     Model: https://huggingface.co/PaddlePaddle/PaddleOCR-VL-1.5
     """
 
-    _dependencies = ["paddleocr[all]"]
+    _dependencies = ["paddleocr[doc-parser]"]
 
     device: str = Param(
         "gpu:0",
@@ -63,7 +63,7 @@ class PaddleOCRVLReader(BaseReader):
             from paddleocr import PaddleOCRVL
         except ImportError:
             raise ImportError(
-                "Please install paddleocr: 'pip install \"paddleocr[all]\"'"
+                "Please install paddleocr: 'pip install \"paddleocr[doc-parser]\"'"
             )
 
         kwargs = {

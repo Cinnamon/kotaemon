@@ -103,9 +103,8 @@ dev = [
     "pytest-mock",
     "sphinx",
 ]
-# Extra modules
 docling = ["docling<=2.5.2"]
-paddleocr = ["paddleocr[all]"]
+paddleocr = ["paddleocr[doc-parser]"]
 lightrag = [
     "aioboto3",
     "nano-vectordb",
