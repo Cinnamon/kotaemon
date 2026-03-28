@@ -13,7 +13,7 @@ class PPStructureV3Reader(BaseReader):
     Model: https://huggingface.co/PaddlePaddle/PP-DocLayout-L
     """
 
-    _dependencies = ["paddleocr[all]"]
+    _dependencies = ["paddleocr[doc-parser]"]
 
     device: str = Param(
         "gpu:0",
@@ -100,7 +100,7 @@ class PPStructureV3Reader(BaseReader):
             from paddleocr import PPStructureV3
         except ImportError:
             raise ImportError(
-                "Please install paddleocr: 'pip install \"paddleocr[all]\"'"
+                "Please install paddleocr: 'pip install \"paddleocr[doc-parser]\"'"
             )
 
         kwargs = {
