@@ -3,8 +3,8 @@ from typing import Optional, Union
 from kotaemon.base import BaseComponent, Node, Param
 from kotaemon.llms import BaseLLM, PromptTemplate
 
-from .io import AgentOutput, AgentType
 from .tools import BaseTool
+from .typedefs import AgentOutput, AgentType
 
 
 class BaseAgent(BaseComponent):

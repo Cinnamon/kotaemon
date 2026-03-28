@@ -18,7 +18,7 @@ tag_filter = "v?\\d+(\\.\\d+)*.*"
 [project]
 name = "kotaemon"
 dynamic = ["version"]
-requires-python = ">= 3.10"
+requires-python = ">= 3.11"
 description = "Kotaemon core library for AI development."
 dependencies = [
     "azure-ai-documentintelligence",

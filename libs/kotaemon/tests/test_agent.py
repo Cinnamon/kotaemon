@@ -4,7 +4,6 @@ import pytest
 from openai.types.chat.chat_completion import ChatCompletion
 
 from kotaemon.agents import (
-    AgentType,
     BaseTool,
     GoogleSearchTool,
     LangchainAgent,
@@ -13,6 +12,7 @@ from kotaemon.agents import (
     RewooAgent,
     WikipediaTool,
 )
+from kotaemon.agents.typedefs import AgentType
 from kotaemon.llms import AzureChatOpenAI
 
 from .conftest import skip_openai_lc_wrapper_test
@@ -215,7 +215,7 @@ def test_wrapper_agent_langchain(openai_completion, llm, mock_google_search):
     agent = LangchainAgent(
         llm=llm,
         plugins=plugins,
-        agent_type=AgentType.react,
+        agent_type=AgentType.REACT,
     )
     response = agent("Tell me about Cinnamon AI company")
     openai_completion.assert_called()

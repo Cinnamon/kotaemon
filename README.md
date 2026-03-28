@@ -19,7 +19,7 @@ developers in mind.
 [Feedback](https://github.com/Cinnamon/kotaemon/issues) |
 [Contact](mailto:kotaemon.support@cinnamon.is)
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-31013/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/release/python-31013/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 <a href="https://github.com/Cinnamon/kotaemon/pkgs/container/kotaemon" target="_blank">
 <img src="https://img.shields.io/badge/docker_pull-kotaemon:latest-brightgreen" alt="docker pull ghcr.io/cinnamon/kotaemon:latest"></a>
@@ -90,7 +90,7 @@ documents and developers who want to build their own RAG pipeline.
 
 ### System requirements
 
-1. [Python](https://www.python.org/downloads/) >= 3.10
+1. [Python](https://www.python.org/downloads/) >= 3.11
 2. [Docker](https://www.docker.com/): optional, if you [install with Docker](#with-docker-recommended)
 3. [Unstructured](https://docs.unstructured.io/open-source/installation/full-installation#full-installation) if you want to process files other than `.pdf`, `.html`, `.mhtml`, and `.xlsx` documents. Installation steps differ depending on your operating system. Please visit the link and follow the specific instructions provided there.
 
@@ -158,7 +158,7 @@ documents and developers who want to build their own RAG pipeline.
    This script will:
 
    - Install uv package manager if not present
-   - Create a virtual environment with Python 3.10
+   - Create a virtual environment with Python 3.11
    - Install all dependencies using uv (significantly faster than conda/pip)
    - Set up PDF.js viewer
    - Launch the application
@@ -169,7 +169,7 @@ documents and developers who want to build their own RAG pipeline.
 
    ```shell
    # optional (setup env)
-   conda create -n kotaemon python=3.10
+   conda create -n kotaemon python=3.11
    conda activate kotaemon
 
    # clone this repo

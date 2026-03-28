@@ -6,7 +6,6 @@ from ktem.llms.manager import llms
 from ktem.mcp.manager import mcp_manager
 from ktem.reasoning.base import BaseReasoning
 from ktem.utils.generator import Generator
-from ktem.utils.render import Render
 from langchain.text_splitter import CharacterTextSplitter
 from pydantic import BaseModel, Field
 
@@ -18,6 +17,7 @@ from kotaemon.agents import (
     WikipediaTool,
 )
 from kotaemon.agents.tools.mcp import create_tools_from_config
+from kotaemon.agents.typedefs import EventActionEnd, EventAnswer
 from kotaemon.base import BaseComponent, Document, HumanMessage, Node, SystemMessage
 from kotaemon.llms import ChatLLM, PromptTemplate
 
@@ -189,26 +189,6 @@ class ReactAgentPipeline(BaseReasoning):
     rewrite_pipeline: RewriteQuestionPipeline = RewriteQuestionPipeline.withx()
     use_rewrite: bool = False
 
-    def prepare_citation(self, step_id, step, output, status) -> Document:
-        header = "<b>Step {id}</b>: {log}".format(id=step_id, log=step.log)
-        content = (
-            "<b>Action</b>: <em>{tool}[{input}]</em>\n\n<b>Output</b>: {output}"
-        ).format(
-            tool=step.tool if status == "thinking" else "",
-            input=step.tool_input.replace("\n", "").replace('"', "")
-            if status == "thinking"
-            else "",
-            output=output if status == "thinking" else "Finished",
-        )
-        return Document(
-            channel="info",
-            content=Render.collapsible(
-                header=header,
-                content=Render.table(content),
-                open=True,
-            ),
-        )
-
     async def ainvoke(  # type: ignore
         self, message, conv_id: str, history: list, **kwargs  # type: ignore
     ) -> Document:
@@ -236,27 +216,24 @@ class ReactAgentPipeline(BaseReasoning):
             )
 
         output_stream = Generator(self.agent.stream(message))
-        idx = 0
-        for item in output_stream:
-            idx += 1
-            if item.status == "thinking":
-                step, step_output = item.intermediate_steps
+        for event in output_stream:
+            if isinstance(event, EventAnswer):
+                step_name = "Generate answer"
                 yield Document(
                     channel="info",
-                    content=self.prepare_citation(idx, step, step_output, item.status),
+                    content=self.prepare_action_info_panel(action_name=step_name),
                 )
-            else:
-                yield Document(
-                    channel="chat",
-                    content=item.text,
-                )
-                step, step_output = item.intermediate_steps
+                yield Document(channel="chat", content=event.text)
+            elif isinstance(event, EventActionEnd):
                 yield Document(
                     channel="info",
-                    content=self.prepare_citation(idx, step, step_output, item.status),
+                    content=self.prepare_action_info_panel(
+                        action_name=event.action_name,
+                        action_input=event.action_input,
+                        action_output=event.action_output,
+                        action_log=event.log,
+                    ),
                 )
-
-        return output_stream.value
 
     @classmethod
     def get_pipeline(

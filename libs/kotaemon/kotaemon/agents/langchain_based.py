@@ -7,8 +7,8 @@ from langchain.agents.agent import AgentExecutor as LCAgentExecutor
 from kotaemon.llms import LLM, ChatLLM
 
 from .base import BaseAgent
-from .io import AgentOutput, AgentType
 from .tools import BaseTool
+from .typedefs import AgentOutput, AgentType
 
 
 class LangchainAgent(BaseAgent):
@@ -18,10 +18,10 @@ class LangchainAgent(BaseAgent):
     agent_type: AgentType
     description: str = "LangchainAgent for answering multi-step reasoning questions"
     AGENT_TYPE_MAP = {
-        AgentType.openai: LCAgentType.OPENAI_FUNCTIONS,
-        AgentType.openai_multi: LCAgentType.OPENAI_MULTI_FUNCTIONS,
-        AgentType.react: LCAgentType.ZERO_SHOT_REACT_DESCRIPTION,
-        AgentType.self_ask: LCAgentType.SELF_ASK_WITH_SEARCH,
+        AgentType.OPENAI: LCAgentType.OPENAI_FUNCTIONS,
+        AgentType.OPENAI_MULTI: LCAgentType.OPENAI_MULTI_FUNCTIONS,
+        AgentType.REACT: LCAgentType.ZERO_SHOT_REACT_DESCRIPTION,
+        AgentType.SELF_ASK: LCAgentType.SELF_ASK_WITH_SEARCH,
     }
     agent: Optional[LCAgentExecutor] = None
 
@@ -41,7 +41,7 @@ class LangchainAgent(BaseAgent):
         # a fix for search_doc tool name:
         # use "Intermediate Answer" for self-ask agent
         found_search_tool = False
-        if self.agent_type == AgentType.self_ask:
+        if self.agent_type == AgentType.SELF_ASK:
             for plugin in langchain_plugins:
                 if plugin.name == "search_doc":
                     plugin.name = "Intermediate Answer"
@@ -49,7 +49,7 @@ class LangchainAgent(BaseAgent):
                     found_search_tool = True
                     break
 
-        if self.agent_type != AgentType.self_ask or found_search_tool:
+        if self.agent_type != AgentType.SELF_ASK or found_search_tool:
             # reinit Langchain AgentExecutor
             self.agent = initialize_agent(
                 langchain_plugins,

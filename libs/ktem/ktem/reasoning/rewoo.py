@@ -19,6 +19,7 @@ from kotaemon.agents import (
     WikipediaTool,
 )
 from kotaemon.agents.tools.mcp import create_tools_from_config
+from kotaemon.agents.typedefs import EventActionEnd, EventAnswer, EventFinalResponse
 from kotaemon.base import BaseComponent, Document, HumanMessage, Node, SystemMessage
 from kotaemon.llms import ChatLLM, PromptTemplate
 
@@ -220,48 +221,6 @@ class RewooAgentPipeline(BaseReasoning):
     use_rewrite: bool = False
     enable_citation: bool = False
 
-    def format_info_panel_evidence(self, worker_log):
-        header = ""
-        content = []
-
-        for line in worker_log.splitlines():
-            if line.startswith("#Plan"):
-                # line starts with #Plan should be marked as a new segment
-                header = line
-            elif line.startswith("#Action"):
-                # small fix for markdown output
-                line = "\\" + line + "<br>"
-                content.append(line)
-            elif line.startswith("#"):
-                # stop markdown from rendering big headers
-                line = "\\" + line
-                content.append(line)
-            else:
-                content.append(line)
-
-        if not header:
-            return
-
-        return Document(
-            channel="info",
-            content=Render.collapsible(
-                header=header,
-                content=Render.table("\n".join(content)),
-                open=False,
-            ),
-        )
-
-    def format_info_panel_planner(self, planner_output):
-        planner_output = planner_output.replace("\n", "<br>")
-        return Document(
-            channel="info",
-            content=Render.collapsible(
-                header="Planner Output",
-                content=planner_output,
-                open=True,
-            ),
-        )
-
     def prepare_citation(self, answer) -> list[Document]:
         """Prepare citation to show on the UI"""
         segments = []
@@ -360,28 +319,23 @@ class RewooAgentPipeline(BaseReasoning):
         output_stream = GeneratorWrapper(
             self.agent.stream(message, use_citation=self.enable_citation)
         )
-        for item in output_stream:
-            if item.intermediate_steps:
-                for step in item.intermediate_steps:
-                    if "planner_log" in step:
-                        yield Document(
-                            channel="info",
-                            content=self.format_info_panel_planner(step["planner_log"]),
-                        )
-                    else:
-                        yield Document(
-                            channel="info",
-                            content=self.format_info_panel_evidence(step["worker_log"]),
-                        )
-            if item.text:
-                # final answer
-                yield Document(channel="chat", content=item.text)
-
-        answer = output_stream.value
-        yield Document(channel="info", content=None)
-        yield from self.prepare_citation(answer)
-
-        return answer
+        for event in output_stream:
+            if isinstance(event, EventAnswer):
+                yield Document(channel="chat", content=event.text)
+            elif isinstance(event, EventActionEnd):
+                yield Document(
+                    channel="info",
+                    content=self.prepare_action_info_panel(
+                        action_name=event.action_name,
+                        action_input=event.action_input,
+                        action_output=event.action_output,
+                        action_log=event.log,
+                    ),
+                )
+            elif isinstance(event, EventFinalResponse):
+                citation_data = (event.metadata or {}).get("citation")
+                if citation_data:
+                    yield from self.prepare_citation(citation_data)
 
     @classmethod
     def get_pipeline(

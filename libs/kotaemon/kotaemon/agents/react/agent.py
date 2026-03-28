@@ -6,8 +6,18 @@ from typing import Optional
 import tiktoken
 
 from kotaemon.agents.base import BaseAgent, BaseLLM
-from kotaemon.agents.io import AgentAction, AgentFinish, AgentOutput, AgentType
 from kotaemon.agents.tools import BaseTool
+from kotaemon.agents.typedefs import (
+    AgentAction,
+    AgentFinish,
+    AgentOutput,
+    AgentStatus,
+    AgentType,
+    EventActionEnd,
+    EventActionStart,
+    EventAnswer,
+    EventFinalResponse,
+)
 from kotaemon.base import Document, Param
 from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import PromptTemplate
@@ -22,7 +32,7 @@ class ReactAgent(BaseAgent):
     """
 
     name: str = "ReactAgent"
-    agent_type: AgentType = AgentType.react
+    agent_type: AgentType = AgentType.REACT
     description: str = "ReactAgent for answering multi-step reasoning questions"
     llm: BaseLLM
     prompt_template: Optional[PromptTemplate] = None
@@ -198,17 +208,17 @@ class ReactAgent(BaseAgent):
         logging.info(f"Running {self.name} with instruction: {instruction}")
         total_cost = 0.0
         total_token = 0
-        status = "failed"
+        status = AgentStatus.FAILED
         response_text = None
 
         for step_count in range(1, max_iterations + 1):
             prompt = self._compose_prompt(instruction)
-            logging.info(f"Prompt: {prompt}")
+            logging.info(f"Step {step_count} - Prompt: {prompt}")
             response = self.llm(
                 prompt, stop=["Observation:"]
             )  # could cause bugs if llm doesn't have `stop` as a parameter
             response_text = response.text
-            logging.info(f"Response: {response_text}")
+            logging.info(f"Step {step_count} - Response: {response_text}")
             action_step = self._parse_output(response_text)
             if action_step is None:
                 raise ValueError("Invalid action")
@@ -240,10 +250,10 @@ class ReactAgent(BaseAgent):
             self.intermediate_steps.append((action_step, result))
             if is_finished_chain:
                 logging.info(f"Finished after {step_count} steps.")
-                status = "finished"
+                status = AgentStatus.FINISHED
                 break
         else:
-            status = "stopped"
+            status = AgentStatus.STOPPED
 
         return AgentOutput(
             text=response_text,
@@ -276,19 +286,17 @@ class ReactAgent(BaseAgent):
         print(f"Running {self.name} with instruction: {instruction}")
         total_cost = 0.0
         total_token = 0
-        status = "failed"
         response_text = None
 
         for step_count in range(1, max_iterations + 1):
             prompt = self._compose_prompt(instruction)
-            logging.info(f"Prompt: {prompt}")
-            print(f"Prompt: {prompt}")
+            logging.info(f"Step {step_count} - Prompt: {prompt}")
             response = self.llm(
                 prompt, stop=["Observation:"]
             )  # TODO: could cause bugs if llm doesn't have `stop` as a parameter
             response_text = response.text
-            logging.info(f"Response: {response_text}")
-            print(f"Response: {response_text}")
+
+            logging.info(f"Step {step_count} - Response: {response_text}")
             action_step = self._parse_output(response_text)
             if action_step is None:
                 raise ValueError("Invalid action")
@@ -297,14 +305,36 @@ class ReactAgent(BaseAgent):
                 result = response_text
                 if "Final Answer:" in response_text:
                     result = response_text.split("Final Answer:")[-1].strip()
+
+                # Stream the final answer sequence dynamically so the UI prints it
+                yield EventAnswer(text=result)
+
+                # Yield EventFinalResponse so parsers know completion explicitly
+                self.intermediate_steps.append((action_step, result))
+                yield EventFinalResponse(
+                    text=result,
+                    status=AgentStatus.FINISHED,
+                    total_tokens=total_token,
+                    total_cost=total_cost,
+                    intermediate_steps=self.intermediate_steps,
+                    agent_type=self.agent_type,
+                    max_iterations=max_iterations,
+                )
+
+                logging.info(f"Finished after {step_count} steps.")
+                break
             else:
                 assert isinstance(action_step, AgentAction)
                 action_name = action_step.tool
                 tool_input = action_step.tool_input
                 logging.info(f"Action: {action_name}")
-                print(f"Action: {action_name}")
                 logging.info(f"Tool Input: {tool_input}")
-                print(f"Tool Input: {tool_input}")
+                yield EventActionStart(
+                    action_name=action_name,
+                    action_input=str(tool_input),
+                    log=action_step.log,
+                )
+
                 function_map = self._format_function_map()
                 if action_name not in function_map:
                     available = ", ".join(function_map.keys())
@@ -319,43 +349,22 @@ class ReactAgent(BaseAgent):
                 # all workers' logs and it can exceed the token limit if we
                 # don't limit each. Fix this number regarding to the LLM capacity.
                 result = self._trim(result)
-                logging.info(f"Result: {result}")
-                print(f"Result: {result}")
-
-            self.intermediate_steps.append((action_step, result))
-            if is_finished_chain:
-                logging.info(f"Finished after {step_count} steps.")
-                status = "finished"
-                yield AgentOutput(
-                    text=result,
-                    agent_type=self.agent_type,
-                    status=status,
-                    intermediate_steps=self.intermediate_steps[-1],
+                logging.info(f"Tool result: {result}")
+                yield EventActionEnd(
+                    action_name=action_name,
+                    action_input=str(tool_input),
+                    action_output=result,
+                    log=action_step.log,
                 )
-                break
-            else:
-                yield AgentOutput(
-                    text="",
-                    agent_type=self.agent_type,
-                    status="thinking",
-                    intermediate_steps=self.intermediate_steps[-1],
-                )
+                self.intermediate_steps.append((action_step, result))
 
         else:
-            status = "stopped"
-            yield AgentOutput(
-                text="",
+            yield EventFinalResponse(
+                text=response_text or "",
+                status=AgentStatus.STOPPED,
+                total_tokens=total_token,
+                total_cost=total_cost,
+                intermediate_steps=self.intermediate_steps,
                 agent_type=self.agent_type,
-                status=status,
-                intermediate_steps=self.intermediate_steps[-1],
+                max_iterations=max_iterations,
             )
-
-        return AgentOutput(
-            text=response_text,
-            agent_type=self.agent_type,
-            status=status,
-            total_tokens=total_token,
-            total_cost=total_cost,
-            intermediate_steps=self.intermediate_steps,
-            max_iterations=max_iterations,
-        )

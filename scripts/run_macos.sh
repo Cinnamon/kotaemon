@@ -196,7 +196,7 @@ cd "$(
 install_dir="$(pwd)/install_dir"
 conda_root="${install_dir}/conda"
 env_dir="${install_dir}/env"
-python_version="3.10"
+python_version="3.11"
 
 pdf_js_version="4.0.379"
 pdf_js_dist_name="pdfjs-${pdf_js_version}-dist"

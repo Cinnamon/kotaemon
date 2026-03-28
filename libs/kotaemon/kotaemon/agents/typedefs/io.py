@@ -2,8 +2,8 @@ import json
 import logging
 import os
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Dict, Literal, NamedTuple, Optional, Union
+from enum import StrEnum, auto
+from typing import Any, Dict, NamedTuple, Optional, Union
 
 from pydantic import ConfigDict
 
@@ -19,18 +19,24 @@ def check_log():
     return os.environ.get("LOG_PATH", None) is not None
 
 
-class AgentType(Enum):
+class AgentType(StrEnum):
     """
     Enumerated type for agent types.
     """
 
-    openai = "openai"
-    openai_multi = "openai_multi"
-    openai_tool = "openai_tool"
-    self_ask = "self_ask"
-    react = "react"
-    rewoo = "rewoo"
-    vanilla = "vanilla"
+    OPENAI = auto()
+    OPENAI_MULTI = auto()
+    OPENAI_TOOL = auto()
+    SELF_ASK = auto()
+    REACT = auto()
+    REWOO = auto()
+    VANILLA = auto()
+
+
+class AgentStatus(StrEnum):
+    FINISHED = auto()
+    STOPPED = auto()
+    FAILED = auto()
 
 
 class BaseScratchPad:
@@ -253,6 +259,6 @@ class AgentOutput(LLMInterface):
     text: str
     type: str = "agent"
     agent_type: AgentType
-    status: Literal["thinking", "finished", "stopped", "failed"]
+    status: AgentStatus
     error: Optional[str] = None
     intermediate_steps: Optional[list] = None

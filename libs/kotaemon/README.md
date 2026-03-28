@@ -16,10 +16,10 @@ pip install kotaemon@git+ssh://git@github.com/Cinnamon/kotaemon.git
 
 ### Setup
 
-- Create conda environment (suggest 3.10)
+- Create conda environment (suggest 3.11)
 
   ```shell
-  conda create -n kotaemon python=3.10
+  conda create -n kotaemon python=3.11
   conda activate kotaemon
   ```
 

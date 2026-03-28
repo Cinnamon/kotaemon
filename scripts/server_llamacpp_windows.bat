@@ -12,7 +12,7 @@ call :deactivate_environment
 
 @rem config
 set ENV_NAME=llama-cpp-python-server
-set PYTHON_VERSION=3.10
+set PYTHON_VERSION=3.11
 set CONDA_ROOT_PREFIX=%cd%\install_dir\conda
 set INSTALL_ENV_DIR=%cd%\install_dir\server_envs\%ENV_NAME%
 

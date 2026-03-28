@@ -15,7 +15,7 @@ tag_filter = "v?\\d+(\\.\\d+)*.*"
 [project]
 name = "kotaemon-app"
 dynamic = ["version"]
-requires-python = ">= 3.10"
+requires-python = ">= 3.11"
 description = "Kotaemon App"
 dependencies = [
     "kotaemon[all]",

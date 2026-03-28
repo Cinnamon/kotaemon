@@ -16,7 +16,7 @@ tag_filter = "v?\\d+(\\.\\d+)*.*"
 [project]
 name = "ktem"
 dynamic = ["version"]
-requires-python = ">= 3.10"
+requires-python = ">= 3.11"
 description = "RAG-based Question and Answering Application"
 dependencies = [
     "click>=8.1.7,<9",

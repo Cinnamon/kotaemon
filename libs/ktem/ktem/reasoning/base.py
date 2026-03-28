@@ -1,5 +1,7 @@
 from typing import Optional
 
+from ktem.utils.render import Render
+
 from kotaemon.base import BaseComponent
 
 
@@ -51,3 +53,26 @@ class BaseReasoning(BaseComponent):
     def run(self, message: str, conv_id: str, history: list, **kwargs):  # type: ignore
         """Execute the reasoning pipeline"""
         raise NotImplementedError
+
+    def prepare_action_info_panel(
+        self,
+        action_name: str,
+        action_input: str = "",
+        action_output: str = "",
+        action_log: str = "",
+    ) -> str:
+        header = "{action_name}{action_input}".format(
+            action_name=action_name,
+            action_input=f"[{action_input}]" if action_input else "",
+        )
+        content = ""
+        if action_output:
+            content = ("{output}\n\n{log}").format(
+                output=action_output,
+                log=action_log,
+            )
+        return Render.collapsible(
+            header=header,
+            content=Render.table(content),
+            open=True,
+        )

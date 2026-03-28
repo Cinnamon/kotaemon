@@ -10,7 +10,7 @@
 
 ```bash
 # Create new conda env (optional)
-conda create -n {{ cookiecutter.project_name }} python=3.10
+conda create -n {{ cookiecutter.project_name }} python=3.11
 conda activate {{ cookiecutter.project_name }}
 
 # Clone and install the project

@@ -77,7 +77,7 @@ deactivate_environment
 
 # config
 ENV_NAME="llama-cpp-python-server"
-PYTHON_VERSION="3.10"
+PYTHON_VERSION="3.11"
 CONDA_ROOT_PREFIX="$(pwd)/install_dir/conda"
 INSTALL_ENV_DIR="$(pwd)/install_dir/server_envs/${ENV_NAME}"
 

@@ -11,10 +11,10 @@
 
 - Install the environment
 
-  - Create a conda environment (python >= 3.10 is recommended)
+  - Create a conda environment (python >= 3.11 is recommended)
 
     ```shell
-    conda create -n kotaemon python=3.10
+    conda create -n kotaemon python=3.11
     conda activate kotaemon
 
     # install dependencies

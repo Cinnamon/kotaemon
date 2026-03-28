@@ -7,7 +7,7 @@ SET /p app_version=<"%CD%\VERSION" || SET app_version=latest
 SET install_dir=%CD%\install_dir
 SET conda_root=%install_dir%\conda
 SET env_dir=%install_dir%\env
-SET python_version=3.10
+SET python_version=3.11
 SET miniconda_download_url=https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe
 
 SET git_install_dir=%install_dir%\Git

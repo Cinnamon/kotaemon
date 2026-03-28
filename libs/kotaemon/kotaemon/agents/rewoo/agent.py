@@ -7,8 +7,17 @@ from typing import Any
 import tiktoken
 
 from kotaemon.agents.base import BaseAgent
-from kotaemon.agents.io import AgentOutput, AgentType, BaseScratchPad
 from kotaemon.agents.tools import BaseTool
+from kotaemon.agents.typedefs import (
+    AgentOutput,
+    AgentStatus,
+    AgentType,
+    BaseScratchPad,
+    EventActionEnd,
+    EventActionStart,
+    EventAnswer,
+    EventFinalResponse,
+)
 from kotaemon.agents.utils import get_plugin_response_content
 from kotaemon.base import Document, Node, Param
 from kotaemon.indices.qa.citation import CitationPipeline
@@ -24,7 +33,7 @@ class RewooAgent(BaseAgent):
     Implementing ReWOO paradigm https://arxiv.org/pdf/2305.18323.pdf"""
 
     name: str = "RewooAgent"
-    agent_type: AgentType = AgentType.rewoo
+    agent_type: AgentType = AgentType.REWOO
     description: str = "RewooAgent for answering multi-step reasoning questions"
     output_lang: str = "English"
     planner_llm: BaseLLM
@@ -170,9 +179,6 @@ class RewooAgent(BaseAgent):
             tool_input = tool_input[:-1]
             # find variables in input and replace with previous evidences
             for var in re.findall(r"#E\d+", tool_input):
-                print("Tool input: ", tool_input)
-                print("Var: ", var)
-                print("Worker evidences: ", worker_evidences)
                 if var in worker_evidences:
                     tool_input = tool_input.replace(
                         var, worker_evidences.get(var, "") or ""
@@ -302,7 +308,7 @@ class RewooAgent(BaseAgent):
         return AgentOutput(
             text=solver_output_text,
             agent_type=self.agent_type,
-            status="finished",
+            status=AgentStatus.FINISHED,
             total_tokens=total_token,
             total_cost=total_cost,
             citation=citation,
@@ -318,6 +324,7 @@ class RewooAgent(BaseAgent):
         total_token = 0
 
         # Plan
+        yield EventActionStart(action_name="Planner", action_input=instruction)
         planner_output = self.planner(instruction)
         planner_text_output = planner_output.text
         plan_to_es, plans = self._parse_plan_map(planner_text_output)
@@ -325,13 +332,9 @@ class RewooAgent(BaseAgent):
             planner_text_output
         )
 
-        print("Planner output:", planner_text_output)
-        # output planner to info panel
-        yield AgentOutput(
-            text="",
-            agent_type=self.agent_type,
-            status="thinking",
-            intermediate_steps=[{"planner_log": planner_text_output}],
+        logging.info(f"Planner output: {planner_text_output}")
+        yield EventActionEnd(
+            action_name="Planner", action_input="", action_output=planner_text_output
         )
 
         # Work
@@ -341,18 +344,17 @@ class RewooAgent(BaseAgent):
         worker_log = ""
         for plan in plan_to_es:
             worker_log += f"{plan}: {plans[plan]}\n"
-            current_progress = f"{plan}: {plans[plan]}\n"
+            plan_log = ""
             for e in plan_to_es[plan]:
-                worker_log += f"#Action: {planner_evidences.get(e, None)}\n"
+                worker_action = str(planner_evidences.get(e, None))
+                worker_log += f"#Action: {worker_action}\n"
                 worker_log += f"{e}: {worker_evidences[e]}\n"
-                current_progress += f"#Action: {planner_evidences.get(e, None)}\n"
-                current_progress += f"{e}: {worker_evidences[e]}\n"
+                plan_log += f"#Action: {worker_action}\n"
+                plan_log += f"{e}: {worker_evidences[e]}\n"
 
-            yield AgentOutput(
-                text="",
-                agent_type=self.agent_type,
-                status="thinking",
-                intermediate_steps=[{"worker_log": current_progress}],
+            yield EventActionStart(action_name=plans[plan], action_input="")
+            yield EventActionEnd(
+                action_name=plans[plan], action_input="", action_output=plan_log
             )
 
         # Solve
@@ -360,11 +362,8 @@ class RewooAgent(BaseAgent):
         for solver_output in self.solver.stream(instruction, worker_log):
             solver_output_text = solver_output.text
             solver_response += solver_output_text
-            yield AgentOutput(
-                text=solver_output_text,
-                agent_type=self.agent_type,
-                status="thinking",
-            )
+            yield EventAnswer(text=solver_output_text)
+
         if use_citation:
             citation_pipeline = CitationPipeline(llm=self.solver_llm)
             citation = citation_pipeline.invoke(
@@ -373,12 +372,11 @@ class RewooAgent(BaseAgent):
         else:
             citation = None
 
-        return AgentOutput(
-            text="",
+        yield EventFinalResponse(
+            text=solver_response,
             agent_type=self.agent_type,
-            status="finished",
+            status=AgentStatus.FINISHED,
             total_tokens=total_token,
             total_cost=total_cost,
-            citation=citation,
-            metadata={"citation": citation, "worker_log": worker_log},
+            metadata={"citation": citation},
         )

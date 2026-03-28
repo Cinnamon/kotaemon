@@ -1,6 +1,6 @@
 from typing import Any, List, Optional, Union
 
-from kotaemon.agents.io import BaseScratchPad
+from kotaemon.agents.typedefs import BaseScratchPad
 from kotaemon.base import BaseComponent
 from kotaemon.llms import BaseLLM, PromptTemplate
 

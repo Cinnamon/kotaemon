@@ -101,11 +101,14 @@ ENTRYPOINT ["sh", "/app/launch.sh"]
 # PaddleOCR version (GPU-only)
 FROM full AS paddle
 
+# Allow specifying CUDA version (default to cu130)
+ARG CUDA_VERSION=cu130
+
 # Install paddlepaddle and paddleocr
 RUN --mount=type=ssh  \
     --mount=type=cache,target=/root/.cache/uv  \
     uv pip install --python .venv paddlepaddle-gpu==3.3.0 \
-        -i https://www.paddlepaddle.org.cn/packages/stable/cu130/ \
+        -i https://www.paddlepaddle.org.cn/packages/stable/${CUDA_VERSION}/ \
     && uv pip install --python .venv "libs/kotaemon[paddleocr]"
 
 ENTRYPOINT ["sh", "/app/launch.sh"]
