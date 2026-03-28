@@ -26,7 +26,7 @@ repos:
         args: ["--profile", "black"]
         language_version: python3.10
   - repo: https://github.com/pycqa/flake8
-    rev: 4.0.1
+    rev: 7.0.0
     hooks:
       - id: flake8
         args: ["--max-line-length", "88", "--extend-ignore", "E203"]
@@ -34,6 +34,7 @@ repos:
     rev: v1.4
     hooks:
       - id: autoflake
+        additional_dependencies: [setuptools]
         args:
           [
             "--in-place",

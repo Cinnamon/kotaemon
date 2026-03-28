@@ -8,6 +8,7 @@ from .excel_loader import ExcelReader, PandasExcelReader
 from .html_loader import HtmlReader, MhtmlReader
 from .mathpix_loader import MathpixPDFReader
 from .ocr_loader import ImageReader, OCRReader
+from .paddleocr_loader import PaddleOCRVLReader, PPStructureV3Reader
 from .pdf_loader import PDFThumbnailReader
 from .txt_loader import TxtReader
 from .unstructured_loader import UnstructuredReader
@@ -22,6 +23,8 @@ __all__ = [
     "MathpixPDFReader",
     "ImageReader",
     "OCRReader",
+    "PaddleOCRVLReader",
+    "PPStructureV3Reader",
     "DirectoryReader",
     "UnstructuredReader",
     "DocxReader",
