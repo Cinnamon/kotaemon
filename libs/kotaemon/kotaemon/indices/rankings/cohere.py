@@ -8,7 +8,7 @@ from .base import BaseReranking
 
 
 class CohereReranking(BaseReranking):
-    model_name: str = "rerank-multilingual-v2.0"
+    model_name: str = "rerank-v4.0-fast"
     cohere_api_key: str = config("COHERE_API_KEY", "")
     use_key_from_ktem: bool = False
 
