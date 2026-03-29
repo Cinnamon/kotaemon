@@ -444,6 +444,47 @@ class FileIndexPage(BasePage):
             gr.update(visible=file_id is not None),
         )
 
+    def _delete_matching_paths(self, cache_dir: Path, stem: str) -> None:
+        """Delete files matching the document stem in the given cache directory."""
+        if not cache_dir.exists():
+            return
+            
+        # Match exactly {stem}.* and {stem}_* to prevent overly broad deletion
+        patterns = [f"{stem}.*", f"{stem}_*"]
+        for pattern in patterns:
+            for file_path in cache_dir.glob(pattern):
+                try:
+                    if file_path.is_file():
+                        file_path.unlink()
+                    elif file_path.is_dir():
+                        shutil.rmtree(file_path)
+                except OSError as e:
+                    print(f"Warning: Failed to delete {file_path}: {e}")
+
+    def _delete_physical_files(self, file_name: str) -> None:
+        """Delete physical files associated with a document.
+
+        This includes:
+        - Chunk cache files in KH_CHUNKS_OUTPUT_DIR
+        - Markdown cache files in KH_MARKDOWN_OUTPUT_DIR
+        """
+        if not file_name:
+            return
+
+        file_stem = Path(file_name).stem
+
+        # Delete chunk cache files
+        try:
+            self._delete_matching_paths(Path(flowsettings.KH_CHUNKS_OUTPUT_DIR), file_stem)
+        except Exception as e:
+            print(f"Warning: Error cleaning chunks cache: {e}")
+
+        # Delete markdown cache files
+        try:
+            self._delete_matching_paths(Path(flowsettings.KH_MARKDOWN_OUTPUT_DIR), file_stem)
+        except Exception as e:
+            print(f"Warning: Error cleaning markdown cache: {e}")
+
     def delete_event(self, file_id):
         file_name = ""
         with Session(engine) as session:
@@ -473,6 +514,9 @@ class FileIndexPage(BasePage):
         if vs_ids:
             self._index._vs.delete(vs_ids)
         self._index._docstore.delete(ds_ids)
+
+        # Delete physical files associated with the document
+        self._delete_physical_files(file_name)
 
         gr.Info(f"File {file_name} has been deleted")
 
