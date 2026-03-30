@@ -18,6 +18,28 @@ function(u, c, pw, pwc) {
 }
 """
 
+reload_page_js = """
+function() {
+    setTimeout(function() {
+        window.location.reload();
+    }, 800);
+}
+"""
+
+
+def get_current_language() -> str:
+    """Get the current language setting from database or default."""
+    try:
+        with Session(engine) as session:
+            # Try to get language from first user's settings
+            statement = select(Settings).limit(1)
+            result = session.exec(statement).first()
+            if result and result.setting:
+                return result.setting.get("reasoning.lang", "en")
+    except Exception:
+        pass
+    return "en"
+
 
 gr_cls_single_value = {
     "text": gr.Textbox,
@@ -193,6 +215,11 @@ class SettingsPage(BasePage):
             ).then(
                 lambda: gr.Tabs(selected="chat-tab"),
                 outputs=self._app.tabs,
+            ).then(
+                fn=None,
+                inputs=None,
+                outputs=None,
+                js=reload_page_js,
             )
         self._components["reasoning.use"].change(
             self.change_reasoning_mode,
@@ -355,11 +382,15 @@ class SettingsPage(BasePage):
 
     def load_setting(self, user_id=None):
         settings = self._settings_dict
+        print(f"[SETTINGS] Loading settings for user_id: {user_id}")
         with Session(engine) as session:
             statement = select(Settings).where(Settings.user == user_id)
             result = session.exec(statement).all()
             if result:
                 settings = result[0].setting
+                print(f"[SETTINGS] Loaded from database: reasoning.lang = {settings.get('reasoning.lang', 'NOT FOUND')}")
+            else:
+                print(f"[SETTINGS] No saved settings found for user {user_id}, using defaults")
 
         output = [settings]
         output += tuple(settings[name] for name in self.component_names())
@@ -403,13 +434,13 @@ class SettingsPage(BasePage):
         return self._settings_keys
 
     def _on_app_created(self):
-        if not self._app.f_user_management:
-            self._app.app.load(
-                self.load_setting,
-                inputs=self._user_id,
-                outputs=[self._settings_state] + self.components(),
-                show_progress="hidden",
-            )
+        # Load user settings on page load for both user management modes
+        self._app.app.load(
+            self.load_setting,
+            inputs=self._user_id,
+            outputs=[self._settings_state] + self.components(),
+            show_progress="hidden",
+        )
 
         def update_llms():
             from ktem.llms.manager import llms

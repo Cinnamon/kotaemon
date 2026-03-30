@@ -22,12 +22,14 @@ from kotaemon.loaders import (
     PDFThumbnailReader,
     TxtReader,
     UnstructuredReader,
+    VisionImageReader,
     WebReader,
 )
 
 web_reader = WebReader()
 unstructured = UnstructuredReader()
 adobe_reader = AdobeReader()
+vision_reader = VisionImageReader()
 azure_reader = AzureAIDocumentIntelligenceLoader(
     endpoint=str(config("AZURE_DI_ENDPOINT", default="")),
     credential=str(config("AZURE_DI_CREDENTIAL", default="")),
@@ -47,11 +49,11 @@ KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
     ".doc": unstructured,
     ".html": HtmlReader(),
     ".mhtml": MhtmlReader(),
-    ".png": unstructured,
-    ".jpeg": unstructured,
-    ".jpg": unstructured,
-    ".tiff": unstructured,
-    ".tif": unstructured,
+    ".png": vision_reader,
+    ".jpeg": vision_reader,
+    ".jpg": vision_reader,
+    ".tiff": vision_reader,
+    ".tif": vision_reader,
     ".pdf": PDFThumbnailReader(),
     ".txt": TxtReader(),
     ".md": TxtReader(),

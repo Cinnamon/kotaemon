@@ -11,6 +11,7 @@ from .ocr_loader import ImageReader, OCRReader
 from .pdf_loader import PDFThumbnailReader
 from .txt_loader import TxtReader
 from .unstructured_loader import UnstructuredReader
+from .vision_loader import VisionImageReader
 from .web_loader import WebReader
 
 __all__ = [
@@ -32,4 +33,5 @@ __all__ = [
     "PDFThumbnailReader",
     "WebReader",
     "DoclingReader",
+    "VisionImageReader",
 ]

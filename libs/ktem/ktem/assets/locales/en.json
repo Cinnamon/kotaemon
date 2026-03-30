@@ -1,0 +1,158 @@
+{
+  "language_name": "English",
+
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "close": "Close",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Info"
+  },
+
+  "nav": {
+    "chat": "Chat",
+    "files": "Files",
+    "resources": "Resources",
+    "settings": "Settings",
+    "help": "Help"
+  },
+
+  "chat": {
+    "conversations": "Conversations",
+    "browse_conversation": "Browse conversation",
+    "chat_sessions": "Chat sessions",
+    "new_chat": "New chat",
+    "suggest_chat": "Suggest chat",
+    "share_conversation": "Share this conversation",
+    "conversation_name": "Conversation name",
+    "enter_to_save": "(Enter) to save",
+    "no_conversation_selected": "No conversation selected",
+    "conversation_renamed": "Conversation renamed",
+    "type_message": "Type a message, search the @web, or tag a file with @filename",
+    "beginning_conversation": "This is the beginning of a new conversation.\nStart by uploading a file or a web URL. Visit Files tab for more options (e.g: GraphRAG).",
+    "reasoning_type_changed": "Reasoning type changed to `{}`"
+  },
+
+  "chat_settings": {
+    "chat_settings": "Chat settings",
+    "reasoning_method": "Reasoning method",
+    "model": "Model",
+    "language": "Language",
+    "mindmap_on": "Mindmap (on)",
+    "mindmap_off": "Mindmap (off)"
+  },
+
+  "chat_suggestion": {
+    "chat_suggestion": "Chat Suggestion",
+    "next_question": "Next Question",
+    "summary_document": "Summary this document",
+    "generate_faq": "Generate a FAQ for this document",
+    "identify_highlights": "Identify the main highlights in bullet points"
+  },
+
+  "file_upload": {
+    "quick_upload": "Quick Upload",
+    "or_paste_urls": "Or paste URLs",
+    "drop_file_here": "Drop File Here",
+    "click_to_upload": "Click to Upload",
+    "file_collection": "File Collection",
+    "search_all": "Search All",
+    "search_in_files": "Search in File(s)"
+  },
+
+  "info_panel": {
+    "information_panel": "Information panel",
+    "related_papers": "Related papers",
+    "expand": "Expand",
+    "export": "Export"
+  },
+
+  "evidence": {
+    "page": "Page",
+    "preview": "Preview",
+    "full_text_search": "full-text search",
+    "relevance_score": "Relevance score",
+    "vectorstore_score": "Vectorstore score",
+    "llm_relevant_score": "LLM relevant score",
+    "reranking_score": "Reranking score",
+    "evidence": "evidence",
+    "table_from": "Table from",
+    "text_from": "Text from",
+    "figure_from": "Figure from",
+    "row": "Row",
+    "from": "from",
+    "score": "score"
+  },
+
+  "feedback": {
+    "feedback": "Feedback",
+    "report": "Report",
+    "correctness": "Correctness:",
+    "answer_correct": "The answer is correct",
+    "answer_incorrect": "The answer is incorrect",
+    "answer_offensive": "The answer is offensive",
+    "evidence_incorrect": "The evidence is incorrect",
+    "other_issue": "Other issue:",
+    "more_detail": "More detail (e.g. how wrong is it, what is the correct answer, etc...)",
+    "thank_you_feedback": "Thank you for your feedback"
+  },
+
+  "settings": {
+    "settings": "Settings",
+    "user_settings": "User settings",
+    "general": "General",
+    "retrieval_settings": "Retrieval settings",
+    "reasoning_settings": "Reasoning settings",
+    "save_close": "Save & Close",
+    "setting_saved": "Setting saved",
+    "need_login": "Need to login before saving settings"
+  },
+
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "sign_in": "Sign in",
+    "sign_out": "Sign out",
+    "username": "Username",
+    "password": "Password",
+    "new_password": "New password",
+    "confirm_password": "Confirm password",
+    "change_password": "Change password",
+    "current_user": "Current user",
+    "invalid_credentials": "Invalid username or password",
+    "password_changed": "Password changed",
+    "user_not_found": "User not found",
+    "sign_in_first": "Please sign in first (Settings → User Settings)"
+  },
+
+  "user_management": {
+    "user_list": "User list",
+    "create_user": "Create user",
+    "admin": "Admin",
+    "confirm_delete": "Confirm delete",
+    "no_user_loaded": "No user is loaded. Please refresh the user list",
+    "no_user_selected": "No user is selected",
+    "cannot_delete_yourself": "You cannot delete yourself"
+  },
+
+  "help": {
+    "about": "About",
+    "user_guide": "User Guide",
+    "changelogs": "Changelogs",
+    "hint": "Hint",
+    "welcome_to": "Welcome to"
+  },
+
+  "index": {
+    "graphrag_collection": "GraphRAG Collection",
+    "lightrag_collection": "LightRAG Collection"
+  }
+}

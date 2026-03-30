@@ -2,20 +2,10 @@ import gradio as gr
 from ktem.app import BasePage
 from theflow.settings import settings as flowsettings
 
-KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
+from ...utils.lang import get_ui_text
+from ..settings import get_current_language
 
-if not KH_DEMO_MODE:
-    PLACEHOLDER_TEXT = (
-        "This is the beginning of a new conversation.\n"
-        "Start by uploading a file or a web URL. "
-        "Visit Files tab for more options (e.g: GraphRAG)."
-    )
-else:
-    PLACEHOLDER_TEXT = (
-        "Welcome to Kotaemon Demo. "
-        "Start by browsing preloaded conversations to get onboard.\n"
-        "Check out Hint section for more tips."
-    )
+KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
 
 
 class ChatPanel(BasePage):
@@ -23,10 +13,21 @@ class ChatPanel(BasePage):
         self._app = app
         self.on_building_ui()
 
+    def _get_placeholder_text(self, lang_code: str) -> str:
+        if not KH_DEMO_MODE:
+            return get_ui_text("chat.beginning_conversation", lang_code)
+        else:
+            return (
+                "Welcome to Kotaemon Demo. "
+                "Start by browsing preloaded conversations to get onboard.\n"
+                "Check out Hint section for more tips."
+            )
+
     def on_building_ui(self):
+        _lang = get_current_language()
         self.chatbot = gr.Chatbot(
             label=self._app.app_name,
-            placeholder=PLACEHOLDER_TEXT,
+            placeholder=self._get_placeholder_text(_lang),
             show_label=False,
             elem_id="main-chat-bot",
             show_copy_button=True,
@@ -38,9 +39,7 @@ class ChatPanel(BasePage):
                 interactive=True,
                 scale=20,
                 file_count="multiple",
-                placeholder=(
-                    "Type a message, search the @web, or tag a file with @filename"
-                ),
+                placeholder=get_ui_text("chat.type_message", _lang),
                 container=False,
                 show_label=False,
                 elem_id="chat-input",
