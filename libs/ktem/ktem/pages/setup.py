@@ -47,7 +47,6 @@ def pull_model(name: str, stream: bool = True):
 
 
 class SetupPage(BasePage):
-
     public_events = ["onFirstSetupComplete"]
 
     def __init__(self, app):
@@ -60,6 +59,7 @@ class SetupPage(BasePage):
             [
                 ("Cohere API (*free registration*) - recommended", "cohere"),
                 ("Google API (*free registration*)", "google"),
+                ("Novita API (multiple LLM models)", "novita"),
                 ("OpenAI API (for GPT-based models)", "openai"),
                 ("Local LLM (for completely *private RAG*)", "ollama"),
             ],
@@ -108,6 +108,18 @@ class SetupPage(BasePage):
                 show_label=False, placeholder="Google API Key"
             )
 
+        with gr.Column(visible=False) as self.novita_option:
+            gr.Markdown(
+                (
+                    "#### Novita API Key\n\n"
+                    "(register your API key "
+                    "at https://novita.ai/settings/api-key)"
+                )
+            )
+            self.novita_api_key = gr.Textbox(
+                show_label=False, placeholder="Novita API Key"
+            )
+
         with gr.Column(visible=False) as self.ollama_option:
             gr.Markdown(
                 (
@@ -142,12 +154,14 @@ class SetupPage(BasePage):
                 self.btn_finish.click,
                 self.cohere_api_key.submit,
                 self.openai_api_key.submit,
+                self.novita_api_key.submit,
             ],
             fn=self.update_model,
             inputs=[
                 self.cohere_api_key,
                 self.openai_api_key,
                 self.google_api_key,
+                self.novita_api_key,
                 self.ollama_model_name,
                 self.ollama_emb_model_name,
                 self.radio_model,
@@ -183,6 +197,7 @@ class SetupPage(BasePage):
                 self.openai_option,
                 self.ollama_option,
                 self.google_option,
+                self.novita_option,
             ],
         )
 
@@ -191,6 +206,7 @@ class SetupPage(BasePage):
         cohere_api_key,
         openai_api_key,
         google_api_key,
+        novita_api_key,
         ollama_model_name,
         ollama_emb_model_name,
         radio_model_value,
@@ -273,6 +289,30 @@ class SetupPage(BasePage):
                         "__type__": "kotaemon.embeddings.LCGoogleEmbeddings",
                         "model": "models/text-embedding-004",
                         "google_api_key": google_api_key,
+                    },
+                    default=True,
+                )
+        elif radio_model_value == "novita":
+            if novita_api_key:
+                llms.update(
+                    name="novita",
+                    spec={
+                        "__type__": "kotaemon.llms.ChatOpenAI",
+                        "base_url": "https://api.novita.ai/openai/v1",
+                        "model": "moonshotai/kimi-k2.5",
+                        "api_key": novita_api_key,
+                        "timeout": 60,
+                    },
+                    default=True,
+                )
+                embeddings.update(
+                    name="novita",
+                    spec={
+                        "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
+                        "base_url": "https://api.novita.ai/openai/v1",
+                        "model": "qwen/qwen3-embedding-0.6b",
+                        "api_key": novita_api_key,
+                        "timeout": 30,
                     },
                     default=True,
                 )
@@ -400,9 +440,9 @@ class SetupPage(BasePage):
         return default_settings
 
     def switch_options_view(self, radio_model_value):
-        components_visible = [gr.update(visible=False) for _ in range(4)]
+        components_visible = [gr.update(visible=False) for _ in range(5)]
 
-        values = ["cohere", "openai", "ollama", "google", None]
+        values = ["cohere", "openai", "ollama", "google", "novita", None]
         assert radio_model_value in values, f"Invalid value {radio_model_value}"
 
         if radio_model_value is not None:

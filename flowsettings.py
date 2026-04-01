@@ -271,6 +271,16 @@ KH_LLMS["mistral"] = {
     },
     "default": False,
 }
+KH_LLMS["novita"] = {
+    "spec": {
+        "__type__": "kotaemon.llms.ChatOpenAI",
+        "base_url": "https://api.novita.ai/openai/v1",
+        "model": config("NOVITA_CHAT_MODEL", default="moonshotai/kimi-k2.5"),
+        "api_key": config("NOVITA_API_KEY", default="your-key"),
+        "timeout": 60,
+    },
+    "default": False,
+}
 
 # additional embeddings configurations
 KH_EMBEDDINGS["cohere"] = {
@@ -295,6 +305,16 @@ KH_EMBEDDINGS["mistral"] = {
         "__type__": "kotaemon.embeddings.LCMistralEmbeddings",
         "model": "mistral-embed",
         "api_key": config("MISTRAL_API_KEY", default="your-key"),
+    },
+    "default": False,
+}
+KH_EMBEDDINGS["novita"] = {
+    "spec": {
+        "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
+        "base_url": "https://api.novita.ai/openai/v1",
+        "model": config("NOVITA_EMBEDDINGS_MODEL", default="qwen/qwen3-embedding-0.6b"),
+        "api_key": config("NOVITA_API_KEY", default="your-key"),
+        "timeout": 30,
     },
     "default": False,
 }
