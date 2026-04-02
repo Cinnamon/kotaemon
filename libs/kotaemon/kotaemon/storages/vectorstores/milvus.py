@@ -1,6 +1,8 @@
 import os
 from typing import Any, Optional, cast
 
+import numpy as np
+
 from kotaemon.base import DocumentWithEmbedding
 
 from .base import LlamaIndexVectorStore
@@ -66,12 +68,14 @@ class MilvusVectorStore(LlamaIndexVectorStore):
 
     def add(
         self,
-        embeddings: list[list[float]] | list[DocumentWithEmbedding],
+        embeddings: list[list[float]] | np.ndarray | list[DocumentWithEmbedding],
         metadatas: Optional[list[dict]] = None,
         ids: Optional[list[str]] = None,
     ):
         if not self._inited:
-            if isinstance(embeddings[0], list):
+            if isinstance(embeddings, np.ndarray):
+                dim = embeddings.shape[1]
+            elif isinstance(embeddings[0], list):
                 dim = len(embeddings[0])
             else:
                 dim = len(embeddings[0].embedding)
@@ -81,12 +85,16 @@ class MilvusVectorStore(LlamaIndexVectorStore):
 
     def query(
         self,
-        embedding: list[float],
+        embedding: list[float] | np.ndarray,
         top_k: int = 1,
         ids: Optional[list[str]] = None,
         **kwargs,
     ) -> tuple[list[list[float]], list[float], list[str]]:
-        self._lazy_init(len(embedding))
+        if isinstance(embedding, np.ndarray):
+            dim = embedding.shape[0]
+        else:
+            dim = len(embedding)
+        self._lazy_init(dim)
 
         return super().query(embedding=embedding, top_k=top_k, ids=ids, **kwargs)
 

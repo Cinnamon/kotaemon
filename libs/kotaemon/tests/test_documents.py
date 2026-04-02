@@ -1,6 +1,23 @@
-from kotaemon.base.schema import Document, RetrievedDocument
+import sys
+import types
+from typing import Any
 
-from .conftest import skip_when_haystack_not_installed
+import numpy as np
+
+theflow_mod: Any = types.ModuleType("theflow")
+theflow_mod.Function = object
+theflow_mod.Node = object
+theflow_mod.Param = object
+theflow_mod.lazy = lambda x: x
+sys.modules.setdefault("theflow", theflow_mod)
+
+from kotaemon.base.schema import (  # noqa: E402
+    Document,
+    DocumentWithEmbedding,
+    RetrievedDocument,
+)
+
+from .conftest import skip_when_haystack_not_installed  # noqa: E402
 
 
 def test_document_constructor_with_builtin_types():
@@ -50,3 +67,10 @@ def test_retrieved_document_attributes():
     assert retrieved_doc.text == sample_text
     assert retrieved_doc.score == score
     assert retrieved_doc.retrieval_metadata == metadata
+
+
+def test_document_with_embedding_preserves_numpy_object():
+    arr = np.array([1.0, 2.0, 3.0])
+    doc_with_emb = DocumentWithEmbedding(embedding=arr)
+    new_doc = Document(doc_with_emb)
+    assert new_doc.embedding is arr

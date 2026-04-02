@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Optional, Type
 
 import fsspec
+import numpy as np
 from llama_index.core.vector_stores import SimpleVectorStore as LISimpleVectorStore
 from llama_index.core.vector_stores.simple import SimpleVectorStoreData
 
@@ -45,7 +46,7 @@ class SimpleFileVectorStore(LlamaIndexVectorStore):
 
     def add(
         self,
-        embeddings: list[list[float]] | list[DocumentWithEmbedding],
+        embeddings: list[list[float]] | np.ndarray | list[DocumentWithEmbedding],
         metadatas: Optional[list[dict]] = None,
         ids: Optional[list[str]] = None,
     ):
