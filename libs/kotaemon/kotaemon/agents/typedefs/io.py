@@ -31,6 +31,7 @@ class AgentType(StrEnum):
     REACT = auto()
     REWOO = auto()
     VANILLA = auto()
+    CODEACT = auto()
 
 
 class AgentStatus(StrEnum):

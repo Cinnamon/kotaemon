@@ -79,13 +79,14 @@ class MCPManager:
         self.load()
 
     def get_enabled_tools(self) -> list[str]:
-        """Return tool choice names for all MCP servers."""
+        """Return tool choice names for all configured MCP servers.
+
+        A server is selectable even if it does not explicitly define
+        ``enabled_tools`` (in that case runtime defaults apply).
+        """
         choices = []
         for name, entry in self._info.items():
-            config = entry.get("config", {})
-            enabled_tools = config.get("enabled_tools", None)
-            if enabled_tools is not None:
-                choices.append(f"[MCP] {name}")
+            choices.append(f"[MCP] {name}")
         return choices
 
 

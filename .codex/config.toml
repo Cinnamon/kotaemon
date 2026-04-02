@@ -1,0 +1,83 @@
+# GSD Agent Configuration — managed by get-shit-done installer
+# GSD codex_hooks ownership: section
+
+[features]
+codex_hooks = true
+
+[agents.gsd-advisor-researcher]
+description = "Researches a single gray area decision and returns a structured comparison table with rationale. Spawned by discuss-phase advisor mode."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-advisor-researcher.toml"
+
+[agents.gsd-assumptions-analyzer]
+description = "Deeply analyzes codebase for a phase and returns structured assumptions with evidence. Spawned by discuss-phase assumptions mode."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-assumptions-analyzer.toml"
+
+[agents.gsd-codebase-mapper]
+description = "Explores codebase and writes structured analysis documents. Spawned by map-codebase with a focus area (tech, arch, quality, concerns). Writes documents directly to reduce orchestrator context load."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-codebase-mapper.toml"
+
+[agents.gsd-debugger]
+description = "Investigates bugs using scientific method, manages debug sessions, handles checkpoints. Spawned by /gsd:debug orchestrator."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-debugger.toml"
+
+[agents.gsd-executor]
+description = "Executes GSD plans with atomic commits, deviation handling, checkpoint protocols, and state management. Spawned by execute-phase orchestrator or execute-plan command."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-executor.toml"
+
+[agents.gsd-integration-checker]
+description = "Verifies cross-phase integration and E2E flows. Checks that phases connect properly and user workflows complete end-to-end."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-integration-checker.toml"
+
+[agents.gsd-nyquist-auditor]
+description = "Fills Nyquist validation gaps by generating tests and verifying coverage for phase requirements"
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-nyquist-auditor.toml"
+
+[agents.gsd-phase-researcher]
+description = "Researches how to implement a phase before planning. Produces RESEARCH.md consumed by gsd-planner. Spawned by /gsd:plan-phase orchestrator."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-phase-researcher.toml"
+
+[agents.gsd-plan-checker]
+description = "Verifies plans will achieve phase goal before execution. Goal-backward analysis of plan quality. Spawned by /gsd:plan-phase orchestrator."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-plan-checker.toml"
+
+[agents.gsd-planner]
+description = "Creates executable phase plans with task breakdown, dependency analysis, and goal-backward verification. Spawned by /gsd:plan-phase orchestrator."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-planner.toml"
+
+[agents.gsd-project-researcher]
+description = "Researches domain ecosystem before roadmap creation. Produces files in .planning/research/ consumed during roadmap creation. Spawned by /gsd:new-project or /gsd:new-milestone orchestrators."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-project-researcher.toml"
+
+[agents.gsd-research-synthesizer]
+description = "Synthesizes research outputs from parallel researcher agents into SUMMARY.md. Spawned by /gsd:new-project after 4 researcher agents complete."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-research-synthesizer.toml"
+
+[agents.gsd-roadmapper]
+description = "Creates project roadmaps with phase breakdown, requirement mapping, success criteria derivation, and coverage validation. Spawned by /gsd:new-project orchestrator."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-roadmapper.toml"
+
+[agents.gsd-ui-auditor]
+description = "Retroactive 6-pillar visual audit of implemented frontend code. Produces scored UI-REVIEW.md. Spawned by /gsd:ui-review orchestrator."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-ui-auditor.toml"
+
+[agents.gsd-ui-checker]
+description = "Validates UI-SPEC.md design contracts against 6 quality dimensions. Produces BLOCK/FLAG/PASS verdicts. Spawned by /gsd:ui-phase orchestrator."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-ui-checker.toml"
+
+[agents.gsd-ui-researcher]
+description = "Produces UI-SPEC.md design contract for frontend phases. Reads upstream artifacts, detects design system state, asks only unanswered questions. Spawned by /gsd:ui-phase orchestrator."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-ui-researcher.toml"
+
+[agents.gsd-user-profiler]
+description = "Analyzes extracted session messages across 8 behavioral dimensions to produce a scored developer profile with confidence levels and evidence. Spawned by profile orchestration workflows."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-user-profiler.toml"
+
+[agents.gsd-verifier]
+description = "Verifies phase goal achievement through goal-backward analysis. Checks codebase delivers what phase promised, not just that tasks completed. Creates VERIFICATION.md report."
+config_file = "/home/niko/research/agents/kotaemon/.codex/agents/gsd-verifier.toml"
+
+
+# GSD Hooks
+[[hooks]]
+event = "SessionStart"
+command = "node /home/niko/research/agents/kotaemon/.codex/get-shit-done/hooks/gsd-update-check.js"

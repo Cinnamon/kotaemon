@@ -321,6 +321,7 @@ KH_REASONINGS = [
     "ktem.reasoning.simple.FullDecomposeQAPipeline",
     "ktem.reasoning.react.ReactAgentPipeline",
     "ktem.reasoning.rewoo.RewooAgentPipeline",
+    "ktem.reasoning.codeact.CodeActAgentPipeline",
 ]
 KH_REASONINGS_USE_MULTIMODAL = config("USE_MULTIMODAL", default=False, cast=bool)
 KH_VLM_ENDPOINT = "{0}/openai/deployments/{1}/chat/completions?api-version={2}".format(

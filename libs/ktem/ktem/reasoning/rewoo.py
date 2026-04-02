@@ -360,12 +360,13 @@ class RewooAgentPipeline(BaseReasoning):
             )
 
         tools = []
+        mcp_manager.load()
         for tool_name in settings[f"{prefix}.tools"]:
             if tool_name.startswith("[MCP] "):
                 server_name = tool_name[len("[MCP] ") :]
                 entry = mcp_manager.get(server_name)
                 if entry:
-                    config = entry["config"]
+                    config = dict(entry["config"])
                     enabled_tools = config.pop("enabled_tools", None)
                     mcp_tools = create_tools_from_config(config, enabled_tools)
                     tools.extend(mcp_tools)
@@ -407,6 +408,7 @@ class RewooAgentPipeline(BaseReasoning):
 
         tool_choices = ["Wikipedia", "Google", "LLM", "SearchDoc"]
         try:
+            mcp_manager.load()
             tool_choices += mcp_manager.get_enabled_tools()
         except Exception as e:
             logger.exception(f"Failed to get MCP tool options: {e}")
