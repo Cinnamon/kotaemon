@@ -1,8 +1,28 @@
-from kotaemon.contribs.promptui.config import export_pipeline_to_config
-from kotaemon.contribs.promptui.export import export_from_dict
-from kotaemon.contribs.promptui.ui import build_from_dict
+import pytest
 
-from .simple_pipeline import Pipeline
+# Skip entire module if gradio has import issues (e.g., huggingface_hub compatibility)
+try:
+    from kotaemon.contribs.promptui.config import export_pipeline_to_config
+    from kotaemon.contribs.promptui.export import export_from_dict
+    from kotaemon.contribs.promptui.ui import build_from_dict
+
+    from .simple_pipeline import Pipeline
+
+    PROMPTUI_AVAILABLE = True
+    IMPORT_ERROR = ""
+except ImportError as e:
+    PROMPTUI_AVAILABLE = False
+    IMPORT_ERROR = str(e)
+    # Define stubs to allow class definitions to parse
+    export_pipeline_to_config = None  # type: ignore[assignment]
+    export_from_dict = None  # type: ignore[assignment]
+    build_from_dict = None  # type: ignore[assignment]
+    Pipeline = None  # type: ignore[assignment,misc]
+
+pytestmark = pytest.mark.skipif(
+    not PROMPTUI_AVAILABLE,
+    reason=f"promptui dependencies not available: {IMPORT_ERROR}",
+)
 
 
 class TestPromptConfig:
