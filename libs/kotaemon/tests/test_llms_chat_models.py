@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from kotaemon.base.schema import AIMessage, HumanMessage, LLMInterface, SystemMessage
-from kotaemon.llms import AzureChatOpenAI, LlamaCppChat
+from kotaemon.llms import AzureChatOpenAI, ChatMiniMax, LlamaCppChat
 
 try:
     pass
@@ -70,6 +70,55 @@ def test_azureopenai_model(openai_completion):
     assert isinstance(
         output, LLMInterface
     ), "Output for single text is not LLMInterface"
+    openai_completion.assert_called()
+
+
+@patch(
+    "openai.resources.chat.completions.Completions.create",
+    side_effect=lambda *args, **kwargs: _openai_chat_completion_response,
+)
+def test_minimax_model(openai_completion):
+    model = ChatMiniMax(
+        api_key="dummy",
+        model="MiniMax-M2.7",
+    )
+    output = model("hello world")
+    assert isinstance(output, LLMInterface), "Output is not LLMInterface"
+    openai_completion.assert_called()
+
+    # verify temperature clamping: zero should become 0.01
+    model_zero_temp = ChatMiniMax(
+        api_key="dummy",
+        model="MiniMax-M2.7",
+        temperature=0,
+    )
+    params = model_zero_temp.prepare_params()
+    assert params["temperature"] == 0.01, "Temperature 0 should be clamped to 0.01"
+
+    # verify response_format is stripped
+    params_with_rf = model.prepare_params(response_format={"type": "json_object"})
+    assert "response_format" not in params_with_rf, "response_format should be removed"
+
+
+@patch(
+    "openai.resources.chat.completions.Completions.create",
+    side_effect=lambda *args, **kwargs: _openai_chat_completion_response,
+)
+def test_minimax_default_model_is_m27(openai_completion):
+    """Default model should be MiniMax-M2.7."""
+    model = ChatMiniMax(api_key="dummy")
+    assert model.model == "MiniMax-M2.7", "Default model should be MiniMax-M2.7"
+
+    # M2.7-highspeed should also work
+    model_hs = ChatMiniMax(api_key="dummy", model="MiniMax-M2.7-highspeed")
+    output = model_hs("hello world")
+    assert isinstance(output, LLMInterface), "Output is not LLMInterface"
+    openai_completion.assert_called()
+
+    # Older M2.5 models should still work
+    model_old = ChatMiniMax(api_key="dummy", model="MiniMax-M2.5")
+    output = model_old("hello world")
+    assert isinstance(output, LLMInterface), "Output is not LLMInterface"
     openai_completion.assert_called()
 
 
