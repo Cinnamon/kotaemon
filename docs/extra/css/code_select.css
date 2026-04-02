@@ -3,3 +3,23 @@
   /* Generic.Prompt,  Generic.Output */
   user-select: none;
 }
+
+/* Fix footer navigation alignment (Issue #799)
+   Ensures proper spacing between direction labels and page titles */
+.md-footer__direction {
+  display: block;
+  font-size: 0.64rem;
+  margin-bottom: 0.2rem;
+  opacity: 0.7;
+}
+
+.md-footer__title {
+  flex-grow: 1;
+  max-width: calc(100% - 2.4rem);
+}
+
+.md-footer__link {
+  display: flex;
+  align-items: center;
+  padding-block: 0.8rem;
+}
