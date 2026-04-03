@@ -40,9 +40,9 @@ adobe_reader.vlm_endpoint = (
     azure_reader.vlm_endpoint
 ) = docling_reader.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
 
-# paddle_device = str(config("PADDLE_DEVICE", default="gpu:0"))
-paddle_struct_reader = PPStructureV3Reader()
-paddle_vl_reader = PaddleOCRVLReader()
+paddle_device = str(config("PADDLE_DEVICE", default="gpu"))
+paddle_struct_reader = PPStructureV3Reader(device=paddle_device)
+paddle_vl_reader = PaddleOCRVLReader(device=paddle_device)
 
 
 KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
