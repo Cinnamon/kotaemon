@@ -13,6 +13,8 @@ from .db import MCPTable, engine
 
 logger = logging.getLogger(__name__)
 
+MCP_TOOL_PREFIX = "[MCP] "
+
 
 class MCPManager:
     """Manages MCP server configurations stored in the database."""
@@ -78,15 +80,9 @@ class MCPManager:
 
         self.load()
 
-    def get_enabled_tools(self) -> list[str]:
-        """Return tool choice names for all MCP servers."""
-        choices = []
-        for name, entry in self._info.items():
-            config = entry.get("config", {})
-            enabled_tools = config.get("enabled_tools", None)
-            if enabled_tools is not None:
-                choices.append(f"[MCP] {name}")
-        return choices
+    def list_registered_mcp_servers(self) -> list[str]:
+        """Return tool choice names for all registered MCP servers."""
+        return [f"{MCP_TOOL_PREFIX}{name}" for name in self._info]
 
 
 mcp_manager = MCPManager()

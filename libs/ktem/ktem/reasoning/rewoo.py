@@ -4,7 +4,7 @@ from difflib import SequenceMatcher
 from typing import AnyStr, Generator, Optional, Type
 
 from ktem.llms.manager import llms
-from ktem.mcp.manager import mcp_manager
+from ktem.mcp.manager import MCP_TOOL_PREFIX, mcp_manager
 from ktem.reasoning.base import BaseReasoning
 from ktem.utils.generator import Generator as GeneratorWrapper
 from ktem.utils.render import Render
@@ -407,8 +407,8 @@ class RewooAgentPipeline(BaseReasoning):
 
         tools = []
         for tool_name in settings[f"{prefix}.tools"]:
-            if tool_name.startswith("[MCP] "):
-                server_name = tool_name[len("[MCP] ") :]
+            if tool_name.startswith(MCP_TOOL_PREFIX):
+                server_name = tool_name[len(MCP_TOOL_PREFIX) :]
                 entry = mcp_manager.get(server_name)
                 if entry:
                     config = entry["config"]
@@ -453,7 +453,7 @@ class RewooAgentPipeline(BaseReasoning):
 
         tool_choices = ["Wikipedia", "Google", "LLM", "SearchDoc"]
         try:
-            tool_choices += mcp_manager.get_enabled_tools()
+            tool_choices += mcp_manager.list_registered_mcp_servers()
         except Exception as e:
             logger.exception(f"Failed to get MCP tool options: {e}")
 

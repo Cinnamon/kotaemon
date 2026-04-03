@@ -256,8 +256,8 @@ These options are available:
 
 - [Azure Document Intelligence (API)](https://azure.microsoft.com/en-us/products/ai-services/ai-document-intelligence)
 - [Adobe PDF Extract (API)](https://developer.adobe.com/document-services/docs/overview/pdf-extract-api/)
-- [Docling (local, open-source)](https://github.com/DS4SD/docling)
-  - To use Docling, first install required dependencies: `pip install docling`
+- [Docling (local, open-source)](https://github.com/DS4SD/docling) – see [integrations/docling.md](./docs/integrations/docling.md) for Kotaemon-specific setup.
+- [PaddleOCR (local, open-source)](https://github.com/PADDLEPADDLE/PADDLEOCR) – see [integrations/paddle_ocr.md](./docs/integrations/paddle_ocr.md) for Kotaemon-specific setup.
 
 Select corresponding loaders in `Settings -> Retrieval Settings -> File loader`
 
@@ -329,7 +329,7 @@ This file provides another way to configure your models and credentials.
   - **Azure OpenAI**
 
     For OpenAI models via Azure platform, you need to provide your Azure endpoint and API
-    key. Your might also need to provide your developments' name for the chat model and the
+    key. You might also need to provide your developments' name for the chat model and the
     embedding model depending on how you set up Azure development.
 
     ```shell
