@@ -22,6 +22,8 @@ EXAMPLE_CONFIG = """{
 
 
 class MCPManagement(BasePage):
+    public_events = ["onMCPServersChanged"]
+
     def __init__(self, app):
         self._app = app
         self.on_building_ui()
@@ -97,18 +99,25 @@ class MCPManagement(BasePage):
 
     def on_register_events(self):
         # Add new server — save first, then fetch tools async
-        self.btn_new.click(
-            self.create_server,
-            inputs=[self.config],
-            outputs=[self.add_tools_display],
-        ).success(self.list_servers, inputs=[], outputs=[self.mcp_list]).then(
-            self.fetch_tools_for_add,
-            inputs=[self.config],
-            outputs=[self.add_tools_display],
-        ).then(
-            lambda: EXAMPLE_CONFIG,
-            outputs=[self.config],
+        add_chain = (
+            self.btn_new.click(
+                self.create_server,
+                inputs=[self.config],
+                outputs=[self.add_tools_display],
+            )
+            .success(self.list_servers, inputs=[], outputs=[self.mcp_list])
+            .then(
+                self.fetch_tools_for_add,
+                inputs=[self.config],
+                outputs=[self.add_tools_display],
+            )
+            .then(
+                lambda: EXAMPLE_CONFIG,
+                outputs=[self.config],
+            )
         )
+        for event in self._app.get_event("onMCPServersChanged"):
+            add_chain = add_chain.then(**event)
 
         # Select a server from list
         self.mcp_list.select(
@@ -143,12 +152,14 @@ class MCPManagement(BasePage):
             outputs=[self.btn_delete, self.btn_delete_yes, self.btn_delete_no],
             show_progress="hidden",
         )
-        self.btn_delete_yes.click(
+        delete_chain = self.btn_delete_yes.click(
             self.delete_server,
             inputs=[self.selected_mcp_name],
             outputs=[self.selected_mcp_name],
             show_progress="hidden",
         ).then(self.list_servers, inputs=[], outputs=[self.mcp_list])
+        for event in self._app.get_event("onMCPServersChanged"):
+            delete_chain = delete_chain.then(**event)
         self.btn_delete_no.click(
             lambda: (
                 gr.update(visible=True),
@@ -161,16 +172,22 @@ class MCPManagement(BasePage):
         )
 
         # Save edits — save first, then refresh tools
-        self.btn_edit_save.click(
-            self.save_server,
-            inputs=[self.selected_mcp_name, self.edit_config],
-            outputs=[self.edit_tools_display],
-            show_progress="hidden",
-        ).then(self.list_servers, inputs=[], outputs=[self.mcp_list]).then(
-            self.fetch_tools_for_view,
-            inputs=[self.selected_mcp_name],
-            outputs=[self.edit_tools_display],
+        save_chain = (
+            self.btn_edit_save.click(
+                self.save_server,
+                inputs=[self.selected_mcp_name, self.edit_config],
+                outputs=[self.edit_tools_display],
+                show_progress="hidden",
+            )
+            .then(self.list_servers, inputs=[], outputs=[self.mcp_list])
+            .then(
+                self.fetch_tools_for_view,
+                inputs=[self.selected_mcp_name],
+                outputs=[self.edit_tools_display],
+            )
         )
+        for event in self._app.get_event("onMCPServersChanged"):
+            save_chain = save_chain.then(**event)
 
         # Close panel
         self.btn_close.click(lambda: "", outputs=[self.selected_mcp_name])

@@ -4,6 +4,7 @@ import gradio as gr
 from ktem.app import BasePage
 from ktem.components import reasonings
 from ktem.db.models import Settings, User, engine
+from ktem.mcp.manager import MCP_TOOL_PREFIX, mcp_manager
 from sqlmodel import Session, select
 from theflow.settings import settings as flowsettings
 
@@ -77,6 +78,8 @@ class SettingsPage(BasePage):
 
         self._components = {}
         self._reasoning_mode = {}
+        self._reasoning_tool_components = []
+        self._reasoning_tool_base_choices = []
 
         # store llms and embeddings components
         self._llms = []
@@ -180,6 +183,17 @@ class SettingsPage(BasePage):
                     "fn": get_name,
                     "inputs": self._user_id,
                     "outputs": [self.current_name],
+                    "show_progress": "hidden",
+                },
+            )
+
+        if self._reasoning_tool_components:
+            self._app.subscribe_event(
+                name="onMCPServersChanged",
+                definition={
+                    "fn": self.refresh_reasoning_tool_choices,
+                    "inputs": self._reasoning_tool_components,
+                    "outputs": self._reasoning_tool_components,
                     "show_progress": "hidden",
                 },
             )
@@ -339,6 +353,15 @@ class SettingsPage(BasePage):
                     for n, si in sig.settings.items():
                         obj = render_setting_item(si, si.value)
                         self._components[f"reasoning.options.{pn}.{n}"] = obj
+                        if n == "tools" and si.component == "checkboxgroup":
+                            self._reasoning_tool_components.append(obj)
+                            self._reasoning_tool_base_choices.append(
+                                [
+                                    choice
+                                    for choice in si.choices
+                                    if not choice.startswith(MCP_TOOL_PREFIX)
+                                ]
+                            )
                         if si.special_type == "llm":
                             self._llms.append(obj)
                         if si.special_type == "embedding":
@@ -364,6 +387,22 @@ class SettingsPage(BasePage):
         output = [settings]
         output += tuple(settings[name] for name in self.component_names())
         return output
+
+    def refresh_reasoning_tool_choices(self, *current_values):
+        """Refresh MCP-derived tool choices for reasoning tool selectors."""
+        try:
+            mcp_tool_choices = mcp_manager.list_registered_mcp_servers()
+        except Exception:
+            mcp_tool_choices = []
+
+        updates = []
+        for idx, current in enumerate(current_values):
+            base_choices = self._reasoning_tool_base_choices[idx]
+            choices = base_choices + mcp_tool_choices
+            current_values_list = current if isinstance(current, list) else []
+            value = [v for v in current_values_list if v in choices]
+            updates.append(gr.update(choices=choices, value=value))
+        return updates
 
     def save_setting(self, user_id: int, *args):
         """Save the setting to disk and persist the setting to session state

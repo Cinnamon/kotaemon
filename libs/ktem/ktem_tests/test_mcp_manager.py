@@ -122,22 +122,22 @@ def test_delete_nonexistent_is_noop(manager: MCPManager) -> None:
 
 
 # ---------------------------------------------------------------------------
-# MCPManager.get_enabled_tools tests
+# MCPManager.list_registered_mcp_servers tests
 # ---------------------------------------------------------------------------
 
 
-def test_get_enabled_tools_only_servers_with_filter(manager: MCPManager) -> None:
-    """Only servers with enabled_tools are listed."""
+def test_list_registered_mcp_servers(manager: MCPManager) -> None:
+    """All configured servers are listed with the MCP prefix."""
     manager.add("no_filter", {"command": "uvx"})
     manager.add("with_filter", {"command": "uvx", "enabled_tools": ["tool_a"]})
-    choices = manager.get_enabled_tools()
-    assert "[MCP] no_filter" not in choices
+    choices = manager.list_registered_mcp_servers()
+    assert "[MCP] no_filter" in choices
     assert "[MCP] with_filter" in choices
 
 
-def test_get_enabled_tools_empty_when_no_servers(manager: MCPManager) -> None:
-    """Returns empty list when no servers configured."""
-    assert manager.get_enabled_tools() == []
+def test_list_registered_mcp_servers_empty_when_no_servers(manager: MCPManager) -> None:
+    """Returns empty list when no servers are configured."""
+    assert manager.list_registered_mcp_servers() == []
 
 
 # ---------------------------------------------------------------------------
