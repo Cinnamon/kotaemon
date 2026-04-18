@@ -192,7 +192,13 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             table_pages[doc.metadata["file_name"]].append(doc.metadata["page_label"])
 
         queries: list[dict] = [
-            {"$and": [{"file_name": {"$eq": fn}}, {"page_label": {"$in": pls}}]}
+            {
+                "$and": [
+                    {"file_name": {"$eq": fn}},
+                    {"page_label": {"$in": pls}},
+                    {"type": {"$eq": "table"}},
+                ]
+            }
             for fn, pls in table_pages.items()
         ]
         if queries:
