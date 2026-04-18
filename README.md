@@ -144,24 +144,29 @@ documents and developers who want to build their own RAG pipeline.
 
 #### Option 1: Using uv (Recommended for faster installation)
 
-1. Clone the repository and run the uv installation script:
+1. Clone the repository and install dependencies:
 
    ```shell
    # clone this repo
    git clone https://github.com/Cinnamon/kotaemon
    cd kotaemon
 
-   # run the uv installation script (installs uv automatically if not present)
-   bash scripts/run_uv.sh
+   # install uv if not already installed (https://docs.astral.sh/uv/getting-started/installation/)
+   # then install all dependencies
+   uv sync
    ```
 
-   This script will:
+2. (Optional) Set up PDF.js viewer:
 
-   - Install uv package manager if not present
-   - Create a virtual environment with Python 3.10
-   - Install all dependencies using uv (significantly faster than conda/pip)
-   - Set up PDF.js viewer
-   - Launch the application
+   ```shell
+   bash scripts/download_pdfjs.sh pdfjs-4.0.379-dist
+   ```
+
+3. Start the application:
+
+   ```shell
+   uv run python app.py
+   ```
 
 #### Option 2: Using conda (Traditional method)
 
