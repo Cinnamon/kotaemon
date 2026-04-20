@@ -5,6 +5,7 @@ from .branching import GatedBranchingPipeline, SimpleBranchingPipeline
 from .chats import (
     AzureChatOpenAI,
     ChatLLM,
+    ChatLiteLLM,
     ChatOpenAI,
     EndpointChatLLM,
     LCAnthropicChat,
@@ -25,6 +26,7 @@ __all__ = [
     "BaseLLM",
     # chat-specific components
     "ChatLLM",
+    "ChatLiteLLM",
     "EndpointChatLLM",
     "BaseMessage",
     "HumanMessage",
