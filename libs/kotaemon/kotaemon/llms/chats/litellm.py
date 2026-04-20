@@ -1,12 +1,6 @@
 from typing import AsyncGenerator, Iterator, Optional
 
-from kotaemon.base import (
-    AIMessage,
-    BaseMessage,
-    HumanMessage,
-    LLMInterface,
-    Param,
-)
+from kotaemon.base import AIMessage, BaseMessage, HumanMessage, LLMInterface, Param
 
 from .base import ChatLLM
 
@@ -151,15 +145,12 @@ class ChatLiteLLM(ChatLLM):
 
         return LLMInterface(
             content=choices[0]["message"]["content"] or "" if choices else "",
-            candidates=[
-                (c["message"]["content"] or "") for c in choices
-            ],
+            candidates=[(c["message"]["content"] or "") for c in choices],
             completion_tokens=usage.get("completion_tokens", 0),
             prompt_tokens=usage.get("prompt_tokens", 0),
             total_tokens=usage.get("total_tokens", 0),
             messages=[
-                AIMessage(content=(c["message"]["content"]) or "")
-                for c in choices
+                AIMessage(content=(c["message"]["content"]) or "") for c in choices
             ],
         )
 
@@ -220,9 +211,7 @@ class ChatLiteLLM(ChatLLM):
 
         input_messages = self.prepare_message(messages)
         params = self.prepare_params(**kwargs)
-        resp = await litellm.acompletion(
-            messages=input_messages, stream=True, **params
-        )
+        resp = await litellm.acompletion(messages=input_messages, stream=True, **params)
 
         async for chunk in resp:
             if not chunk.choices:

@@ -38,9 +38,7 @@ class LiteLLMEmbeddings(BaseEmbeddings):
         ),
         required=True,
     )
-    api_key: Optional[str] = Param(
-        None, help="API key for the underlying provider"
-    )
+    api_key: Optional[str] = Param(None, help="API key for the underlying provider")
     api_base: Optional[str] = Param(
         None,
         help="Custom API base URL (e.g. for a LiteLLM proxy gateway)",
