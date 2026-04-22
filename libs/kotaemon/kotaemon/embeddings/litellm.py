@@ -52,7 +52,11 @@ class LiteLLMEmbeddings(BaseEmbeddings):
     )
 
     def _prepare_params(self, **kwargs) -> dict:
-        params: dict = {"model": self.model}
+        # ``drop_params=True`` so LiteLLM silently drops kwargs the selected
+        # provider doesn't support (e.g. ``dimensions`` on non-OpenAI providers)
+        # instead of raising. Users can opt out via ``drop_params=False`` in
+        # kwargs.
+        params: dict = {"model": self.model, "drop_params": True}
         if self.api_key:
             params["api_key"] = self.api_key
         if self.api_base:

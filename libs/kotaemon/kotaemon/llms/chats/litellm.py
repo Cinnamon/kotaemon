@@ -124,6 +124,11 @@ class ChatLiteLLM(ChatLLM):
             "stop": self.stop,
             "frequency_penalty": self.frequency_penalty,
             "presence_penalty": self.presence_penalty,
+            # Silently drop per-provider unsupported kwargs instead of raising.
+            # Anthropic rejects frequency_penalty/presence_penalty, Gemini
+            # rejects stop on some variants, Azure AI rejects seed, etc.
+            # Users can opt out by passing ``drop_params=False`` via kwargs.
+            "drop_params": True,
         }
         if self.api_key:
             params_["api_key"] = self.api_key
