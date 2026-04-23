@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+import logging
 from pathlib import Path
 from shutil import rmtree
 from typing import Generator
@@ -201,7 +202,10 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
                 .first()
             )
             graph_id = graph_id[0] if graph_id else None
-            assert graph_id, f"GraphRAG index not found for file_id: {file_id}"
+
+        if not graph_id:
+            logging.warning(f"GraphRAG index not found for file_id: {file_id}")
+            return None
 
         root_path, _ = prepare_graph_index_path(graph_id)
         output_path = root_path / "output"
@@ -362,6 +366,8 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             raise ValueError(GRAPHRAG_KEY_MISSING_MESSAGE)
 
         context_builder = self._build_graph_search()
+        if context_builder is None:
+            return []
 
         local_context_params = {
             "text_unit_prop": 0.5,
