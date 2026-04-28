@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import re
 from copy import deepcopy
 from typing import Optional
@@ -1368,7 +1369,15 @@ class ChatPage(BasePage):
             )
 
     def check_and_suggest_name_conv(self, chat_history):
-        suggest_pipeline = SuggestConvNamePipeline()
+        try:
+            suggest_pipeline = SuggestConvNamePipeline()
+        except Exception as e:
+            logging.warning(
+                f"Failed to initialize SuggestConvNamePipeline: {e}. "
+                "Skipping conversation name suggestion."
+            )
+            return gr.update(), False
+
         new_name = gr.update()
         renamed = False
 
@@ -1395,7 +1404,15 @@ class ChatPage(BasePage):
             else settings["reasoning.lang"]
         )
         if use_suggestion:
-            suggest_pipeline = SuggestFollowupQuesPipeline()
+            try:
+                suggest_pipeline = SuggestFollowupQuesPipeline()
+            except Exception as e:
+                logging.warning(
+                    f"Failed to initialize SuggestFollowupQuesPipeline: {e}. "
+                    "Skipping follow-up question suggestion."
+                )
+                return gr.update(visible=False), gr.update()
+
             suggest_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
                 target_language, "English"
             )
