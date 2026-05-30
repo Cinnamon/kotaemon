@@ -197,6 +197,13 @@ class PPStructureV3Reader(BaseReader):
             "lang": self.lang,
             "ocr_version": self.ocr_version,
         }
+
+        # PaddleX defaults CPU inference to MKL-DNN, which hits a PIR/oneDNN
+        # crash in PaddlePaddle 3.3+; disable until upstream is fixed.
+        # https://github.com/PaddlePaddle/Paddle/issues/77340
+        if str(self.device).startswith("cpu"):
+            kwargs["enable_mkldnn"] = False
+
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
         return PPStructureV3(**kwargs)
 

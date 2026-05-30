@@ -167,6 +167,51 @@ def test_ppstructure_v3_load_data_with_mocked_pipeline(
     mock_pipeline.predict.assert_called_once_with("/tmp/doc.pdf")
 
 
+@skip_when_paddleocr_not_installed
+@pytest.mark.parametrize(
+    "device",
+    ("cpu", "cpu:0"),
+)
+def test_ppstructure_v3_cpu_disables_mkldnn(
+    mocker: MockerFixture,
+    device: str,
+) -> None:
+    """CPU init passes enable_mkldnn=False (Paddle#77340 workaround)."""
+    from kotaemon.loaders.paddleocr_loader import ppstructure_v3_loader
+
+    mock_pipeline = MagicMock()
+    mock_ctor = mocker.patch(
+        "paddleocr.PPStructureV3",
+        return_value=mock_pipeline,
+    )
+
+    reader = ppstructure_v3_loader.PPStructureV3Reader(device=device)
+    _ = reader.pipeline_
+
+    mock_ctor.assert_called_once()
+    assert mock_ctor.call_args.kwargs["enable_mkldnn"] is False
+
+
+@skip_when_paddleocr_not_installed
+def test_ppstructure_v3_gpu_omits_mkldnn_override(
+    mocker: MockerFixture,
+) -> None:
+    """GPU init leaves enable_mkldnn to paddleocr defaults."""
+    from kotaemon.loaders.paddleocr_loader import ppstructure_v3_loader
+
+    mock_pipeline = MagicMock()
+    mock_ctor = mocker.patch(
+        "paddleocr.PPStructureV3",
+        return_value=mock_pipeline,
+    )
+
+    reader = ppstructure_v3_loader.PPStructureV3Reader(device="gpu:0")
+    _ = reader.pipeline_
+
+    mock_ctor.assert_called_once()
+    assert "enable_mkldnn" not in mock_ctor.call_args.kwargs
+
+
 # ---------------------------------------------------------------------------
 # PaddleOCRVLReader tests
 # ---------------------------------------------------------------------------
@@ -225,3 +270,48 @@ def test_paddleocr_vl_load_data_with_mocked_pipeline(
     assert len(docs) >= 1
     assert all(isinstance(d, Document) for d in docs)
     mock_pipeline.predict.assert_called_once_with("/tmp/img.png")
+
+
+@skip_when_paddleocr_not_installed
+@pytest.mark.parametrize(
+    "device",
+    ("cpu", "cpu:0"),
+)
+def test_paddleocr_vl_cpu_disables_mkldnn(
+    mocker: MockerFixture,
+    device: str,
+) -> None:
+    """CPU init passes enable_mkldnn=False (Paddle#77340 workaround)."""
+    from kotaemon.loaders.paddleocr_loader import paddleocr_vl_loader
+
+    mock_pipeline = MagicMock()
+    mock_ctor = mocker.patch(
+        "paddleocr.PaddleOCRVL",
+        return_value=mock_pipeline,
+    )
+
+    reader = paddleocr_vl_loader.PaddleOCRVLReader(device=device)
+    _ = reader.pipeline_
+
+    mock_ctor.assert_called_once()
+    assert mock_ctor.call_args.kwargs["enable_mkldnn"] is False
+
+
+@skip_when_paddleocr_not_installed
+def test_paddleocr_vl_gpu_omits_mkldnn_override(
+    mocker: MockerFixture,
+) -> None:
+    """GPU init leaves enable_mkldnn to paddleocr defaults."""
+    from kotaemon.loaders.paddleocr_loader import paddleocr_vl_loader
+
+    mock_pipeline = MagicMock()
+    mock_ctor = mocker.patch(
+        "paddleocr.PaddleOCRVL",
+        return_value=mock_pipeline,
+    )
+
+    reader = paddleocr_vl_loader.PaddleOCRVLReader(device="gpu:0")
+    _ = reader.pipeline_
+
+    mock_ctor.assert_called_once()
+    assert "enable_mkldnn" not in mock_ctor.call_args.kwargs
