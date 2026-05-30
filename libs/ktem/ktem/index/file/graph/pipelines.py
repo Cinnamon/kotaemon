@@ -2,7 +2,6 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from shutil import rmtree
 from typing import Generator
 from uuid import uuid4
 
@@ -27,7 +26,6 @@ try:
         read_indexer_reports,
         read_indexer_text_units,
     )
-    from graphrag.query.input.loaders.dfs import store_entity_semantic_embeddings
     from graphrag.query.llm.oai.embedding import OpenAIEmbedding
     from graphrag.query.llm.oai.typing import OpenaiApiType
     from graphrag.query.structured_search.local_search.mixed_context import (
@@ -115,25 +113,16 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
         input_path = str(input_path.absolute())
 
         # Construct the command
-        command = [
-            "python",
-            "-m",
-            "graphrag.index",
-            "--root",
-            input_path,
-            "--reporter",
-            "rich",
-            "--init",
-        ]
+        init_command = ["graphrag", "init", "--root", input_path]
+        index_command = ["graphrag", "index", "--root", input_path]
 
         # Run the command
         yield Document(
             channel="debug",
             text="[GraphRAG] Creating index... This can take a long time.",
         )
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(init_command, capture_output=True, text=True)
         print(result.stdout)
-        command = command[:-1]
 
         # copy customized GraphRAG config file if it exists
         if config("USE_CUSTOMIZED_GRAPHRAG_SETTING", default="value").lower() == "true":
@@ -146,7 +135,9 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
                 print("failed to copy customized GraphRAG config file. ")
 
         # Run the command and stream stdout
-        with subprocess.Popen(command, stdout=subprocess.PIPE, text=True) as process:
+        with subprocess.Popen(
+            index_command, stdout=subprocess.PIPE, text=True
+        ) as process:
             if process.stdout:
                 for line in process.stdout:
                     yield Document(channel="debug", text=line)
@@ -227,14 +218,9 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
         # load description embeddings to an in-memory lancedb vectorstore
         # to connect to a remote db, specify url and port values.
         description_embedding_store = LanceDBVectorStore(
-            collection_name="entity_description_embeddings",
+            collection_name="default-entity-description",
         )
         description_embedding_store.connect(db_uri=LANCEDB_URI)
-        if Path(LANCEDB_URI).is_dir():
-            rmtree(LANCEDB_URI)
-        _ = store_entity_semantic_embeddings(
-            entities=entities, vectorstore=description_embedding_store
-        )
         print(f"Entity count: {len(entity_df)}")
 
         # Read relationships
@@ -305,10 +291,10 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
         )
 
     def format_context_records(self, context_records) -> list[RetrievedDocument]:
-        entities = context_records.get("entities", [])
-        relationships = context_records.get("relationships", [])
-        reports = context_records.get("reports", [])
-        sources = context_records.get("sources", [])
+        entities = context_records.get("entities", pd.DataFrame())
+        relationships = context_records.get("relationships", pd.DataFrame())
+        reports = context_records.get("reports", pd.DataFrame())
+        sources = context_records.get("sources", pd.DataFrame())
 
         docs = []
 
@@ -382,13 +368,13 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             # (if you are using a model with 8k limit, a good setting could be 5000)
         }
 
-        context_text, context_records = context_builder.build_context(
+        context_builder_result = context_builder.build_context(
             query=text,
             conversation_history=None,
             **local_context_params,
         )
-        documents = self.format_context_records(context_records)
-        plot = self.plot_graph(context_records)
+        documents = self.format_context_records(context_builder_result.context_records)
+        plot = self.plot_graph(context_builder_result.context_records)
 
         return documents + [
             RetrievedDocument(
