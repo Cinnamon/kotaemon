@@ -1,3 +1,4 @@
+import html
 import re
 
 from ktem.utils.commands import WEB_SEARCH_COMMAND
@@ -10,12 +11,15 @@ def _normalize_mention(raw_mention: str) -> str:
     return mention
 
 
-_DISPLAY_MENTION_PATTERN = r"\*\*@(?:[^*]+)\*\*"
+# Quoted names, @WebSearch, or unquoted tokens (e.g. @pic**1.jpeg).
+_MENTION_PATTERN = rf"(?:(?<=\s)|^)@(?:\"[^\"]+\"|{WEB_SEARCH_COMMAND}|[^\s@]+)"
+
+_DISPLAY_MENTION_HTML_PATTERN = r"<strong>@([\s\S]*?)</strong>"
 
 
 def strip_display_mentions(input_str: str) -> str:
-    """Remove bold @ mentions produced by format_mentions_for_display."""
-    return re.sub(_DISPLAY_MENTION_PATTERN, "", input_str).strip()
+    """Remove @ mentions produced by format_mentions_for_display."""
+    return re.sub(_DISPLAY_MENTION_HTML_PATTERN, "", input_str).strip()
 
 
 def prepare_llm_query(
@@ -34,8 +38,7 @@ def prepare_llm_query(
 
 
 def format_mentions_for_display(input_str: str) -> str:
-    """Normalize and bold @ mentions for chat display."""
-    mention_pattern = rf'(?:(?<=\s)|^)@(?:"[^"]+"|{WEB_SEARCH_COMMAND})'
+    """Normalize and highlight @ mentions for chat display."""
 
     def _replace(match: re.Match[str]) -> str:
         raw_match = match.group(0)
@@ -43,9 +46,9 @@ def format_mentions_for_display(input_str: str) -> str:
         mention = _normalize_mention(raw_mention)
         if not mention:
             return raw_match
-        return f"**@{mention}**"
+        return f"<strong>@{html.escape(mention)}</strong>"
 
-    return re.sub(mention_pattern, _replace, input_str)
+    return re.sub(_MENTION_PATTERN, _replace, input_str)
 
 
 def sync_retrieval_n_message(
@@ -67,18 +70,16 @@ def sync_retrieval_n_message(
 
 
 def get_mentions_regex(input_str: str) -> tuple[list[str], str]:
-    # get mentions with pattern @"filename" or @WebSearch in input_str
+    # get mentions with pattern @"filename", @WebSearch, or @filename
     # also remove these file names from input_str
-    pattern = r"(?:(?<=\s)|^)@(?:(\"[^\"]+\")|(WebSearch))"
-    matches_raw = re.findall(pattern, input_str)
+    matches_raw = re.findall(_MENTION_PATTERN, input_str)
     matches = []
-    for quoted, web in matches_raw:
-        raw_mention = quoted if quoted else web
-        mention = _normalize_mention(raw_mention)
+    for raw_match in matches_raw:
+        mention = _normalize_mention(raw_match[1:])
         if mention:
             matches.append(mention)
 
-    input_str = re.sub(pattern, "", input_str).strip()
+    input_str = re.sub(_MENTION_PATTERN, "", input_str).strip()
 
     return matches, input_str
 

@@ -1322,9 +1322,6 @@ class ChatPage(BasePage):
             default_question=DEFAULT_QUESTION,
         )
 
-        print("Display input", display_input)
-        print("LLM query", llm_query)
-
         queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
 
         # construct the pipeline
