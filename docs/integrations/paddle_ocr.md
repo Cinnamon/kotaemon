@@ -15,16 +15,16 @@ Both readers are located under `kotaemon/loaders/paddleocr_loader`.
 
 ```bash
 # CPU
-pip install paddlepaddle==3.3.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
+uv pip install paddlepaddle==3.3.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
 
 # gpu，requires GPU driver version ≥550.54.14 (Linux) or ≥550.54.14 (Windows)
-pip install paddlepaddle-gpu==3.3.0 -i https://www.paddlepaddle.org.cn/packages/stable/cu130/
+uv pip install paddlepaddle-gpu==3.3.0 -i https://www.paddlepaddle.org.cn/packages/stable/cu130/
 ```
 
 - Install the PaddleOCR doc parser extras:
 
 ```bash
-pip install -e "libs/kotaemon[paddleocr]"
+uv pip install -e "libs/kotaemon[paddleocr]"
 ```
 
 - Configure the device: You can set the `PADDLE_DEVICE` environment variable in your .env file to control the execution device.

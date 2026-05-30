@@ -8,7 +8,7 @@ The reader is located under `kotaemon/loaders/docling_loader`.
 - Install Docling:
 
 ```bash
-pip install -e "libs/kotaemon[docling]"
+uv pip install -e "libs/kotaemon[docling]"
 ```
 
 - Configure optional figure captioning:
