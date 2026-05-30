@@ -59,6 +59,15 @@ function(file_list) {
         });
     }
 
+    var input_box = document.querySelector('#chat-input textarea');
+    if (!input_box) {
+        return;
+    }
+
+    if (input_box.kotaTribute) {
+        input_box.kotaTribute.detach(input_box);
+    }
+
     var tribute = new Tribute({
         values: values,
         lookup: function(item) {
@@ -70,13 +79,7 @@ function(file_list) {
         noMatchTemplate: "",
         allowSpaces: true,
     });
-    var input_box = document.querySelector('#chat-input textarea');
-    if (!input_box) {
-        return;
-    }
-
     input_box.kotaTribute = tribute;
-    tribute.detach(input_box);
     tribute.attach(input_box);
 
     if (input_box.dataset.kotaMentionBound === "1") {
