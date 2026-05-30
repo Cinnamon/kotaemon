@@ -1,5 +1,7 @@
 import re
 
+from ktem.utils.commands import WEB_SEARCH_COMMAND
+
 
 def _normalize_mention(raw_mention: str) -> str:
     mention = raw_mention.strip()
@@ -8,9 +10,32 @@ def _normalize_mention(raw_mention: str) -> str:
     return mention
 
 
+_DISPLAY_MENTION_PATTERN = r"\*\*@(?:[^*]+)\*\*"
+
+
+def strip_display_mentions(input_str: str) -> str:
+    """Remove bold @ mentions produced by format_mentions_for_display."""
+    return re.sub(_DISPLAY_MENTION_PATTERN, "", input_str).strip()
+
+
+def prepare_llm_query(
+    display_text: str,
+    *,
+    has_selected_files: bool,
+    default_question: str,
+) -> str:
+    """Derive the LLM question from a chat bubble display string."""
+    text = strip_display_mentions(display_text)
+    _, text = get_mentions_regex(text)
+    _, text = get_urls(text)
+    if not text and has_selected_files:
+        return default_question
+    return text
+
+
 def format_mentions_for_display(input_str: str) -> str:
     """Normalize and bold @ mentions for chat display."""
-    mention_pattern = r'(?:(?<=\s)|^)@(?:"[^"]+"|WebSearch)'
+    mention_pattern = rf'(?:(?<=\s)|^)@(?:"[^"]+"|{WEB_SEARCH_COMMAND})'
 
     def _replace(match: re.Match[str]) -> str:
         raw_match = match.group(0)

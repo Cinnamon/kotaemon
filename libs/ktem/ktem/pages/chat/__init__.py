@@ -31,6 +31,7 @@ from ...utils import (
     format_mentions_for_display,
     get_mentions_regex,
     get_urls,
+    prepare_llm_query,
 )
 from ...utils.commands import WEB_SEARCH_COMMAND
 from ...utils.hf_papers import get_recommended_papers
@@ -1276,6 +1277,22 @@ class ChatPage(BasePage):
 
         return pipeline, reasoning_state
 
+    def _has_selected_files(self, user_id: int, *selecteds) -> bool:
+        """Return True if any index file selector has documents selected."""
+        for index in self._app.index_manager.indices:
+            if index.selector is None:
+                continue
+            index_ui = getattr(self, f"_index_{index.id}", None)
+            if index_ui is None or not hasattr(index_ui, "get_selected_ids"):
+                continue
+            if isinstance(index.selector, int):
+                components = (selecteds[index.selector],)
+            else:
+                components = tuple(selecteds[i] for i in index.selector)
+            if index_ui.get_selected_ids(components):
+                return True
+        return False
+
     def chat_fn(
         self,
         conversation_id,
@@ -1292,12 +1309,21 @@ class ChatPage(BasePage):
         *selecteds,
     ):
         """Chat function"""
-        chat_input, chat_output = chat_history[-1]
+        display_input, chat_output = chat_history[-1]
         chat_history = chat_history[:-1]
 
         # if chat_input is empty, assume regen mode
         if chat_output:
             chat_state["app"]["regen"] = True
+
+        llm_query = prepare_llm_query(
+            display_input,
+            has_selected_files=self._has_selected_files(user_id, *selecteds),
+            default_question=DEFAULT_QUESTION,
+        )
+
+        print("Display input", display_input)
+        print("LLM query", llm_query)
 
         queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
 
@@ -1323,7 +1349,7 @@ class ChatPage(BasePage):
         )
         print(msg_placeholder)
         yield (
-            chat_history + [(chat_input, text or msg_placeholder)],
+            chat_history + [(display_input, text or msg_placeholder)],
             refs,
             plot_gr,
             plot,
@@ -1332,7 +1358,7 @@ class ChatPage(BasePage):
 
         try:
             for response in pipeline.stream(
-                chat_input,
+                llm_query,
                 conversation_id,
                 chat_history,
             ):
@@ -1362,7 +1388,7 @@ class ChatPage(BasePage):
                 chat_state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
 
                 yield (
-                    chat_history + [(chat_input, text or msg_placeholder)],
+                    chat_history + [(display_input, text or msg_placeholder)],
                     refs,
                     plot_gr,
                     plot,
@@ -1377,7 +1403,7 @@ class ChatPage(BasePage):
             )
             print(f"Generate nothing: {empty_msg}")
             yield (
-                chat_history + [(chat_input, text or empty_msg)],
+                chat_history + [(display_input, text or empty_msg)],
                 refs,
                 plot_gr,
                 plot,
