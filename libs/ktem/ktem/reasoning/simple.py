@@ -6,6 +6,7 @@ from typing import Generator
 from decouple import config
 from ktem.embeddings.manager import embedding_models_manager as embeddings
 from ktem.llms.manager import llms
+from theflow.settings import settings as flowsettings
 from ktem.reasoning.prompt_optimization import (
     DecomposeQuestionPipeline,
     RewriteQuestionPipeline,
@@ -23,10 +24,16 @@ from kotaemon.base import (
     RetrievedDocument,
     SystemMessage,
 )
+from kotaemon.indices.qa.citation import CitationPipeline
 from kotaemon.indices.qa.citation_qa import (
     CONTEXT_RELEVANT_WARNING_SCORE,
     DEFAULT_QA_TEXT_PROMPT,
     AnswerWithContextPipeline,
+)
+
+from ktem.reasoning.citation_display import prepare_citations
+from ktem.reasoning.prompt_optimization.mindmap import (
+    CreateMindmapPipeline,
 )
 from kotaemon.indices.qa.citation_qa_inline import AnswerWithInlineCitation
 from kotaemon.indices.qa.format_context import PrepareEvidencePipeline
@@ -222,8 +229,8 @@ class FullQAPipeline(BaseReasoning):
 
     def show_citations_and_addons(self, answer, docs, question):
         # show the evidence
-        with_citation, without_citation = self.answering_pipeline.prepare_citations(
-            answer, docs
+        with_citation, without_citation = prepare_citations(
+            self.answering_pipeline, answer, docs
         )
         mindmap_output = self.prepare_mindmap(answer)
         citation_plot_output = self.prepare_citation_viz(answer, question, docs)
@@ -366,7 +373,10 @@ class FullQAPipeline(BaseReasoning):
             answer_pipeline = pipeline.answering_pipeline = AnswerWithContextPipeline()
 
         answer_pipeline.llm = llm
-        answer_pipeline.citation_pipeline.llm = llm
+        answer_pipeline.citation_pipeline = CitationPipeline(llm=llm)
+        answer_pipeline.create_mindmap_pipeline = CreateMindmapPipeline(
+            llm=llm
+        )
         answer_pipeline.n_last_interactions = settings[f"{prefix}.n_last_interactions"]
         answer_pipeline.enable_citation = (
             settings[f"{prefix}.highlight_citation"] != "off"
@@ -374,6 +384,9 @@ class FullQAPipeline(BaseReasoning):
         answer_pipeline.enable_mindmap = settings[f"{prefix}.create_mindmap"]
         answer_pipeline.enable_citation_viz = settings[f"{prefix}.create_citation_viz"]
         answer_pipeline.use_multimodal = settings[f"{prefix}.use_multimodal"]
+        answer_pipeline.vlm_endpoint = getattr(
+            flowsettings, "KH_VLM_ENDPOINT", ""
+        )
         answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
         answer_pipeline.qa_template = settings[f"{prefix}.qa_prompt"]
         answer_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
@@ -563,8 +576,8 @@ class FullDecomposeQAPipeline(FullQAPipeline):
         )
 
         # show the evidence
-        with_citation, without_citation = self.answering_pipeline.prepare_citations(
-            answer, docs
+        with_citation, without_citation = prepare_citations(
+            self.answering_pipeline, answer, docs
         )
         if not with_citation and not without_citation:
             yield Document(channel="info", content="<h5><b>No evidence found.</b></h5>")

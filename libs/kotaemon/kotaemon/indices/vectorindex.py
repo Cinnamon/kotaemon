@@ -5,8 +5,6 @@ import uuid
 from pathlib import Path
 from typing import Optional, Sequence, cast
 
-from theflow.settings import settings as flowsettings
-
 from kotaemon.base import BaseComponent, Document, RetrievedDocument
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
@@ -27,7 +25,7 @@ class VectorIndexing(BaseIndexing):
         - List of texts
     """
 
-    cache_dir: Optional[str] = getattr(flowsettings, "KH_CHUNKS_OUTPUT_DIR", None)
+    cache_dir: Optional[str] = None
     vector_store: BaseVectorStore
     doc_store: Optional[BaseDocumentStore] = None
     embedding: BaseEmbeddings

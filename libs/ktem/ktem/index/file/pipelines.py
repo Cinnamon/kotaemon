@@ -53,6 +53,19 @@ from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
 
 logger = logging.getLogger(__name__)
 
+# Wire app-level config into framework reader singletons.
+# These were previously read by kotaemon directly from flowsettings;
+# after decoupling, ktem (app layer) is responsible for setting them.
+_vlm_endpoint = getattr(settings, "KH_VLM_ENDPOINT", "")
+_markdown_output_dir = getattr(settings, "KH_MARKDOWN_OUTPUT_DIR", None)
+adobe_reader.vlm_endpoint = _vlm_endpoint
+azure_reader.vlm_endpoint = _vlm_endpoint
+docling_reader.vlm_endpoint = _vlm_endpoint
+azure_reader.cache_dir = _markdown_output_dir
+_mhtml_reader = KH_DEFAULT_FILE_EXTRACTORS.get(".mhtml")
+if _mhtml_reader is not None and hasattr(_mhtml_reader, "cache_dir"):
+    _mhtml_reader.cache_dir = _markdown_output_dir
+
 
 @lru_cache
 def dev_settings():
@@ -348,7 +361,12 @@ class IndexPipeline(BaseComponent):
     @Node.auto(depends_on=["Source", "Index", "embedding"])
     def vector_indexing(self) -> VectorIndexing:
         return VectorIndexing(
-            vector_store=self.VS, doc_store=self.DS, embedding=self.embedding
+            vector_store=self.VS,
+            doc_store=self.DS,
+            embedding=self.embedding,
+            cache_dir=getattr(
+                settings, "KH_CHUNKS_OUTPUT_DIR", None
+            ),
         )
 
     def handle_docs(self, docs, file_id, file_name) -> Generator[Document, None, int]:

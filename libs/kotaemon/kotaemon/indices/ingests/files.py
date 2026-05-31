@@ -4,7 +4,6 @@ from typing import Type
 from decouple import config
 from llama_index.core.readers.base import BaseReader
 from llama_index.readers.file import PDFReader
-from theflow.settings import settings as flowsettings
 
 from kotaemon.base import BaseComponent, Document, Param
 from kotaemon.indices.extractors import BaseDocParser
@@ -33,12 +32,8 @@ adobe_reader = AdobeReader()
 azure_reader = AzureAIDocumentIntelligenceLoader(
     endpoint=str(config("AZURE_DI_ENDPOINT", default="")),
     credential=str(config("AZURE_DI_CREDENTIAL", default="")),
-    cache_dir=getattr(flowsettings, "KH_MARKDOWN_OUTPUT_DIR", None),
 )
 docling_reader = DoclingReader()
-adobe_reader.vlm_endpoint = (
-    azure_reader.vlm_endpoint
-) = docling_reader.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
 
 paddle_device = str(config("PADDLE_DEVICE", default="gpu"))
 paddle_struct_reader = PPStructureV3Reader(device=paddle_device)

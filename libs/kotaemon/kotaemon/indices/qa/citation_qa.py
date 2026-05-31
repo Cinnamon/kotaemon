@@ -4,7 +4,6 @@ from typing import Generator
 
 import numpy as np
 from decouple import config
-from theflow.settings import settings as flowsettings
 
 from kotaemon.base import (
     AIMessage,
@@ -23,13 +22,6 @@ from .format_context import (
     EVIDENCE_MODE_TEXT,
 )
 from .utils import find_text
-
-try:
-    from ktem.llms.manager import llms
-    from ktem.reasoning.prompt_optimization.mindmap import CreateMindmapPipeline
-    from ktem.utils.render import Render
-except ImportError:
-    raise ImportError("Please install `ktem` to use this component")
 
 MAX_IMAGES = 10
 CITATION_TIMEOUT = 5.0
@@ -95,15 +87,11 @@ class AnswerWithContextPipeline(BaseComponent):
         lang: the language of the answer. Currently support English and Japanese
     """
 
-    llm: ChatLLM = Node(default_callback=lambda _: llms.get_default())
-    vlm_endpoint: str = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
-    use_multimodal: bool = getattr(flowsettings, "KH_REASONINGS_USE_MULTIMODAL", True)
-    citation_pipeline: CitationPipeline = Node(
-        default_callback=lambda _: CitationPipeline(llm=llms.get_default())
-    )
-    create_mindmap_pipeline: CreateMindmapPipeline = Node(
-        default_callback=lambda _: CreateMindmapPipeline(llm=llms.get_default())
-    )
+    llm: ChatLLM = Node()
+    vlm_endpoint: str = ""
+    use_multimodal: bool = True
+    citation_pipeline: CitationPipeline = Node()
+    create_mindmap_pipeline: BaseComponent | None = Node(default=None)
 
     qa_template: str = DEFAULT_QA_TEXT_PROMPT
     qa_table_template: str = DEFAULT_QA_TABLE_PROMPT
@@ -224,7 +212,7 @@ class AnswerWithContextPipeline(BaseComponent):
                 citation_thread = threading.Thread(target=citation_call)
                 citation_thread.start()
 
-            if self.enable_mindmap:
+            if self.enable_mindmap and self.create_mindmap_pipeline is not None:
                 mindmap_thread = threading.Thread(target=mindmap_call)
                 mindmap_thread.start()
 
@@ -319,85 +307,3 @@ class AnswerWithContextPipeline(BaseComponent):
             # print("Matched citation:", quote, matched_excerpts),
         return spans
 
-    def prepare_citations(self, answer, docs) -> tuple[list[Document], list[Document]]:
-        """Prepare the citations to show on the UI"""
-        with_citation, without_citation = [], []
-        has_llm_score = any("llm_trulens_score" in doc.metadata for doc in docs)
-
-        spans = self.match_evidence_with_context(answer, docs)
-        id2docs = {doc.doc_id: doc for doc in docs}
-        not_detected = set(id2docs.keys()) - set(spans.keys())
-
-        # render highlight spans
-        for _id, ss in spans.items():
-            if not ss:
-                not_detected.add(_id)
-                continue
-            cur_doc = id2docs[_id]
-            highlight_text = ""
-
-            ss = sorted(ss, key=lambda x: x["start"])
-            last_end = 0
-            text = cur_doc.text[: ss[0]["start"]]
-
-            for idx, span in enumerate(ss):
-                # prevent overlapping between span
-                span_start = max(last_end, span["start"])
-                span_end = max(last_end, span["end"])
-
-                to_highlight = cur_doc.text[span_start:span_end]
-                last_end = span_end
-
-                # append to highlight on PDF viewer
-                highlight_text += (" " if highlight_text else "") + to_highlight
-
-                span_idx = span.get("idx", None)
-                if span_idx is not None:
-                    to_highlight = f"【{span_idx}】" + to_highlight
-
-                text += Render.highlight(
-                    to_highlight,
-                    elem_id=str(span_idx) if span_idx is not None else None,
-                )
-                if idx < len(ss) - 1:
-                    text += cur_doc.text[span["end"] : ss[idx + 1]["start"]]
-
-            text += cur_doc.text[ss[-1]["end"] :]
-            # add to display list
-            with_citation.append(
-                Document(
-                    channel="info",
-                    content=Render.collapsible_with_header_score(
-                        cur_doc,
-                        override_text=text,
-                        highlight_text=highlight_text,
-                        open_collapsible=True,
-                    ),
-                )
-            )
-
-        print("Got {} cited docs".format(len(with_citation)))
-
-        sorted_not_detected_items_with_scores = [
-            (id_, id2docs[id_].metadata.get("llm_trulens_score", 0.0))
-            for id_ in not_detected
-        ]
-        sorted_not_detected_items_with_scores.sort(key=lambda x: x[1], reverse=True)
-
-        for id_, _ in sorted_not_detected_items_with_scores:
-            doc = id2docs[id_]
-            doc_score = doc.metadata.get("llm_trulens_score", 0.0)
-            is_open = not has_llm_score or (
-                doc_score
-                > CONTEXT_RELEVANT_WARNING_SCORE
-                # and len(with_citation) == 0
-            )
-            without_citation.append(
-                Document(
-                    channel="info",
-                    content=Render.collapsible_with_header_score(
-                        doc, open_collapsible=is_open
-                    ),
-                )
-            )
-        return with_citation, without_citation

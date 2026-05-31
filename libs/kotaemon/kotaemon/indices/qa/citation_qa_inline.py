@@ -220,7 +220,7 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
 
         # execute function call in thread
         if evidence:
-            if self.enable_mindmap:
+            if self.enable_mindmap and self.create_mindmap_pipeline is not None:
                 mindmap_thread = threading.Thread(target=mindmap_call)
                 mindmap_thread.start()
 
