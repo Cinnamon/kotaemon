@@ -77,7 +77,7 @@ Use the template like this:
 
         return text
 
-    def run(self, question: str, context: str) -> Document:  # type: ignore
+    def run(self, question: str, context: str) -> Document:
         prompt_template = PromptTemplate(self.prompt_template)
         prompt = prompt_template.populate(
             question=question,

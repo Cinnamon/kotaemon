@@ -1,9 +1,11 @@
-from typing import Optional, Type
+from typing import Any, Optional, Type
 
-from ktem.db.models import engine
+from ktem.db.engine import engine
 from sqlmodel import Session, select
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
+
+from ktem.ktem.main import App
 
 from .base import BaseIndex
 from .models import Index
@@ -20,17 +22,19 @@ class IndexManager:
         - indices: list of indices built by user
     """
 
-    def __init__(self, app):
+    def __init__(self, app: App):
         self._app = app
-        self._indices = []
-        self._index_types: dict[str, Type[BaseIndex]] = {}
+        self._indices: list[BaseIndex] = []
+        self._index_types: dict[str, type[BaseIndex]] = {}
 
     @property
-    def index_types(self) -> dict:
+    def index_types(self) -> dict[str, type[BaseIndex]]:
         """List the index_type of the index"""
         return self._index_types
 
-    def build_index(self, name: str, config: dict, index_type: str):
+    def build_index(
+        self, name: str, config: dict[str, Any], index_type: str
+    ) -> BaseIndex:
         """Build the index
 
         Building the index simply means recording the index information into the
@@ -69,7 +73,7 @@ class IndexManager:
 
         return index
 
-    def update_index(self, id: int, name: str, config: dict):
+    def update_index(self, id: int, name: str, config: dict[str, Any]) -> None:
         """Update the index information
 
         Args:
@@ -92,7 +96,9 @@ class IndexManager:
                 index.config = config
                 break
 
-    def start_index(self, id: int, name: str, config: dict, index_type: str):
+    def start_index(
+        self, id: int, name: str, config: dict[str, Any], index_type: str
+    ) -> BaseIndex:
         """Start the index
 
         Args:
@@ -108,7 +114,7 @@ class IndexManager:
         self._indices.append(index)
         return index
 
-    def delete_index(self, id: int):
+    def delete_index(self, id: int) -> None:
         """Delete the index from the database"""
         index: Optional[BaseIndex] = None
         for _ in self._indices:
@@ -140,7 +146,7 @@ class IndexManager:
         except Exception as e:
             raise ValueError(f"Cannot delete index {index.name}: {e}")
 
-    def load_index_types(self):
+    def load_index_types(self) -> None:
         """Load the supported index types"""
         self._index_types = {}
 
@@ -155,7 +161,7 @@ class IndexManager:
             cls: Type[BaseIndex] = import_dotted_string(index_str, safe=False)
             self._index_types[f"{cls.__module__}.{cls.__qualname__}"] = cls
 
-    def exists(self, id: Optional[int] = None, name: Optional[str] = None) -> bool:
+    def exists(self, id: int | None = None, name: str | None = None) -> bool:
         """Check if the index exists
 
         Args:
@@ -176,7 +182,7 @@ class IndexManager:
 
         return False
 
-    def on_application_startup(self):
+    def on_application_startup(self) -> None:
         """This method is called by the base application when the application starts
 
         Load the index from database
@@ -193,8 +199,8 @@ class IndexManager:
                 self.start_index(**index_def.model_dump())
 
     @property
-    def indices(self):
+    def indices(self) -> list[BaseIndex]:
         return self._indices
 
-    def info(self):
+    def info(self) -> dict[int, BaseIndex]:
         return {index.id: index for index in self._indices}

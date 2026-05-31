@@ -1,7 +1,7 @@
 import base64
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from decouple import config
 from fsspec import AbstractFileSystem
@@ -68,7 +68,7 @@ class PDFThumbnailReader(PDFReader):
     def load_data(
         self,
         file: Path,
-        extra_info: Optional[Dict] = None,
+        extra_info: Optional[Dict[str, Any]] = None,
         fs: Optional[AbstractFileSystem] = None,
     ) -> List[Document]:
         """Parse file."""

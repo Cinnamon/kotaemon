@@ -17,7 +17,7 @@ if machine == "x86_64":
 BINARY_REMOTE_NAME = f"frpc_{platform.system().lower()}_{machine.lower()}"
 EXTENSION = ".exe" if os.name == "nt" else ""
 BINARY_URL = (
-    "some-endpoint.com" f"/kotaemon/tunneling/{VERSION}/{BINARY_REMOTE_NAME}{EXTENSION}"
+    f"some-endpoint.com/kotaemon/tunneling/{VERSION}/{BINARY_REMOTE_NAME}{EXTENSION}"
 )
 
 BINARY_FILENAME = f"{BINARY_REMOTE_NAME}_v{VERSION}"
@@ -29,15 +29,15 @@ logger = logging.getLogger(__name__)
 
 
 class Tunnel:
-    def __init__(self, appname, username, local_port):
-        self.proc = None
-        self.url = None
+    def __init__(self, appname: str, username: str, local_port: int) -> None:
+        self.proc: subprocess.Popen[bytes] | None = None
+        self.url: str | None = None
         self.appname = appname
         self.username = username
         self.local_port = local_port
 
     @staticmethod
-    def download_binary():
+    def download_binary() -> None:
         if not Path(BINARY_PATH).exists():
             print("First time setting tunneling...")
             resp = requests.get(BINARY_URL)
@@ -74,7 +74,7 @@ class Tunnel:
         self.url = self._start_tunnel(BINARY_PATH)
         return self.url
 
-    def kill(self):
+    def kill(self) -> None:
         if self.proc is not None:
             print(f"Killing tunnel 127.0.0.1:{self.local_port} <> {self.url}")
             self.proc.terminate()

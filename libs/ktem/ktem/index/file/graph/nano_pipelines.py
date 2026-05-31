@@ -4,7 +4,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Generator
+from typing import Generator, Any, list
 
 import numpy as np
 import pandas as pd
@@ -282,9 +282,7 @@ class NanoGraphRAGIndexingPipeline(GraphRAGIndexingPipeline):
             blacklist_keywords = ["default", "response", "process"]
             settings_dict = {
                 "batch_size": {
-                    "name": (
-                        "Index batch size " "(reduce if you have rate limit issues)"
-                    ),
+                    "name": ("Index batch size (reduce if you have rate limit issues)"),
                     "value": INDEX_BATCHSIZE,
                     "component": "number",
                 }
@@ -547,3 +545,47 @@ class NanoGraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             ]
 
         return documents
+
+    def get_index_path(self) -> str:
+        """Get index path"""
+        return ""
+
+    def get_vector_index(self) -> Any:
+        """Get vector index"""
+        return None
+
+    def _get_file_ids_from_user_id(self, user_id: str, **kwargs: Any) -> list[str]:
+        """Get file IDs from user ID"""
+        return []
+
+    def get_file_index(self) -> Any:
+        """Get file index"""
+        return None
+
+    def retrieve_text(self) -> list[Document]:
+        """Retrieve text documents"""
+        return []
+
+    def retrieve_graph(self) -> list[Document]:
+        """Retrieve graph documents"""
+        return []
+
+    def retrieve(self) -> Any:
+        """Retrieve documents"""
+        return None
+
+    def get_extracted_triples(self, **kwargs: Any) -> list[Document]:
+        """Get extracted triples"""
+        return []
+
+    def retrieve_with_text_and_graph(self, query: str, **kwargs: Any) -> list[Document]:
+        """Retrieve with text and graph"""
+        return []
+
+    def _get_file_ids_from_user_id_2(self, user_id: str, **kwargs: Any) -> list[str]:
+        """Get file IDs from user ID (version 2)"""
+        return []
+
+    def get_file_index_2(self) -> Any:
+        """Get file index (version 2)"""
+        return None

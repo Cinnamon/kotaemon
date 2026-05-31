@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Any
 
 from theflow import SessionFunction
 
@@ -9,11 +9,10 @@ from kotaemon.base.schema import AIMessage, BaseMessage, HumanMessage, SystemMes
 
 class BaseChatBot(BaseComponent):
     @abstractmethod
-    def run(self, messages: List[BaseMessage]) -> LLMInterface:
-        ...
+    def run(self, messages: List[BaseMessage]) -> LLMInterface: ...
 
 
-def session_chat_storage(obj):
+def session_chat_storage(obj: Any) -> str:
     """Store using the bot location rather than the session location"""
     return obj._store_result
 
@@ -32,7 +31,7 @@ class ChatConversation(SessionFunction):
     system_message: str = ""
     bot: BaseChatBot
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._history: List[BaseMessage] = []
         self._store_result = (
             f"{self.__module__}.{self.__class__.__name__},uninitiated_bot"
@@ -61,14 +60,14 @@ class ChatConversation(SessionFunction):
 
         return output_message
 
-    def start_session(self):
+    def start_session(self) -> None:
         self._store_result = self.bot.config.store_result
         super().start_session()
         if not self.history and self.system_message:
             system_message = SystemMessage(content=self.system_message)
             self.history.append(system_message)
 
-    def end_session(self):
+    def end_session(self) -> None:
         super().end_session()
         self._history = []
 
@@ -84,7 +83,7 @@ class ChatConversation(SessionFunction):
 
         return False
 
-    def terminal_session(self):
+    def terminal_session(self) -> None:
         """Create a terminal session"""
         self.start_session()
         print(">> Start chat:")
@@ -106,10 +105,10 @@ class ChatConversation(SessionFunction):
         self.end_session()
 
     @property
-    def history(self):
+    def history(self) -> List[BaseMessage]:
         return self._history
 
     @history.setter
-    def history(self, value):
+    def history(self, value: List[BaseMessage]) -> None:
         self._history = value
         self._variablex()

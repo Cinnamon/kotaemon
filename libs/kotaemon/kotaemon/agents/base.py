@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from kotaemon.base import BaseComponent, Node, Param
 from kotaemon.llms import BaseLLM, PromptTemplate
@@ -34,8 +34,8 @@ class BaseAgent(BaseComponent):
     )
 
     @staticmethod
-    def safeguard_run(run_func, *args, **kwargs):
-        def wrapper(self, *args, **kwargs):
+    def safeguard_run(run_func: Any, *args: Any, **kwargs: Any) -> Any:
+        def wrapper(self: "BaseAgent", *args: Any, **kwargs: Any) -> AgentOutput:
             try:
                 return run_func(self, *args, **kwargs)
             except Exception as e:
@@ -52,6 +52,6 @@ class BaseAgent(BaseComponent):
         """Helper method to add tools and update agent state if needed"""
         self.plugins.extend(tools)
 
-    def run(self, *args, **kwargs) -> AgentOutput | list[AgentOutput]:
+    def run(self, *args: Any, **kwargs: Any) -> AgentOutput | list[AgentOutput]:
         """Run the component."""
         raise NotImplementedError()

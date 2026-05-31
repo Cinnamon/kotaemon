@@ -1,7 +1,7 @@
 import logging
 import threading
 from textwrap import dedent
-from typing import Generator
+from typing import Any, Generator
 
 from decouple import config
 from ktem.embeddings.manager import embedding_models_manager as embeddings
@@ -40,11 +40,10 @@ logger = logging.getLogger(__name__)
 
 
 class AddQueryContextPipeline(BaseComponent):
-
     n_last_interactions: int = 5
     llm: ChatLLM = Node(default_callback=lambda _: llms.get_default())
 
-    def run(self, question: str, history: list) -> Document:
+    def run(self, question: str, history: list[tuple[str, str]]) -> Document:
         messages = [
             SystemMessage(
                 content="Below is a history of the conversation so far, and a new "
@@ -106,7 +105,7 @@ class FullQAPipeline(BaseReasoning):
     add_query_context: AddQueryContextPipeline = AddQueryContextPipeline.withx()
 
     def retrieve(
-        self, message: str, history: list
+        self, message: str, history: list[tuple[str, str]]
     ) -> tuple[list[RetrievedDocument], list[Document]]:
         """Retrieve the documents based on the message"""
         # if len(message) < self.trigger_context:
@@ -124,15 +123,16 @@ class FullQAPipeline(BaseReasoning):
             # like "Hello", "I need help"...
             query = message
 
-        docs, doc_ids = [], []
-        plot_docs = []
+        docs: list[RetrievedDocument] = []
+        doc_ids: list[str] = []
+        plot_docs: list[RetrievedDocument] = []
 
         for idx, retriever in enumerate(self.retrievers):
             retriever_node = self._prepare_child(retriever, f"retriever_{idx}")
             retriever_docs = retriever_node(text=query)
 
-            retriever_docs_text = []
-            retriever_docs_plot = []
+            retriever_docs_text: list[RetrievedDocument] = []
+            retriever_docs_plot: list[RetrievedDocument] = []
 
             for doc in retriever_docs:
                 if doc.metadata.get("type", "") == "plot":
@@ -163,7 +163,7 @@ class FullQAPipeline(BaseReasoning):
 
         return docs, info
 
-    def prepare_mindmap(self, answer) -> Document | None:
+    def prepare_mindmap(self, answer: Document) -> Document | None:
         mindmap = answer.metadata["mindmap"]
         if mindmap:
             mindmap_text = mindmap.text
@@ -203,7 +203,9 @@ class FullQAPipeline(BaseReasoning):
 
         return mindmap_content
 
-    def prepare_citation_viz(self, answer, question, docs) -> Document | None:
+    def prepare_citation_viz(
+        self, answer: Document, question: str, docs: list[RetrievedDocument]
+    ) -> Document | None:
         doc_texts = [doc.text for doc in docs]
         citation_plot = None
         plot_content = None
@@ -220,7 +222,9 @@ class FullQAPipeline(BaseReasoning):
 
         return plot_content
 
-    def show_citations_and_addons(self, answer, docs, question):
+    def show_citations_and_addons(
+        self, answer: Document, docs: list[RetrievedDocument], question: str
+    ) -> Generator[Document, None, None]:
         # show the evidence
         with_citation, without_citation = self.answering_pipeline.prepare_citations(
             answer, docs
@@ -273,13 +277,21 @@ class FullQAPipeline(BaseReasoning):
             if without_citation:
                 yield from without_citation
 
-    async def ainvoke(  # type: ignore
-        self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
-    ) -> Document:  # type: ignore
+    async def ainvoke(
+        self,
+        message: str,
+        conv_id: str,
+        history: list[tuple[str, str]],
+        **kwargs: Any,
+    ) -> Document:
         raise NotImplementedError
 
-    def stream(  # type: ignore
-        self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
+    def stream(
+        self,
+        message: str,
+        conv_id: str,
+        history: list[tuple[str, str]],
+        **kwargs: Any,
     ) -> Generator[Document, None, Document]:
         if self.use_rewrite and self.rewrite_pipeline:
             print("Chosen rewrite pipeline", self.rewrite_pipeline)
@@ -294,7 +306,7 @@ class FullQAPipeline(BaseReasoning):
 
         evidence_mode, evidence, images = self.evidence_pipeline(docs).content
 
-        def generate_relevant_scores():
+        def generate_relevant_scores() -> None:
             nonlocal docs
             docs = self.retrievers[0].generate_relevant_scores(message, docs)
 
@@ -331,27 +343,41 @@ class FullQAPipeline(BaseReasoning):
         return answer
 
     @classmethod
-    def prepare_pipeline_instance(cls, settings, retrievers):
+    def prepare_pipeline_instance(
+        cls, settings: dict[str, Any], retrievers: list[BaseComponent]
+    ) -> "FullQAPipeline":
         return cls(
             retrievers=retrievers,
             rewrite_pipeline=None,
         )
 
     @classmethod
-    def get_pipeline(cls, settings, states, retrievers):
+    def get_pipeline(
+        cls,
+        settings: dict[str, Any],
+        states: dict[str, Any],
+        retrievers: list[BaseComponent] | None = None,
+    ) -> "FullQAPipeline":
         """Get the reasoning pipeline
 
         Args:
             settings: the settings for the pipeline
+            states: the state information
             retrievers: the retrievers to use
         """
+        if retrievers is None:
+            retrievers = []
+
         max_context_length_setting = settings.get("reasoning.max_context_length", 32000)
 
         pipeline = cls.prepare_pipeline_instance(settings, retrievers)
 
         prefix = f"reasoning.options.{cls.get_info()['id']}"
         llm_name = settings.get(f"{prefix}.llm", None)
-        llm = llms.get(llm_name, llms.get_default())
+        if llm_name is not None:
+            llm = llms.get(llm_name, llms.get_default())
+        else:
+            llm = llms.get_default()
 
         # prepare evidence pipeline configuration
         evidence_pipeline = pipeline.evidence_pipeline
@@ -395,7 +421,7 @@ class FullQAPipeline(BaseReasoning):
         return pipeline
 
     @classmethod
-    def get_user_settings(cls) -> dict:
+    def get_user_settings(cls) -> dict[str, dict[str, Any]]:
         from ktem.llms.manager import llms
 
         llm = ""
@@ -472,7 +498,7 @@ class FullQAPipeline(BaseReasoning):
         }
 
     @classmethod
-    def get_info(cls) -> dict:
+    def get_info(cls) -> dict[str, str]:
         return {
             "id": "simple",
             "name": "Simple QA",
@@ -486,8 +512,12 @@ class FullQAPipeline(BaseReasoning):
 
 class FullDecomposeQAPipeline(FullQAPipeline):
     def answer_sub_questions(
-        self, messages: list, conv_id: str, history: list, **kwargs
-    ):
+        self,
+        messages: list[str],
+        conv_id: str,
+        history: list[tuple[str, str]],
+        **kwargs: Any,
+    ) -> Generator[Document, None, str]:
         output_str = ""
         for idx, message in enumerate(messages):
             yield Document(
@@ -518,8 +548,12 @@ class FullDecomposeQAPipeline(FullQAPipeline):
 
         return output_str
 
-    def stream(  # type: ignore
-        self, message: str, conv_id: str, history: list, **kwargs  # type: ignore
+    def stream(
+        self,
+        message: str,
+        conv_id: str,
+        history: list[tuple[str, str]],
+        **kwargs: Any,
     ) -> Generator[Document, None, Document]:
         sub_question_answer_output = ""
         if self.rewrite_pipeline:
@@ -576,7 +610,7 @@ class FullDecomposeQAPipeline(FullQAPipeline):
         return answer
 
     @classmethod
-    def get_user_settings(cls) -> dict:
+    def get_user_settings(cls) -> dict[str, dict[str, Any]]:
         user_settings = super().get_user_settings()
         user_settings["decompose_prompt"] = {
             "name": "Decompose Prompt",
@@ -585,7 +619,9 @@ class FullDecomposeQAPipeline(FullQAPipeline):
         return user_settings
 
     @classmethod
-    def prepare_pipeline_instance(cls, settings, retrievers):
+    def prepare_pipeline_instance(
+        cls, settings: dict[str, Any], retrievers: list[BaseComponent]
+    ) -> "FullDecomposeQAPipeline":
         prefix = f"reasoning.options.{cls.get_info()['id']}"
         pipeline = cls(
             retrievers=retrievers,
@@ -596,7 +632,7 @@ class FullDecomposeQAPipeline(FullQAPipeline):
         return pipeline
 
     @classmethod
-    def get_info(cls) -> dict:
+    def get_info(cls) -> dict[str, str]:
         return {
             "id": "complex",
             "name": "Complex QA",

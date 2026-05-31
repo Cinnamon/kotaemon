@@ -3,7 +3,7 @@ from kotaemon.base.schema import Document, RetrievedDocument
 from .conftest import skip_when_haystack_not_installed
 
 
-def test_document_constructor_with_builtin_types():
+def test_document_constructor_with_builtin_types() -> None:
     for value in ["str", 1, {}, set(), [], tuple, None]:
         doc = Document(value)
         assert doc.text == (str(value) if value else "")
@@ -11,7 +11,7 @@ def test_document_constructor_with_builtin_types():
         assert bool(doc) == bool(value)
 
 
-def test_document_constructor_with_document():
+def test_document_constructor_with_document() -> None:
     text = "Sample text"
     doc1 = Document(text)
     doc2 = Document(doc1)
@@ -20,7 +20,7 @@ def test_document_constructor_with_document():
 
 
 @skip_when_haystack_not_installed
-def test_document_to_haystack_format():
+def test_document_to_haystack_format() -> None:
     from haystack.schema import Document as HaystackDocument
 
     text = "Sample text"
@@ -32,7 +32,7 @@ def test_document_to_haystack_format():
     assert haystack_doc.meta == metadata
 
 
-def test_retrieved_document_default_values():
+def test_retrieved_document_default_values() -> None:
     sample_text = "text"
     retrieved_doc = RetrievedDocument(text=sample_text)
     assert retrieved_doc.text == sample_text
@@ -40,7 +40,7 @@ def test_retrieved_document_default_values():
     assert retrieved_doc.retrieval_metadata == {}
 
 
-def test_retrieved_document_attributes():
+def test_retrieved_document_attributes() -> None:
     sample_text = "text"
     score = 0.8
     metadata = {"source": "retrieval_system"}

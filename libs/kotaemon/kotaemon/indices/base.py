@@ -21,9 +21,8 @@ class DocTransformer(BaseComponent):
     def run(
         self,
         documents: list[Document],
-        **kwargs,
-    ) -> list[Document]:
-        ...
+        **kwargs: Any,
+    ) -> list[Document]: ...
 
 
 class LlamaIndexDocTransformerMixin:
@@ -46,13 +45,13 @@ class LlamaIndexDocTransformerMixin:
             "Please return the relevant LlamaIndex class in _get_li_class"
         )
 
-    def __init__(self, **params):
+    def __init__(self, **params: Any) -> None:
         self._li_cls = self._get_li_class()
         self._obj = self._li_cls(**params)
         self._kwargs = params
         super().__init__()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         kwargs = []
         for key, value_obj in self._kwargs.items():
             value = repr(value_obj)
@@ -60,7 +59,7 @@ class LlamaIndexDocTransformerMixin:
         kwargs_repr = ", ".join(kwargs)
         return f"{self.__class__.__name__}({kwargs_repr})"
 
-    def __str__(self):
+    def __str__(self) -> str:
         kwargs = []
         for key, value_obj in self._kwargs.items():
             value = str(value_obj)
@@ -82,7 +81,7 @@ class LlamaIndexDocTransformerMixin:
             return self._kwargs[name]
         return getattr(self._obj, name)
 
-    def dump(self, *args, **kwargs):
+    def dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         from theflow.utils.modules import serialize
 
         params = {key: serialize(value) for key, value in self._kwargs.items()}
@@ -94,23 +93,23 @@ class LlamaIndexDocTransformerMixin:
     def run(
         self,
         documents: list[Document],
-        **kwargs,
+        **kwargs: Any,
     ) -> list[Document]:
         """Run Llama-index node parser and convert the output to Document from
         kotaemon
         """
-        docs = self._obj(documents, **kwargs)  # type: ignore
+        docs = self._obj(documents, **kwargs)
         return [Document.from_dict(doc.to_dict()) for doc in docs]
 
 
 class BaseIndexing(BaseComponent):
     """Define the base interface for indexing pipeline"""
 
-    def to_retrieval_pipeline(self, **kwargs):
+    def to_retrieval_pipeline(self, **kwargs: Any) -> Any:
         """Convert the indexing pipeline to a retrieval pipeline"""
         raise NotImplementedError
 
-    def to_qa_pipeline(self, **kwargs):
+    def to_qa_pipeline(self, **kwargs: Any) -> Any:
         """Convert the indexing pipeline to a QA pipeline"""
         raise NotImplementedError
 
@@ -119,5 +118,4 @@ class BaseRetrieval(BaseComponent):
     """Define the base interface for retrieval pipeline"""
 
     @abstractmethod
-    def run(self, *args, **kwargs) -> list[RetrievedDocument]:
-        ...
+    def run(self, *args: Any, **kwargs: Any) -> list[RetrievedDocument]: ...

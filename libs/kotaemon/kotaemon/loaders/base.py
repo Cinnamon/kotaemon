@@ -60,7 +60,7 @@ class LIReaderMixin(BaseComponent):
             "Please return the relevant llama-index class in in _get_wrapped_class"
         )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._reader_class = self._get_wrapped_class()
         self._reader = self._reader_class(*args, **kwargs)
         super().__init__()
@@ -74,12 +74,12 @@ class LIReaderMixin(BaseComponent):
     def __getattr__(self, name: str) -> Any:
         return getattr(self._reader, name)
 
-    def load_data(self, *args, **kwargs: Any) -> List[Document]:
+    def load_data(self, *args: Any, **kwargs: Any) -> List[Document]:
         documents = self._reader.load_data(*args, **kwargs)
 
         # convert Document to new base class from kotaemon
         converted_documents = [Document.from_dict(doc.to_dict()) for doc in documents]
         return converted_documents
 
-    def run(self, *args, **kwargs: Any) -> List[Document]:
+    def run(self, *args: Any, **kwargs: Any) -> List[Document]:
         return self.load_data(*args, **kwargs)

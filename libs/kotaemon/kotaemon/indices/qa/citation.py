@@ -1,8 +1,8 @@
-from typing import List
+from typing import Any, List
 
 from pydantic import BaseModel, Field
 
-from kotaemon.base import BaseComponent
+from kotaemon.base import BaseComponent, Document
 from kotaemon.base.schema import HumanMessage, SystemMessage
 from kotaemon.llms import BaseLLM
 
@@ -25,22 +25,24 @@ class CitationPipeline(BaseComponent):
 
     llm: BaseLLM
 
-    def run(self, context: str, question: str):
+    def run(self, context: str, question: str) -> Document | list[Document] | None:
         return self.invoke(context, question)
 
-    def prepare_llm(self, context: str, question: str):
+    def prepare_llm(
+        self, context: str, question: str
+    ) -> tuple[list[SystemMessage | HumanMessage], dict[str, Any]]:
         schema = CiteEvidence.schema()
         function = {
             "name": schema["title"],
             "description": schema["description"],
             "parameters": schema,
         }
-        llm_kwargs = {
+        llm_kwargs: dict[str, Any] = {
             "tools": [{"type": "function", "function": function}],
             "tool_choice": "required",
             "tools_pydantic": [CiteEvidence],
         }
-        messages = [
+        messages: list[SystemMessage | HumanMessage] = [
             SystemMessage(
                 content=(
                     "You are a world class algorithm to answer "
@@ -64,7 +66,13 @@ class CitationPipeline(BaseComponent):
         ]
         return messages, llm_kwargs
 
-    def invoke(self, context: str, question: str):
+    def invoke(self, *args: Any, **kwargs: Any) -> Document | list[Document] | None:
+        if len(args) >= 2:
+            context, question = args[0], args[1]
+        else:
+            context = kwargs.get("context", "")
+            question = kwargs.get("question", "")
+
         messages, llm_kwargs = self.prepare_llm(context, question)
         try:
             print("CitationPipeline: invoking LLM")
@@ -88,11 +96,16 @@ class CitationPipeline(BaseComponent):
                 output = CiteEvidence.parse_raw(function_output)
             else:
                 output = CiteEvidence.parse_obj(function_output)
+
+            # Convert CiteEvidence to Document to match return type
+            if output:
+                return Document(content=str(output.evidences))
+            return None
         except Exception as e:
             print(e)
             return None
 
-        return output
-
-    async def ainvoke(self, context: str, question: str):
+    async def ainvoke(
+        self, *args: Any, **kwargs: Any
+    ) -> Document | list[Document] | None:
         raise NotImplementedError()

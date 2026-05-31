@@ -1,5 +1,5 @@
-from importlib.metadata import version
 from pathlib import Path
+from typing import Any
 
 import gradio as gr
 import requests
@@ -34,12 +34,13 @@ def download_changelogs(release_url: str) -> str:
 class HelpPage:
     def __init__(
         self,
-        app,
+        app: Any,
         doc_dir: str = settings.KH_DOC_DIR,
         remote_content_url: str = "https://raw.githubusercontent.com/Cinnamon/kotaemon",
         app_version: str | None = settings.KH_APP_VERSION,
-        changelogs_cache_dir: str
-        | Path = (Path(settings.KH_APP_DATA_DIR) / "changelogs"),
+        changelogs_cache_dir: str | Path = (
+            Path(settings.KH_APP_DATA_DIR) / "changelogs"
+        ),
     ):
         self._app = app
         self.doc_dir = Path(doc_dir)
@@ -94,6 +95,7 @@ class HelpPage:
         if self.app_version:
             # try retrieve from cache
             changelogs = ""
+            version = self.app_version
 
             if (self.changelogs_cache_dir / f"{version}.md").exists():
                 with open(self.changelogs_cache_dir / f"{version}.md", "r") as fi:

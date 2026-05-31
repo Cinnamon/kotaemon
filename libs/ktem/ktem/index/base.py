@@ -53,19 +53,19 @@ class BaseIndex(abc.ABC):
         get_retriever_pipelines: return the retriever pipelines when the user chat
     """
 
-    def __init__(self, app, id, name, config):
+    def __init__(self, app: Any, id: Any, name: str, config: dict[str, Any]) -> None:
         self._app = app
         self.id = id
         self.name = name
         self.config = config  # admin settings
 
-    def on_create(self):
+    def on_create(self) -> None:
         """Create the index for the first time"""
 
-    def on_delete(self):
+    def on_delete(self) -> None:
         """Trigger when the user delete the index"""
 
-    def on_start(self):
+    def on_start(self) -> None:
         """Trigger when the index start
 
         Args:
@@ -83,7 +83,7 @@ class BaseIndex(abc.ABC):
         return None
 
     @classmethod
-    def get_user_settings(cls) -> dict:
+    def get_user_settings(cls) -> dict[str, Any]:
         """Return default user settings. These are the runtime settings.
 
         The settings will be populated in the user settings page. And will be used
@@ -96,7 +96,7 @@ class BaseIndex(abc.ABC):
         return {}
 
     @classmethod
-    def get_admin_settings(cls) -> dict:
+    def get_admin_settings(cls) -> dict[str, Any]:
         """Return the default admin settings. These are the build-time settings.
 
         The settings will be populated in the admin settings page. And will be used
@@ -110,7 +110,7 @@ class BaseIndex(abc.ABC):
 
     @abc.abstractmethod
     def get_indexing_pipeline(
-        self, settings: dict, user_id: Optional[int]
+        self, settings: dict[str, Any], user_id: Optional[int]
     ) -> "BaseComponent":
         """Return the indexing pipeline that populates the entities into the index
 
@@ -126,7 +126,7 @@ class BaseIndex(abc.ABC):
         ...
 
     def get_retriever_pipelines(
-        self, settings: dict, user_id: int, selected: Any = None
+        self, settings: dict[str, Any], user_id: int, selected: Any = None
     ) -> list["BaseComponent"]:
         """Return the retriever pipelines to retrieve the entity from the index"""
         return []

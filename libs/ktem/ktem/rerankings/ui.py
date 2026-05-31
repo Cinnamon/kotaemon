@@ -12,7 +12,7 @@ from kotaemon.base import Document
 from .manager import reranking_models_manager
 
 
-def format_description(cls):
+def format_description(cls) -> str:
     params = cls.describe()["params"]
     params_lines = ["| Name | Type | Description |", "| --- | --- | --- |"]
     for key, value in params.items():
@@ -23,14 +23,14 @@ def format_description(cls):
 
 
 class RerankingManagement(BasePage):
-    def __init__(self, app):
+    def __init__(self, app) -> None:
         self._app = app
         self.spec_desc_default = (
             "# Spec description\n\nSelect a model to view the spec description."
         )
         self.on_building_ui()
 
-    def on_building_ui(self):
+    def on_building_ui(self) -> None:
         with gr.Tab(label="View"):
             self.rerank_list = gr.DataFrame(
                 headers=["name", "vendor", "default"],
@@ -126,7 +126,7 @@ class RerankingManagement(BasePage):
                 with gr.Column(scale=3):
                     self.spec_desc = gr.Markdown(self.spec_desc_default)
 
-    def _on_app_created(self):
+    def _on_app_created(self) -> None:
         """Called when the app is created"""
         self._app.app.load(
             self.list_rerankings,
@@ -149,7 +149,7 @@ class RerankingManagement(BasePage):
 
             return yaml.dump(required), format_description(vendor)
 
-    def on_register_events(self):
+    def on_register_events(self) -> None:
         self.rerank_choices.select(
             self.on_rerank_vendor_change,
             inputs=[self.rerank_choices],
@@ -241,7 +241,7 @@ class RerankingManagement(BasePage):
             outputs=[self.connection_logs],
         )
 
-    def create_rerank(self, name, choices, spec, default):
+    def create_rerank(self, name, choices, spec, default) -> None:
         try:
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
             spec["__type__"] = (
@@ -274,7 +274,7 @@ class RerankingManagement(BasePage):
 
         return rerank_list
 
-    def select_rerank(self, rerank_list, ev: gr.SelectData):
+    def select_rerank(self, rerank_list, ev: gr.SelectData) -> str:
         if ev.value == "-" and ev.index[0] == 0:
             gr.Info("No reranking model is loaded. Please add first")
             return ""
@@ -369,7 +369,7 @@ class RerankingManagement(BasePage):
 
         return log_content
 
-    def save_rerank(self, selected_rerank_name, default, spec):
+    def save_rerank(self, selected_rerank_name, default, spec) -> None:
         try:
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
             spec["__type__"] = reranking_models_manager.info()[selected_rerank_name][
@@ -382,7 +382,7 @@ class RerankingManagement(BasePage):
         except Exception as e:
             gr.Error(f'Failed to save Embedding model "{selected_rerank_name}": {e}')
 
-    def delete_rerank(self, selected_rerank_name):
+    def delete_rerank(self, selected_rerank_name) -> str:
         try:
             reranking_models_manager.delete(selected_rerank_name)
         except Exception as e:

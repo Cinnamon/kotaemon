@@ -1,5 +1,5 @@
 import json
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Any
 
 from kotaemon.base import Document
 
@@ -11,7 +11,9 @@ MAX_DOCS_TO_GET = 10**4
 class LanceDBDocumentStore(BaseDocumentStore):
     """LancdDB document store which support full-text search query"""
 
-    def __init__(self, path: str = "lancedb", collection_name: str = "docstore"):
+    def __init__(
+        self, path: str = "lancedb", collection_name: str = "docstore"
+    ) -> None:
         try:
             import lancedb
         except ImportError:
@@ -21,15 +23,15 @@ class LanceDBDocumentStore(BaseDocumentStore):
 
         self.db_uri = path
         self.collection_name = collection_name
-        self.db_connection = lancedb.connect(self.db_uri)  # type: ignore
+        self.db_connection = lancedb.connect(self.db_uri)
 
     def add(
         self,
         docs: Union[Document, List[Document]],
         ids: Optional[Union[List[str], str]] = None,
         refresh_indices: bool = True,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """Load documents into lancedb storage."""
         doc_ids = ids if ids else [doc.doc_id for doc in docs]
         data: list[dict[str, str]] | None = [
@@ -60,7 +62,7 @@ class LanceDBDocumentStore(BaseDocumentStore):
             )
 
     def query(
-        self, query: str, top_k: int = 10, doc_ids: Optional[list] = None
+        self, query: str, top_k: int = 10, doc_ids: Optional[list[str]] = None
     ) -> List[Document]:
         if doc_ids:
             id_filter = ", ".join([f"'{_id}'" for _id in doc_ids])
@@ -126,7 +128,7 @@ class LanceDBDocumentStore(BaseDocumentStore):
         }
         return [doc_dict[_id] for _id in ids if _id in doc_dict]
 
-    def delete(self, ids: Union[List[str], str], refresh_indices: bool = True):
+    def delete(self, ids: Union[List[str], str], refresh_indices: bool = True) -> None:
         """Delete document by id"""
         if not isinstance(ids, list):
             ids = [ids]
@@ -143,7 +145,7 @@ class LanceDBDocumentStore(BaseDocumentStore):
                 replace=True,
             )
 
-    def drop(self):
+    def drop(self) -> None:
         """Drop the document store"""
         self.db_connection.drop_table(self.collection_name)
 
@@ -153,7 +155,7 @@ class LanceDBDocumentStore(BaseDocumentStore):
     def get_all(self) -> List[Document]:
         raise NotImplementedError
 
-    def __persist_flow__(self):
+    def __persist_flow__(self) -> dict[str, Any]:
         return {
             "db_uri": self.db_uri,
             "collection_name": self.collection_name,

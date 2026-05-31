@@ -1,5 +1,6 @@
 import os
 from unittest.mock import patch
+from typing import Any
 
 import pytest
 from elastic_transport import ApiResponseMeta
@@ -212,7 +213,7 @@ _elastic_search_responses = [
 ]
 
 
-def test_inmemory_document_store_base_interfaces(tmp_path):
+def test_inmemory_document_store_base_interfaces(tmp_path: Any) -> None:
     """Test all interfaces of a a document store"""
 
     store = InMemoryDocumentStore()
@@ -268,7 +269,7 @@ def test_inmemory_document_store_base_interfaces(tmp_path):
     os.remove(tmp_path / "store.json")
 
 
-def test_simplefile_document_store_base_interfaces(tmp_path):
+def test_simplefile_document_store_base_interfaces(tmp_path: Any) -> None:
     """Test all interfaces of a a document store"""
 
     store = SimpleFileDocumentStore(path=tmp_path)
@@ -326,7 +327,7 @@ def test_simplefile_document_store_base_interfaces(tmp_path):
     "elastic_transport.Transport.perform_request",
     side_effect=_elastic_search_responses,
 )
-def test_elastic_document_store(elastic_api):
+def test_elastic_document_store(elastic_api: Any) -> None:
     store = ElasticsearchDocumentStore(collection_name="test")
 
     docs = [

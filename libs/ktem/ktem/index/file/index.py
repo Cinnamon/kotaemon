@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Any, Optional, Type
+from typing import Any, Type
 
 from ktem.components import filestorage_path, get_docstore, get_vectorstore
 from ktem.db.engine import engine
@@ -17,7 +17,7 @@ from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
 
 
-def generate_uuid():
+def generate_uuid() -> str:
     return str(uuid.uuid4())
 
 
@@ -35,20 +35,20 @@ class FileIndex(BaseIndex):
         docstore, and (2) the source and the vector store.
     """
 
-    def __init__(self, app, id: int, name: str, config: dict):
+    def __init__(self, app: Any, id: int, name: str, config: dict[str, Any]) -> None:
         super().__init__(app, id, name, config)
 
         self._indexing_pipeline_cls: Type[BaseFileIndexIndexing]
         self._retriever_pipeline_cls: list[Type[BaseFileIndexRetriever]]
-        self._selector_ui_cls: Type
+        self._selector_ui_cls: Type[Any]
         self._selector_ui: Any = None
-        self._index_ui_cls: Type
+        self._index_ui_cls: Type[Any]
         self._index_ui: Any = None
 
-        self._default_settings: dict[str, dict] = {}
-        self._setting_mappings: dict[str, dict] = {}
+        self._default_settings: dict[str, dict[str, Any]] = {}
+        self._setting_mappings: dict[str, dict[str, Any]] = {}
 
-    def _setup_resources(self):
+    def _setup_resources(self) -> None:
         """Setup resources for the file index
 
         The resources include:
@@ -82,7 +82,7 @@ class FileIndex(BaseIndex):
                     ),
                     "user": Column(String, default=""),
                     "note": Column(
-                        MutableDict.as_mutable(JSON),  # type: ignore
+                        MutableDict.as_mutable(JSON),
                         default={},
                     ),
                 },
@@ -107,7 +107,7 @@ class FileIndex(BaseIndex):
                     ),
                     "user": Column(String, default=""),
                     "note": Column(
-                        MutableDict.as_mutable(JSON),  # type: ignore
+                        MutableDict.as_mutable(JSON),
                         default={},
                     ),
                 },
@@ -162,7 +162,7 @@ class FileIndex(BaseIndex):
             "FileStoragePath": self._fs_path,
         }
 
-    def _setup_indexing_cls(self):
+    def _setup_indexing_cls(self) -> None:
         """Retrieve the indexing class for the file index
 
         There is only one indexing class.
@@ -196,7 +196,7 @@ class FileIndex(BaseIndex):
 
         self._indexing_pipeline_cls = IndexDocumentPipeline
 
-    def _setup_retriever_cls(self):
+    def _setup_retriever_cls(self) -> None:
         """Retrieve the retriever classes for the file index
 
         There can be multiple retriever classes.
@@ -235,7 +235,7 @@ class FileIndex(BaseIndex):
 
         self._retriever_pipeline_cls = [DocumentRetrievalPipeline]
 
-    def _setup_file_selector_ui_cls(self):
+    def _setup_file_selector_ui_cls(self) -> None:
         """Retrieve the file selector UI for the file index
 
         There can be multiple retriever classes.
@@ -270,7 +270,7 @@ class FileIndex(BaseIndex):
 
         self._selector_ui_cls = FileSelector
 
-    def _setup_file_index_ui_cls(self):
+    def _setup_file_index_ui_cls(self) -> None:
         """Retrieve the Index UI class
 
         There can be multiple retriever classes.
@@ -305,7 +305,7 @@ class FileIndex(BaseIndex):
 
         self._index_ui_cls = FileIndexPage
 
-    def on_create(self):
+    def on_create(self) -> None:
         """Create the index for the first time
 
         For the file index, this will:
@@ -315,7 +315,7 @@ class FileIndex(BaseIndex):
             4. Create the docstore
         """
         # default user's value
-        config = {}
+        config: dict[str, Any] = {}
         for key, value in self.get_admin_settings().items():
             config[key] = value["value"]
 
@@ -331,7 +331,7 @@ class FileIndex(BaseIndex):
         self._resources["FileGroup"].metadata.create_all(engine)  # type: ignore
         self._fs_path.mkdir(parents=True, exist_ok=True)
 
-    def on_delete(self):
+    def on_delete(self) -> None:
         """Clean up the index when the user delete it"""
         import shutil
 
@@ -343,7 +343,7 @@ class FileIndex(BaseIndex):
         self._docstore.drop()
         shutil.rmtree(self._fs_path)
 
-    def on_start(self):
+    def on_start(self) -> None:
         """Setup the classes and hooks"""
         self._setup_resources()
         self._setup_indexing_cls()
@@ -351,21 +351,21 @@ class FileIndex(BaseIndex):
         self._setup_file_index_ui_cls()
         self._setup_file_selector_ui_cls()
 
-    def get_selector_component_ui(self):
+    def get_selector_component_ui(self) -> Any:
         if self._selector_ui is None:
             self._selector_ui = self._selector_ui_cls(self._app, self)
         return self._selector_ui
 
-    def get_index_page_ui(self):
+    def get_index_page_ui(self) -> Any:
         if self._index_ui is None:
             self._index_ui = self._index_ui_cls(self._app, self)
         return self._index_ui
 
-    def get_user_settings(self):
+    def get_user_settings(self) -> dict[str, dict[str, Any]]:
         if self._default_settings:
             return self._default_settings
 
-        settings = {}
+        settings: dict[str, dict[str, Any]] = {}
         settings.update(self._indexing_pipeline_cls.get_user_settings())
         for cls in self._retriever_pipeline_cls:
             settings.update(cls.get_user_settings())
@@ -374,7 +374,7 @@ class FileIndex(BaseIndex):
         return settings
 
     @classmethod
-    def get_admin_settings(cls):
+    def get_admin_settings(cls) -> dict[str, dict[str, Any]]:
         from ktem.embeddings.manager import embedding_models_manager
 
         embedding_default = "default"
@@ -437,11 +437,13 @@ class FileIndex(BaseIndex):
             },
         }
 
-    def get_indexing_pipeline(self, settings, user_id) -> BaseFileIndexIndexing:
+    def get_indexing_pipeline(
+        self, settings: dict[str, Any], user_id: int | None
+    ) -> BaseFileIndexIndexing:
         """Define the interface of the indexing pipeline"""
 
         prefix = f"index.options.{self.id}."
-        stripped_settings = {}
+        stripped_settings: dict[str, Any] = {}
         for key, value in settings.items():
             if key.startswith(prefix):
                 stripped_settings[key[len(prefix) :]] = value
@@ -460,19 +462,19 @@ class FileIndex(BaseIndex):
         return obj
 
     def get_retriever_pipelines(
-        self, settings: dict, user_id: int, selected: Any = None
-    ) -> list["BaseFileIndexRetriever"]:
+        self, settings: dict[str, Any], user_id: int, selected: Any = None
+    ) -> list[BaseFileIndexRetriever]:
         # retrieval settings
         prefix = f"index.options.{self.id}."
-        stripped_settings = {}
+        stripped_settings: dict[str, Any] = {}
         for key, value in settings.items():
             if key.startswith(prefix):
                 stripped_settings[key[len(prefix) :]] = value
 
         # transform selected id
-        selected_ids: Optional[list[str]] = self._selector_ui.get_selected_ids(selected)
+        selected_ids: list[str] | None = self._selector_ui.get_selected_ids(selected)
 
-        retrievers = []
+        retrievers: list[BaseFileIndexRetriever] = []
         for cls in self._retriever_pipeline_cls:
             obj = cls.get_pipeline(stripped_settings, self.config, selected_ids)
             if obj is None:

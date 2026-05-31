@@ -1,3 +1,5 @@
+from typing import Any
+
 import gradio as gr
 
 COMPONENTS_CLASS = {
@@ -20,7 +22,7 @@ DEFAULT_COMPONENT_BY_TYPES = {
 }
 
 
-def get_component(component_def: dict) -> gr.components.Component:
+def get_component(component_def: dict[str, Any]) -> gr.components.Component:
     """Get the component based on component definition"""
     component_cls = None
 

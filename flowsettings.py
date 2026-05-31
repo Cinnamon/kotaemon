@@ -2,6 +2,7 @@ import os
 from importlib.metadata import version
 from inspect import currentframe, getframeinfo
 from pathlib import Path
+from typing import Any
 
 from decouple import config
 from ktem.utils.lang import SUPPORTED_LANGUAGE_MAP
@@ -330,7 +331,7 @@ KH_VLM_ENDPOINT = "{0}/openai/deployments/{1}/chat/completions?api-version={2}".
 )
 
 
-SETTINGS_APP: dict[str, dict] = {}
+SETTINGS_APP: dict[str, dict[str, Any]] = {}
 
 
 SETTINGS_REASONING = {

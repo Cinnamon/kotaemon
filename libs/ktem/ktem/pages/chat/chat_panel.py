@@ -1,3 +1,5 @@
+from typing import Any
+
 import gradio as gr
 from ktem.app import BasePage
 from theflow.settings import settings as flowsettings
@@ -19,11 +21,11 @@ else:
 
 
 class ChatPanel(BasePage):
-    def __init__(self, app):
+    def __init__(self, app: Any) -> None:
         self._app = app
         self.on_building_ui()
 
-    def on_building_ui(self):
+    def on_building_ui(self) -> None:
         self.chatbot = gr.Chatbot(
             label=self._app.app_name,
             placeholder=PLACEHOLDER_TEXT,
@@ -46,6 +48,8 @@ class ChatPanel(BasePage):
                 elem_id="chat-input",
             )
 
-    def submit_msg(self, chat_input, chat_history):
+    def submit_msg(
+        self, chat_input: str, chat_history: list[tuple[str, str | None]]
+    ) -> tuple[str, list[tuple[str, str | None]]]:
         """Submit a message to the chatbot"""
         return "", chat_history + [(chat_input, None)]

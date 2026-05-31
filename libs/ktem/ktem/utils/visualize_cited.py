@@ -6,6 +6,7 @@ Refs:
 1. [RAGxplorer](https://github.com/gabrielchua/RAGxplorer)
 2. [RAGVizExpander](https://github.com/KKenny0/RAGVizExpander)
 """
+
 from typing import List, Tuple
 
 import numpy as np
@@ -30,17 +31,21 @@ class CreateCitationVizPipeline(BaseComponent):
     embedding: BaseEmbeddings
     projector: umap.UMAP = None
 
-    def _set_up_umap(self, embeddings: np.ndarray):
+    def _set_up_umap(self, embeddings: np.ndarray) -> umap.UMAP:
         umap_transform = umap.UMAP().fit(embeddings)
         return umap_transform
 
-    def _project_embeddings(self, embeddings, umap_transform) -> np.ndarray:
+    def _project_embeddings(
+        self, embeddings: List[np.ndarray], umap_transform: umap.UMAP
+    ) -> np.ndarray:
         umap_embeddings = np.empty((len(embeddings), 2))
         for i, embedding in enumerate(embeddings):
             umap_embeddings[i] = umap_transform.transform([embedding])
         return umap_embeddings
 
-    def _get_projections(self, embeddings, umap_transform):
+    def _get_projections(
+        self, embeddings: List[np.ndarray], umap_transform: umap.UMAP
+    ) -> Tuple[np.ndarray, np.ndarray]:
         projections = self._project_embeddings(embeddings, umap_transform)
         x = projections[:, 0]
         y = projections[:, 1]
@@ -110,7 +115,7 @@ class CreateCitationVizPipeline(BaseComponent):
         )
         return fig
 
-    def run(self, context: List[str], question: str):
+    def run(self, context: List[str], question: str) -> go.Figure:
         embed_contexts = self.embedding(context)
         context_embeddings = np.array([d.embedding for d in embed_contexts])
 

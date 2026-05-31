@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Callable
+from typing import Callable, Any
 
 from kotaemon.base import BaseComponent, Document, ExtractorOutput, Param
 
@@ -24,7 +24,7 @@ class RegexExtractor(BaseComponent):
         default_callback=lambda *_: {}
     )
 
-    def __init__(self, pattern: str | list[str], **kwargs):
+    def __init__(self, pattern: str | list[str], **kwargs: Any) -> None:
         if isinstance(pattern, str):
             pattern = [pattern]
         super().__init__(pattern=pattern, **kwargs)
@@ -45,7 +45,7 @@ class RegexExtractor(BaseComponent):
         return re.findall(pattern, text)
 
     @staticmethod
-    def map_output(text, output_map) -> str:
+    def map_output(text: str, output_map: dict[str, str] | Callable[[str], str]) -> str:
         """
         Maps the given `text` to its corresponding value in the `output_map` dictionary.
 

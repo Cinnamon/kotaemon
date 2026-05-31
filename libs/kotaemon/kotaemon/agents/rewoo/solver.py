@@ -21,7 +21,9 @@ class Solver(BaseComponent):
         else:
             return "\n\n".join([e.strip("\n") for e in self.examples])
 
-    def _compose_prompt(self, instruction, plan_evidence, output_lang) -> str:
+    def _compose_prompt(
+        self, instruction: str, plan_evidence: str, output_lang: str
+    ) -> str:
         """
         Compose the prompt from template, plan&evidence, examples and instruction.
         """
@@ -53,17 +55,13 @@ class Solver(BaseComponent):
                     lang=output_lang,
                 )
 
-    def run(
-        self,
-        instruction: str,
-        plan_evidence: str,
-        output: BaseScratchPad = BaseScratchPad(),
-    ) -> Any:
+    def run(self, query: str, evidence: str, **kwargs: Any) -> Any:
         response = None
+        output = kwargs.get("output", BaseScratchPad())
         output.info("Running Solver")
-        output.debug(f"Instruction: {instruction}")
-        output.debug(f"Plan Evidence: {plan_evidence}")
-        prompt = self._compose_prompt(instruction, plan_evidence, self.output_lang)
+        output.debug(f"Instruction: {query}")
+        output.debug(f"Plan Evidence: {evidence}")
+        prompt = self._compose_prompt(query, evidence, self.output_lang)
         output.debug(f"Prompt: {prompt}")
         try:
             response = self.model(prompt)
@@ -97,3 +95,7 @@ class Solver(BaseComponent):
             output.error("Solver failed to retrieve response from LLM")
 
         return response
+
+    def solve(self, plan: str, **kwargs: Any) -> str:
+        """Solve the given plan"""
+        return ""  # Return empty string as default implementation

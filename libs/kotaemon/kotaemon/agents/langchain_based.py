@@ -25,16 +25,16 @@ class LangchainAgent(BaseAgent):
     }
     agent: Optional[LCAgentExecutor] = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         if self.agent_type not in self.AGENT_TYPE_MAP:
             raise NotImplementedError(
-                f"AgentType {self.agent_type } not supported by Langchain wrapper"
+                f"AgentType {self.agent_type} not supported by Langchain wrapper"
             )
         self.update_agent_tools()
 
-    def update_agent_tools(self):
+    def update_agent_tools(self) -> None:
         assert isinstance(self.llm, (ChatLLM, LLM))
         langchain_plugins = [tool.to_langchain_format() for tool in self.plugins]
 
@@ -65,9 +65,9 @@ class LangchainAgent(BaseAgent):
         return
 
     def run(self, instruction: str) -> AgentOutput:
-        assert (
-            self.agent is not None
-        ), "Lanchain AgentExecutor is not correctly initialized"
+        assert self.agent is not None, (
+            "Lanchain AgentExecutor is not correctly initialized"
+        )
 
         # Langchain AgentExecutor call
         output = self.agent(instruction)["output"]

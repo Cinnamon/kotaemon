@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
+from typing import Any
 
 import tiktoken
 
@@ -43,13 +44,13 @@ USER_PROMPT_TEMPLATE = PromptTemplate(
         RELEVANCE: """
 )  # noqa
 
-PATTERN_INTEGER: re.Pattern = re.compile(r"([+-]?[1-9][0-9]*|0)")
+PATTERN_INTEGER: re.Pattern[str] = re.compile(r"([+-]?[1-9][0-9]*|0)")
 """Regex that matches integers."""
 
 MAX_CONTEXT_LEN = 7500
 
 
-def validate_rating(rating) -> int:
+def validate_rating(rating: int) -> int:
     """Validate a rating is between 0 and 10."""
 
     if not 0 <= rating <= 10:
@@ -111,9 +112,7 @@ class LLMTrulensScoring(LLMReranking):
     )
 
     def run(
-        self,
-        documents: list[Document],
-        query: str,
+        self, documents: list[Document], query: str, **kwargs: Any
     ) -> list[Document]:
         """Filter down documents based on their relevance to the query."""
         filtered_docs = []
@@ -180,3 +179,6 @@ class LLMTrulensScoring(LLMReranking):
         )
 
         return filtered_docs
+
+    def get_score(self) -> float:
+        return 0.0  # Default implementation

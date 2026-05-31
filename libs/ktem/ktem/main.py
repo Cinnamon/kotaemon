@@ -1,3 +1,4 @@
+from typing import Any
 import gradio as gr
 from decouple import config
 from ktem.app import BaseApp
@@ -18,7 +19,7 @@ if config("KH_FIRST_SETUP", default=False, cast=bool):
     KH_APP_DATA_EXISTS = False
 
 
-def toggle_first_setup_visibility():
+def toggle_first_setup_visibility() -> tuple[gr.Update, gr.Update]:
     global KH_APP_DATA_EXISTS
     is_first_setup = not KH_DEMO_MODE and not KH_APP_DATA_EXISTS
     KH_APP_DATA_EXISTS = True
@@ -39,9 +40,9 @@ class App(BaseApp):
         - Register events
     """
 
-    def ui(self):
+    def ui(self) -> None:
         """Render the UI"""
-        self._tabs = {}
+        self._tabs: dict[str, Any] = {}
 
         with gr.Tabs() as self.tabs:
             if self.f_user_management:
@@ -124,13 +125,13 @@ class App(BaseApp):
             with gr.Column(visible=False) as self.setup_page_wrapper:
                 self.setup_page = SetupPage(self)
 
-    def on_subscribe_public_events(self):
+    def on_subscribe_public_events(self) -> None:
         if self.f_user_management:
             from ktem.db.engine import engine
             from ktem.db.models import User
             from sqlmodel import Session, select
 
-            def toggle_login_visibility(user_id):
+            def toggle_login_visibility(user_id: str) -> list[gr.Update]:
                 if not user_id:
                     return list(
                         (
@@ -155,7 +156,7 @@ class App(BaseApp):
 
                     is_admin = user.admin
 
-                tabs_update = []
+                tabs_update: list[gr.Update] = []
                 for k in self._tabs.keys():
                     if k == "login-tab":
                         tabs_update.append(gr.update(visible=False))
@@ -199,7 +200,7 @@ class App(BaseApp):
                 },
             )
 
-    def _on_app_created(self):
+    def _on_app_created(self) -> None:
         """Called when the app is created"""
 
         if KH_ENABLE_FIRST_SETUP:

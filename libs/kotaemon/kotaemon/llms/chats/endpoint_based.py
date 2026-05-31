@@ -1,4 +1,5 @@
 import requests
+from typing import Any
 
 from kotaemon.base import (
     AIMessage,
@@ -26,7 +27,7 @@ class EndpointChatLLM(ChatLLM):
     )
 
     def run(
-        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs: Any
     ) -> LLMInterface:
         """
         Generate response from messages
@@ -44,7 +45,7 @@ class EndpointChatLLM(ChatLLM):
         else:
             input_ = messages
 
-        def decide_role(message: BaseMessage):
+        def decide_role(message: BaseMessage) -> str:
             if isinstance(message, SystemMessage):
                 return "system"
             elif isinstance(message, AIMessage):
@@ -77,12 +78,12 @@ class EndpointChatLLM(ChatLLM):
         )
 
     def invoke(
-        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs: Any
     ) -> LLMInterface:
         """Same as run"""
         return self.run(messages, **kwargs)
 
     async def ainvoke(
-        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs: Any
     ) -> LLMInterface:
         return self.invoke(messages, **kwargs)

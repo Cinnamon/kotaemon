@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any
 
 import pytest
 from openai.types.chat.chat_completion import ChatCompletion
@@ -39,7 +40,7 @@ _openai_chat_completion_response = ChatCompletion.parse_obj(
 
 
 @pytest.fixture
-def mock_llm():
+def mock_llm() -> Any:
     return AzureChatOpenAI(
         api_key="dummy",
         api_version="2024-05-01-preview",
@@ -49,24 +50,26 @@ def mock_llm():
 
 
 @pytest.fixture
-def mock_post_processor():
+def mock_post_processor() -> Any:
     return RegexExtractor(pattern=r"\d+")
 
 
 @pytest.fixture
-def mock_prompt():
+def mock_prompt() -> Any:
     return BasePromptComponent(template="Test prompt {value}")
 
 
 @pytest.fixture
-def mock_simple_linear_pipeline(mock_prompt, mock_llm, mock_post_processor):
+def mock_simple_linear_pipeline(mock_prompt, mock_llm, mock_post_processor) -> Any:
     return SimpleLinearPipeline(
         prompt=mock_prompt, llm=mock_llm, post_processor=mock_post_processor
     )
 
 
 @pytest.fixture
-def mock_gated_linear_pipeline_positive(mock_prompt, mock_llm, mock_post_processor):
+def mock_gated_linear_pipeline_positive(
+    mock_prompt, mock_llm, mock_post_processor
+) -> Any:
     return GatedLinearPipeline(
         prompt=mock_prompt,
         llm=mock_llm,
@@ -76,7 +79,9 @@ def mock_gated_linear_pipeline_positive(mock_prompt, mock_llm, mock_post_process
 
 
 @pytest.fixture
-def mock_gated_linear_pipeline_negative(mock_prompt, mock_llm, mock_post_processor):
+def mock_gated_linear_pipeline_negative(
+    mock_prompt, mock_llm, mock_post_processor
+) -> Any:
     return GatedLinearPipeline(
         prompt=mock_prompt,
         llm=mock_llm,
@@ -85,7 +90,9 @@ def mock_gated_linear_pipeline_negative(mock_prompt, mock_llm, mock_post_process
     )
 
 
-def test_simple_linear_pipeline_run(mocker, mock_simple_linear_pipeline):
+def test_simple_linear_pipeline_run(
+    mocker: Any, mock_simple_linear_pipeline: Any
+) -> None:
     openai_mocker = mocker.patch(
         "openai.resources.chat.completions.Completions.create",
         return_value=_openai_chat_completion_response,
@@ -98,8 +105,8 @@ def test_simple_linear_pipeline_run(mocker, mock_simple_linear_pipeline):
 
 
 def test_gated_linear_pipeline_run_positive(
-    mocker, mock_gated_linear_pipeline_positive
-):
+    mocker: Any, mock_gated_linear_pipeline_positive: Any
+) -> None:
     openai_mocker = mocker.patch(
         "openai.resources.chat.completions.Completions.create",
         return_value=_openai_chat_completion_response,
@@ -114,8 +121,8 @@ def test_gated_linear_pipeline_run_positive(
 
 
 def test_gated_linear_pipeline_run_negative(
-    mocker, mock_gated_linear_pipeline_positive
-):
+    mocker: Any, mock_gated_linear_pipeline_positive: Any
+) -> None:
     openai_mocker = mocker.patch(
         "openai.resources.chat.completions.Completions.create",
         return_value=_openai_chat_completion_response,
@@ -129,7 +136,9 @@ def test_gated_linear_pipeline_run_negative(
     assert openai_mocker.call_count == 0
 
 
-def test_simple_branching_pipeline_run(mocker, mock_simple_linear_pipeline):
+def test_simple_branching_pipeline_run(
+    mocker: Any, mock_simple_linear_pipeline: Any
+) -> None:
     response0: ChatCompletion = _openai_chat_completion_response
     response1: ChatCompletion = deepcopy(_openai_chat_completion_response)
     response1.choices[0].message.content = "a quick brown fox"
@@ -152,8 +161,10 @@ def test_simple_branching_pipeline_run(mocker, mock_simple_linear_pipeline):
 
 
 def test_simple_gated_branching_pipeline_run(
-    mocker, mock_gated_linear_pipeline_positive, mock_gated_linear_pipeline_negative
-):
+    mocker: Any,
+    mock_gated_linear_pipeline_positive: Any,
+    mock_gated_linear_pipeline_negative: Any,
+) -> None:
     response0: ChatCompletion = deepcopy(_openai_chat_completion_response)
     response0.choices[0].message.content = "a quick brown fox"
     openai_mocker = mocker.patch(
@@ -170,3 +181,15 @@ def test_simple_gated_branching_pipeline_run(
 
     assert result.text == ""
     assert openai_mocker.call_count == 2
+
+
+def test_composite_1(input_: Any) -> None:
+    pass
+
+
+def test_composite_2(input_: Any) -> None:
+    pass
+
+
+def test_composite_3(input_: Any) -> None:
+    pass

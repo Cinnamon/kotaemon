@@ -7,7 +7,7 @@ from .conftest import skip_when_haystack_not_installed
 
 
 @pytest.fixture
-def clean_artifacts_for_telemetry():
+def clean_artifacts_for_telemetry() -> None:
     try:
         del sys.modules["kotaemon"]
     except KeyError:
@@ -29,7 +29,7 @@ def clean_artifacts_for_telemetry():
 
 @pytest.mark.usefixtures("clean_artifacts_for_telemetry")
 @skip_when_haystack_not_installed
-def test_disable_telemetry_import_haystack_first():
+def test_disable_telemetry_import_haystack_first() -> None:
     """Test that telemetry is disabled when kotaemon lib is initiated after"""
     import os
 
@@ -46,7 +46,7 @@ def test_disable_telemetry_import_haystack_first():
 
 @pytest.mark.usefixtures("clean_artifacts_for_telemetry")
 @skip_when_haystack_not_installed
-def test_disable_telemetry_import_haystack_after_kotaemon():
+def test_disable_telemetry_import_haystack_after_kotaemon() -> None:
     """Test that telemetry is disabled when kotaemon lib is initiated before"""
     import os
 

@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Any, Union
 
 import gradio as gr
 import yaml
@@ -9,12 +9,12 @@ from .chat import build_chat_ui
 from .pipeline import build_pipeline_ui
 
 
-def build_from_dict(config: Union[str, dict]):
+def build_from_dict(config: Union[str, dict[str, Any]]) -> gr.Interface:
     """Build a full UI from YAML config file"""
 
     if isinstance(config, str):
         with open(config) as f:
-            config_dict: dict = yaml.safe_load(f)
+            config_dict: dict[str, Any] = yaml.safe_load(f)
     elif isinstance(config, dict):
         config_dict = config
     else:

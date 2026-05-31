@@ -1,16 +1,16 @@
 import logging
 import re
 from functools import partial
-from typing import Optional
+from typing import Optional, Generator
 
 import tiktoken
 
-from kotaemon.agents.base import BaseAgent, BaseLLM
+from kotaemon.agents.base import BaseAgent
 from kotaemon.agents.io import AgentAction, AgentFinish, AgentOutput, AgentType
 from kotaemon.agents.tools import BaseTool
 from kotaemon.base import Document, Param
 from kotaemon.indices.splitters import TokenSplitter
-from kotaemon.llms import PromptTemplate
+from kotaemon.llms import BaseLLM, PromptTemplate
 
 FINAL_ANSWER_ACTION = "Final Answer:"
 
@@ -113,7 +113,7 @@ class ReactAgent(BaseAgent):
 
         return action_output
 
-    def _compose_prompt(self, instruction) -> str:
+    def _compose_prompt(self, instruction: str) -> str:
         """
         Compose the prompt from template, worker description, examples and instruction.
         """
@@ -172,13 +172,33 @@ class ReactAgent(BaseAgent):
         logging.info(f"len (trimmed): {len(trim_text)}")
         return trim_text
 
-    def clear(self):
+    def clear(self) -> None:
         """
         Clear and reset the agent.
         """
         self.intermediate_steps = []
 
-    def run(self, instruction, max_iterations=None) -> AgentOutput:
+    def get_action(self) -> str:
+        """
+        Get the current action of the agent.
+
+        Return:
+            str: The current action.
+        """
+        return ""  # Default implementation
+
+    def get_final_answer(self) -> str:
+        """
+        Get the final answer of the agent.
+
+        Return:
+            str: The final answer.
+        """
+        return ""  # Default implementation
+
+    def run(
+        self, instruction: str, max_iterations: Optional[int] = None
+    ) -> AgentOutput:
         """
         Run the agent with the given instruction.
 
@@ -247,7 +267,9 @@ class ReactAgent(BaseAgent):
             max_iterations=max_iterations,
         )
 
-    def stream(self, instruction, max_iterations=None):
+    def stream(
+        self, instruction: str, max_iterations: Optional[int] = None
+    ) -> Generator[AgentOutput, None, AgentOutput]:
         """
         Stream the agent with the given instruction.
 

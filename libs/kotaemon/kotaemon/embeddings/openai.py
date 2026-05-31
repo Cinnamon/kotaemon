@@ -1,5 +1,5 @@
 from itertools import islice
-from typing import Optional
+from typing import Optional, Any
 
 import numpy as np
 import openai
@@ -12,9 +12,9 @@ from tenacity import (
 )
 from theflow.utils.modules import import_dotted_string
 
-from kotaemon.base import Param
+from kotaemon.base import Document, DocumentWithEmbedding, Param
 
-from .base import BaseEmbeddings, Document, DocumentWithEmbedding
+from .base import BaseEmbeddings
 
 
 def split_text_by_chunk_size(text: str, chunk_size: int) -> list[list[int]]:
@@ -65,14 +65,14 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
     )
 
     @Param.auto(depends_on=["max_retries"])
-    def max_retries_(self):
+    def max_retries_(self) -> int:
         if self.max_retries is None:
             from openai._constants import DEFAULT_MAX_RETRIES
 
             return DEFAULT_MAX_RETRIES
         return self.max_retries
 
-    def prepare_client(self, async_version: bool = False):
+    def prepare_client(self, async_version: bool = False) -> Any:
         """Get the OpenAI client
 
         Args:
@@ -80,12 +80,15 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
         """
         raise NotImplementedError
 
-    def openai_response(self, client, **kwargs):
+    def openai_response(self, client: Any, **kwargs: Any) -> Any:
         """Get the openai response"""
         raise NotImplementedError
 
     def invoke(
-        self, text: str | list[str] | Document | list[Document], *args, **kwargs
+        self,
+        text: str | list[str] | Document | list[Document],
+        *args: Any,
+        **kwargs: Any,
     ) -> list[DocumentWithEmbedding]:
         input_doc = self.prepare_input(text)
         client = self.prepare_client(async_version=False)
@@ -125,7 +128,10 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
         return output
 
     async def ainvoke(
-        self, text: str | list[str] | Document | list[Document], *args, **kwargs
+        self,
+        text: str | list[str] | Document | list[Document],
+        *args: Any,
+        **kwargs: Any,
     ) -> list[DocumentWithEmbedding]:
         input_ = self.prepare_input(text)
         client = self.prepare_client(async_version=True)
@@ -153,7 +159,7 @@ class OpenAIEmbeddings(BaseOpenAIEmbeddings):
         required=True,
     )
 
-    def prepare_client(self, async_version: bool = False):
+    def prepare_client(self, async_version: bool = False) -> Any:
         """Get the OpenAI client
 
         Args:
@@ -182,9 +188,9 @@ class OpenAIEmbeddings(BaseOpenAIEmbeddings):
         wait=wait_random_exponential(min=1, max=40),
         stop=stop_after_attempt(6),
     )
-    def openai_response(self, client, **kwargs):
+    def openai_response(self, client: Any, **kwargs: Any) -> Any:
         """Get the openai response"""
-        params: dict = {
+        params: dict[str, Any] = {
             "model": self.model,
         }
         if self.dimensions:
@@ -210,11 +216,11 @@ class AzureOpenAIEmbeddings(BaseOpenAIEmbeddings):
     azure_ad_token_provider: Optional[str] = Param(None, help="Azure AD token provider")
 
     @Param.auto(depends_on=["azure_ad_token_provider"])
-    def azure_ad_token_provider_(self):
+    def azure_ad_token_provider_(self) -> Any:
         if isinstance(self.azure_ad_token_provider, str):
             return import_dotted_string(self.azure_ad_token_provider, safe=False)
 
-    def prepare_client(self, async_version: bool = False):
+    def prepare_client(self, async_version: bool = False) -> Any:
         """Get the OpenAI client
 
         Args:
@@ -245,9 +251,9 @@ class AzureOpenAIEmbeddings(BaseOpenAIEmbeddings):
         wait=wait_random_exponential(min=1, max=40),
         stop=stop_after_attempt(6),
     )
-    def openai_response(self, client, **kwargs):
+    def openai_response(self, client: Any, **kwargs: Any) -> Any:
         """Get the openai response"""
-        params: dict = {
+        params: dict[str, Any] = {
             "model": self.azure_deployment,
         }
         if self.dimensions:

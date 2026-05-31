@@ -46,7 +46,7 @@ class RewooAgent(BaseAgent):
     trim_func: TokenSplitter | None = None
 
     @Node.auto(depends_on=["planner_llm", "plugins", "prompt_template", "examples"])
-    def planner(self):
+    def planner(self) -> Planner:
         return Planner(
             model=self.planner_llm,
             plugins=self.plugins,
@@ -55,7 +55,7 @@ class RewooAgent(BaseAgent):
         )
 
     @Node.auto(depends_on=["solver_llm", "prompt_template", "examples"])
-    def solver(self):
+    def solver(self) -> Solver:
         return Solver(
             model=self.solver_llm,
             prompt_template=self.prompt_template.get("Solver", None),
@@ -155,8 +155,8 @@ class RewooAgent(BaseAgent):
         e: str,
         planner_evidences: dict[str, str],
         worker_evidences: dict[str, str],
-        output=BaseScratchPad(),
-    ):
+        output: BaseScratchPad = BaseScratchPad(),
+    ) -> dict[str, Any]:
         """
         Run a plugin for a given evidence.
         This function should also cumulate the cost and tokens.
@@ -195,8 +195,8 @@ class RewooAgent(BaseAgent):
         self,
         planner_evidences: dict[str, str],
         evidences_level: list[list[str]],
-        output=BaseScratchPad(),
-    ) -> Any:
+        output: BaseScratchPad = BaseScratchPad(),
+    ) -> tuple[dict[str, str], float, float]:
         """
         Parallel execution of plugins in DAG for speedup.
         This is one of core benefits of ReWOO agents.
@@ -237,12 +237,13 @@ class RewooAgent(BaseAgent):
 
         return worker_evidences, plugin_cost, plugin_token
 
-    def _find_plugin(self, name: str):
+    def _find_plugin(self, name: str) -> BaseTool | None:
         for p in self.plugins:
             if p.name == name:
                 return p
+        return None
 
-    def _trim_evidence(self, evidence: str):
+    def _trim_evidence(self, evidence: str) -> str:
         evidence_trim_func = (
             self.trim_func
             if self.trim_func
@@ -262,6 +263,22 @@ class RewooAgent(BaseAgent):
             evidence = texts[0].text
             logging.info(f"len (trimmed): {len(evidence)}")
             return evidence
+        return ""
+
+    def get_plan(self) -> str:
+        return ""
+
+    def get_evidence(self) -> str:
+        return ""
+
+    def parse_plan(self, plan: str, evidence: str, **kwargs: Any) -> Any:
+        return None
+
+    def validate_plan(self, plan: str, evidence: str, **kwargs: Any) -> Any:
+        return None
+
+    def get_final_answer(self) -> str:
+        return ""
 
     @BaseAgent.safeguard_run
     def run(self, instruction: str, use_citation: bool = False) -> AgentOutput:
@@ -309,7 +326,7 @@ class RewooAgent(BaseAgent):
             metadata={"citation": citation, "worker_log": worker_log},
         )
 
-    def stream(self, instruction: str, use_citation: bool = False):
+    def stream(self, instruction: str, use_citation: bool = False) -> Any:
         """
         Stream the agent with a given instruction.
         """

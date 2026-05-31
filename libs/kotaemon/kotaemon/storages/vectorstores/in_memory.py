@@ -1,4 +1,5 @@
 """Simple vector store index."""
+
 from typing import Any, Optional, Type
 
 import fsspec
@@ -32,9 +33,8 @@ class InMemoryVectorStore(LlamaIndexVectorStore):
         self,
         save_path: str,
         fs: Optional[fsspec.AbstractFileSystem] = None,
-        **kwargs,
-    ):
-
+        **kwargs: Any,
+    ) -> None:
         """save a simpleVectorStore to a dictionary.
 
         Args:
@@ -43,8 +43,9 @@ class InMemoryVectorStore(LlamaIndexVectorStore):
         """
         self._client.persist(persist_path=save_path, fs=fs)
 
-    def load(self, load_path: str, fs: Optional[fsspec.AbstractFileSystem] = None):
-
+    def load(
+        self, load_path: str, fs: Optional[fsspec.AbstractFileSystem] = None
+    ) -> None:
         """Create a SimpleKVStore from a load directory.
 
         Args:
@@ -53,11 +54,11 @@ class InMemoryVectorStore(LlamaIndexVectorStore):
         """
         self._client = self._client.from_persist_path(persist_path=load_path, fs=fs)
 
-    def drop(self):
+    def drop(self) -> None:
         """Clear the old data"""
         self._data = SimpleVectorStoreData()
 
-    def __persist_flow__(self):
+    def __persist_flow__(self) -> dict[str, Any]:
         d = self._data.to_dict()
         d["__type__"] = f"{self._data.__module__}.{self._data.__class__.__qualname__}"
         return {

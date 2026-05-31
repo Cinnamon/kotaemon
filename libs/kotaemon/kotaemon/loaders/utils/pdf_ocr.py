@@ -1,6 +1,6 @@
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 
 from .box import (
     bbox_to_points,
@@ -20,7 +20,9 @@ IOU_THRES = 0.5
 PADDING_THRES = 1.1
 
 
-def read_pdf_unstructured(input_path: Union[Path, str]):
+def read_pdf_unstructured(
+    input_path: Union[Path, str],
+) -> dict[int, list[dict[str, Any]]]:
     """Convert PDF from specified path to list of text items with
     location information
 
@@ -58,8 +60,10 @@ def read_pdf_unstructured(input_path: Union[Path, str]):
 
 
 def merge_ocr_and_pdf_texts(
-    ocr_list: List[dict], pdf_text_list: List[dict], debug_info=None
-):
+    ocr_list: List[dict[str, Any]],
+    pdf_text_list: List[dict[str, Any]],
+    debug_info: Any = None,
+) -> List[dict[str, Any]]:
     """Merge PDF and OCR text using IOU overlapping location
     Args:
         ocr_list: List of OCR items {"text", "box", "location"}
@@ -113,8 +117,11 @@ def merge_ocr_and_pdf_texts(
 
 
 def merge_table_cell_and_ocr(
-    table_list: List[dict], ocr_list: List[dict], pdf_list: List[dict], debug_info=None
-):
+    table_list: List[dict[str, Any]],
+    ocr_list: List[dict[str, Any]],
+    pdf_list: List[dict[str, Any]],
+    debug_info: Any = None,
+) -> tuple[list[list[dict[str, Any]]], list[dict[str, Any]]]:
     """Merge table items with OCR text using IOU overlapping location
     Args:
         table_list: List of table items
@@ -183,8 +190,10 @@ def merge_table_cell_and_ocr(
                             all_box_points_in_cell.extend(item["location"])
                         union_box = union_points(all_box_points_in_cell)
                         cell_okay = (
-                            box_h(union_box) <= box_h(cell["bbox"]) * PADDING_THRES
-                            and box_w(union_box) <= box_w(cell["bbox"]) * PADDING_THRES
+                            box_h(list(union_box))
+                            <= box_h(cell["bbox"]) * PADDING_THRES
+                            and box_w(list(union_box))
+                            <= box_w(cell["bbox"]) * PADDING_THRES
                         )
                     else:
                         cell_okay = False
@@ -225,11 +234,11 @@ def merge_table_cell_and_ocr(
 
 
 def parse_ocr_output(
-    ocr_page_items: List[dict],
-    pdf_page_items: Dict[int, List[dict]],
+    ocr_page_items: List[dict[str, Any]],
+    pdf_page_items: Dict[int, List[dict[str, Any]]],
     artifact_path: Optional[str] = None,
     debug_path: Optional[str] = None,
-):
+) -> tuple[list[tuple[int, str]], list[tuple[int, str]]]:
     """Main function to combine OCR output and PDF text to
     form list of table / non-table regions
     Args:

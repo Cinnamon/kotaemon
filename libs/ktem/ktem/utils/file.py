@@ -5,7 +5,7 @@ class YAMLNoDateSafeLoader(yaml.SafeLoader):
     """Load datetime as strings, not dates"""
 
     @classmethod
-    def remove_implicit_resolver(cls, tag_to_remove):
+    def remove_implicit_resolver(cls, tag_to_remove: str) -> None:
         """Remove implicit resolvers for a particular tag
 
         Args:

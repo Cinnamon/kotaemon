@@ -1,11 +1,12 @@
 import pytest
+from typing import Any, Generator
 
 
 @pytest.fixture(scope="function")
-def mock_google_search(monkeypatch):
+def mock_google_search(monkeypatch: Any) -> None:
     import googlesearch
 
-    def result(*args, **kwargs):
+    def result(*args: Any, **kwargs: Any) -> Generator[Any, None, None]:
         yield googlesearch.SearchResult(
             url="https://www.cinnamon.is/en/",
             title="Cinnamon AI",
@@ -15,7 +16,7 @@ def mock_google_search(monkeypatch):
     monkeypatch.setattr(googlesearch, "search", result)
 
 
-def if_haystack_not_installed():
+def if_haystack_not_installed() -> bool:
     try:
         import haystack  # noqa: F401
     except ImportError:
@@ -24,7 +25,7 @@ def if_haystack_not_installed():
         return False
 
 
-def if_sentence_bert_not_installed():
+def if_sentence_bert_not_installed() -> bool:
     try:
         import sentence_transformers  # noqa: F401
     except ImportError:
@@ -33,7 +34,7 @@ def if_sentence_bert_not_installed():
         return False
 
 
-def if_sentence_fastembed_not_installed():
+def if_sentence_fastembed_not_installed() -> bool:
     try:
         import fastembed  # noqa: F401
     except ImportError:
@@ -42,7 +43,7 @@ def if_sentence_fastembed_not_installed():
         return False
 
 
-def if_unstructured_pdf_not_installed():
+def if_unstructured_pdf_not_installed() -> bool:
     try:
         import unstructured  # noqa: F401
         from unstructured.partition.pdf import partition_pdf  # noqa: F401
@@ -52,7 +53,7 @@ def if_unstructured_pdf_not_installed():
         return False
 
 
-def if_cohere_not_installed():
+def if_cohere_not_installed() -> bool:
     try:
         import cohere  # noqa: F401
     except ImportError:
@@ -61,7 +62,7 @@ def if_cohere_not_installed():
         return False
 
 
-def if_llama_cpp_not_installed():
+def if_llama_cpp_not_installed() -> bool:
     try:
         import llama_cpp  # noqa: F401
     except ImportError:
@@ -70,7 +71,7 @@ def if_llama_cpp_not_installed():
         return False
 
 
-def if_voyageai_not_installed():
+def if_voyageai_not_installed() -> bool:
     try:
         import voyageai  # noqa: F401
     except ImportError:

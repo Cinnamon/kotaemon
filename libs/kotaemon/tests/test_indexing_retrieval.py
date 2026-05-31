@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import cast
+from typing import cast, Any
 from unittest.mock import patch
 
 from openai.types.create_embedding_response import CreateEmbeddingResponse
@@ -18,7 +18,7 @@ with open(Path(__file__).parent / "resources" / "embedding_openai.json") as f:
     "openai.resources.embeddings.Embeddings.create",
     side_effect=lambda *args, **kwargs: openai_embedding,
 )
-def test_indexing(tmp_path):
+def test_indexing(tmp_path: Any) -> None:
     db = ChromaVectorStore(path=str(tmp_path))
     doc_store = InMemoryDocumentStore()
     embedding = AzureOpenAIEmbeddings(
@@ -42,7 +42,7 @@ def test_indexing(tmp_path):
     "openai.resources.embeddings.Embeddings.create",
     side_effect=lambda *args, **kwargs: openai_embedding,
 )
-def test_retrieving(tmp_path):
+def test_retrieving(tmp_path: Any) -> None:
     db = ChromaVectorStore(path=str(tmp_path))
     doc_store = InMemoryDocumentStore()
     embedding = AzureOpenAIEmbeddings(

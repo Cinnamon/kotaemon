@@ -20,8 +20,12 @@ def sync_retrieval_n_message(
 
 
 def get_file_names_regex(input_str: str) -> tuple[list[str], str]:
-    # get all file names with pattern @"filename" in input_str
-    # also remove these file names from input_str
+    """Get all file names with pattern @"filename" in input_str
+    Also remove these file names from input_str
+    """
+    if not input_str:
+        return [], ""
+
     pattern = r'@"([^"]*)"'
     matches = re.findall(pattern, input_str)
     input_str = re.sub(pattern, "", input_str).strip()
@@ -30,8 +34,12 @@ def get_file_names_regex(input_str: str) -> tuple[list[str], str]:
 
 
 def get_urls(input_str: str) -> tuple[list[str], str]:
-    # get all urls in input_str
-    # also remove these urls from input_str
+    """Get all urls in input_str
+    Also remove these urls from input_str
+    """
+    if not input_str:
+        return [], ""
+
     pattern = r"https?://[^\s]+"
     matches = re.findall(pattern, input_str)
     input_str = re.sub(pattern, "", input_str).strip()

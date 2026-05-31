@@ -1,4 +1,5 @@
 """Simple file vector store index."""
+
 from pathlib import Path
 from typing import Any, Optional, Type
 
@@ -46,23 +47,23 @@ class SimpleFileVectorStore(LlamaIndexVectorStore):
     def add(
         self,
         embeddings: list[list[float]] | list[DocumentWithEmbedding],
-        metadatas: Optional[list[dict]] = None,
+        metadatas: Optional[list[dict[str, Any]]] = None,
         ids: Optional[list[str]] = None,
-    ):
+    ) -> list[str]:
         r = super().add(embeddings, metadatas, ids)
         self._client.persist(str(self._save_path), self._fs)
         return r
 
-    def delete(self, ids: list[str], **kwargs):
+    def delete(self, ids: list[str], **kwargs: Any) -> None:
         r = super().delete(ids, **kwargs)
         self._client.persist(str(self._save_path), self._fs)
         return r
 
-    def drop(self):
+    def drop(self) -> None:
         self._data = SimpleVectorStoreData()
         self._save_path.unlink(missing_ok=True)
 
-    def __persist_flow__(self):
+    def __persist_flow__(self) -> dict[str, Any]:
         d = self._data.to_dict()
         d["__type__"] = f"{self._data.__module__}.{self._data.__class__.__qualname__}"
         return {

@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Any
 from uuid import uuid4
 
 import requests
@@ -23,7 +23,9 @@ DEFAULT_OCR_ENDPOINT = "http://127.0.0.1:8000/v2/ai/infer/"
     wait=wait_exponential(multiplier=20, exp_base=2, min=1, max=1000),
     after=after_log(logger, logging.WARNING),
 )
-def tenacious_api_post(url, file_path, table_only, **kwargs):
+def tenacious_api_post(
+    url: str, file_path: Path, table_only: bool, **kwargs: Any
+) -> requests.Response:
     with file_path.open("rb") as content:
         files = {"input": content}
         data = {"job_id": uuid4(), "table_only": table_only}
@@ -51,7 +53,7 @@ class OCRReader(BaseReader):
             If False, only the table and text within table cells will be extracted.
     """
 
-    def __init__(self, endpoint: Optional[str] = None, use_ocr=True):
+    def __init__(self, endpoint: Optional[str] = None, use_ocr: bool = True) -> None:
         """Init the OCR reader with OCR endpoint (FullOCR pipeline)"""
         super().__init__()
         self.ocr_endpoint = endpoint or os.getenv(
@@ -60,7 +62,10 @@ class OCRReader(BaseReader):
         self.use_ocr = use_ocr
 
     def load_data(
-        self, file_path: Path, extra_info: Optional[dict] = None, **kwargs
+        self,
+        file_path: Path,
+        extra_info: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> List[Document]:
         """Load data using OCR reader
 
@@ -155,7 +160,10 @@ class ImageReader(BaseReader):
         )
 
     def load_data(
-        self, file_path: Path, extra_info: Optional[dict] = None, **kwargs
+        self,
+        file_path: str | Path,
+        extra_info: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> List[Document]:
         """Load data using OCR reader
 

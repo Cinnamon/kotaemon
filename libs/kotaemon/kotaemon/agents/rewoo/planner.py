@@ -1,9 +1,9 @@
 from typing import Any, List, Optional, Union
 
-from kotaemon.agents.base import BaseLLM, BaseTool
 from kotaemon.agents.io import BaseScratchPad
+from kotaemon.agents.tools import BaseTool  # Import from correct location
 from kotaemon.base import BaseComponent
-from kotaemon.llms import PromptTemplate
+from kotaemon.llms import BaseLLM, PromptTemplate
 
 from .prompt import few_shot_planner_prompt, zero_shot_planner_prompt
 
@@ -38,7 +38,7 @@ class Planner(BaseComponent):
         else:
             return "\n\n".join([e.strip("\n") for e in self.examples])
 
-    def _compose_prompt(self, instruction) -> str:
+    def _compose_prompt(self, instruction: str) -> str:
         """
         Compose the prompt from template, worker description, examples and instruction.
         """
@@ -82,7 +82,9 @@ class Planner(BaseComponent):
 
         return response
 
-    def stream(self, instruction: str, output: BaseScratchPad = BaseScratchPad()):
+    def stream(
+        self, instruction: str, output: BaseScratchPad = BaseScratchPad()
+    ) -> Any:
         response = None
         output.info("Running Planner")
         prompt = self._compose_prompt(instruction)

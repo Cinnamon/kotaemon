@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any, Type
 
 from kotaemon.base import DocumentWithEmbedding, Param
 
@@ -6,19 +6,19 @@ from .base import BaseEmbeddings
 
 
 class LCEmbeddingMixin:
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         raise NotImplementedError(
             "Please return the relevant Langchain class in in _get_lc_class"
         )
 
-    def __init__(self, **params):
+    def __init__(self, **params: Any) -> None:
         self._lc_class = self._get_lc_class()
         self._obj = self._lc_class(**params)
-        self._kwargs: dict = params
+        self._kwargs: dict[str, Any] = params
 
         super().__init__()
 
-    def run(self, text):
+    def run(self, text: Any) -> list[DocumentWithEmbedding]:
         input_docs = self.prepare_input(text)
         input_ = [doc.text for doc in input_docs]
 
@@ -29,7 +29,7 @@ class LCEmbeddingMixin:
             for doc, each_embedding in zip(input_docs, embeddings)
         ]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         kwargs = []
         for key, value_obj in self._kwargs.items():
             value = repr(value_obj)
@@ -37,7 +37,7 @@ class LCEmbeddingMixin:
         kwargs_repr = ", ".join(kwargs)
         return f"{self.__class__.__name__}({kwargs_repr})"
 
-    def __str__(self):
+    def __str__(self) -> str:
         kwargs = []
         for key, value_obj in self._kwargs.items():
             value = str(value_obj)
@@ -47,7 +47,7 @@ class LCEmbeddingMixin:
         kwargs_repr = ", ".join(kwargs)
         return f"{self.__class__.__name__}({kwargs_repr})"
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         if name == "_lc_class":
             return super().__setattr__(name, value)
 
@@ -57,12 +57,12 @@ class LCEmbeddingMixin:
         else:
             super().__setattr__(name, value)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         if name in self._kwargs:
             return self._kwargs[name]
         return getattr(self._obj, name)
 
-    def dump(self, *args, **kwargs):
+    def dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         from theflow.utils.modules import serialize
 
         params = {key: serialize(value) for key, value in self._kwargs.items()}
@@ -71,7 +71,7 @@ class LCEmbeddingMixin:
             **params,
         }
 
-    def specs(self, path: str):
+    def specs(self, path: str) -> dict[str, Any]:
         path = path.strip(".")
         if "." in path:
             raise ValueError("path should not contain '.'")
@@ -97,8 +97,8 @@ class LCOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
         openai_api_type: Optional[str] = None,
         openai_api_key: Optional[str] = None,
         request_timeout: Optional[float] = None,
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             model=model,
             openai_api_version=openai_api_version,
@@ -109,7 +109,7 @@ class LCOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
             **params,
         )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         try:
             from langchain_openai import OpenAIEmbeddings
         except ImportError:
@@ -128,8 +128,8 @@ class LCAzureOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
         openai_api_key: Optional[str] = None,
         api_version: Optional[str] = None,
         request_timeout: Optional[float] = None,
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             azure_endpoint=azure_endpoint,
             deployment=deployment,
@@ -139,7 +139,7 @@ class LCAzureOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
             **params,
         )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         try:
             from langchain_openai import AzureOpenAIEmbeddings
         except ImportError:
@@ -171,8 +171,8 @@ class LCCohereEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
         cohere_api_key: Optional[str] = None,
         truncate: Optional[str] = None,
         request_timeout: Optional[float] = None,
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             model=model,
             cohere_api_key=cohere_api_key,
@@ -181,7 +181,7 @@ class LCCohereEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
             **params,
         )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         try:
             from langchain_cohere import CohereEmbeddings
         except ImportError:
@@ -205,14 +205,14 @@ class LCHuggingFaceEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
     def __init__(
         self,
         model_name: str = "sentence-transformers/all-mpnet-base-v2",
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             model_name=model_name,
             **params,
         )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         try:
             from langchain_community.embeddings import HuggingFaceBgeEmbeddings
         except ImportError:
@@ -239,15 +239,15 @@ class LCGoogleEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
         self,
         model: str = "models/text-embedding-004",
         google_api_key: Optional[str] = None,
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             model=model,
             google_api_key=google_api_key,
             **params,
         )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         try:
             from langchain_google_genai import GoogleGenerativeAIEmbeddings
         except ImportError:
@@ -274,15 +274,15 @@ class LCMistralEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
         self,
         model: str = "mistral-embed",
         api_key: Optional[str] = None,
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             model=model,
             api_key=api_key,
             **params,
         )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         try:
             from langchain_mistralai import MistralAIEmbeddings
         except ImportError:

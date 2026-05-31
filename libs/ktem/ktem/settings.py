@@ -16,8 +16,8 @@ class SettingItem(BaseModel):
 
     name: str
     value: Any
-    choices: list = Field(default_factory=list)
-    metadata: dict = Field(default_factory=dict)
+    choices: list[Any] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
     component: str = "text"
     special_type: str = ""
 
@@ -26,15 +26,15 @@ class BaseSettingGroup(BaseModel):
     settings: dict[str, "SettingItem"] = Field(default_factory=dict)
     options: dict[str, "BaseSettingGroup"] = Field(default_factory=dict)
 
-    def _get_options(self) -> dict:
+    def _get_options(self) -> dict[str, Any]:
         return {}
 
-    def finalize(self):
+    def finalize(self) -> None:
         """Finalize the setting group"""
 
-    def flatten(self) -> dict:
+    def flatten(self) -> dict[str, Any]:
         """Render the setting group into value"""
-        output = {}
+        output: dict[str, Any] = {}
         for key, value in self.settings.items():
             output[key] = value.value
 
@@ -56,20 +56,20 @@ class BaseSettingGroup(BaseModel):
         option = self.options[option_id]
         return option.get_setting_item(sub_path)
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self.settings) or bool(self.options)
 
 
 class SettingReasoningGroup(BaseSettingGroup):
-    def _get_options(self) -> dict:
-        output = {}
+    def _get_options(self) -> dict[str, Any]:
+        output: dict[str, Any] = {}
         for ex_name, ex_setting in self.options.items():
             for key, value in ex_setting.flatten().items():
                 output[f"{ex_name}.{key}"] = value
 
         return output
 
-    def finalize(self):
+    def finalize(self) -> None:
         """Finalize the setting"""
         options = list(self.options.keys())
         if options:
@@ -85,13 +85,13 @@ class SettingIndexOption(BaseSettingGroup):
     indexing: BaseSettingGroup
     retrieval: BaseSettingGroup
 
-    def flatten(self) -> dict:
+    def flatten(self) -> dict[str, Any]:
         """Render the setting group into value"""
-        output = {}
-        for key, value in self.indexing.flatten():
+        output: dict[str, Any] = {}
+        for key, value in self.indexing.flatten().items():
             output[f"indexing.{key}"] = value
 
-        for key, value in self.retrieval.flatten():
+        for key, value in self.retrieval.flatten().items():
             output[f"retrieval.{key}"] = value
 
         return output
@@ -111,8 +111,8 @@ class SettingIndexOption(BaseSettingGroup):
 
 
 class SettingIndexGroup(BaseSettingGroup):
-    def _get_options(self) -> dict:
-        output = {}
+    def _get_options(self) -> dict[str, Any]:
+        output: dict[str, Any] = {}
         for name, setting in self.options.items():
             for key, value in setting.flatten().items():
                 output[f"{name}.{key}"] = value
@@ -125,9 +125,9 @@ class SettingGroup(BaseModel):
     index: SettingIndexGroup = Field(default_factory=SettingIndexGroup)
     reasoning: SettingReasoningGroup = Field(default_factory=SettingReasoningGroup)
 
-    def flatten(self) -> dict:
+    def flatten(self) -> dict[str, Any]:
         """Render the setting group into value"""
-        output = {}
+        output: dict[str, Any] = {}
         for key, value in self.application.flatten().items():
             output[f"application.{key}"] = value
 

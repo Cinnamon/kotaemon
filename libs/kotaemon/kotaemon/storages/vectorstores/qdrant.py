@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, cast
+from typing import Any, List, Optional, cast, Type
 
 from .base import LlamaIndexVectorStore
 
@@ -6,7 +6,7 @@ from .base import LlamaIndexVectorStore
 class QdrantVectorStore(LlamaIndexVectorStore):
     _li_class = None
 
-    def _get_li_class(self):
+    def _get_li_class(self) -> Type[Any]:
         try:
             from llama_index.vector_stores.qdrant import (
                 QdrantVectorStore as LIQdrantVectorStore,
@@ -21,12 +21,12 @@ class QdrantVectorStore(LlamaIndexVectorStore):
 
     def __init__(
         self,
-        collection_name,
+        collection_name: str,
         url: Optional[str] = None,
         api_key: Optional[str] = None,
-        client_kwargs: Optional[dict] = None,
+        client_kwargs: Optional[dict[str, Any]] = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         self._collection_name = collection_name
         self._url = url
         self._api_key = api_key
@@ -46,7 +46,7 @@ class QdrantVectorStore(LlamaIndexVectorStore):
 
         self._client = cast(LIQdrantVectorStore, self._client)
 
-    def delete(self, ids: List[str], **kwargs):
+    def delete(self, ids: List[str], **kwargs: Any) -> None:
         """Delete vector embeddings from vector stores
 
         Args:
@@ -63,7 +63,7 @@ class QdrantVectorStore(LlamaIndexVectorStore):
             **kwargs,
         )
 
-    def drop(self):
+    def drop(self) -> None:
         """Delete entire collection from vector stores"""
         self._client.client.delete_collection(self._collection_name)
 
@@ -72,7 +72,7 @@ class QdrantVectorStore(LlamaIndexVectorStore):
             collection_name=self._collection_name, exact=True
         ).count
 
-    def __persist_flow__(self):
+    def __persist_flow__(self) -> dict[str, Any]:
         return {
             "collection_name": self._collection_name,
             "url": self._url,

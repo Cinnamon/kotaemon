@@ -1,9 +1,10 @@
 import networkx as nx
 import plotly.graph_objects as go
 from plotly.io import to_json
+import pandas as pd
 
 
-def create_knowledge_graph(df):
+def create_knowledge_graph(df: pd.DataFrame) -> nx.Graph:
     """
     create nx Graph from DataFrame relations data
     """
@@ -17,7 +18,7 @@ def create_knowledge_graph(df):
     return G
 
 
-def visualize_graph(G):
+def visualize_graph(G: nx.Graph) -> str:
     pos = nx.spring_layout(G, dim=2)
 
     edge_x = []

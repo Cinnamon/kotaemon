@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Callable, List
+from typing import Callable, List, Any
 
 from theflow import Function, Node, Param
 
@@ -83,11 +83,11 @@ class Thought(BaseComponent):
     )
 
     @Node.auto(depends_on="prompt")
-    def prompt_template(self):
+    def prompt_template(self) -> BasePromptComponent:
         """Automatically wrap around param prompt. Can ignore"""
         return BasePromptComponent(template=self.prompt)
 
-    def run(self, **kwargs) -> Document:
+    def run(self, **kwargs: Any) -> Document:
         """Run the chain of thought"""
         prompt = self.prompt_template(**kwargs).text
         response = self.llm(prompt).text
@@ -148,12 +148,12 @@ class ManualSequentialChainOfThought(BaseComponent):
         default_callback=lambda *_: [], help="List of Thought"
     )
     llm: LLM = Param(help="The LLM model to use (base of kotaemon.llms.BaseLLM)")
-    terminate: Callable = Param(
+    terminate: Callable[..., bool] = Param(
         default=lambda _: False,
         help="Callback on terminate condition. Default to always return False",
     )
 
-    def run(self, **kwargs) -> Document:
+    def run(self, text: str, **kwargs: Any) -> Document:
         """Run the manual chain of thought"""
 
         inputs = deepcopy(kwargs)
@@ -168,6 +168,22 @@ class ManualSequentialChainOfThought(BaseComponent):
                 break
 
         return Document(inputs)
+
+    def forward(self, text: str, **kwargs: Any) -> Document:
+        """Forward method for the chain of thought"""
+        return self.run(text, **kwargs)
+
+    def prepare_cot_examples(self, cot_examples: list[str], **kwargs: Any) -> str:
+        """Prepare chain of thought examples"""
+        return ""
+
+    def get_format_instructions(self) -> str:
+        """Get format instructions"""
+        return ""
+
+    def parse(self, text: str) -> Any:
+        """Parse the text"""
+        return text
 
     def __add__(self, next_thought: Thought) -> "ManualSequentialChainOfThought":
         return ManualSequentialChainOfThought(

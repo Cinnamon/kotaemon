@@ -1,3 +1,5 @@
+from typing import Any, Type
+
 from ..base import DocTransformer, LlamaIndexDocTransformerMixin
 
 
@@ -13,8 +15,8 @@ class TokenSplitter(LlamaIndexDocTransformerMixin, BaseSplitter):
         chunk_size: int = 1024,
         chunk_overlap: int = 20,
         separator: str = " ",
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
@@ -22,7 +24,7 @@ class TokenSplitter(LlamaIndexDocTransformerMixin, BaseSplitter):
             **params,
         )
 
-    def _get_li_class(self):
+    def _get_li_class(self) -> Type[Any]:
         from llama_index.core.text_splitter import TokenTextSplitter
 
         return TokenTextSplitter
@@ -34,8 +36,8 @@ class SentenceWindowSplitter(LlamaIndexDocTransformerMixin, BaseSplitter):
         window_size: int = 3,
         window_metadata_key: str = "window",
         original_text_metadata_key: str = "original_text",
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             window_size=window_size,
             window_metadata_key=window_metadata_key,
@@ -43,7 +45,7 @@ class SentenceWindowSplitter(LlamaIndexDocTransformerMixin, BaseSplitter):
             **params,
         )
 
-    def _get_li_class(self):
+    def _get_li_class(self) -> Type[Any]:
         from llama_index.core.node_parser import SentenceWindowNodeParser
 
         return SentenceWindowNodeParser

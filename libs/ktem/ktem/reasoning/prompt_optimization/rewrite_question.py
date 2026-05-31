@@ -28,7 +28,7 @@ class RewriteQuestionPipeline(BaseComponent):
 
     lang: str = "English"
 
-    def run(self, question: str) -> Document:  # type: ignore
+    def run(self, question: str) -> Document:
         prompt_template = PromptTemplate(self.rewrite_template)
         prompt = prompt_template.populate(question=question, lang=self.lang)
         messages = [

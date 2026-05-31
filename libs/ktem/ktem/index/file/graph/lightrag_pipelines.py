@@ -4,7 +4,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Generator
+from typing import Generator, Any
 
 import numpy as np
 import pandas as pd
@@ -253,7 +253,7 @@ class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
     collection_graph_id: str
     index_batch_size: int = INDEX_BATCHSIZE
 
-    def store_file_id_with_graph_id(self, file_ids: list[str | None]):
+    def store_file_id_with_graph_id(self, file_ids: list[str | None]) -> str:
         if not settings.USE_GLOBAL_GRAPHRAG:
             return super().store_file_id_with_graph_id(file_ids)
 
@@ -294,9 +294,7 @@ class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
             blacklist_keywords = ["default", "response", "process"]
             settings_dict = {
                 "batch_size": {
-                    "name": (
-                        "Index batch size " "(reduce if you have rate limit issues)"
-                    ),
+                    "name": ("Index batch size (reduce if you have rate limit issues)"),
                     "value": INDEX_BATCHSIZE,
                     "component": "number",
                 }
@@ -321,7 +319,9 @@ class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
             print(e)
             return {}
 
-    def call_graphrag_index(self, graph_id: str, docs: list[Document]):
+    def call_graphrag_index(
+        self, graph_id: str, docs: list[Document]
+    ) -> Generator[Document, None, None]:
         from lightrag.prompt import PROMPTS
 
         # modify the prompt if it is set in the settings
@@ -432,7 +432,7 @@ class LightRAGRetrieverPipeline(BaseFileIndexRetriever):
             }
         }
 
-    def _build_graph_search(self):
+    def _build_graph_search(self) -> tuple[LightRAG, QueryParam]:
         file_id = self.file_ids[0]
 
         # retrieve the graph_id from the index
@@ -472,7 +472,7 @@ class LightRAGRetrieverPipeline(BaseFileIndexRetriever):
         )
 
     def format_context_records(
-        self, entities, relationships, sources
+        self, entities: pd.DataFrame, relationships: pd.DataFrame, sources: pd.DataFrame
     ) -> list[RetrievedDocument]:
         docs = []
         context: str = ""
@@ -498,7 +498,7 @@ class LightRAGRetrieverPipeline(BaseFileIndexRetriever):
 
         return docs
 
-    def plot_graph(self, relationships):
+    def plot_graph(self, relationships: pd.DataFrame) -> Any:
         G = create_knowledge_graph(relationships)
         plot = visualize_graph(G)
         return plot

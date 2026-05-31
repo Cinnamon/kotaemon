@@ -28,14 +28,14 @@ class BaseTool(BaseComponent):
     """Pydantic model class to validate and parse the tool's input arguments."""
     verbose: bool = False
     """Whether to log the tool's progress."""
-    handle_tool_error: Optional[
-        Union[bool, str, Callable[[ToolException], str]]
-    ] = False
+    handle_tool_error: Optional[Union[bool, str, Callable[[ToolException], str]]] = (
+        False
+    )
     """Handle the content of the ToolException thrown."""
 
     def _parse_input(
         self,
-        tool_input: Union[str, Dict],
+        tool_input: Union[str, Dict[str, Any]],
     ) -> Union[str, Dict[str, Any]]:
         """Convert tool input to pydantic model."""
         args_schema = self.args_schema
@@ -58,7 +58,9 @@ class BaseTool(BaseComponent):
         """Call tool."""
         raise NotImplementedError(f"_run_tool is not implemented for {self.name}")
 
-    def _to_args_and_kwargs(self, tool_input: Union[str, Dict]) -> Tuple[Tuple, Dict]:
+    def _to_args_and_kwargs(
+        self, tool_input: Union[str, Dict[str, Any]]
+    ) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
         # For backwards compatibility, if run_input is a string,
         # pass as a positional argument.
         if isinstance(tool_input, str):
@@ -93,7 +95,7 @@ class BaseTool(BaseComponent):
 
     def run(
         self,
-        tool_input: Union[str, Dict],
+        tool_input: Union[str, Dict[str, Any]],
         verbose: Optional[bool] = None,
         **kwargs: Any,
     ) -> Any:
@@ -129,7 +131,7 @@ class ComponentTool(BaseTool):
     """
 
     component: BaseComponent
-    postprocessor: Optional[Callable] = None
+    postprocessor: Optional[Callable[..., Any]] = None
 
     def _run_tool(self, *args: Any, **kwargs: Any) -> Any:
         output = self.component(*args, **kwargs)

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Any
 
 from kotaemon.base import Document, DocumentWithEmbedding, Param
 
@@ -49,7 +49,10 @@ class FastEmbedEmbeddings(BaseEmbeddings):
         return TextEmbedding(model_name=self.model_name)
 
     def invoke(
-        self, text: str | list[str] | Document | list[Document], *args, **kwargs
+        self,
+        text: str | list[str] | Document | list[Document],
+        *args: Any,
+        **kwargs: Any,
     ) -> list[DocumentWithEmbedding]:
         input_ = self.prepare_input(text)
         embeddings = self.client_.embed(
@@ -66,7 +69,10 @@ class FastEmbedEmbeddings(BaseEmbeddings):
         ]
 
     async def ainvoke(
-        self, text: str | list[str] | Document | list[Document], *args, **kwargs
+        self,
+        text: str | list[str] | Document | list[Document],
+        *args: Any,
+        **kwargs: Any,
     ) -> list[DocumentWithEmbedding]:
         """Fastembed does not support async API."""
         return self.invoke(text, *args, **kwargs)

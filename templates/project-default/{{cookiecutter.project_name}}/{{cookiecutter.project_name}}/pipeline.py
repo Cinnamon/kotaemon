@@ -16,7 +16,6 @@ class QAResultLog(ResultLog):
 
 
 class QuestionAnsweringPipeline(BaseComponent):
-
     _promptui_resultlog = QAResultLog
     _promptui_outputs: list = [
         {
@@ -73,7 +72,6 @@ class QuestionAnsweringPipeline(BaseComponent):
 
 
 class IndexingPipeline(VectorIndexing):
-
     vector_store: ChromaVectorStore = Param(
         lazy(ChromaVectorStore).withx(path="./tmp"),
         ignore_ui=True,

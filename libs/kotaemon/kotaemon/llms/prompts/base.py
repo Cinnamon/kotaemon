@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Any
 
 from theflow import Param
 
@@ -24,18 +24,18 @@ class BasePromptComponent(BaseComponent):
     template: str | PromptTemplate
 
     @Param.auto(depends_on="template")
-    def template__(self):
+    def template__(self) -> PromptTemplate:
         return (
             self.template
             if isinstance(self.template, PromptTemplate)
             else PromptTemplate(self.template)
         )
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.__set(**kwargs)
 
-    def __check_redundant_kwargs(self, **kwargs):
+    def __check_redundant_kwargs(self, **kwargs: Any) -> None:
         """
         Check for redundant keyword arguments.
 
@@ -50,7 +50,7 @@ class BasePromptComponent(BaseComponent):
         """
         self.template__.check_redundant_kwargs(**kwargs)
 
-    def __check_unset_placeholders(self):
+    def __check_unset_placeholders(self) -> None:
         """
         Check if all the placeholders in the template are set.
 
@@ -66,7 +66,7 @@ class BasePromptComponent(BaseComponent):
         """
         self.template__.check_missing_kwargs(**self.__dict__)
 
-    def __validate_value_type(self, **kwargs):
+    def __validate_value_type(self, **kwargs: Any) -> None:
         """
         Validates the value types of the given keyword arguments.
 
@@ -93,7 +93,7 @@ class BasePromptComponent(BaseComponent):
                 f"found unsupported type for (key, type): {type_error}"
             )
 
-    def __set(self, **kwargs):
+    def __set(self, **kwargs: Any) -> None:
         """
         Set the values of the attributes in the object based on the provided keyword
             arguments.
@@ -110,7 +110,7 @@ class BasePromptComponent(BaseComponent):
 
         self.__dict__.update(kwargs)
 
-    def __prepare_value(self):
+    def __prepare_value(self) -> dict[str, str]:
         """
         Generate a dictionary of keyword arguments based on the template's placeholders
             and the current instance's attributes.
@@ -119,7 +119,7 @@ class BasePromptComponent(BaseComponent):
             dict: A dictionary of keyword arguments.
         """
 
-        def __prepare(key, value):
+        def __prepare(key: str, value: Any) -> str:
             if isinstance(value, str):
                 return value
             if isinstance(value, (int, Document)):
@@ -149,7 +149,7 @@ class BasePromptComponent(BaseComponent):
 
         return kwargs
 
-    def set_value(self, **kwargs):
+    def set_value(self, **kwargs: Any) -> None:
         """
         Similar to `__set` but for external use.
 
@@ -165,7 +165,7 @@ class BasePromptComponent(BaseComponent):
         """
         self.__set(**kwargs)
 
-    def run(self, **kwargs):
+    def run(self, **kwargs: Any) -> Document:
         """
         Run the function with the given keyword arguments.
 
@@ -183,5 +183,5 @@ class BasePromptComponent(BaseComponent):
         text = self.template__.populate(**prepared_kwargs)
         return Document(text=text, metadata={"origin": "PromptComponent"})
 
-    def flow(self):
+    def flow(self) -> Document:
         return self.__call__()

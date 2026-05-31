@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Any
 
 from kotaemon.base import Document
 
@@ -16,8 +16,8 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
         elasticsearch_url: str = "http://localhost:9200",
         k1: float = 2.0,
         b: float = 0.75,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         try:
             from elasticsearch import Elasticsearch
             from elasticsearch.helpers import bulk
@@ -65,8 +65,8 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
         docs: Union[Document, List[Document]],
         ids: Optional[Union[List[str], str]] = None,
         refresh_indices: bool = True,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """Add document into document store
 
         Args:
@@ -100,7 +100,7 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
         if refresh_indices:
             self.client.indices.refresh(index=self.index_name)
 
-    def query_raw(self, query: dict) -> List[Document]:
+    def query_raw(self, query: dict[str, Any]) -> List[Document]:
         """Query Elasticsearch store using query format of ES client
 
         Args:
@@ -122,7 +122,7 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
         return docs
 
     def query(
-        self, query: str, top_k: int = 10, doc_ids: Optional[list] = None
+        self, query: str, top_k: int = 10, doc_ids: Optional[list[str]] = None
     ) -> List[Document]:
         """Search Elasticsearch docstore using search query (BM25)
 
@@ -134,7 +134,7 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
         Returns:
             List[Document]: List of result documents
         """
-        query_dict: dict = {"match": {"content": query}}
+        query_dict: dict[str, Any] = {"match": {"content": query}}
         if doc_ids is not None:
             query_dict = {"bool": {"must": [query_dict, {"terms": {"_id": doc_ids}}]}}
         query_dict = {"query": query_dict, "size": top_k}
@@ -159,7 +159,7 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
         query_dict = {"query": {"match_all": {}}, "size": MAX_DOCS_TO_GET}
         return self.query_raw(query_dict)
 
-    def delete(self, ids: Union[List[str], str]):
+    def delete(self, ids: Union[List[str], str]) -> None:
         """Delete document by id"""
         if not isinstance(ids, list):
             ids = [ids]
@@ -168,12 +168,12 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
         self.client.delete_by_query(index=self.index_name, body=query)
         self.client.indices.refresh(index=self.index_name)
 
-    def drop(self):
+    def drop(self) -> None:
         """Drop the document store"""
         self.client.indices.delete(index=self.index_name)
         self.client.indices.refresh(index=self.index_name)
 
-    def __persist_flow__(self):
+    def __persist_flow__(self) -> dict[str, Any]:
         return {
             "index_name": self.index_name,
             "elasticsearch_url": self.elasticsearch_url,

@@ -1,6 +1,6 @@
 import threading
 from collections import defaultdict
-from typing import Generator
+from typing import Generator, Any
 
 import numpy as np
 from decouple import config
@@ -388,8 +388,7 @@ class AnswerWithContextPipeline(BaseComponent):
             doc = id2docs[id_]
             doc_score = doc.metadata.get("llm_trulens_score", 0.0)
             is_open = not has_llm_score or (
-                doc_score
-                > CONTEXT_RELEVANT_WARNING_SCORE
+                doc_score > CONTEXT_RELEVANT_WARNING_SCORE
                 # and len(with_citation) == 0
             )
             without_citation.append(
@@ -401,3 +400,33 @@ class AnswerWithContextPipeline(BaseComponent):
                 )
             )
         return with_citation, without_citation
+
+    def prepare_llm_kwargs(
+        self, query: str, contexts: list[Document], **kwargs: Any
+    ) -> dict[str, Any]:
+        """Prepare kwargs for LLM call"""
+        return {}
+
+    def prepare_context_text(self, contexts: list[Document], **kwargs: Any) -> str:
+        """Prepare context text from documents"""
+        return ""
+
+    def prepare_query_text(self, query: str, **kwargs: Any) -> str:
+        """Prepare query text"""
+        return query
+
+    def get_citation_text(self) -> str:
+        """Get citation text"""
+        return ""
+
+    def get_qa_text(self) -> str:
+        """Get QA text"""
+        return ""
+
+    def format_context_text(self, contexts: list[Document], **kwargs: Any) -> str:
+        """Format context text"""
+        return ""
+
+    def format_citation_text(self, contexts: list[Document], **kwargs: Any) -> str:
+        """Format citation text"""
+        return ""

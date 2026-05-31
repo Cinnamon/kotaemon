@@ -11,18 +11,18 @@ ARXIV_URL_PATTERNS = [
 ILLEGAL_NAME_CHARS = ["\\", "/", ":", "*", "?", '"', "<", ">", "|"]
 
 
-def clean_name(name):
+def clean_name(name: str) -> str:
     for char in ILLEGAL_NAME_CHARS:
         name = name.replace(char, "_")
     return name
 
 
-def is_arxiv_url(url):
+def is_arxiv_url(url: str) -> bool:
     return any(url.startswith(pattern) for pattern in ARXIV_URL_PATTERNS)
 
 
 # download PDF from Arxiv URL
-def download_arxiv_pdf(url, output_path):
+def download_arxiv_pdf(url: str, output_path: str) -> str:
     if not is_arxiv_url(url):
         raise ValueError("Invalid Arxiv URL")
 

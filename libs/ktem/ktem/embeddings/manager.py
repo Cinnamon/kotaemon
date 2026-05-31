@@ -1,4 +1,4 @@
-from typing import Optional, Type
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -13,11 +13,11 @@ from .db import EmbeddingTable, engine
 class EmbeddingManager:
     """Represent a pool of models"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._models: dict[str, BaseEmbeddings] = {}
-        self._info: dict[str, dict] = {}
+        self._info: dict[str, dict[str, Any]] = {}
         self._default: str = ""
-        self._vendors: list[Type] = []
+        self._vendors: list[type[BaseEmbeddings]] = []
 
         # populate the pool if empty
         if hasattr(flowsettings, "KH_EMBEDDINGS"):
@@ -34,7 +34,7 @@ class EmbeddingManager:
         self.load()
         self.load_vendors()
 
-    def load(self):
+    def load(self) -> None:
         """Load the model pool from database"""
         self._models, self._info, self._default = {}, {}, ""
         with Session(engine) as sess:
@@ -52,7 +52,7 @@ class EmbeddingManager:
                     self._default = item.name
                     self._models["default"] = self._models[item.name]
 
-    def load_vendors(self):
+    def load_vendors(self) -> None:
         from kotaemon.embeddings import (
             AzureOpenAIEmbeddings,
             FastEmbedEmbeddings,
@@ -86,12 +86,12 @@ class EmbeddingManager:
         return key in self._models
 
     def get(
-        self, key: str, default: Optional[BaseEmbeddings] = None
-    ) -> Optional[BaseEmbeddings]:
+        self, key: str, default: BaseEmbeddings | None = None
+    ) -> BaseEmbeddings | None:
         """Get model by name with default value"""
         return self._models.get(key, default)
 
-    def settings(self) -> dict:
+    def settings(self) -> dict[str, Any]:
         """Present model pools option for gradio"""
         return {
             "label": "Embedding",
@@ -99,7 +99,7 @@ class EmbeddingManager:
             "value": self.get_default_name(),
         }
 
-    def options(self) -> dict:
+    def options(self) -> dict[str, BaseEmbeddings]:
         """Present a dict of models"""
         return self._models
 
@@ -109,10 +109,10 @@ class EmbeddingManager:
         Returns:
             str: random model name in the pool
         """
-        import random
-
         if not self._models:
             raise ValueError("No models in pool")
+
+        import random
 
         return random.choice(list(self._models.keys()))
 
@@ -148,11 +148,11 @@ class EmbeddingManager:
         """
         return self._models[self.get_default_name()]
 
-    def info(self) -> dict:
+    def info(self) -> dict[str, dict[str, Any]]:
         """List all models"""
         return self._info
 
-    def add(self, name: str, spec: dict, default: bool):
+    def add(self, name: str, spec: dict[str, Any], *, default: bool) -> None:
         """Add a new model to the pool"""
         if not name:
             raise ValueError("Name must not be empty")
@@ -168,30 +168,34 @@ class EmbeddingManager:
                 sess.add(item)
                 sess.commit()
         except Exception as e:
-            raise ValueError(f"Failed to add model {name}: {e}")
+            raise ValueError(f"Failed to add model {name}: {e}") from e
 
         self.load()
 
-    def delete(self, name: str):
+    def delete(self, name: str) -> None:
         """Delete a model from the pool"""
+        if not name:
+            raise ValueError("Name must not be empty")
+
         try:
             with Session(engine) as sess:
                 item = sess.query(EmbeddingTable).filter_by(name=name).first()
+                if not item:
+                    raise ValueError(f"Model {name} not found")
                 sess.delete(item)
                 sess.commit()
         except Exception as e:
-            raise ValueError(f"Failed to delete model {name}: {e}")
+            raise ValueError(f"Failed to delete model {name}: {e}") from e
 
         self.load()
 
-    def update(self, name: str, spec: dict, default: bool):
+    def update(self, name: str, spec: dict[str, Any], *, default: bool) -> None:
         """Update a model in the pool"""
         if not name:
             raise ValueError("Name must not be empty")
 
         try:
             with Session(engine) as sess:
-
                 if default:
                     # turn all models to non-default
                     sess.query(EmbeddingTable).update({"default": False})
@@ -204,11 +208,11 @@ class EmbeddingManager:
                 item.default = default
                 sess.commit()
         except Exception as e:
-            raise ValueError(f"Failed to update model {name}: {e}")
+            raise ValueError(f"Failed to update model {name}: {e}") from e
 
         self.load()
 
-    def vendors(self) -> dict:
+    def vendors(self) -> dict[str, type[BaseEmbeddings]]:
         """Return list of vendors"""
         return {vendor.__qualname__: vendor for vendor in self._vendors}
 

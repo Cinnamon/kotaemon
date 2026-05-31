@@ -1,5 +1,5 @@
 import os
-from typing import Any, Optional, cast
+from typing import Any, Optional, cast, Type
 
 from kotaemon.base import DocumentWithEmbedding
 
@@ -9,7 +9,7 @@ from .base import LlamaIndexVectorStore
 class MilvusVectorStore(LlamaIndexVectorStore):
     _li_class = None
 
-    def _get_li_class(self):
+    def _get_li_class(self) -> Type[Any]:
         try:
             from llama_index.vector_stores.milvus import (
                 MilvusVectorStore as LIMilvusVectorStore,
@@ -28,7 +28,7 @@ class MilvusVectorStore(LlamaIndexVectorStore):
         collection_name: str = "default",
         token: Optional[str] = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         self._uri = uri
         self._collection_name = collection_name
         self._token = token
@@ -36,7 +36,7 @@ class MilvusVectorStore(LlamaIndexVectorStore):
         self._path = kwargs.get("path", None)
         self._inited = False
 
-    def _lazy_init(self, dim: Optional[int] = None):
+    def _lazy_init(self, dim: Optional[int] = None) -> None:
         """
         Lazy init the client.
         Because the LlamaIndex init method requires the dim parameter,
@@ -46,7 +46,11 @@ class MilvusVectorStore(LlamaIndexVectorStore):
             dim: Dimension of the vectors.
         """
         if not self._inited:
-            if os.path.isdir(self._path) and not self._uri.startswith("http"):
+            if (
+                self._path
+                and os.path.isdir(self._path)
+                and not self._uri.startswith("http")
+            ):
                 uri = os.path.join(self._path, self._uri)
             else:
                 uri = self._uri
@@ -67,9 +71,9 @@ class MilvusVectorStore(LlamaIndexVectorStore):
     def add(
         self,
         embeddings: list[list[float]] | list[DocumentWithEmbedding],
-        metadatas: Optional[list[dict]] = None,
+        metadatas: Optional[list[dict[str, Any]]] = None,
         ids: Optional[list[str]] = None,
-    ):
+    ) -> list[str]:
         if not self._inited:
             if isinstance(embeddings[0], list):
                 dim = len(embeddings[0])
@@ -84,17 +88,17 @@ class MilvusVectorStore(LlamaIndexVectorStore):
         embedding: list[float],
         top_k: int = 1,
         ids: Optional[list[str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> tuple[list[list[float]], list[float], list[str]]:
         self._lazy_init(len(embedding))
 
         return super().query(embedding=embedding, top_k=top_k, ids=ids, **kwargs)
 
-    def delete(self, ids: list[str], **kwargs):
+    def delete(self, ids: list[str], **kwargs: Any) -> None:
         self._lazy_init()
         super().delete(ids=ids, **kwargs)
 
-    def drop(self):
+    def drop(self) -> None:
         self._client.client.drop_collection(self._collection_name)
 
     def count(self) -> int:
@@ -106,7 +110,7 @@ class MilvusVectorStore(LlamaIndexVectorStore):
             collection_name=self._collection_name, output_fields=["count(*)"]
         )[0]["count(*)"]
 
-    def __persist_flow__(self):
+    def __persist_flow__(self) -> dict[str, Any]:
         return {
             "uri": self._uri,
             "collection_name": self._collection_name,

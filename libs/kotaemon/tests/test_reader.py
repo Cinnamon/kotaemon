@@ -1,5 +1,6 @@
 from pathlib import Path
 from unittest.mock import patch
+from typing import Any
 
 from langchain.schema import Document as LangchainDocument
 from llama_index.core.node_parser import SimpleNodeParser
@@ -17,14 +18,14 @@ from kotaemon.loaders import (
 from .conftest import skip_when_unstructured_pdf_not_installed
 
 
-def test_docx_reader():
+def test_docx_reader() -> None:
     reader = DocxReader()
     documents = reader.load_data(Path(__file__).parent / "resources" / "dummy.docx")
 
     assert len(documents)
 
 
-def test_html_reader():
+def test_html_reader() -> None:
     reader = HtmlReader()
     documents = reader.load_data(
         Path(__file__).parent / "resources" / "html" / "dummy.html"
@@ -33,7 +34,7 @@ def test_html_reader():
     assert len(documents)
 
 
-def test_pdf_reader():
+def test_pdf_reader() -> None:
     reader = AutoReader("PDFReader")
     dirpath = Path(__file__).parent
     documents = reader.load_data(dirpath / "resources" / "dummy.pdf")
@@ -55,7 +56,7 @@ def test_pdf_reader():
 
 
 @skip_when_unstructured_pdf_not_installed
-def test_unstructured_pdf_reader():
+def test_unstructured_pdf_reader() -> None:
     reader = UnstructuredReader()
     dirpath = Path(__file__).parent
     input_path = dirpath / "resources/dummy.pdf"
@@ -74,7 +75,7 @@ def test_unstructured_pdf_reader():
     assert len(documents) == 1
 
 
-def test_mhtml_reader():
+def test_mhtml_reader() -> None:
     reader = MhtmlReader()
     input_path = Path(__file__).parent / "resources" / "dummy.mhtml"
     docs = reader.load_data(input_path)
@@ -84,7 +85,7 @@ def test_mhtml_reader():
 
 
 @patch("azure.ai.documentintelligence.DocumentIntelligenceClient")
-def test_azureai_document_intelligence_reader(mock_client):
+def test_azureai_document_intelligence_reader(mock_client: Any) -> None:
     reader = AzureAIDocumentIntelligenceLoader(
         endpoint="https://endpoint.com",
         credential="credential",

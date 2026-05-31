@@ -1,4 +1,5 @@
 import hashlib
+from typing import Any
 
 import gradio as gr
 from ktem.app import BasePage
@@ -6,6 +7,8 @@ from ktem.components import reasonings
 from ktem.db.models import Settings, User, engine
 from sqlmodel import Session, select
 from theflow.settings import settings as flowsettings
+
+from ktem.ktem.main import App
 
 KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
 
@@ -19,23 +22,23 @@ function(u, c, pw, pwc) {
 """
 
 
-gr_cls_single_value = {
+gr_cls_single_value: dict[str, type[gr.components.Component]] = {
     "text": gr.Textbox,
     "number": gr.Number,
     "checkbox": gr.Checkbox,
 }
 
 
-gr_cls_choices = {
+gr_cls_choices: dict[str, type[gr.components.Component]] = {
     "dropdown": gr.Dropdown,
     "radio": gr.Radio,
     "checkboxgroup": gr.CheckboxGroup,
 }
 
 
-def render_setting_item(setting_item, value):
+def render_setting_item(setting_item: Any, value: Any) -> gr.components.Component:
     """Render the setting component into corresponding Gradio UI component"""
-    kwargs = {
+    kwargs: dict[str, Any] = {
         "label": setting_item.name,
         "value": value,
         "interactive": True,
@@ -65,7 +68,7 @@ class SettingsPage(BasePage):
 
     public_events = ["onSignOut"]
 
-    def __init__(self, app):
+    def __init__(self, app: App) -> None:
         """Initiate the page and render the UI"""
         self._app = app
 
@@ -75,12 +78,12 @@ class SettingsPage(BasePage):
         self._settings_dict = self._default_settings.flatten()
         self._settings_keys = list(self._settings_dict.keys())
 
-        self._components = {}
-        self._reasoning_mode = {}
+        self._components: dict[str, gr.components.Component] = {}
+        self._reasoning_mode: dict[str, gr.Group] = {}
 
         # store llms and embeddings components
-        self._llms = []
-        self._embeddings = []
+        self._llms: list[gr.components.Component] = []
+        self._embeddings: list[gr.components.Component] = []
 
         # render application page if there are application settings
         self._render_app_tab = False
@@ -114,7 +117,7 @@ class SettingsPage(BasePage):
 
         self.on_building_ui()
 
-    def on_building_ui(self):
+    def on_building_ui(self) -> None:
         if not KH_SSO_ENABLED:
             self.setting_save_btn = gr.Button(
                 "Save & Close",
@@ -130,7 +133,7 @@ class SettingsPage(BasePage):
         self.index_tab()
         self.reasoning_tab()
 
-    def on_subscribe_public_events(self):
+    def on_subscribe_public_events(self) -> None:
         """
         Subscribes to public events related to user management.
 
@@ -146,12 +149,6 @@ class SettingsPage(BasePage):
         username of the current user. It takes the user ID as input and returns the
         username if it exists, otherwise it returns "___". The progress indicator for
         this event is also set to "hidden".
-
-        Parameters:
-            self (object): The instance of the class.
-
-        Returns:
-            None
         """
         if self._app.f_user_management:
             self._app.subscribe_event(
@@ -164,14 +161,16 @@ class SettingsPage(BasePage):
                 },
             )
 
-            def get_name(user_id):
+            def get_name(user_id: str | None) -> str:
                 name = "Current user: "
-                if user_id:
-                    with Session(engine) as session:
-                        statement = select(User).where(User.id == user_id)
-                        result = session.exec(statement).all()
-                        if result:
-                            return name + result[0].username
+                if not user_id:
+                    return name + "___"
+
+                with Session(engine) as session:
+                    statement = select(User).where(User.id == user_id)
+                    result = session.exec(statement).all()
+                    if result:
+                        return name + result[0].username
                 return name + "___"
 
             self._app.subscribe_event(
@@ -184,7 +183,7 @@ class SettingsPage(BasePage):
                 },
             )
 
-    def on_register_events(self):
+    def on_register_events(self) -> None:
         if not KH_SSO_ENABLED:
             self.setting_save_btn.click(
                 self.save_setting,
@@ -231,7 +230,7 @@ class SettingsPage(BasePage):
             for event in self._app.get_event("onSignOut"):
                 onSignOutClick = onSignOutClick.then(**event)
 
-    def user_tab(self):
+    def user_tab(self) -> None:
         # user management
         self.current_name = gr.Markdown("Current user: ___")
 
@@ -250,7 +249,9 @@ class SettingsPage(BasePage):
             )
             self.password_change_btn = gr.Button("Change password", interactive=True)
 
-    def change_password(self, user_id, password, password_confirm):
+    def change_password(
+        self, user_id: str | None, password: str, password_confirm: str
+    ) -> tuple[str, str]:
         from ktem.pages.resources.user import validate_password
 
         errors = validate_password(password, password_confirm)
@@ -258,6 +259,10 @@ class SettingsPage(BasePage):
             print(errors)
             gr.Warning(errors)
             return password, password_confirm
+
+        if not user_id:
+            gr.Warning("User not found")
+            return "", ""
 
         with Session(engine) as session:
             statement = select(User).where(User.id == user_id)
@@ -274,7 +279,7 @@ class SettingsPage(BasePage):
 
         return "", ""
 
-    def app_tab(self):
+    def app_tab(self) -> None:
         with gr.Tab("General", visible=self._render_app_tab):
             for n, si in self._default_settings.application.settings.items():
                 obj = render_setting_item(si, si.value)
@@ -284,7 +289,7 @@ class SettingsPage(BasePage):
                 if si.special_type == "embedding":
                     self._embeddings.append(obj)
 
-    def index_tab(self):
+    def index_tab(self) -> None:
         # TODO: double check if we need general
         # with gr.Tab("General"):
         #     for n, si in self._default_settings.index.settings.items():
@@ -304,7 +309,7 @@ class SettingsPage(BasePage):
                         if si.special_type == "embedding":
                             self._embeddings.append(obj)
 
-    def reasoning_tab(self):
+    def reasoning_tab(self) -> None:
         with gr.Tab("Reasoning settings", visible=self._render_reasoning_tab):
             with gr.Group():
                 for n, si in self._default_settings.reasoning.settings.items():
@@ -344,8 +349,8 @@ class SettingsPage(BasePage):
                         if si.special_type == "embedding":
                             self._embeddings.append(obj)
 
-    def change_reasoning_mode(self, value):
-        output = []
+    def change_reasoning_mode(self, value: str) -> list[gr.Update]:
+        output: list[gr.Update] = []
         for each in self._reasoning_mode.values():
             if value == each.elem_id:
                 output.append(gr.update(visible=True))
@@ -353,26 +358,31 @@ class SettingsPage(BasePage):
                 output.append(gr.update(visible=False))
         return output
 
-    def load_setting(self, user_id=None):
-        settings = self._settings_dict
-        with Session(engine) as session:
-            statement = select(Settings).where(Settings.user == user_id)
-            result = session.exec(statement).all()
-            if result:
-                settings = result[0].setting
+    def load_setting(self, user_id: str | None = None) -> tuple[dict[str, Any], ...]:
+        settings_data: dict[str, Any] = self._settings_dict
 
-        output = [settings]
-        output += tuple(settings[name] for name in self.component_names())
-        return output
+        if user_id:
+            with Session(engine) as session:
+                statement = select(Settings).where(Settings.user == user_id)
+                result = session.exec(statement).all()
+                if result:
+                    settings_data = result[0].setting
 
-    def save_setting(self, user_id: int, *args):
+        output = [settings_data]
+        output += tuple(settings_data[name] for name in self.component_names())
+        return tuple(output)
+
+    def save_setting(self, user_id: str | None, *args: Any) -> dict[str, Any]:
         """Save the setting to disk and persist the setting to session state
 
         Args:
             user_id: the user id
             args: all the values from the settings
         """
-        setting = {key: value for key, value in zip(self.component_names(), args)}
+        setting: dict[str, Any] = {
+            key: value for key, value in zip(self.component_names(), args)
+        }
+
         if user_id is None:
             gr.Warning("Need to login before saving settings")
             return setting
@@ -391,18 +401,18 @@ class SettingsPage(BasePage):
         gr.Info("Setting saved")
         return setting
 
-    def components(self) -> list:
+    def components(self) -> list[gr.components.Component]:
         """Get the setting components"""
-        output = []
+        output: list[gr.components.Component] = []
         for name in self._settings_keys:
             output.append(self._components[name])
         return output
 
-    def component_names(self):
+    def component_names(self) -> list[str]:
         """Get the setting components"""
         return self._settings_keys
 
-    def _on_app_created(self):
+    def _on_app_created(self) -> None:
         if not self._app.f_user_management:
             self._app.app.load(
                 self.load_setting,
@@ -411,7 +421,7 @@ class SettingsPage(BasePage):
                 show_progress="hidden",
             )
 
-        def update_llms():
+        def update_llms() -> gr.Update:
             from ktem.llms.manager import llms
 
             if llms._default:
@@ -421,7 +431,7 @@ class SettingsPage(BasePage):
             llm_choices += [(_, _) for _ in llms.options().keys()]
             return gr.update(choices=llm_choices)
 
-        def update_embeddings():
+        def update_embeddings() -> gr.Update:
             from ktem.embeddings.manager import embedding_models_manager
 
             if embedding_models_manager._default:

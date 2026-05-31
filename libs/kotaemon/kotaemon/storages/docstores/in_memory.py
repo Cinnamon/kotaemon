@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Any
 
 from kotaemon.base import Document
 
@@ -10,15 +10,15 @@ from .base import BaseDocumentStore
 class InMemoryDocumentStore(BaseDocumentStore):
     """Simple memory document store that store document in a dictionary"""
 
-    def __init__(self):
-        self._store = {}
+    def __init__(self) -> None:
+        self._store: dict[str, Document] = {}
 
     def add(
         self,
         docs: Union[Document, List[Document]],
         ids: Optional[Union[List[str], str]] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """Add document into document store
 
         Args:
@@ -56,7 +56,7 @@ class InMemoryDocumentStore(BaseDocumentStore):
         """Count number of documents"""
         return len(self._store)
 
-    def delete(self, ids: Union[List[str], str]):
+    def delete(self, ids: Union[List[str], str]) -> None:
         """Delete document by id"""
         if not isinstance(ids, list):
             ids = [ids]
@@ -64,13 +64,13 @@ class InMemoryDocumentStore(BaseDocumentStore):
         for doc_id in ids:
             del self._store[doc_id]
 
-    def save(self, path: Union[str, Path]):
+    def save(self, path: Union[str, Path]) -> None:
         """Save document to path"""
         store = {key: value.to_dict() for key, value in self._store.items()}
         with open(path, "w") as f:
             json.dump(store, f)
 
-    def load(self, path: Union[str, Path]):
+    def load(self, path: Union[str, Path]) -> None:
         """Load document store from path"""
         with open(path) as f:
             store = json.load(f)
@@ -82,14 +82,14 @@ class InMemoryDocumentStore(BaseDocumentStore):
         self._store = {key: Document.from_dict(value) for key, value in store.items()}
 
     def query(
-        self, query: str, top_k: int = 10, doc_ids: Optional[list] = None
+        self, query: str, top_k: int = 10, doc_ids: Optional[list[str]] = None
     ) -> List[Document]:
         """Perform full-text search on document store"""
         return []
 
-    def __persist_flow__(self):
+    def __persist_flow__(self) -> dict[str, Any]:
         return {}
 
-    def drop(self):
+    def drop(self) -> None:
         """Drop the document store"""
         self._store = {}

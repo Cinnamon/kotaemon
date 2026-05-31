@@ -2,7 +2,7 @@ import pickle
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Callable
 
 import gradio as gr
 import pandas as pd
@@ -39,7 +39,12 @@ In case of errors, you can:
 
 
 def construct_pipeline_ui(
-    config, func_run, func_save, func_load_params, func_activate_params, func_export
+    config: dict[str, Any],
+    func_run: Callable[..., Any],
+    func_save: Callable[..., Any],
+    func_load_params: Callable[..., Any],
+    func_activate_params: Callable[..., Any],
+    func_export: Callable[..., Any],
 ) -> gr.Blocks:
     """Create UI from config file. Execute the UI from config file
 
@@ -53,8 +58,8 @@ def construct_pipeline_ui(
             component_def["params"] = {}
         component_def["params"]["interactive"] = True
         component = get_component(component_def)
-        if hasattr(component, "label") and not component.label:  # type: ignore
-            component.label = name  # type: ignore
+        if hasattr(component, "label") and not component.label:
+            component.label = name
 
         inputs.append(component)
 
@@ -63,8 +68,8 @@ def construct_pipeline_ui(
             component_def["params"] = {}
         component_def["params"]["interactive"] = True
         component = get_component(component_def)
-        if hasattr(component, "label") and not component.label:  # type: ignore
-            component.label = name  # type: ignore
+        if hasattr(component, "label") and not component.label:
+            component.label = name
 
         params.append(component)
 
@@ -73,8 +78,8 @@ def construct_pipeline_ui(
             component_def["params"] = {}
         component_def["params"]["interactive"] = False
         component = get_component(component_def)
-        if hasattr(component, "label") and not component.label:  # type: ignore
-            component.label = f"Output {idx}"  # type: ignore
+        if hasattr(component, "label") and not component.label:
+            component.label = f"Output {idx}"
 
         outputs.append(component)
 
@@ -126,7 +131,7 @@ def construct_pipeline_ui(
     return demo
 
 
-def load_saved_params(path: str) -> Dict:
+def load_saved_params(path: str) -> Dict[str, Any]:
     """Load the saved params from path to a dataframe"""
     # get all pickle files
     files = list(sorted(Path(path).glob("*.pkl")))
@@ -143,7 +148,7 @@ def load_saved_params(path: str) -> Dict:
     return data
 
 
-def build_pipeline_ui(config: dict, pipeline_def):
+def build_pipeline_ui(config: dict[str, Any], pipeline_def: Any) -> gr.Blocks:
     """Build a tab from config file"""
     inputs_name = list(config.get("inputs", {}).keys())
     params_name = list(config.get("params", {}).keys())
@@ -163,7 +168,7 @@ def build_pipeline_ui(config: dict, pipeline_def):
     resultlog = getattr(pipeline_def, "_promptui_resultlog", ResultLog)
     allowed_resultlog_callbacks = {i for i in dir(resultlog) if not i.startswith("__")}
 
-    def run_func(*args):
+    def run_func(*args: Any) -> Any:
         inputs = {
             name: value for name, value in zip(inputs_name, args[: len(inputs_name)])
         }
@@ -192,7 +197,7 @@ def build_pipeline_ui(config: dict, pipeline_def):
                 return outputs[0]
             return outputs
 
-    def save_func(*args):
+    def save_func(*args: Any) -> pd.DataFrame:
         params = {name: value for name, value in zip(params_name, args)}
         filename = save_dir / f"{int(time.time())}.pkl"
         with open(filename, "wb") as f:
@@ -202,11 +207,11 @@ def build_pipeline_ui(config: dict, pipeline_def):
         data = load_saved_params(str(save_dir))
         return pd.DataFrame(data)
 
-    def load_params_func():
+    def load_params_func() -> pd.DataFrame:
         data = load_saved_params(str(save_dir))
         return pd.DataFrame(data)
 
-    def activate_params_func(ev: gr.SelectData, *args):
+    def activate_params_func(ev: gr.SelectData, *args: Any) -> list[Any]:
         data = load_saved_params(str(save_dir))
         output_args = [each for each in args]
         if ev.value is None:
@@ -228,7 +233,7 @@ def build_pipeline_ui(config: dict, pipeline_def):
 
         return output_args
 
-    def export_func():
+    def export_func() -> str:
         name = (
             f"{pipeline_def.__module__}.{pipeline_def.__name__}_{datetime.now()}.xlsx"
         )

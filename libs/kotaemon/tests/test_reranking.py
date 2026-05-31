@@ -53,7 +53,7 @@ def llm():
     "openai.resources.chat.completions.Completions.create",
     side_effect=_openai_chat_completion_responses,
 )
-def test_reranking(openai_completion, llm):
+def test_reranking(openai_completion, llm) -> None:
     documents = [Document(text=f"test {idx}") for idx in range(3)]
     query = "test query"
 

@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Any, Optional, Type
 
 from kotaemon.base import LLMInterface
 
@@ -9,15 +9,15 @@ logger = logging.getLogger(__name__)
 
 
 class LCCompletionMixin:
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         raise NotImplementedError(
             "Please return the relevant Langchain class in in _get_lc_class"
         )
 
-    def __init__(self, **params):
+    def __init__(self, **params: Any) -> None:
         self._lc_class = self._get_lc_class()
         self._obj = self._lc_class(**params)
-        self._kwargs: dict = params
+        self._kwargs: dict[str, Any] = params
 
         super().__init__()
 
@@ -45,10 +45,10 @@ class LCCompletionMixin:
             logits=[],
         )
 
-    def to_langchain_format(self):
+    def to_langchain_format(self) -> Any:
         return self._obj
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         kwargs = []
         for key, value_obj in self._kwargs.items():
             value = repr(value_obj)
@@ -56,7 +56,7 @@ class LCCompletionMixin:
         kwargs_repr = ", ".join(kwargs)
         return f"{self.__class__.__name__}({kwargs_repr})"
 
-    def __str__(self):
+    def __str__(self) -> str:
         kwargs = []
         for key, value_obj in self._kwargs.items():
             value = str(value_obj)
@@ -66,7 +66,7 @@ class LCCompletionMixin:
         kwargs_repr = ", ".join(kwargs)
         return f"{self.__class__.__name__}({kwargs_repr})"
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         if name == "_lc_class":
             return super().__setattr__(name, value)
 
@@ -76,12 +76,12 @@ class LCCompletionMixin:
         else:
             super().__setattr__(name, value)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         if name in self._kwargs:
             return self._kwargs[name]
         return getattr(self._obj, name)
 
-    def dump(self, *args, **kwargs):
+    def dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         from theflow.utils.modules import serialize
 
         params = {key: serialize(value) for key, value in self._kwargs.items()}
@@ -90,7 +90,7 @@ class LCCompletionMixin:
             **params,
         }
 
-    def specs(self, path: str):
+    def specs(self, path: str) -> dict[str, Any]:
         path = path.strip(".")
         if "." in path:
             raise ValueError("path should not contain '.'")
@@ -122,8 +122,8 @@ class OpenAI(LCCompletionMixin, LLM):
         request_timeout: Optional[float] = None,
         max_retries: int = 2,
         streaming: bool = False,
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             openai_api_key=openai_api_key,
             openai_api_base=openai_api_base,
@@ -140,7 +140,7 @@ class OpenAI(LCCompletionMixin, LLM):
             **params,
         )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         try:
             from langchain_openai import OpenAI
         except ImportError:
@@ -168,8 +168,8 @@ class AzureOpenAI(LCCompletionMixin, LLM):
         request_timeout: Optional[float] = None,
         max_retries: int = 2,
         streaming: bool = False,
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             azure_endpoint=azure_endpoint,
             deployment_name=deployment_name,
@@ -188,7 +188,7 @@ class AzureOpenAI(LCCompletionMixin, LLM):
             **params,
         )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         try:
             from langchain_openai import AzureOpenAI
         except ImportError:
@@ -207,8 +207,8 @@ class LlamaCpp(LCCompletionMixin, LLM):
         n_ctx: int = 512,
         n_gpu_layers: Optional[int] = None,
         use_mmap: bool = True,
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             model_path=model_path,
             lora_base=lora_base,
@@ -218,7 +218,7 @@ class LlamaCpp(LCCompletionMixin, LLM):
             **params,
         )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         try:
             from langchain_community.llms import LlamaCpp
         except ImportError:

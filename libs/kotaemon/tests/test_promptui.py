@@ -6,7 +6,7 @@ from .simple_pipeline import Pipeline
 
 
 class TestPromptConfig:
-    def test_export_prompt_config(self):
+    def test_export_prompt_config(self) -> None:
         """Test if the prompt config is exported correctly"""
         pipeline = Pipeline()
         config_dict = export_pipeline_to_config(pipeline)
@@ -25,7 +25,7 @@ class TestPromptConfig:
 
 
 class TestPromptUI:
-    def test_uigeneration(self):
+    def test_uigeneration(self) -> None:
         """Test if the gradio UI is exposed without any problem"""
         pipeline = Pipeline()
         config = export_pipeline_to_config(pipeline)
@@ -34,7 +34,7 @@ class TestPromptUI:
 
 
 class TestExport:
-    def test_export(self, tmp_path):
+    def test_export(self, tmp_path) -> None:
         """Test if the export functionality works without error"""
         from pathlib import Path
 

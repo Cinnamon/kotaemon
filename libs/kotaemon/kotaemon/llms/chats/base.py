@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 
 import logging
 
@@ -9,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChatLLM(BaseLLM):
-    def flow(self):
+    def flow(self) -> Any:
         if self.inflow is None:
             raise ValueError("No inflow provided.")
 

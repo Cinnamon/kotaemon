@@ -13,14 +13,13 @@ from kotaemon.base import DocumentWithEmbedding
 
 class BaseVectorStore(ABC):
     @abstractmethod
-    def __init__(self, *args, **kwargs):
-        ...
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
 
     @abstractmethod
     def add(
         self,
         embeddings: list[list[float]] | list[DocumentWithEmbedding],
-        metadatas: Optional[list[dict]] = None,
+        metadatas: Optional[list[dict[str, Any]]] = None,
         ids: Optional[list[str]] = None,
     ) -> list[str]:
         """Add vector embeddings to vector stores
@@ -37,7 +36,7 @@ class BaseVectorStore(ABC):
         ...
 
     @abstractmethod
-    def delete(self, ids: list[str], **kwargs):
+    def delete(self, ids: list[str], **kwargs: Any) -> None:
         """Delete vector embeddings from vector stores
 
         Args:
@@ -52,7 +51,7 @@ class BaseVectorStore(ABC):
         embedding: list[float],
         top_k: int = 1,
         ids: Optional[list[str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> tuple[list[list[float]], list[float], list[str]]:
         """Return the top k most similar vector embeddings
 
@@ -67,7 +66,7 @@ class BaseVectorStore(ABC):
         ...
 
     @abstractmethod
-    def drop(self):
+    def drop(self) -> None:
         """Drop the vector store"""
         ...
 
@@ -77,12 +76,12 @@ class LlamaIndexVectorStore(BaseVectorStore):
 
     _li_class: type[LIVectorStore | BasePydanticVectorStore] | None
 
-    def _get_li_class(self):
+    def _get_li_class(self) -> type[LIVectorStore | BasePydanticVectorStore]:
         raise NotImplementedError(
             "Please return the relevant LlamaIndex class in in _get_li_class"
         )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         # get li_class from the method if not set
         if not self._li_class:
             LIClass = self._get_li_class()
@@ -113,9 +112,9 @@ class LlamaIndexVectorStore(BaseVectorStore):
     def add(
         self,
         embeddings: list[list[float]] | list[DocumentWithEmbedding],
-        metadatas: Optional[list[dict]] = None,
+        metadatas: Optional[list[dict[str, Any]]] = None,
         ids: Optional[list[str]] = None,
-    ):
+    ) -> list[str]:
         if isinstance(embeddings[0], list):
             nodes: list[DocumentWithEmbedding] = [
                 DocumentWithEmbedding(embedding=embedding) for embedding in embeddings
@@ -134,7 +133,7 @@ class LlamaIndexVectorStore(BaseVectorStore):
 
         return self._client.add(nodes=nodes)
 
-    def delete(self, ids: list[str], **kwargs):
+    def delete(self, ids: list[str], **kwargs: Any) -> None:
         for id_ in ids:
             self._client.delete(ref_doc_id=id_, **kwargs)
 
@@ -143,7 +142,7 @@ class LlamaIndexVectorStore(BaseVectorStore):
         embedding: list[float],
         top_k: int = 1,
         ids: Optional[list[str]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> tuple[list[list[float]], list[float], list[str]]:
         """Return the top k most similar vector embeddings
 

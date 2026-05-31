@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Any
 
 from kotaemon.base import Document
 
@@ -9,7 +9,7 @@ from .in_memory import InMemoryDocumentStore
 class SimpleFileDocumentStore(InMemoryDocumentStore):
     """Improve InMemoryDocumentStore by auto saving whenever the corpus is changed"""
 
-    def __init__(self, path: str | Path, collection_name: str = "default"):
+    def __init__(self, path: str | Path, collection_name: str = "default") -> None:
         super().__init__()
         self._path = path
         self._collection_name = collection_name
@@ -35,8 +35,8 @@ class SimpleFileDocumentStore(InMemoryDocumentStore):
         self,
         docs: Union[Document, List[Document]],
         ids: Optional[Union[List[str], str]] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """Add document into document store
 
         Args:
@@ -49,17 +49,17 @@ class SimpleFileDocumentStore(InMemoryDocumentStore):
         super().add(docs=docs, ids=ids, **kwargs)
         self.save(self._save_path)
 
-    def delete(self, ids: Union[List[str], str]):
+    def delete(self, ids: Union[List[str], str]) -> None:
         """Delete document by id"""
         super().delete(ids=ids)
         self.save(self._save_path)
 
-    def drop(self):
+    def drop(self) -> None:
         """Drop the document store"""
         super().drop()
         self._save_path.unlink(missing_ok=True)
 
-    def __persist_flow__(self):
+    def __persist_flow__(self) -> dict[str, Any]:
         from theflow.utils.modules import serialize
 
         return {

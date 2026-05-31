@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any
 
 from kotaemon.base import BaseComponent
 
@@ -15,7 +15,7 @@ class BaseReasoning(BaseComponent):
     """
 
     @classmethod
-    def get_info(cls) -> dict:
+    def get_info(cls) -> dict[str, str]:
         """Get the pipeline information for the app to organize and display
 
         Returns:
@@ -28,16 +28,16 @@ class BaseReasoning(BaseComponent):
         raise NotImplementedError
 
     @classmethod
-    def get_user_settings(cls) -> dict:
+    def get_user_settings(cls) -> dict[str, dict[str, Any]]:
         """Get the default user settings for this pipeline"""
         return {}
 
     @classmethod
     def get_pipeline(
         cls,
-        user_settings: dict,
-        state: dict,
-        retrievers: Optional[list["BaseComponent"]] = None,
+        user_settings: dict[str, Any],
+        state: dict[str, Any],
+        retrievers: list[BaseComponent] | None = None,
     ) -> "BaseReasoning":
         """Get the reasoning pipeline for the app to execute
 
@@ -48,6 +48,8 @@ class BaseReasoning(BaseComponent):
         """
         return cls()
 
-    def run(self, message: str, conv_id: str, history: list, **kwargs):  # type: ignore
+    def run(
+        self, message: str, conv_id: str, history: list[tuple[str, str]], **kwargs: Any
+    ) -> Any:
         """Execute the reasoning pipeline"""
         raise NotImplementedError

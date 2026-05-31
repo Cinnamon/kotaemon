@@ -1,25 +1,27 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Any
 
 
-def bbox_to_points(box: List[int]):
+def bbox_to_points(box: List[int]) -> List[Tuple[int, int]]:
     """Convert bounding box to list of points"""
     x1, y1, x2, y2 = box
     return [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
 
 
-def points_to_bbox(points: List[Tuple[int, int]]):
+def points_to_bbox(points: List[Tuple[int, int]]) -> List[int]:
     """Convert list of points to bounding box"""
     all_x = [p[0] for p in points]
     all_y = [p[1] for p in points]
     return [min(all_x), min(all_y), max(all_x), max(all_y)]
 
 
-def scale_points(points: List[Tuple[int, int]], scale_factor: float = 1.0):
+def scale_points(
+    points: List[Tuple[int, int]], scale_factor: float = 1.0
+) -> List[Tuple[int, int]]:
     """Scale points by a scale factor"""
     return [(int(pos[0] * scale_factor), int(pos[1] * scale_factor)) for pos in points]
 
 
-def union_points(points: List[Tuple[int, int]]):
+def union_points(points: List[Tuple[int, int]]) -> Tuple[int, int, int, int]:
     """Return union bounding box of list of points"""
     all_x = [p[0] for p in points]
     all_y = [p[1] for p in points]
@@ -27,28 +29,30 @@ def union_points(points: List[Tuple[int, int]]):
     return bbox
 
 
-def scale_box(box: List[int], scale_factor: float = 1.0):
+def scale_box(box: List[int], scale_factor: float = 1.0) -> List[int]:
     """Scale box by a scale factor"""
     return [int(pos * scale_factor) for pos in box]
 
 
-def box_h(box: List[int]):
+def box_h(box: List[int]) -> int:
     "Return box height"
     return box[3] - box[1]
 
 
-def box_w(box: List[int]):
+def box_w(box: List[int]) -> int:
     "Return box width"
     return box[2] - box[0]
 
 
-def box_area(box: List[int]):
+def box_area(box: List[int]) -> int:
     "Return box area"
     x1, y1, x2, y2 = box
     return (x2 - x1) * (y2 - y1)
 
 
-def get_rect_iou(gt_box: List[tuple], pd_box: List[tuple], iou_type=0) -> int:
+def get_rect_iou(
+    gt_box: List[Tuple[int, int]], pd_box: List[Tuple[int, int]], iou_type: int = 0
+) -> float:
     """Intersection over union on layout rectangle
 
     Args:
@@ -103,7 +107,9 @@ def get_rect_iou(gt_box: List[tuple], pd_box: List[tuple], iou_type=0) -> int:
     return iou
 
 
-def sort_funsd_reading_order(lines: List[dict], box_key_name: str = "box"):
+def sort_funsd_reading_order(
+    lines: List[Dict[str, Any]], box_key_name: str = "box"
+) -> List[Dict[str, Any]]:
     """Sort cell list to create the right reading order using their locations
 
     Args:

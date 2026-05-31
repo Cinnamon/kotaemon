@@ -3,7 +3,7 @@
 import logging
 from functools import cache
 from pathlib import Path
-from typing import Optional
+from typing import Any
 
 from theflow.settings import settings
 from theflow.utils.modules import deserialize
@@ -39,7 +39,7 @@ def get_vectorstore(collection_name: str = "default") -> BaseVectorStore:
 class ModelPool:
     """Represent a pool of models"""
 
-    def __init__(self, category: str, conf: dict):
+    def __init__(self, category: str, conf: dict[str, Any]) -> None:
         self._category = category
         self._conf = conf
 
@@ -62,11 +62,11 @@ class ModelPool:
         """Get model by name"""
         return self._models[key]
 
-    def __setitem__(self, key: str, value: BaseComponent):
+    def __setitem__(self, key: str, value: BaseComponent) -> None:
         """Set model by name"""
         self._models[key] = value
 
-    def __delitem__(self, key: str):
+    def __delitem__(self, key: str) -> None:
         """Delete model by name"""
         del self._models[key]
 
@@ -75,12 +75,12 @@ class ModelPool:
         return key in self._models
 
     def get(
-        self, key: str, default: Optional[BaseComponent] = None
-    ) -> Optional[BaseComponent]:
+        self, key: str, default: BaseComponent | None = None
+    ) -> BaseComponent | None:
         """Get model by name with default value"""
         return self._models.get(key, default)
 
-    def settings(self) -> dict:
+    def settings(self) -> dict[str, Any]:
         """Present model pools option for gradio"""
         return {
             "label": self._category,
@@ -88,7 +88,7 @@ class ModelPool:
             "value": self.get_default_name(),
         }
 
-    def options(self) -> dict:
+    def options(self) -> dict[str, BaseComponent]:
         """Present a dict of models"""
         return self._models
 
@@ -98,10 +98,10 @@ class ModelPool:
         Returns:
             str: random model name in the pool
         """
-        import random
-
         if not self._conf:
             raise ValueError("No models in pool")
+
+        import random
 
         return random.choice(list(self._conf.keys()))
 
@@ -182,5 +182,5 @@ class ModelPool:
         return self._models[self._cost[0]]
 
 
-reasonings: dict = {}
+reasonings: dict[str, Any] = {}
 tools = ModelPool("Tools", {})

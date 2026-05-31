@@ -1,5 +1,6 @@
 from pathlib import Path
 from unittest.mock import patch
+from typing import Any
 
 from kotaemon.base.schema import LLMInterface
 from kotaemon.llms import AzureOpenAI, LlamaCpp, OpenAI
@@ -40,7 +41,7 @@ _openai_completion_response = Completion.parse_obj(
     "openai.resources.completions.Completions.create",
     side_effect=lambda *args, **kwargs: _openai_completion_response,
 )
-def test_azureopenai_model(openai_completion):
+def test_azureopenai_model(openai_completion: Any) -> None:
     model = AzureOpenAI(
         azure_endpoint="https://test.openai.azure.com/",
         openai_api_key="some-key",
@@ -49,21 +50,21 @@ def test_azureopenai_model(openai_completion):
         temperature=0,
         request_timeout=60,
     )
-    assert isinstance(
-        model.to_langchain_format(), AzureOpenAILC
-    ), "Agent not wrapped in Langchain's AzureOpenAI"
+    assert isinstance(model.to_langchain_format(), AzureOpenAILC), (
+        "Agent not wrapped in Langchain's AzureOpenAI"
+    )
 
     output = model("hello world")
-    assert isinstance(
-        output, LLMInterface
-    ), "Output for single text is not LLMInterface"
+    assert isinstance(output, LLMInterface), (
+        "Output for single text is not LLMInterface"
+    )
 
 
 @patch(
     "openai.resources.completions.Completions.create",
     side_effect=lambda *args, **kwargs: _openai_completion_response,
 )
-def test_openai_model(openai_completion):
+def test_openai_model(openai_completion: Any) -> None:
     model = OpenAI(
         openai_api_base="https://test.openai.azure.com/",
         openai_api_key="some-key",
@@ -72,18 +73,18 @@ def test_openai_model(openai_completion):
         temperature=0,
         request_timeout=60,
     )
-    assert isinstance(
-        model.to_langchain_format(), OpenAILC
-    ), "Agent is not wrapped in Langchain's OpenAI"
+    assert isinstance(model.to_langchain_format(), OpenAILC), (
+        "Agent is not wrapped in Langchain's OpenAI"
+    )
 
     output = model("hello world")
-    assert isinstance(
-        output, LLMInterface
-    ), "Output for single text is not LLMInterface"
+    assert isinstance(output, LLMInterface), (
+        "Output for single text is not LLMInterface"
+    )
 
 
 @skip_llama_cpp_not_installed
-def test_llamacpp_model():
+def test_llamacpp_model() -> None:
     weight_path = Path(__file__).parent / "resources" / "ggml-vocab-llama.gguf"
 
     # test initialization

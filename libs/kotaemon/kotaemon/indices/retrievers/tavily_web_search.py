@@ -1,3 +1,4 @@
+from typing import Any
 from decouple import config
 
 from kotaemon.base import BaseComponent, RetrievedDocument
@@ -10,11 +11,14 @@ class WebSearch(BaseComponent):
     using Jina API
     """
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
     def run(
         self,
         text: str,
-        *args,
-        **kwargs,
+        *args: Any,
+        **kwargs: Any,
     ) -> list[RetrievedDocument]:
         if TAVILY_API_KEY == "":
             raise ValueError(
@@ -53,5 +57,7 @@ class WebSearch(BaseComponent):
             )
         ]
 
-    def generate_relevant_scores(self, text, documents: list[RetrievedDocument]):
+    def generate_relevant_scores(
+        self, text: str, documents: list[RetrievedDocument]
+    ) -> list[RetrievedDocument]:
         return documents

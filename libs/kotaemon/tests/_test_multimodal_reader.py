@@ -11,7 +11,7 @@ input_file = Path(__file__).parent / "resources" / "multimodal.pdf"
 # load_dotenv()
 
 
-def test_adobe_reader():
+def test_adobe_reader() -> None:
     reader = AdobeReader()
     documents = reader.load_data(input_file)
     table_docs = [doc for doc in documents if doc.metadata.get("type", "") == "table"]

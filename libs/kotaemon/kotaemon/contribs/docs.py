@@ -1,10 +1,12 @@
+from typing import Any
+
 import inspect
 from collections import defaultdict
 
 from theflow.utils.documentation import get_function_documentation_from_module
 
 
-def from_definition_to_markdown(definition: dict) -> str:
+def from_definition_to_markdown(definition: dict[str, Any]) -> str:
     """From definition to markdown"""
 
     # Handle params
@@ -37,7 +39,7 @@ def from_definition_to_markdown(definition: dict) -> str:
     return f"{description}\n\n_**Params:**_{params}\n_**Nodes:**_{nodes}"
 
 
-def make_doc(module: str, output: str, separation_level: int):
+def make_doc(module: str, output: str, separation_level: int) -> None:
     """Run exporting components to markdown
 
     Args:

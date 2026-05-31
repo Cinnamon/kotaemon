@@ -8,7 +8,7 @@ import tempfile
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import List, Union
+from typing import List, Union, Any
 
 import pandas as pd
 from decouple import config
@@ -145,7 +145,7 @@ def make_markdown_table(table_as_list: List[List[str]]) -> str:
     return markdown + "\n"
 
 
-def load_json(input_path: Union[str | Path]) -> dict:
+def load_json(input_path: Union[str | Path]) -> dict[str, Any]:
     """Load json file"""
     with open(input_path, "r") as fi:
         data = json.load(fi)
@@ -222,8 +222,8 @@ def generate_single_figure_caption(vlm_endpoint: str, figure: str) -> str:
 
 
 def generate_figure_captions(
-    vlm_endpoint: str, figures: List, max_figures_to_process: int
-) -> List:
+    vlm_endpoint: str, figures: List[Any], max_figures_to_process: int
+) -> List[str]:
     """Summarize several figures using GPT-4V.
     Args:
         vlm_endpoint (str): endpoint to the vision language model service

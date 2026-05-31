@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+from typing import Any
 
 from decouple import config
 
@@ -11,7 +12,7 @@ from .base import BaseReranking
 vo = None
 
 
-def _import_voyageai():
+def _import_voyageai() -> Any:
     global vo
     if not vo:
         vo = importlib.import_module("voyageai")
@@ -35,7 +36,7 @@ class VoyageAIReranking(BaseReranking):
         required=True,
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         if not self.api_key:
             raise ValueError("API key must be provided for VoyageAIEmbeddings.")

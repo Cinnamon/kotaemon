@@ -5,6 +5,7 @@ import requests
 from decouple import config
 from ktem.app import BasePage
 from ktem.embeddings.manager import embedding_models_manager as embeddings
+from ktem.ktem.main import App
 from ktem.llms.manager import llms
 from ktem.rerankings.manager import reranking_models_manager as rerankers
 from theflow.settings import settings as flowsettings
@@ -47,10 +48,9 @@ def pull_model(name: str, stream: bool = True):
 
 
 class SetupPage(BasePage):
-
     public_events = ["onFirstSetupComplete"]
 
-    def __init__(self, app):
+    def __init__(self, app: App) -> None:
         self._app = app
         self.on_building_ui()
 

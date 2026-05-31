@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Any
 
 from kotaemon.base import Document
 
@@ -8,16 +8,15 @@ class BaseDocumentStore(ABC):
     """A document store is in charged of storing and managing documents"""
 
     @abstractmethod
-    def __init__(self, *args, **kwargs):
-        ...
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
 
     @abstractmethod
     def add(
         self,
         docs: Union[Document, List[Document]],
         ids: Optional[Union[List[str], str]] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """Add document into document store
 
         Args:
@@ -43,17 +42,17 @@ class BaseDocumentStore(ABC):
 
     @abstractmethod
     def query(
-        self, query: str, top_k: int = 10, doc_ids: Optional[list] = None
+        self, query: str, top_k: int = 10, doc_ids: Optional[list[str]] = None
     ) -> List[Document]:
         """Search document store using search query"""
         ...
 
     @abstractmethod
-    def delete(self, ids: Union[List[str], str]):
+    def delete(self, ids: Union[List[str], str]) -> None:
         """Delete document by id"""
         ...
 
     @abstractmethod
-    def drop(self):
+    def drop(self) -> None:
         """Drop the document store"""
         ...

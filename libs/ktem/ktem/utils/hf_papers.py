@@ -1,11 +1,14 @@
 from datetime import datetime, timedelta
+from typing import Any
 
 import requests
 from cachetools import TTLCache, cached
 
 HF_API_URL = "https://huggingface.co/api/daily_papers"
 ARXIV_URL = "https://arxiv.org/abs/{paper_id}"
-SEMANTIC_SCHOLAR_QUERY_URL = "https://api.semanticscholar.org/graph/v1/paper/search/match?query={paper_name}"  # noqa
+SEMANTIC_SCHOLAR_QUERY_URL = (
+    "https://api.semanticscholar.org/graph/v1/paper/search/match?query={paper_name}"  # noqa
+)
 SEMANTIC_SCHOLAR_RECOMMEND_URL = (
     "https://api.semanticscholar.org/recommendations/v1/papers/"  # noqa
 )
@@ -13,12 +16,14 @@ CACHE_TIME = 60 * 60 * 6  # 6 hours
 
 
 # Function to parse the date string
-def parse_date(date_str):
+def parse_date(date_str: str) -> datetime:
     return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 @cached(cache=TTLCache(maxsize=500, ttl=CACHE_TIME))
-def get_recommendations_from_semantic_scholar(semantic_scholar_id: str):
+def get_recommendations_from_semantic_scholar(
+    semantic_scholar_id: str,
+) -> list[dict[str, Any]]:
     try:
         r = requests.post(
             SEMANTIC_SCHOLAR_RECOMMEND_URL,
@@ -33,7 +38,9 @@ def get_recommendations_from_semantic_scholar(semantic_scholar_id: str):
         return []
 
 
-def filter_recommendations(recommendations, max_paper_count=5):
+def filter_recommendations(
+    recommendations: list[dict[str, Any]], max_paper_count: int = 5
+) -> list[dict[str, Any]]:
     # include only arxiv papers
     arxiv_paper = [
         r for r in recommendations if r["externalIds"].get("ArXiv", None) is not None
@@ -43,7 +50,7 @@ def filter_recommendations(recommendations, max_paper_count=5):
     return arxiv_paper
 
 
-def format_recommendation_into_markdown(recommendations):
+def format_recommendation_into_markdown(recommendations: list[dict[str, Any]]) -> str:
     comment = "(recommended by the Semantic Scholar API)\n\n"
     for r in recommendations:
         hub_paper_url = f"https://arxiv.org/abs/{r['externalIds']['ArXiv']}"
@@ -52,7 +59,7 @@ def format_recommendation_into_markdown(recommendations):
     return comment
 
 
-def get_paper_id_from_name(paper_name):
+def get_paper_id_from_name(paper_name: str) -> str | None:
     try:
         response = requests.get(
             SEMANTIC_SCHOLAR_QUERY_URL.format(paper_name=paper_name)
@@ -67,7 +74,7 @@ def get_paper_id_from_name(paper_name):
     return paper_id
 
 
-def get_recommended_papers(paper_name):
+def get_recommended_papers(paper_name: str) -> str:
     paper_id = get_paper_id_from_name(paper_name)
     recommended_content = ""
     if paper_id is None:
@@ -80,7 +87,7 @@ def get_recommended_papers(paper_name):
     return recommended_content
 
 
-def fetch_papers(top_n=5):
+def fetch_papers(top_n: int = 5) -> list[dict[str, Any]]:
     try:
         response = requests.get(f"{HF_API_URL}?limit=100")
         response.raise_for_status()

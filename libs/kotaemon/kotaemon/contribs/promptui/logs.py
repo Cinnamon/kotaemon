@@ -1,3 +1,6 @@
+from typing import Any
+
+
 class ResultLog:
     """Callback getter to get the desired log result
 
@@ -8,9 +11,9 @@ class ResultLog:
     """
 
     @staticmethod
-    def _get_input(obj):
+    def _get_input(obj: Any) -> Any:
         return obj["input"]
 
     @staticmethod
-    def _get_output(obj):
+    def _get_output(obj: Any) -> Any:
         return obj["output"]

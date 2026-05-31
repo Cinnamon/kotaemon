@@ -140,9 +140,7 @@ class IndexManagement(BasePage):
                 self.spec,
                 self.spec_desc,
             ],
-        ).success(
-            update_current_module_atime
-        )
+        ).success(update_current_module_atime)
         self.index_list.select(
             self.select_index,
             inputs=self.index_list,
@@ -183,9 +181,11 @@ class IndexManagement(BasePage):
             inputs=[self.selected_index_id],
             outputs=[self.selected_index_id],
             show_progress="hidden",
-        ).then(self.list_indices, inputs=[], outputs=[self.index_list],).success(
-            update_current_module_atime
-        )
+        ).then(
+            self.list_indices,
+            inputs=[],
+            outputs=[self.index_list],
+        ).success(update_current_module_atime)
         self.btn_delete_no.click(
             lambda: (
                 gr.update(visible=True),

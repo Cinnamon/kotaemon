@@ -1,10 +1,10 @@
 import html
 import logging
-from typing import AnyStr, Optional, Type
+from typing import Any, AnyStr, Optional, Type
 
 from ktem.llms.manager import llms
 from ktem.reasoning.base import BaseReasoning
-from ktem.utils.generator import Generator
+from ktem.utils.generator import Generator as GeneratorWrapper
 from ktem.utils.render import Render
 from langchain.text_splitter import CharacterTextSplitter
 from pydantic import BaseModel, Field
@@ -53,7 +53,7 @@ class DocSearchTool(BaseTool):
 
         return self.prepare_evidence(docs)
 
-    def prepare_evidence(self, docs, trim_len: int = 4000):
+    def prepare_evidence(self, docs: list[Document], trim_len: int = 4000) -> Document:
         evidence = ""
         table_found = 0
 
@@ -166,7 +166,7 @@ class RewriteQuestionPipeline(BaseComponent):
 
     lang: str = "English"
 
-    def run(self, question: str) -> Document:  # type: ignore
+    def run(self, question: str) -> Document:
         prompt_template = PromptTemplate(self.rewrite_template)
         prompt = prompt_template.populate(question=question, lang=self.lang)
         messages = [
@@ -187,7 +187,9 @@ class ReactAgentPipeline(BaseReasoning):
     rewrite_pipeline: RewriteQuestionPipeline = RewriteQuestionPipeline.withx()
     use_rewrite: bool = False
 
-    def prepare_citation(self, step_id, step, output, status) -> Document:
+    def prepare_citation(
+        self, step_id: int, step: Any, output: str, status: str
+    ) -> Document:
         header = "<b>Step {id}</b>: {log}".format(id=step_id, log=step.log)
         content = (
             "<b>Action</b>: <em>{tool}[{input}]</em>\n\n<b>Output</b>: {output}"
@@ -207,8 +209,12 @@ class ReactAgentPipeline(BaseReasoning):
             ),
         )
 
-    async def ainvoke(  # type: ignore
-        self, message, conv_id: str, history: list, **kwargs  # type: ignore
+    async def ainvoke(
+        self,
+        message: str,
+        conv_id: str,
+        history: list[Any],
+        **kwargs: Any,
     ) -> Document:
         if self.use_rewrite:
             rewrite = await self.rewrite_pipeline(question=message)
@@ -224,7 +230,9 @@ class ReactAgentPipeline(BaseReasoning):
         self.report_output(None)
         return answer
 
-    def stream(self, message, conv_id: str, history: list, **kwargs):
+    def stream(
+        self, message: str, conv_id: str, history: list[Any], **kwargs: Any
+    ) -> Any:
         if self.use_rewrite:
             rewrite = self.rewrite_pipeline(question=message)
             message = rewrite.text
@@ -233,7 +241,7 @@ class ReactAgentPipeline(BaseReasoning):
                 content=f"Rewrote the message to: {rewrite.text}",
             )
 
-        output_stream = Generator(self.agent.stream(message))
+        output_stream = GeneratorWrapper(self.agent.stream(message))
         idx = 0
         for item in output_stream:
             idx += 1
@@ -258,7 +266,10 @@ class ReactAgentPipeline(BaseReasoning):
 
     @classmethod
     def get_pipeline(
-        cls, settings: dict, states: dict, retrievers: list | None = None
+        cls,
+        settings: dict[str, Any],
+        states: dict[str, Any],
+        retrievers: list[BaseComponent] | None = None,
     ) -> BaseReasoning:
         _id = cls.get_info()["id"]
         prefix = f"reasoning.options.{_id}"
@@ -295,7 +306,7 @@ class ReactAgentPipeline(BaseReasoning):
         return pipeline
 
     @classmethod
-    def get_user_settings(cls) -> dict:
+    def get_user_settings(cls) -> dict[str, Any]:
         llm = ""
         llm_choices = [("(default)", "")]
         try:
@@ -335,7 +346,7 @@ class ReactAgentPipeline(BaseReasoning):
         }
 
     @classmethod
-    def get_info(cls) -> dict:
+    def get_info(cls) -> dict[str, str]:
         return {
             "id": "ReAct",
             "name": "ReAct Agent",

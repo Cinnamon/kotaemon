@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, AsyncGenerator, Iterator, Optional, Type
+from typing import TYPE_CHECKING, AsyncGenerator, Iterator, Optional, Type, Any
 
 from pydantic import BaseModel
 from theflow.utils.modules import import_dotted_string
@@ -103,7 +103,7 @@ class BaseChatOpenAI(ChatLLM):
             "as well as the chosen token."
         ),
     )
-    logit_bias: Optional[dict] = Param(
+    logit_bias: Optional[dict[str, Any]] = Param(
         None,
         help=(
             "Dictionary of logit bias values to add to the logits of the tokens "
@@ -130,7 +130,7 @@ class BaseChatOpenAI(ChatLLM):
     )
 
     @Param.auto(depends_on=["max_retries"])
-    def max_retries_(self):
+    def max_retries_(self) -> int:
         if self.max_retries is None:
             from openai._constants import DEFAULT_MAX_RETRIES
 
@@ -160,7 +160,7 @@ class BaseChatOpenAI(ChatLLM):
 
         return output_
 
-    def prepare_output(self, resp: dict) -> LLMInterface:
+    def prepare_output(self, resp: dict[str, Any]) -> LLMInterface:
         """Convert the OpenAI response into LLMInterface"""
         additional_kwargs = {}
         if "tool_calls" in resp["choices"][0]["message"]:
@@ -192,7 +192,7 @@ class BaseChatOpenAI(ChatLLM):
 
         return output
 
-    def prepare_client(self, async_version: bool = False):
+    def prepare_client(self, async_version: bool = False) -> Any:
         """Get the OpenAI client
 
         Args:
@@ -200,16 +200,16 @@ class BaseChatOpenAI(ChatLLM):
         """
         raise NotImplementedError
 
-    def openai_response(self, client, **kwargs):
+    def openai_response(self, client: Any, **kwargs: Any) -> Any:
         """Get the openai response"""
         raise NotImplementedError
 
-    async def aopenai_response(self, client, **kwargs):
+    async def aopenai_response(self, client: Any, **kwargs: Any) -> Any:
         """Get the openai response"""
         raise NotImplementedError
 
     def invoke(
-        self, messages: str | BaseMessage | list[BaseMessage], *args, **kwargs
+        self, messages: str | BaseMessage | list[BaseMessage], *args: Any, **kwargs: Any
     ) -> LLMInterface:
         client = self.prepare_client(async_version=False)
         input_messages = self.prepare_message(messages)
@@ -219,7 +219,7 @@ class BaseChatOpenAI(ChatLLM):
         return self.prepare_output(resp)
 
     async def ainvoke(
-        self, messages: str | BaseMessage | list[BaseMessage], *args, **kwargs
+        self, messages: str | BaseMessage | list[BaseMessage], *args: Any, **kwargs: Any
     ) -> LLMInterface:
         client = self.prepare_client(async_version=True)
         input_messages = self.prepare_message(messages)
@@ -232,7 +232,7 @@ class BaseChatOpenAI(ChatLLM):
         return self.prepare_output(resp)
 
     def stream(
-        self, messages: str | BaseMessage | list[BaseMessage], *args, **kwargs
+        self, messages: str | BaseMessage | list[BaseMessage], *args: Any, **kwargs: Any
     ) -> Iterator[LLMInterface]:
         client = self.prepare_client(async_version=False)
         input_messages = self.prepare_message(messages)
@@ -260,7 +260,7 @@ class BaseChatOpenAI(ChatLLM):
                 )
 
     async def astream(
-        self, messages: str | BaseMessage | list[BaseMessage], *args, **kwargs
+        self, messages: str | BaseMessage | list[BaseMessage], *args: Any, **kwargs: Any
     ) -> AsyncGenerator[LLMInterface, None]:
         client = self.prepare_client(async_version=True)
         input_messages = self.prepare_message(messages)
@@ -282,7 +282,7 @@ class ChatOpenAI(BaseChatOpenAI):
     organization: Optional[str] = Param(None, help="OpenAI organization")
     model: str = Param(help="OpenAI model", required=True)
 
-    def prepare_client(self, async_version: bool = False):
+    def prepare_client(self, async_version: bool = False) -> Any:
         """Get the OpenAI client
 
         Args:
@@ -304,7 +304,7 @@ class ChatOpenAI(BaseChatOpenAI):
 
         return OpenAI(**params)
 
-    def prepare_params(self, **kwargs):
+    def prepare_params(self, **kwargs: Any) -> dict[str, Any]:
         if "tools_pydantic" in kwargs:
             kwargs.pop("tools_pydantic")
 
@@ -328,12 +328,12 @@ class ChatOpenAI(BaseChatOpenAI):
 
         return params
 
-    def openai_response(self, client, **kwargs):
+    def openai_response(self, client: Any, **kwargs: Any) -> Any:
         """Get the openai response"""
         params = self.prepare_params(**kwargs)
         return client.chat.completions.create(**params)
 
-    async def aopenai_response(self, client, **kwargs):
+    async def aopenai_response(self, client: Any, **kwargs: Any) -> Any:
         params = self.prepare_params(**kwargs)
         return await client.chat.completions.create(**params)
 
@@ -345,7 +345,7 @@ class StructuredOutputChatOpenAI(ChatOpenAI):
         help="class that subclasses pydantics BaseModel", required=True
     )
 
-    def prepare_output(self, resp: dict) -> StructuredOutputLLMInterface:
+    def prepare_output(self, resp: dict[str, Any]) -> StructuredOutputLLMInterface:
         """Convert the OpenAI response into StructuredOutputLLMInterface"""
         additional_kwargs = {}
 
@@ -379,7 +379,7 @@ class StructuredOutputChatOpenAI(ChatOpenAI):
 
         return output
 
-    def prepare_params(self, **kwargs):
+    def prepare_params(self, **kwargs: Any) -> dict[str, Any]:
         if "tools_pydantic" in kwargs:
             kwargs.pop("tools_pydantic")
 
@@ -407,13 +407,13 @@ class StructuredOutputChatOpenAI(ChatOpenAI):
 
         return params
 
-    def openai_response(self, client, **kwargs):
+    def openai_response(self, client: Any, **kwargs: Any) -> Any:
         """Get the openai response"""
         params = self.prepare_params(**kwargs)
 
         return client.beta.chat.completions.parse(**params)
 
-    async def aopenai_response(self, client, **kwargs):
+    async def aopenai_response(self, client: Any, **kwargs: Any) -> Any:
         """Get the openai response"""
         params = self.prepare_params(**kwargs)
 
@@ -437,11 +437,11 @@ class AzureChatOpenAI(BaseChatOpenAI):
     azure_ad_token_provider: Optional[str] = Param(None, help="Azure AD token provider")
 
     @Param.auto(depends_on=["azure_ad_token_provider"])
-    def azure_ad_token_provider_(self):
+    def azure_ad_token_provider_(self) -> Any:
         if isinstance(self.azure_ad_token_provider, str):
             return import_dotted_string(self.azure_ad_token_provider, safe=False)
 
-    def prepare_client(self, async_version: bool = False):
+    def prepare_client(self, async_version: bool = False) -> Any:
         """Get the OpenAI client
 
         Args:
@@ -465,7 +465,7 @@ class AzureChatOpenAI(BaseChatOpenAI):
 
         return AzureOpenAI(**params)
 
-    def prepare_params(self, **kwargs):
+    def prepare_params(self, **kwargs: Any) -> dict[str, Any]:
         if "tools_pydantic" in kwargs:
             kwargs.pop("tools_pydantic")
 
@@ -489,11 +489,11 @@ class AzureChatOpenAI(BaseChatOpenAI):
 
         return params
 
-    def openai_response(self, client, **kwargs):
+    def openai_response(self, client: Any, **kwargs: Any) -> Any:
         """Get the openai response"""
         params = self.prepare_params(**kwargs)
         return client.chat.completions.create(**params)
 
-    async def aopenai_response(self, client, **kwargs):
+    async def aopenai_response(self, client: Any, **kwargs: Any) -> Any:
         params = self.prepare_params(**kwargs)
         return await client.chat.completions.create(**params)

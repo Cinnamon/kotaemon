@@ -1,5 +1,6 @@
 from pathlib import Path
 from unittest.mock import patch
+from typing import Any
 
 import pytest
 
@@ -44,7 +45,7 @@ _openai_chat_completion_response = ChatCompletion.parse_obj(
     "openai.resources.chat.completions.Completions.create",
     side_effect=lambda *args, **kwargs: _openai_chat_completion_response,
 )
-def test_azureopenai_model(openai_completion):
+def test_azureopenai_model(openai_completion: Any) -> None:
     model = AzureChatOpenAI(
         api_key="dummy",
         api_version="2024-05-01-preview",
@@ -53,9 +54,9 @@ def test_azureopenai_model(openai_completion):
     )
     # test for str input - stream mode
     output = model("hello world")
-    assert isinstance(
-        output, LLMInterface
-    ), "Output for single text is not LLMInterface"
+    assert isinstance(output, LLMInterface), (
+        "Output for single text is not LLMInterface"
+    )
     openai_completion.assert_called()
 
     # test for list[message] input - stream mode
@@ -67,14 +68,14 @@ def test_azureopenai_model(openai_completion):
     ]
 
     output = model(messages)
-    assert isinstance(
-        output, LLMInterface
-    ), "Output for single text is not LLMInterface"
+    assert isinstance(output, LLMInterface), (
+        "Output for single text is not LLMInterface"
+    )
     openai_completion.assert_called()
 
 
 @skip_llama_cpp_not_installed
-def test_llamacpp_chat():
+def test_llamacpp_chat() -> None:
     from llama_cpp import Llama
 
     dir_path = Path(__file__).parent / "resources" / "ggml-vocab-llama.gguf"

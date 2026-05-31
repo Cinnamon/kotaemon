@@ -5,6 +5,7 @@ from __future__ import print_function
 import base64
 import string
 from zlib import compress
+from typing import Dict, Any
 
 import httplib2
 import six  # type: ignore
@@ -41,7 +42,7 @@ class PlantUMLHTTPError(PlantUMLConnectionError):
     Request to PlantUML server returned HTTP Error.
     """
 
-    def __init__(self, response, content, *args, **kwdargs):
+    def __init__(self, response: Any, content: Any, *args: Any, **kwdargs: Any) -> None:
         self.response = response
         self.content = content
         message = "%d: %s" % (self.response.status, self.response.reason)
@@ -50,7 +51,7 @@ class PlantUMLHTTPError(PlantUMLConnectionError):
         super(PlantUMLHTTPError, self).__init__(message, *args, **kwdargs)
 
 
-def deflate_and_encode(plantuml_text):
+def deflate_and_encode(plantuml_text: str) -> str:
     """zlib compress the plantuml text and encode it for the plantuml server."""
     zlibbed_str = compress(plantuml_text.encode("utf-8"))
     compressed_string = zlibbed_str[2:-4]
@@ -70,14 +71,18 @@ class PlantUML(object):
                     httplib2.Http().request() call.
     """
 
-    def __init__(self, url="http://www.plantuml.com/plantuml/svg/", request_opts={}):
+    def __init__(
+        self,
+        url: str = "http://www.plantuml.com/plantuml/svg/",
+        request_opts: Dict[str, Any] = {},
+    ) -> None:
         self.HttpLib2Error = httplib2.HttpLib2Error
         self.http = httplib2.Http()
 
         self.url = url
         self.request_opts = request_opts
 
-    def get_url(self, plantuml_text):
+    def get_url(self, plantuml_text: str) -> str:
         """Return the server URL for the image.
         You can use this URL in an IMG HTML tag.
 
@@ -86,7 +91,7 @@ class PlantUML(object):
         """
         return self.url + deflate_and_encode(plantuml_text)
 
-    def process(self, plantuml_text):
+    def process(self, plantuml_text: str) -> str:
         """Processes the plantuml text into the raw PNG image data.
 
         :param str plantuml_text: The plantuml markup to render

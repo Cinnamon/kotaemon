@@ -1,7 +1,10 @@
 from difflib import SequenceMatcher
+from typing import List, Tuple, Optional
 
 
-def find_text(search_span, context, min_length=5):
+def find_text(
+    search_span: str, context: str, min_length: int = 5
+) -> List[Tuple[int, int]]:
     search_span, context = search_span.lower(), context.lower()
 
     sentence_list = search_span.split("\n")
@@ -33,8 +36,9 @@ def find_text(search_span, context, min_length=5):
 
     if matches_span:
         # merge all matches into one span
-        final_span = min(start for start, _ in matches_span), max(
-            end for _, end in matches_span
+        final_span = (
+            min(start for start, _ in matches_span),
+            max(end for _, end in matches_span),
         )
         matches_span = [final_span]
 
@@ -42,8 +46,12 @@ def find_text(search_span, context, min_length=5):
 
 
 def find_start_end_phrase(
-    start_phrase, end_phrase, context, min_length=5, max_excerpt_length=300
-):
+    start_phrase: str,
+    end_phrase: str,
+    context: str,
+    min_length: int = 5,
+    max_excerpt_length: int = 300,
+) -> Tuple[Optional[Tuple[int, int]], int]:
     start_phrase, end_phrase = start_phrase.lower(), end_phrase.lower()
     context = context.lower()
 
@@ -82,7 +90,7 @@ def find_start_end_phrase(
     return final_match, matched_length
 
 
-def replace_think_tag_with_details(text):
+def replace_think_tag_with_details(text: str) -> str:
     text = text.replace(
         "<think>",
         '<details><summary><span style="color:grey">Thought</span></summary><blockquote>',  # noqa
@@ -91,7 +99,7 @@ def replace_think_tag_with_details(text):
     return text
 
 
-def strip_think_tag(text):
+def strip_think_tag(text: str) -> str:
     if "</think>" in text:
         text = text.split("</think>")[1]
     return text

@@ -1,7 +1,9 @@
+from typing import Any
+
 from kotaemon.base import Document
 
 
-def get_plugin_response_content(output) -> str:
+def get_plugin_response_content(output: Any) -> str:
     """
     Wrapper for AgentOutput content return
     """

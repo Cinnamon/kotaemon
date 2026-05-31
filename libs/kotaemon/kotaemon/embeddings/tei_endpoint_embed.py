@@ -1,5 +1,6 @@
 import aiohttp
 import requests
+from typing import Any
 
 from kotaemon.base import Document, DocumentWithEmbedding, Param
 
@@ -32,7 +33,7 @@ class TeiEndpointEmbeddings(BaseEmbeddings):
         help="Truncate embeddings to a fixed/default length",
     )
 
-    async def client_(self, inputs: list[str]):
+    async def client_(self, inputs: list[str]) -> Any:
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 url=self.endpoint_url,
@@ -46,7 +47,10 @@ class TeiEndpointEmbeddings(BaseEmbeddings):
         return embeddings
 
     async def ainvoke(
-        self, text: str | list[str] | Document | list[Document], *args, **kwargs
+        self,
+        text: str | list[str] | Document | list[Document],
+        *args: Any,
+        **kwargs: Any,
     ) -> list[DocumentWithEmbedding]:
         if not isinstance(text, list):
             text = [text]
@@ -72,7 +76,10 @@ class TeiEndpointEmbeddings(BaseEmbeddings):
         return outputs
 
     def invoke(
-        self, text: str | list[str] | Document | list[Document], *args, **kwargs
+        self,
+        text: str | list[str] | Document | list[Document],
+        *args: Any,
+        **kwargs: Any,
     ) -> list[DocumentWithEmbedding]:
         if not isinstance(text, list):
             text = [text]

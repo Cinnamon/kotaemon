@@ -19,15 +19,15 @@ class ChatBlock(ChatInterface):
 
     def __init__(
         self,
-        *args,
+        *args: Any,
         additional_outputs: str | Component | list[str | Component] | None = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         if additional_outputs:
             if not isinstance(additional_outputs, list):
                 additional_outputs = [additional_outputs]
             self.additional_outputs = [
-                get_component_instance(i) for i in additional_outputs  # type: ignore
+                get_component_instance(i) for i in additional_outputs
             ]
         else:
             self.additional_outputs = []
@@ -39,7 +39,7 @@ class ChatBlock(ChatInterface):
         message: str,
         history_with_input: list[list[str | None]],
         request: Request,
-        *args,
+        *args: Any,
     ) -> tuple[Any, ...]:
         input_args = args[: -len(self.additional_outputs)]
         output_args = args[-len(self.additional_outputs) :]
@@ -72,8 +72,8 @@ class ChatBlock(ChatInterface):
         self,
         message: str,
         history_with_input: list[list[str | None]],
-        *args,
-    ) -> AsyncGenerator:
+        *args: Any,
+    ) -> AsyncGenerator[Any, None]:
         raise NotImplementedError("Stream function not implemented for ChatBlock")
 
     def _display_input(

@@ -8,13 +8,18 @@ from kotaemon.base import RetrievedDocument
 BASE_PATH = os.environ.get("GR_FILE_ROOT_PATH", "")
 
 
-def is_close(val1, val2, tolerance=1e-9):
+def is_close(val1: float, val2: float, *, tolerance: float = 1e-9) -> bool:
+    """Check if two float values are close within tolerance"""
     return abs(val1 - val2) <= tolerance
 
 
 def replace_mardown_header(text: str) -> str:
+    """Replace markdown headers with HTML strong tags"""
+    if not text:
+        return ""
+
     textlines = text.splitlines()
-    newlines = []
+    newlines: list[str] = []
     for line in textlines:
         if line.startswith("#"):
             line = "<strong>" + line.replace("#", "") + "</strong>"
@@ -39,7 +44,7 @@ class Render:
     """Default text rendering into HTML for the UI"""
 
     @staticmethod
-    def collapsible(header, content, open: bool = False) -> str:
+    def collapsible(header: str, content: str, *, open: bool = False) -> str:
         """Render an HTML friendly collapsible section"""
         o = " open" if open else ""
         return (
@@ -51,6 +56,9 @@ class Render:
     @staticmethod
     def table(text: str) -> str:
         """Render table from markdown format into HTML"""
+        if not text:
+            return ""
+
         text = replace_mardown_header(text)
         return markdown.markdown(
             text,
@@ -63,6 +71,9 @@ class Render:
     @staticmethod
     def table_preserve_linebreaks(text: str) -> str:
         """Render table from markdown format into HTML"""
+        if not text:
+            return ""
+
         return markdown.markdown(
             text,
             extensions=[
@@ -77,6 +88,7 @@ class Render:
         doc: RetrievedDocument,
         highlight_text: str | None = None,
     ) -> str:
+        """Generate preview with PDF link if applicable"""
         text = doc.content
         pdf_path = doc.metadata.get("file_path", "")
 
@@ -95,6 +107,7 @@ class Render:
             print("Fail to extract page number")
             return html_content
 
+        phrase = "false"
         if not highlight_text:
             try:
                 lang = detect(text.replace("\n", " "))["lang"]
@@ -102,7 +115,7 @@ class Render:
                     highlight_words = [
                         t[:-1] if t.endswith("-") else t for t in text.split("\n")
                     ]
-                    highlight_text = highlight_words[0]
+                    highlight_text = highlight_words[0] if highlight_words else text
                     phrase = "true"
                 else:
                     phrase = "false"
@@ -141,8 +154,10 @@ class Render:
     @staticmethod
     def collapsible_with_header(
         doc: RetrievedDocument,
+        *,
         open_collapsible: bool = False,
     ) -> str:
+        """Render collapsible section with document header"""
         header = f"<i>{get_header(doc)}</i>"
         if doc.metadata.get("type", "") == "image":
             doc_content = Render.image(url=doc.metadata["image_origin"], text=doc.text)
@@ -162,6 +177,7 @@ class Render:
         doc: RetrievedDocument,
         override_text: str | None = None,
         highlight_text: str | None = None,
+        *,
         open_collapsible: bool = False,
     ) -> str:
         """Format the retrieval score and the document"""

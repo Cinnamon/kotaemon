@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any
 
 import gradio as gr
 import pandas as pd
@@ -385,3 +386,51 @@ class LLMManagement(BasePage):
             return selected_llm_name
 
         return ""
+
+
+def get_llm_info_component() -> Any:
+    pass
+
+
+def get_llm_setting_component(name: str = "") -> Any:
+    pass
+
+
+def get_llm_info_panel() -> Any:
+    pass
+
+
+def get_llm_info_panel_base() -> Any:
+    pass
+
+
+def get_llm_setting_component_by_type(name: str = "") -> Any:
+    pass
+
+
+def get_llm_info_panel_advanced() -> Any:
+    pass
+
+
+def get_llm_setting_by_type(name: str = "") -> Any:
+    pass
+
+
+def get_llm_info_panel_multimodal() -> Any:
+    pass
+
+
+def get_llm_info_panel_multimodal_by_type(name: str = "", **kwargs: Any) -> Any:
+    pass
+
+
+def get_llm_setting_by_type_multimodal(name: str = "") -> Any:
+    pass
+
+
+def get_llm_info_panel_base_multimodal() -> Any:
+    pass
+
+
+def get_llm_info_panel_multimodal_by_type_base(name: str = "", **kwargs: Any) -> Any:
+    pass

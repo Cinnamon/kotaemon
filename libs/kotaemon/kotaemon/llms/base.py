@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, Iterator
+from typing import AsyncGenerator, Iterator, Any
 
 from langchain_core.language_models.base import BaseLanguageModel
 
@@ -9,17 +9,17 @@ class BaseLLM(BaseComponent):
     def to_langchain_format(self) -> BaseLanguageModel:
         raise NotImplementedError
 
-    def invoke(self, *args, **kwargs) -> LLMInterface:
+    def invoke(self, *args: Any, **kwargs: Any) -> LLMInterface:
         raise NotImplementedError
 
-    async def ainvoke(self, *args, **kwargs) -> LLMInterface:
+    async def ainvoke(self, *args: Any, **kwargs: Any) -> LLMInterface:
         raise NotImplementedError
 
-    def stream(self, *args, **kwargs) -> Iterator[LLMInterface]:
+    def stream(self, *args: Any, **kwargs: Any) -> Iterator[LLMInterface]:
         raise NotImplementedError
 
-    def astream(self, *args, **kwargs) -> AsyncGenerator[LLMInterface, None]:
+    def astream(self, *args: Any, **kwargs: Any) -> AsyncGenerator[LLMInterface, None]:
         raise NotImplementedError
 
-    def run(self, *args, **kwargs):
+    def run(self, *args: Any, **kwargs: Any) -> LLMInterface:
         return self.invoke(*args, **kwargs)

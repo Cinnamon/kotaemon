@@ -1,11 +1,10 @@
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Any, Generator
 
 from kotaemon.base import BaseComponent, Document, Param
 
 
 class BaseFileIndexRetriever(BaseComponent):
-
     Source = Param(help="The SQLAlchemy Source table")
     Index = Param(help="The SQLAlchemy Index table")
     VS = Param(help="The VectorStore")
@@ -14,7 +13,7 @@ class BaseFileIndexRetriever(BaseComponent):
     user_id = Param(help="The user id")
 
     @classmethod
-    def get_user_settings(cls) -> dict:
+    def get_user_settings(cls) -> dict[str, dict[str, Any]]:
         """Get the user settings for indexing
 
         Returns:
@@ -26,9 +25,9 @@ class BaseFileIndexRetriever(BaseComponent):
     @classmethod
     def get_pipeline(
         cls,
-        user_settings: dict,
-        index_settings: dict,
-        selected: Optional[list] = None,
+        user_settings: dict[str, Any],
+        index_settings: dict[str, Any],
+        selected: list[Any] | None = None,
     ) -> "BaseFileIndexRetriever":
         raise NotImplementedError
 
@@ -59,7 +58,7 @@ class BaseFileIndexIndexing(BaseComponent):
     chunk_overlap = Param(help="Chunk overlap for this index")
 
     def run(
-        self, file_paths: str | Path | list[str | Path], *args, **kwargs
+        self, file_paths: str | Path | list[str | Path], *args: Any, **kwargs: Any
     ) -> tuple[list[str | None], list[str | None]]:
         """Run the indexing pipeline
 
@@ -75,7 +74,7 @@ class BaseFileIndexIndexing(BaseComponent):
         raise NotImplementedError
 
     def stream(
-        self, file_paths: str | Path | list[str | Path], *args, **kwargs
+        self, file_paths: str | Path | list[str | Path], *args: Any, **kwargs: Any
     ) -> Generator[
         Document, None, tuple[list[str | None], list[str | None], list[Document]]
     ]:
@@ -98,12 +97,12 @@ class BaseFileIndexIndexing(BaseComponent):
 
     @classmethod
     def get_pipeline(
-        cls, user_settings: dict, index_settings: dict
+        cls, user_settings: dict[str, Any], index_settings: dict[str, Any]
     ) -> "BaseFileIndexIndexing":
         raise NotImplementedError
 
     @classmethod
-    def get_user_settings(cls) -> dict:
+    def get_user_settings(cls) -> dict[str, dict[str, Any]]:
         """Get the user settings for indexing
 
         Returns:
@@ -129,7 +128,7 @@ class BaseFileIndexIndexing(BaseComponent):
         if not isinstance(file_paths, list):
             file_paths = [file_paths]
 
-        paths = []
+        paths: list[str] = []
         for file_path in file_paths:
             with open(file_path, "rb") as f:
                 paths.append(sha256(f.read()).hexdigest())
@@ -148,7 +147,7 @@ class BaseFileIndexIndexing(BaseComponent):
         """
         raise NotImplementedError
 
-    def warning(self, msg):
+    def warning(self, msg: str) -> None:
         """Log a warning message
 
         Args:
@@ -156,6 +155,6 @@ class BaseFileIndexIndexing(BaseComponent):
         """
         print(msg)
 
-    def rebuild_index(self):
+    def rebuild_index(self) -> None:
         """Rebuild the index"""
         raise NotImplementedError

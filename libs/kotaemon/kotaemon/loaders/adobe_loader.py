@@ -3,7 +3,7 @@ import os
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from decouple import config
 from llama_index.core.readers.base import BaseReader
@@ -54,8 +54,11 @@ class AdobeReader(BaseReader):
         self.max_figures_to_caption = max_figures_to_caption
 
     def load_data(
-        self, file: Path, extra_info: Optional[Dict] = None, **kwargs
-    ) -> List[Document]:
+        self,
+        file_path: str | Path,
+        extra_info: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
+    ) -> list[Document]:
         """Load data by calling to the Adobe's API
 
         Args:
@@ -74,9 +77,9 @@ class AdobeReader(BaseReader):
             request_adobe_service,
         )
 
-        filename = file.name
-        filepath = str(Path(file).resolve())
-        output_path = request_adobe_service(file_path=str(file), output_path="")
+        filename = Path(file_path).name
+        filepath = str(Path(file_path).resolve())
+        output_path = request_adobe_service(file_path=str(file_path), output_path="")
         results_path = os.path.join(output_path, "structuredData.json")
 
         if not os.path.exists(results_path):

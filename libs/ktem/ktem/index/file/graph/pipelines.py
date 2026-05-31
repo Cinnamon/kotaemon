@@ -3,7 +3,7 @@ import shutil
 import subprocess
 from pathlib import Path
 from shutil import rmtree
-from typing import Generator
+from typing import Any, Generator
 from uuid import uuid4
 
 import pandas as pd
@@ -52,11 +52,11 @@ GRAPHRAG_KEY_MISSING_MESSAGE = (
 )
 
 
-def check_graphrag_api_key():
+def check_graphrag_api_key() -> bool:
     return len(os.getenv("GRAPHRAG_API_KEY", "")) > 0
 
 
-def prepare_graph_index_path(graph_id: str):
+def prepare_graph_index_path(graph_id: str) -> tuple[Path, Path]:
     root_path = Path(filestorage_path) / graph_id
     input_path = root_path / "input"
 
@@ -73,7 +73,7 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
 
         return pipeline
 
-    def store_file_id_with_graph_id(self, file_ids: list[str | None]):
+    def store_file_id_with_graph_id(self, file_ids: list[str | None]) -> str:
         # create new graph_id and assign them to doc_id in self.Index
         # record in the index
         graph_id = str(uuid4())
@@ -95,7 +95,7 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
 
         return graph_id
 
-    def write_docs_to_files(self, graph_id: str, docs: list[Document]):
+    def write_docs_to_files(self, graph_id: str, docs: list[Document]) -> Path:
         root_path, input_path = prepare_graph_index_path(graph_id)
         input_path.mkdir(parents=True, exist_ok=True)
 
@@ -106,16 +106,18 @@ class GraphRAGIndexingPipeline(IndexDocumentPipeline):
 
         return root_path
 
-    def call_graphrag_index(self, graph_id: str, all_docs: list[Document]):
+    def call_graphrag_index(
+        self, graph_id: str, all_docs: list[Document]
+    ) -> Generator[Document, None, None]:
         if not check_graphrag_api_key():
             raise ValueError(GRAPHRAG_KEY_MISSING_MESSAGE)
 
         # call GraphRAG index with docs and graph_id
-        input_path = self.write_docs_to_files(graph_id, all_docs)
-        input_path = str(input_path.absolute())
+        input_path_obj = self.write_docs_to_files(graph_id, all_docs)
+        input_path = str(input_path_obj.absolute())
 
         # Construct the command
-        command = [
+        command: list[str] = [
             "python",
             "-m",
             "graphrag.index",
@@ -175,7 +177,7 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
     file_ids: list[str] = []
 
     @classmethod
-    def get_user_settings(cls) -> dict:
+    def get_user_settings(cls) -> dict[str, dict[str, Any]]:
         return {
             "search_type": {
                 "name": "Search type",
@@ -186,10 +188,10 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             }
         }
 
-    def _build_graph_search(self):
-        assert (
-            len(self.file_ids) <= 1
-        ), "GraphRAG retriever only supports one file_id at a time"
+    def _build_graph_search(self) -> Any:
+        assert len(self.file_ids) <= 1, (
+            "GraphRAG retriever only supports one file_id at a time"
+        )
 
         file_id = self.file_ids[0]
         # retrieve the graph_id from the index
@@ -304,7 +306,7 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
             score=1.0,
         )
 
-    def format_context_records(self, context_records) -> list[RetrievedDocument]:
+    def format_context_records(self, context_records: Any) -> list[RetrievedDocument]:
         entities = context_records.get("entities", [])
         relationships = context_records.get("relationships", [])
         reports = context_records.get("reports", [])
@@ -342,13 +344,15 @@ class GraphRAGRetrieverPipeline(BaseFileIndexRetriever):
 
         return docs
 
-    def plot_graph(self, context_records):
+    def plot_graph(self, context_records: Any) -> Any:
         relationships = context_records.get("relationships", [])
         G = create_knowledge_graph(relationships)
         plot = visualize_graph(G)
         return plot
 
-    def generate_relevant_scores(self, text, documents: list[RetrievedDocument]):
+    def generate_relevant_scores(
+        self, text: str, documents: list[RetrievedDocument]
+    ) -> list[RetrievedDocument]:
         return documents
 
     def run(

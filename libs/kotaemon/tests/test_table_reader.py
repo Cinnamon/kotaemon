@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -12,7 +13,7 @@ input_file_excel = Path(__file__).parent / "resources" / "dummy.xlsx"
 
 
 @pytest.fixture
-def fullocr_output():
+def fullocr_output() -> dict[str, Any]:
     with open(
         Path(__file__).parent / "resources" / "fullocr_sample_output.json",
         encoding="utf-8",
@@ -22,28 +23,28 @@ def fullocr_output():
 
 
 @pytest.fixture
-def mathpix_output():
+def mathpix_output() -> str:
     with open(Path(__file__).parent / "resources" / "policy.md", encoding="utf-8") as f:
         content = f.read()
     return content
 
 
 @skip_when_unstructured_pdf_not_installed
-def test_ocr_reader(fullocr_output):
+def test_ocr_reader(fullocr_output: dict[str, Any]) -> None:
     reader = OCRReader()
     documents = reader.load_data(input_file, response_content=fullocr_output)
     table_docs = [doc for doc in documents if doc.metadata.get("type", "") == "table"]
     assert len(table_docs) == 2
 
 
-def test_mathpix_reader(mathpix_output):
+def test_mathpix_reader(mathpix_output: str) -> None:
     reader = MathpixPDFReader()
     documents = reader.load_data(input_file, response_content=mathpix_output)
     table_docs = [doc for doc in documents if doc.metadata.get("type", "") == "table"]
     assert len(table_docs) == 4
 
 
-def test_excel_reader():
+def test_excel_reader() -> None:
     reader = PandasExcelReader()
     documents = reader.load_data(
         input_file_excel,

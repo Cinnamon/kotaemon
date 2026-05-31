@@ -24,10 +24,9 @@ function(usn, pwd) {
 
 
 class LoginPage(BasePage):
-
     public_events = ["onSignIn"]
 
-    def __init__(self, app):
+    def __init__(self, app) -> None:
         self._app = app
         self.on_building_ui()
 

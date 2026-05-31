@@ -54,14 +54,14 @@ class MathpixPDFReader(BaseReader):
         return "https://api.mathpix.com/v3/pdf"
 
     @property
-    def data(self) -> dict:
+    def data(self) -> dict[str, Any]:
         options = {
             "conversion_formats": {self.processed_file_format: True},
             "enable_tables_fallback": True,
         }
         return {"options_json": json.dumps(options)}
 
-    def send_pdf(self, file_path) -> str:
+    def send_pdf(self, file_path: Any) -> str:
         with open(file_path, "rb") as f:
             files = {"file": f}
             response = requests.post(
@@ -201,15 +201,15 @@ class MathpixPDFReader(BaseReader):
 
     def load_data(
         self,
-        file: Union[str, List[str], Path],
-        extra_info: Optional[Dict] = None,
-        **load_kwargs: Any,
-    ) -> List[Document]:
+        file_path: Path,
+        extra_info: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
+    ) -> list[Document]:
         """Load data from file path."""
-        file_path = Path(file) if isinstance(file, str) else file
+        file_path = Path(file_path) if isinstance(file_path, str) else file_path
 
-        if "response_content" in load_kwargs:
-            content = load_kwargs["response_content"]
+        if "response_content" in kwargs:
+            content = kwargs["response_content"]
         else:
             pdf_id = self.send_pdf(file_path)
             content = self.get_processed_pdf(pdf_id)
@@ -271,7 +271,7 @@ class MathpixPDFReader(BaseReader):
     def lazy_load_data(
         self,
         file: Union[str, List[str], Path],
-        extra_info: Optional[Dict] = None,
+        extra_info: Optional[Dict[str, Any]] = None,
         **load_kwargs: Any,
     ) -> Generator[Document, None, None]:
         """Lazy load data from file path."""

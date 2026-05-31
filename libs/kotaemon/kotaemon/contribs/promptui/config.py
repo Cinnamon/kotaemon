@@ -1,4 +1,5 @@
 """Get config from Pipeline"""
+
 import inspect
 from pathlib import Path
 from typing import Any, Dict, Optional, Type, Union
@@ -11,7 +12,7 @@ from kotaemon.chatbot import BaseChatBot
 from .base import DEFAULT_COMPONENT_BY_TYPES
 
 
-def config_from_value(value: Any) -> dict:
+def config_from_value(value: Any) -> dict[str, Any]:
     """Get the config from default value
 
     Args:
@@ -29,7 +30,7 @@ def config_from_value(value: Any) -> dict:
     }
 
 
-def handle_param(param: dict) -> dict:
+def handle_param(param: dict[str, Any]) -> dict[str, Any]:
     """Convert param definition into promptui-compliant config
 
     Supported gradio's UI components are (https://www.gradio.app/docs/components)
@@ -42,7 +43,7 @@ def handle_param(param: dict) -> dict:
         - Slider: int / float
         - TextBox: str
     """
-    params = {}
+    params: dict[str, Any] = {}
     default = param.get("default", None)
     if isinstance(default, str) and default.startswith("{{") and default.endswith("}}"):
         default = None
@@ -60,9 +61,9 @@ def handle_param(param: dict) -> dict:
     }
 
 
-def handle_node(node: dict) -> dict:
+def handle_node(node: dict[str, Any]) -> dict[str, Any]:
     """Convert node definition into promptui-compliant config"""
-    config = {}
+    config: dict[str, Any] = {}
     for name, param_def in node.get("params", {}).items():
         if isinstance(param_def["auto_callback"], str):
             continue
@@ -82,10 +83,12 @@ def handle_node(node: dict) -> dict:
     return config
 
 
-def handle_input(pipeline: Union[BaseComponent, Type[BaseComponent]]) -> dict:
+def handle_input(
+    pipeline: Union[BaseComponent, Type[BaseComponent]],
+) -> dict[str, dict[str, Any]]:
     """Get the input from the pipeline"""
     signature = inspect.signature(pipeline.run)
-    inputs: Dict[str, Dict] = {}
+    inputs: Dict[str, Dict[str, Any]] = {}
     for name, param in signature.parameters.items():
         if name in ["self", "args", "kwargs"]:
             continue
@@ -95,7 +98,7 @@ def handle_input(pipeline: Union[BaseComponent, Type[BaseComponent]]) -> dict:
             inputs[name] = input_def
             continue
 
-        params = {}
+        params: dict[str, Any] = {}
         params["value"] = default
         type_ = type(default).__name__ if default is not None else None
         ui_component = None
@@ -113,7 +116,7 @@ def handle_input(pipeline: Union[BaseComponent, Type[BaseComponent]]) -> dict:
 def export_pipeline_to_config(
     pipeline: Union[BaseComponent, Type[BaseComponent]],
     path: Optional[str] = None,
-) -> dict:
+) -> dict[str, Any]:
     """Export a pipeline to a promptui-compliant config dict"""
     if inspect.isclass(pipeline):
         pipeline = pipeline()
@@ -123,10 +126,10 @@ def export_pipeline_to_config(
     if ui_type == "chat":
         params = {f".bot.{k}": v for k, v in handle_node(pipeline_def).items()}
         params["system_message"] = {"component": "text", "params": {"value": ""}}
-        outputs = []
+        outputs: list[Any] = []
         if hasattr(pipeline, "_promptui_outputs"):
             outputs = pipeline._promptui_outputs
-        config_obj: dict = {
+        config_obj: dict[str, Any] = {
             "ui-type": ui_type,
             "params": params,
             "inputs": {},
@@ -170,7 +173,9 @@ def export_pipeline_to_config(
             },
         }
 
-    config = {f"{pipeline.__module__}.{pipeline.__class__.__name__}": config_obj}
+    config: dict[str, Any] = {
+        f"{pipeline.__module__}.{pipeline.__class__.__name__}": config_obj
+    }
     if path is not None:
         old_config = config
         if Path(path).is_file():

@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from unittest.mock import patch
+from typing import Any
 
 from openai.types.create_embedding_response import CreateEmbeddingResponse
 
@@ -14,7 +15,7 @@ with open(Path(__file__).parent / "resources" / "embedding_openai.json") as f:
     openai_embedding = CreateEmbeddingResponse.model_validate(json.load(f))
 
 
-def test_google_tool(mock_google_search):
+def test_google_tool(mock_google_search: Any) -> None:
     tool = GoogleSearchTool()
     assert tool.name
     assert tool.description
@@ -22,7 +23,7 @@ def test_google_tool(mock_google_search):
     assert output
 
 
-def test_wikipedia_tool():
+def test_wikipedia_tool() -> None:
     tool = WikipediaTool()
     assert tool.name
     assert tool.description
@@ -34,7 +35,7 @@ def test_wikipedia_tool():
     "openai.resources.embeddings.Embeddings.create",
     side_effect=lambda *args, **kwargs: openai_embedding,
 )
-def test_pipeline_tool(tmp_path):
+def test_pipeline_tool(tmp_path: Any) -> None:
     db = ChromaVectorStore(path=str(tmp_path))
     doc_store = InMemoryDocumentStore()
     embedding = AzureOpenAIEmbeddings(

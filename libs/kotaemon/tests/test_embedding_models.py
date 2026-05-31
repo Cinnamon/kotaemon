@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from unittest.mock import Mock, patch
+from typing import Any
 
 from openai.types.create_embedding_response import CreateEmbeddingResponse
 
@@ -28,7 +29,7 @@ with open(Path(__file__).parent / "resources" / "embedding_openai.json") as f:
     openai_embedding = CreateEmbeddingResponse.model_validate(json.load(f))
 
 
-def assert_embedding_result(output):
+def assert_embedding_result(output: Any) -> None:
     assert isinstance(output, list)
     assert isinstance(output[0], Document)
     assert isinstance(output[0].embedding, list)
@@ -39,7 +40,7 @@ def assert_embedding_result(output):
     "openai.resources.embeddings.Embeddings.create",
     side_effect=lambda *args, **kwargs: openai_embedding,
 )
-def test_azureopenai_embeddings_raw(openai_embedding_call):
+def test_azureopenai_embeddings_raw(openai_embedding_call: Any) -> None:
     model = AzureOpenAIEmbeddings(
         azure_deployment="embedding-deployment",
         azure_endpoint="https://test.openai.azure.com/",
@@ -55,7 +56,7 @@ def test_azureopenai_embeddings_raw(openai_embedding_call):
     "openai.resources.embeddings.Embeddings.create",
     side_effect=lambda *args, **kwargs: openai_embedding_batch,
 )
-def test_lcazureopenai_embeddings_batch_raw(openai_embedding_call):
+def test_lcazureopenai_embeddings_batch_raw(openai_embedding_call: Any) -> None:
     model = AzureOpenAIEmbeddings(
         azure_deployment="embedding-deployment",
         azure_endpoint="https://test.openai.azure.com/",
@@ -71,7 +72,7 @@ def test_lcazureopenai_embeddings_batch_raw(openai_embedding_call):
     "openai.resources.embeddings.Embeddings.create",
     side_effect=lambda *args, **kwargs: openai_embedding_batch,
 )
-def test_azureopenai_embeddings_batch_raw(openai_embedding_call):
+def test_azureopenai_embeddings_batch_raw(openai_embedding_call: Any) -> None:
     model = AzureOpenAIEmbeddings(
         azure_deployment="text-embedding-ada-002",
         azure_endpoint="https://test.openai.azure.com/",
@@ -87,7 +88,7 @@ def test_azureopenai_embeddings_batch_raw(openai_embedding_call):
     "openai.resources.embeddings.Embeddings.create",
     side_effect=lambda *args, **kwargs: openai_embedding,
 )
-def test_openai_embeddings_raw(openai_embedding_call):
+def test_openai_embeddings_raw(openai_embedding_call: Any) -> None:
     model = OpenAIEmbeddings(
         api_key="some-key",
         model="text-embedding-ada-002",
@@ -101,7 +102,7 @@ def test_openai_embeddings_raw(openai_embedding_call):
     "openai.resources.embeddings.Embeddings.create",
     side_effect=lambda *args, **kwargs: openai_embedding_batch,
 )
-def test_openai_embeddings_batch_raw(openai_embedding_call):
+def test_openai_embeddings_batch_raw(openai_embedding_call: Any) -> None:
     model = OpenAIEmbeddings(
         api_key="some-key",
         model="text-embedding-ada-002",
@@ -121,8 +122,8 @@ def test_openai_embeddings_batch_raw(openai_embedding_call):
     side_effect=lambda *args, **kwargs: [[1.0, 2.1, 3.2]],
 )
 def test_lchuggingface_embeddings(
-    langchain_huggingface_embedding_call, sentence_transformers_init
-):
+    langchain_huggingface_embedding_call: Any, sentence_transformers_init: Any
+) -> None:
     model = LCHuggingFaceEmbeddings(
         model_name="intfloat/multilingual-e5-large",
         model_kwargs={"device": "cpu"},
@@ -140,7 +141,7 @@ def test_lchuggingface_embeddings(
     "langchain_cohere.CohereEmbeddings.embed_documents",
     side_effect=lambda *args, **kwargs: [[1.0, 2.1, 3.2]],
 )
-def test_lccohere_embeddings(langchain_cohere_embedding_call):
+def test_lccohere_embeddings(langchain_cohere_embedding_call: Any) -> None:
     model = LCCohereEmbeddings(
         model="embed-english-light-v2.0",
         cohere_api_key="my-api-key",
@@ -153,7 +154,7 @@ def test_lccohere_embeddings(langchain_cohere_embedding_call):
 
 
 @skip_when_fastembed_not_installed
-def test_fastembed_embeddings():
+def test_fastembed_embeddings() -> None:
     model = FastEmbedEmbeddings()
     output = model("Hello World")
     assert_embedding_result(output)
@@ -166,7 +167,7 @@ voyage_output_mock.embeddings = [[1.0, 2.1, 3.2]]
 @skip_when_voyageai_not_installed
 @patch("voyageai.Client.embed", return_value=voyage_output_mock)
 @patch("voyageai.AsyncClient.embed", return_value=voyage_output_mock)
-def test_voyageai_embeddings(sync_call, async_call):
+def test_voyageai_embeddings(sync_call: Any, async_call: Any) -> None:
     model = VoyageAIEmbeddings(api_key="test")
     output = model("Hello, world!")
     assert all(isinstance(doc, DocumentWithEmbedding) for doc in output)

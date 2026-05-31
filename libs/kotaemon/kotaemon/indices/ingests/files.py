@@ -34,9 +34,9 @@ azure_reader = AzureAIDocumentIntelligenceLoader(
     cache_dir=getattr(flowsettings, "KH_MARKDOWN_OUTPUT_DIR", None),
 )
 docling_reader = DoclingReader()
-adobe_reader.vlm_endpoint = (
-    azure_reader.vlm_endpoint
-) = docling_reader.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
+adobe_reader.vlm_endpoint = azure_reader.vlm_endpoint = docling_reader.vlm_endpoint = (
+    getattr(flowsettings, "KH_VLM_ENDPOINT", "")
+)
 
 
 KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
@@ -83,11 +83,11 @@ class DocumentIngestor(BaseComponent):
         chunk_size=1024,
         chunk_overlap=256,
         separator="\n\n",
-        backup_separators=["\n", ".", " ", "\u200B"],
+        backup_separators=["\n", ".", " ", "\u200b"],
     )
     override_file_extractors: dict[str, Type[BaseReader]] = {}
 
-    def _get_reader(self, input_files: list[str | Path]):
+    def _get_reader(self, input_files: list[str | Path]) -> DirectoryReader:
         """Get appropriate readers for the input files based on file extension"""
         file_extractors: dict[str, BaseReader] = {
             ext: reader for ext, reader in KH_DEFAULT_FILE_EXTRACTORS.items()

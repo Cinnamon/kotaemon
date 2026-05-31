@@ -4,7 +4,7 @@ from kotaemon.indices.ingests import DocumentIngestor
 from kotaemon.indices.splitters import TokenSplitter
 
 
-def test_ingestor_include_src():
+def test_ingestor_include_src() -> None:
     dirpath = Path(__file__).parent
     ingestor = DocumentIngestor(
         pdf_mode="normal",

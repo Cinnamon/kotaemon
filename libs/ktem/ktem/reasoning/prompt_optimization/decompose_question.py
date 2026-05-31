@@ -1,10 +1,10 @@
 import logging
+from typing import Any
 
 from ktem.llms.manager import llms
-from ktem.reasoning.prompt_optimization.rewrite_question import RewriteQuestionPipeline
 from pydantic import BaseModel, Field
 
-from kotaemon.base import Document, HumanMessage, Node, SystemMessage
+from kotaemon.base import BaseComponent, Document, HumanMessage, Node, SystemMessage
 from kotaemon.llms import ChatLLM
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class SubQuery(BaseModel):
     )
 
 
-class DecomposeQuestionPipeline(RewriteQuestionPipeline):
+class DecomposeQuestionPipeline(BaseComponent):
     """Decompose user complex question into multiple sub-questions
 
     Args:
@@ -42,7 +42,7 @@ class DecomposeQuestionPipeline(RewriteQuestionPipeline):
     )
     prompt_template: str = DECOMPOSE_SYSTEM_PROMPT_TEMPLATE
 
-    def create_prompt(self, question):
+    def create_prompt(self, question: str) -> tuple[list[Any], dict[str, Any]]:
         schema = SubQuery.model_json_schema()
         function = {
             "name": schema["title"],
@@ -62,7 +62,7 @@ class DecomposeQuestionPipeline(RewriteQuestionPipeline):
 
         return messages, llm_kwargs
 
-    def run(self, question: str) -> list:  # type: ignore
+    def run(self, question: str) -> list[Document]:
         messages, llm_kwargs = self.create_prompt(question)
         result = self.llm(messages, **llm_kwargs)
         tool_calls = result.additional_kwargs.get("tool_calls", None)

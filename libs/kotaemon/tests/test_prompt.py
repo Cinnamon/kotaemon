@@ -5,7 +5,7 @@ from kotaemon.llms import BasePromptComponent, PromptTemplate
 from kotaemon.parsers import RegexExtractor
 
 
-def test_set_attributes():
+def test_set_attributes() -> None:
     template = PromptTemplate("str = {s}, int = {i}, doc = {doc}, comp = {comp}")
     doc = Document(text="Helloo, Alice!")
     comp = RegexExtractor(
@@ -20,28 +20,28 @@ def test_set_attributes():
     assert prompt.comp == comp
 
 
-def test_check_redundant_kwargs():
+def test_check_redundant_kwargs() -> None:
     template = PromptTemplate("Hello, {name}!")
     prompt = BasePromptComponent(template=template, name="Alice")
     with pytest.warns(UserWarning, match="Keys provided but not in template: age"):
         prompt._BasePromptComponent__check_redundant_kwargs(name="Alice", age=30)
 
 
-def test_check_unset_placeholders():
+def test_check_unset_placeholders() -> None:
     template = PromptTemplate("Hello, {name}! I'm {age} years old.")
     prompt = BasePromptComponent(template=template, name="Alice")
     with pytest.raises(ValueError):
         prompt._BasePromptComponent__check_unset_placeholders()
 
 
-def test_validate_value_type():
+def test_validate_value_type() -> None:
     template = PromptTemplate("Hello, {name}!")
     prompt = BasePromptComponent(template=template)
     with pytest.raises(ValueError):
         prompt._BasePromptComponent__validate_value_type(name={})
 
 
-def test_run():
+def test_run() -> None:
     template = PromptTemplate("str = {s}, int = {i}, doc = {doc}, comp = {comp}")
     doc = Document(text="Helloo, Alice!")
     comp = RegexExtractor(
@@ -56,7 +56,7 @@ def test_run():
     assert result.text == "str = Alice, int = 30, doc = Helloo, Alice!, comp = ['One']"
 
 
-def test_set_method():
+def test_set_method() -> None:
     template = PromptTemplate("Hello, {name}!")
     prompt = BasePromptComponent(template=template)
     prompt.set_value(name="Alice")

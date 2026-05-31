@@ -4,6 +4,8 @@ from sqlmodel import SQLModel
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
 
+__all__ = ["engine", "Conversation", "User", "Settings", "IssueReport"]
+
 _base_conv = (
     import_dotted_string(settings.KH_TABLE_CONV, safe=False)
     if hasattr(settings, "KH_TABLE_CONV")

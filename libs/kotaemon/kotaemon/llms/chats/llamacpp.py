@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Iterator, Optional, cast
+from typing import TYPE_CHECKING, Iterator, Optional, Any
 
 from kotaemon.base import BaseMessage, HumanMessage, LLMInterface, Param
 
@@ -79,7 +79,7 @@ class LlamaCppChat(ChatLLM):
 
         if self.model_path:
             return Llama(
-                model_path=cast(str, self.model_path),
+                model_path=self.model_path,
                 chat_format=self.chat_format,
                 lora_base=self.lora_base,
                 n_ctx=self.n_ctx,
@@ -101,7 +101,7 @@ class LlamaCppChat(ChatLLM):
 
     def prepare_message(
         self, messages: str | BaseMessage | list[BaseMessage]
-    ) -> list[dict]:
+    ) -> list[dict[str, str]]:
         input_: list[BaseMessage] = []
 
         if isinstance(messages, str):
@@ -119,7 +119,7 @@ class LlamaCppChat(ChatLLM):
         return output_
 
     def invoke(
-        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs: Any
     ) -> LLMInterface:
 
         pred: "CCCR" = self.client_object.create_chat_completion(
@@ -140,7 +140,7 @@ class LlamaCppChat(ChatLLM):
         )
 
     def stream(
-        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs: Any
     ) -> Iterator[LLMInterface]:
         pred = self.client_object.create_chat_completion(
             messages=self.prepare_message(messages),

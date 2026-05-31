@@ -10,7 +10,7 @@ from pydantic import ConfigDict
 from kotaemon.base import LLMInterface
 
 
-def check_log():
+def check_log() -> bool:
     """
     Checks if logging has been enabled.
     :return: True if logging has been enabled, False otherwise.
@@ -90,34 +90,34 @@ class BaseScratchPad:
         Log a critical message.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialize the BaseOutput object.
 
         """
         self.logger = logging
-        self.log = []
+        self.log: list[Any] = []
 
-    def stop(self):
+    def stop(self) -> None:
         """
         Stop the output.
         """
 
-    def update_status(self, output: str, **kwargs):
+    def update_status(self, output: str, **kwargs: Any) -> None:
         """
         Update the status of the output.
         """
         if check_log():
             self.logger.info(output)
 
-    def thinking(self, name: str):
+    def thinking(self, name: str) -> None:
         """
         Log that a process is thinking.
         """
         if check_log():
             self.logger.info(f"{name} is thinking...")
 
-    def done(self, _all=False):
+    def done(self, _all: bool = False) -> None:
         """
         Log that the process is done.
         """
@@ -125,19 +125,21 @@ class BaseScratchPad:
         if check_log():
             self.logger.info("Done")
 
-    def stream_print(self, item: str):
+    def stream_print(self, item: str) -> None:
         """
         Stream print.
         """
 
-    def json_print(self, item: Dict[str, Any]):
+    def json_print(self, item: Dict[str, Any]) -> None:
         """
         Log a JSON object.
         """
         if check_log():
             self.logger.info(json.dumps(item, indent=2))
 
-    def panel_print(self, item: Any, title: str = "Output", stream: bool = False):
+    def panel_print(
+        self, item: Any, title: str = "Output", stream: bool = False
+    ) -> None:
         """
         Log a panel output.
 
@@ -155,12 +157,12 @@ class BaseScratchPad:
             self.logger.info(item)
             self.logger.info("-" * 20)
 
-    def clear(self):
+    def clear(self) -> None:
         """
         Not implemented.
         """
 
-    def print(self, content: str, **kwargs):
+    def print(self, content: str, **kwargs: Any) -> None:
         """
         Log arbitrary content.
         """
@@ -168,42 +170,42 @@ class BaseScratchPad:
         if check_log():
             self.logger.info(content)
 
-    def format_json(self, json_obj: str):
+    def format_json(self, json_obj: str) -> str:
         """
         Format a JSON object.
         """
         formatted_json = json.dumps(json_obj, indent=2)
         return formatted_json
 
-    def debug(self, content: str, **kwargs):
+    def debug(self, content: str, **kwargs: Any) -> None:
         """
         Log a debug message.
         """
         if check_log():
             self.logger.debug(content, **kwargs)
 
-    def info(self, content: str, **kwargs):
+    def info(self, content: str, **kwargs: Any) -> None:
         """
         Log an informational message.
         """
         if check_log():
             self.logger.info(content, **kwargs)
 
-    def warning(self, content: str, **kwargs):
+    def warning(self, content: str, **kwargs: Any) -> None:
         """
         Log a warning message.
         """
         if check_log():
             self.logger.warning(content, **kwargs)
 
-    def error(self, content: str, **kwargs):
+    def error(self, content: str, **kwargs: Any) -> None:
         """
         Log an error message.
         """
         if check_log():
             self.logger.error(content, **kwargs)
 
-    def critical(self, content: str, **kwargs):
+    def critical(self, content: str, **kwargs: Any) -> None:
         """
         Log a critical message.
         """
@@ -222,7 +224,7 @@ class AgentAction:
     """
 
     tool: str
-    tool_input: Union[str, dict]
+    tool_input: Union[str, dict[str, Any]]
     log: str
 
 
@@ -234,7 +236,7 @@ class AgentFinish(NamedTuple):
         log: The log message.
     """
 
-    return_values: dict
+    return_values: dict[str, Any]
     log: str
 
 
@@ -255,4 +257,4 @@ class AgentOutput(LLMInterface):
     agent_type: AgentType
     status: Literal["thinking", "finished", "stopped", "failed"]
     error: Optional[str] = None
-    intermediate_steps: Optional[list] = None
+    intermediate_steps: Optional[list[Any]] = None

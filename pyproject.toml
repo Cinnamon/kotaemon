@@ -43,7 +43,7 @@ members = ["libs/kotaemon", "libs/ktem"]
 [dependency-groups]
 dev = [
     "black",
-    "coverage",  
+    "coverage",
     "flake8",
     "ipython",
     "pre-commit",

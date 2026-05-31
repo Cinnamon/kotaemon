@@ -1,4 +1,5 @@
 from unittest.mock import patch
+from typing import Any
 
 from openai.types.chat.chat_completion import ChatCompletion
 
@@ -37,7 +38,7 @@ _openai_chat_completion_response = [
     "openai.resources.chat.completions.Completions.create",
     side_effect=_openai_chat_completion_response,
 )
-def test_cot_plus_operator(openai_completion):
+def test_cot_plus_operator(openai_completion: Any) -> None:
     llm = AzureChatOpenAI(
         api_key="dummy",
         api_version="2024-05-01-preview",
@@ -68,7 +69,7 @@ def test_cot_plus_operator(openai_completion):
     "openai.resources.chat.completions.Completions.create",
     side_effect=_openai_chat_completion_response,
 )
-def test_cot_manual(openai_completion):
+def test_cot_manual(openai_completion: Any) -> None:
     llm = AzureChatOpenAI(
         api_key="dummy",
         api_version="2024-05-01-preview",
@@ -97,7 +98,7 @@ def test_cot_manual(openai_completion):
     "openai.resources.chat.completions.Completions.create",
     side_effect=_openai_chat_completion_response,
 )
-def test_cot_with_termination_callback(openai_completion):
+def test_cot_with_termination_callback(openai_completion: Any) -> None:
     llm = AzureChatOpenAI(
         api_key="dummy",
         api_version="2024-05-01-preview",

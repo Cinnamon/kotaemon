@@ -1,6 +1,7 @@
 import pickle
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Tuple, List, Optional
 
 import gradio as gr
 from theflow.storage import storage
@@ -44,7 +45,11 @@ In case of errors, you can:
 
 
 def construct_chat_ui(
-    config, func_new_chat, func_chat, func_end_chat, func_export_to_excel
+    config: dict[str, Any],
+    func_new_chat: Any,
+    func_chat: Any,
+    func_end_chat: Any,
+    func_export_to_excel: Any,
 ) -> gr.Blocks:
     """Construct the prompt engineering UI for chat
 
@@ -64,8 +69,8 @@ def construct_chat_ui(
             component_def["params"] = {}
         component_def["params"]["interactive"] = True
         component = get_component(component_def)
-        if hasattr(component, "label") and not component.label:  # type: ignore
-            component.label = name  # type: ignore
+        if hasattr(component, "label") and not component.label:
+            component.label = name
 
         inputs.append(component)
 
@@ -74,8 +79,8 @@ def construct_chat_ui(
             component_def["params"] = {}
         component_def["params"]["interactive"] = True
         component = get_component(component_def)
-        if hasattr(component, "label") and not component.label:  # type: ignore
-            component.label = name  # type: ignore
+        if hasattr(component, "label") and not component.label:
+            component.label = name
 
         params.append(component)
 
@@ -84,8 +89,8 @@ def construct_chat_ui(
             component_def["params"] = {}
         component_def["params"]["interactive"] = False
         component = get_component(component_def)
-        if hasattr(component, "label") and not component.label:  # type: ignore
-            component.label = f"Output {idx}"  # type: ignore
+        if hasattr(component, "label") and not component.label:
+            component.label = f"Output {idx}"
 
         outputs.append(component)
 
@@ -152,7 +157,7 @@ def construct_chat_ui(
     return demo.queue()
 
 
-def build_chat_ui(config, pipeline_def):
+def build_chat_ui(config: dict[str, Any], pipeline_def: Any) -> gr.Blocks:
     """Build the chat UI
 
     Args:
@@ -169,7 +174,9 @@ def build_chat_ui(config, pipeline_def):
     resultlog = getattr(pipeline_def, "_promptui_resultlog", ResultLog)
     allowed_resultlog_callbacks = {i for i in dir(resultlog) if not i.startswith("__")}
 
-    def new_chat(*args):
+    def new_chat(
+        *args: Any,
+    ) -> tuple[list[Any], list[Any], Optional[Any], str, Any, list[Optional[Any]]]:
         """Start a new chat function
 
         Args:
@@ -206,7 +213,9 @@ def build_chat_ui(config, pipeline_def):
             *[None] * len(config.get("outputs", [])),
         )
 
-    def chat(message, history, session, *args):
+    def chat(
+        message: str, history: List[Any], session: Any, *args: Any
+    ) -> tuple[str, ...]:
         """The chat interface
 
         # TODO: wrap the input and output of this chat function so that it
@@ -239,7 +248,9 @@ def build_chat_ui(config, pipeline_def):
 
         return text_response, *additional_outputs
 
-    def end_chat(preference: str, save_log: bool, session):
+    def end_chat(
+        preference: str, save_log: bool, session: Any
+    ) -> Tuple[str, Optional[Any]]:
         """End the chat session
 
         Args:
@@ -284,7 +295,7 @@ def build_chat_ui(config, pipeline_def):
         gr.Info("End session and save log.")
         return param_state, session
 
-    def export_func():
+    def export_func() -> str:
         name = (
             f"{pipeline_def.__module__}.{pipeline_def.__name__}_{datetime.now()}.xlsx"
         )

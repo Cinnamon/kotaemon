@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Any
 
 import pytest
 
@@ -14,7 +15,7 @@ from kotaemon.storages import (
 
 
 class TestChromaVectorStore:
-    def test_add(self, tmp_path):
+    def test_add(self, tmp_path: Any) -> None:
         """Test that the DB add correctly"""
         db = ChromaVectorStore(path=str(tmp_path))
 
@@ -27,7 +28,7 @@ class TestChromaVectorStore:
         assert output == ids, "Expected output to be the same as ids"
         assert db._collection.count() == 2, "Expected 2 added entries"
 
-    def test_add_from_docs(self, tmp_path):
+    def test_add_from_docs(self, tmp_path: Any) -> None:
         db = ChromaVectorStore(path=str(tmp_path))
 
         embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
@@ -41,7 +42,7 @@ class TestChromaVectorStore:
         assert len(output) == 2, "Expected outputting 2 ids"
         assert db._collection.count() == 2, "Expected 2 added entries"
 
-    def test_delete(self, tmp_path):
+    def test_delete(self, tmp_path: Any) -> None:
         db = ChromaVectorStore(path=str(tmp_path))
 
         embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]]
@@ -55,7 +56,7 @@ class TestChromaVectorStore:
         db.delete(ids=["c"])
         assert db._collection.count() == 0, "Expected 0 remaining entry"
 
-    def test_query(self, tmp_path):
+    def test_query(self, tmp_path: Any) -> None:
         db = ChromaVectorStore(path=str(tmp_path))
 
         embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]]
@@ -71,7 +72,7 @@ class TestChromaVectorStore:
         _, _, out_ids = db.query(embedding=[0.42, 0.52, 0.53], top_k=1)
         assert out_ids == ["b"]
 
-    def test_save_load_delete(self, tmp_path):
+    def test_save_load_delete(self, tmp_path: Any) -> None:
         """Test that save/load func behave correctly."""
         embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]]
         metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 5, "b": 6}]
@@ -80,21 +81,21 @@ class TestChromaVectorStore:
         db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
 
         db2 = ChromaVectorStore(path=str(tmp_path))
-        assert (
-            db2._collection.count() == 3
-        ), "load function does not load data completely"
+        assert db2._collection.count() == 3, (
+            "load function does not load data completely"
+        )
 
         # test delete collection function
         db2.drop()
         # reinit the chroma with the same collection name
         db2 = ChromaVectorStore(path=str(tmp_path))
-        assert (
-            db2._collection.count() == 0
-        ), "delete collection function does not work correctly"
+        assert db2._collection.count() == 0, (
+            "delete collection function does not work correctly"
+        )
 
 
 class TestInMemoryVectorStore:
-    def test_add(self):
+    def test_add(self) -> None:
         """Test that add func adds correctly."""
 
         embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
@@ -105,7 +106,7 @@ class TestInMemoryVectorStore:
         output = db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
         assert output == ids, "Excepted output to be the same as ids"
 
-    def test_save_load_delete(self, tmp_path):
+    def test_save_load_delete(self, tmp_path: Any) -> None:
         """Test that delete func deletes correctly."""
         embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]]
         metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 5, "b": 6}]
@@ -116,12 +117,12 @@ class TestInMemoryVectorStore:
         db.save(save_path=tmp_path / "test_save_load_delete.json")
         with open(tmp_path / "test_save_load_delete.json") as f:
             data = json.load(f)
-        assert (
-            "1" and "2" in data["text_id_to_ref_doc_id"]
-        ), "save function does not save data completely"
-        assert (
-            "3" not in data["text_id_to_ref_doc_id"]
-        ), "delete function does not delete data completely"
+        assert "1" and "2" in data["text_id_to_ref_doc_id"], (
+            "save function does not save data completely"
+        )
+        assert "3" not in data["text_id_to_ref_doc_id"], (
+            "delete function does not delete data completely"
+        )
         db2 = InMemoryVectorStore()
         db2.load(load_path=tmp_path / "test_save_load_delete.json")
         assert db2.get("2") == [
@@ -132,7 +133,7 @@ class TestInMemoryVectorStore:
 
 
 class TestSimpleFileVectorStore:
-    def test_add_delete(self, tmp_path):
+    def test_add_delete(self, tmp_path: Any) -> None:
         """Test that delete func deletes correctly."""
         embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]]
         metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 5, "b": 6}]
@@ -143,12 +144,12 @@ class TestSimpleFileVectorStore:
         db.delete(["3"])
         with open(tmp_path / collection_name) as f:
             data = json.load(f)
-        assert (
-            "1" and "2" in data["text_id_to_ref_doc_id"]
-        ), "save function does not save data completely"
-        assert (
-            "3" not in data["text_id_to_ref_doc_id"]
-        ), "delete function does not delete data completely"
+        assert "1" and "2" in data["text_id_to_ref_doc_id"], (
+            "save function does not save data completely"
+        )
+        assert "3" not in data["text_id_to_ref_doc_id"], (
+            "delete function does not delete data completely"
+        )
         db2 = SimpleFileVectorStore(path=tmp_path, collection_name=collection_name)
         assert db2.get("2") == [
             0.4,
@@ -160,7 +161,7 @@ class TestSimpleFileVectorStore:
 
 
 class TestMilvusVectorStore:
-    def test_add(self, tmp_path):
+    def test_add(self, tmp_path: Any) -> None:
         """Test that the DB add correctly"""
         db = MilvusVectorStore(
             path=str(tmp_path),
@@ -176,7 +177,7 @@ class TestMilvusVectorStore:
         assert output == ids, "Expected output to be the same as ids"
         assert db.count() == 2, "Expected 2 added entries"
 
-    def test_add_from_docs(self, tmp_path):
+    def test_add_from_docs(self, tmp_path: Any) -> None:
         db = MilvusVectorStore(
             path=str(tmp_path),
             overwrite=True,
@@ -193,7 +194,7 @@ class TestMilvusVectorStore:
         assert len(output) == 2, "Expected outputting 2 ids"
         assert db.count() == 2, "Expected 2 added entries"
 
-    def test_delete(self, tmp_path):
+    def test_delete(self, tmp_path: Any) -> None:
         db = MilvusVectorStore(
             path=str(tmp_path),
             overwrite=True,
@@ -210,7 +211,7 @@ class TestMilvusVectorStore:
         db.delete(ids=["c"])
         assert db.count() == 0, "Expected 0 remaining entry"
 
-    def test_query(self, tmp_path):
+    def test_query(self, tmp_path: Any) -> None:
         db = MilvusVectorStore(path=str(tmp_path), overwrite=True)
         import numpy as np
 
@@ -235,7 +236,7 @@ class TestMilvusVectorStore:
         _, _, out_ids = db.query(embedding=query_embedding, top_k=1)
         assert out_ids == ["b"]
 
-    def test_save_load_delete(self, tmp_path):
+    def test_save_load_delete(self, tmp_path: Any) -> None:
         """Test that save/load func behave correctly."""
         embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]]
         metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 5, "b": 6}]
@@ -254,7 +255,7 @@ class TestMilvusVectorStore:
 
 
 class TestQdrantVectorStore:
-    def test_add(self):
+    def test_add(self) -> None:
         from qdrant_client import QdrantClient
 
         db = QdrantVectorStore(collection_name="test", client=QdrantClient(":memory:"))
@@ -270,7 +271,7 @@ class TestQdrantVectorStore:
         assert output == ids, "Expected output to be the same as ids"
         assert db.count() == 2, "Expected 2 added entries"
 
-    def test_add_from_docs(self, tmp_path):
+    def test_add_from_docs(self, tmp_path: Any) -> None:
         from qdrant_client import QdrantClient
 
         db = QdrantVectorStore(collection_name="test", client=QdrantClient(":memory:"))
@@ -286,7 +287,7 @@ class TestQdrantVectorStore:
         assert len(output) == 2, "Expected outputting 2 ids"
         assert db.count() == 2, "Expected 2 added entries"
 
-    def test_delete(self, tmp_path):
+    def test_delete(self, tmp_path: Any) -> None:
         from qdrant_client import QdrantClient
 
         db = QdrantVectorStore(collection_name="test", client=QdrantClient(":memory:"))
@@ -311,7 +312,7 @@ class TestQdrantVectorStore:
         db.delete(ids=["6bed07c3-d284-47a3-a711-c3f9186755b8"])
         assert db.count() == 0, "Expected 0 remaining entry"
 
-    def test_query(self, tmp_path):
+    def test_query(self, tmp_path: Any) -> None:
         from qdrant_client import QdrantClient
 
         db = QdrantVectorStore(collection_name="test", client=QdrantClient(":memory:"))
@@ -333,7 +334,7 @@ class TestQdrantVectorStore:
         _, _, out_ids = db.query(embedding=[0.4, 0.5, 0.6], top_k=1)
         assert out_ids == ["90aba5d3-f4f8-47c6-bad9-5ea457442e07"]
 
-    def test_save_load_delete(self, tmp_path):
+    def test_save_load_delete(self, tmp_path: Any) -> None:
         """Test that save/load func behave correctly."""
         embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]]
         metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 5, "b": 6}]

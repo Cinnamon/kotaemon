@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
 import requests
 from decouple import config
@@ -14,11 +14,14 @@ JINA_URL = config("JINA_URL", default="https://r.jina.ai/")
 
 class WebReader(BaseReader):
     def run(
-        self, file_path: str | Path, extra_info: Optional[dict] = None, **kwargs
+        self,
+        file_path: str | Path,
+        extra_info: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> list[Document]:
         return self.load_data(Path(file_path), extra_info=extra_info, **kwargs)
 
-    def fetch_url(self, url: str):
+    def fetch_url(self, url: str) -> str:
         # setup the request
         api_url = f"https://r.jina.ai/{url}"
         headers = {
@@ -34,7 +37,10 @@ class WebReader(BaseReader):
         return data
 
     def load_data(
-        self, file_path: str | Path, extra_info: Optional[dict] = None, **kwargs
+        self,
+        file_path: str | Path,
+        extra_info: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> list[Document]:
         file_path = str(file_path)
         output = self.fetch_url(file_path)

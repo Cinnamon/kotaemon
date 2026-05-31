@@ -1,7 +1,7 @@
 import html
 import logging
 from difflib import SequenceMatcher
-from typing import AnyStr, Generator, Optional, Type
+from typing import Any, AnyStr, Generator, Optional, Type
 
 from ktem.llms.manager import llms
 from ktem.reasoning.base import BaseReasoning
@@ -90,7 +90,7 @@ class DocSearchTool(BaseTool):
 
         return self.prepare_evidence(docs)
 
-    def prepare_evidence(self, docs, trim_len: int = 3000):
+    def prepare_evidence(self, docs: list[Document], trim_len: int = 3000) -> Document:
         evidence = ""
         table_found = 0
 
@@ -185,7 +185,7 @@ class RewriteQuestionPipeline(BaseComponent):
 
     lang: str = "English"
 
-    def run(self, question: str) -> Document:  # type: ignore
+    def run(self, question: str) -> Document:
         prompt_template = PromptTemplate(self.rewrite_template)
         prompt = prompt_template.populate(question=question, lang=self.lang)
         messages = [
@@ -195,7 +195,7 @@ class RewriteQuestionPipeline(BaseComponent):
         return self.llm(messages)
 
 
-def find_text(llm_output, context):
+def find_text(llm_output: str, context: str) -> list[tuple[int, int]]:
     sentence_list = llm_output.split("\n")
     matches = []
     for sentence in sentence_list:
@@ -218,7 +218,7 @@ class RewooAgentPipeline(BaseReasoning):
     use_rewrite: bool = False
     enable_citation: bool = False
 
-    def format_info_panel_evidence(self, worker_log):
+    def format_info_panel_evidence(self, worker_log: str) -> Document | None:
         header = ""
         content = []
 
@@ -238,7 +238,7 @@ class RewooAgentPipeline(BaseReasoning):
                 content.append(line)
 
         if not header:
-            return
+            return None
 
         return Document(
             channel="info",
@@ -249,7 +249,7 @@ class RewooAgentPipeline(BaseReasoning):
             ),
         )
 
-    def format_info_panel_planner(self, planner_output):
+    def format_info_panel_planner(self, planner_output: str) -> Document:
         planner_output = planner_output.replace("\n", "<br>")
         return Document(
             channel="info",
@@ -260,7 +260,7 @@ class RewooAgentPipeline(BaseReasoning):
             ),
         )
 
-    def prepare_citation(self, answer) -> list[Document]:
+    def prepare_citation(self, answer: Any) -> list[Document]:
         """Prepare citation to show on the UI"""
         segments = []
         split_indices = [
@@ -331,8 +331,12 @@ class RewooAgentPipeline(BaseReasoning):
 
         return outputs
 
-    async def ainvoke(  # type: ignore
-        self, message, conv_id: str, history: list, **kwargs  # type: ignore
+    async def ainvoke(
+        self,
+        message: str,
+        conv_id: str,
+        history: list[Any],
+        **kwargs: Any,
     ) -> Document:
         answer = self.agent(message, use_citation=True)
         self.report_output(Document(content=answer.text, channel="chat"))
@@ -344,8 +348,12 @@ class RewooAgentPipeline(BaseReasoning):
         self.report_output(None)
         return answer
 
-    def stream(  # type: ignore
-        self, message, conv_id: str, history: list, **kwargs  # type: ignore
+    def stream(
+        self,
+        message: str,
+        conv_id: str,
+        history: list[Any],
+        **kwargs: Any,
     ) -> Generator[Document, None, Document] | None:
         if self.use_rewrite:
             rewrite = self.rewrite_pipeline(question=message)
@@ -383,7 +391,10 @@ class RewooAgentPipeline(BaseReasoning):
 
     @classmethod
     def get_pipeline(
-        cls, settings: dict, states: dict, retrievers: list | None = None
+        cls,
+        settings: dict[str, Any],
+        states: dict[str, Any],
+        retrievers: list[BaseComponent] | None = None,
     ) -> BaseReasoning:
         _id = cls.get_info()["id"]
         prefix = f"reasoning.options.{_id}"
@@ -431,7 +442,7 @@ class RewooAgentPipeline(BaseReasoning):
         return pipeline
 
     @classmethod
-    def get_user_settings(cls) -> dict:
+    def get_user_settings(cls) -> dict[str, Any]:
 
         llm = ""
         llm_choices = [("(default)", "")]
@@ -489,7 +500,7 @@ class RewooAgentPipeline(BaseReasoning):
         }
 
     @classmethod
-    def get_info(cls) -> dict:
+    def get_info(cls) -> dict[str, str]:
         return {
             "id": "ReWOO",
             "name": "ReWOO Agent",

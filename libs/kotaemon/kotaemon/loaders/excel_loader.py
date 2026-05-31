@@ -3,6 +3,7 @@
 Pandas parser for .xlsx files.
 
 """
+
 from pathlib import Path
 from typing import Any, List, Optional, Union
 
@@ -29,7 +30,7 @@ class PandasExcelReader(BaseReader):
     def __init__(
         self,
         *args: Any,
-        pandas_config: Optional[dict] = None,
+        pandas_config: Optional[dict[str, Any]] = None,
         row_joiner: str = "\n",
         col_joiner: str = " ",
         **kwargs: Any,
@@ -44,9 +45,9 @@ class PandasExcelReader(BaseReader):
         self,
         file: Path,
         include_sheetname: bool = False,
-        sheet_name: Optional[Union[str, int, list]] = None,
-        extra_info: Optional[dict] = None,
-        **kwargs,
+        sheet_name: Optional[Union[str, int, list[Any]]] = None,
+        extra_info: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> List[Document]:
         """Parse file and extract values from a specific column.
 
@@ -122,7 +123,7 @@ class ExcelReader(BaseReader):
     def __init__(
         self,
         *args: Any,
-        pandas_config: Optional[dict] = None,
+        pandas_config: Optional[dict[str, Any]] = None,
         row_joiner: str = "\n",
         col_joiner: str = " ",
         **kwargs: Any,
@@ -137,9 +138,9 @@ class ExcelReader(BaseReader):
         self,
         file: Path,
         include_sheetname: bool = True,
-        sheet_name: Optional[Union[str, int, list]] = None,
-        extra_info: Optional[dict] = None,
-        **kwargs,
+        sheet_name: Optional[Union[str, int, list[Any]]] = None,
+        extra_info: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> List[Document]:
         """Parse file and extract values from a specific column.
 

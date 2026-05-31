@@ -3,6 +3,7 @@ from ktem.app import BasePage
 from ktem.db.models import User, engine
 from ktem.embeddings.ui import EmbeddingManagement
 from ktem.index.ui import IndexManagement
+from ktem.ktem.main import App
 from ktem.llms.ui import LLMManagement
 from ktem.rerankings.ui import RerankingManagement
 from sqlmodel import Session, select
@@ -11,7 +12,7 @@ from .user import UserManagement
 
 
 class ResourcesTab(BasePage):
-    def __init__(self, app):
+    def __init__(self, app: App) -> None:
         self._app = app
         self.on_building_ui()
 

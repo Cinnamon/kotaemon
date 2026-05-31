@@ -3,7 +3,7 @@ from __future__ import annotations
 import threading
 import uuid
 from pathlib import Path
-from typing import Optional, Sequence, cast
+from typing import Optional, Sequence, cast, Any
 
 from theflow.settings import settings as flowsettings
 
@@ -33,7 +33,7 @@ class VectorIndexing(BaseIndexing):
     embedding: BaseEmbeddings
     count_: int = 0
 
-    def to_retrieval_pipeline(self, *args, **kwargs):
+    def to_retrieval_pipeline(self, *args, **kwargs) -> VectorRetrieval:
         """Convert the indexing pipeline to a retrieval pipeline"""
         return VectorRetrieval(
             vector_store=self.vector_store,
@@ -42,7 +42,7 @@ class VectorIndexing(BaseIndexing):
             **kwargs,
         )
 
-    def write_chunk_to_file(self, docs: list[Document]):
+    def write_chunk_to_file(self, docs: list[Document]) -> None:
         # save the chunks content into markdown format
         if self.cache_dir:
             file_name = docs[0].metadata.get("file_name")
@@ -70,18 +70,18 @@ class VectorIndexing(BaseIndexing):
                     markdown_content += f"\ntext:\n{docs[i].text}"
 
                 with open(
-                    Path(self.cache_dir) / f"{file_name.stem}_{self.count_+i}.md",
+                    Path(self.cache_dir) / f"{file_name.stem}_{self.count_ + i}.md",
                     "w",
                     encoding="utf-8",
                 ) as f:
                     f.write(markdown_content)
 
-    def add_to_docstore(self, docs: list[Document]):
+    def add_to_docstore(self, docs: list[Document]) -> None:
         if self.doc_store:
             print("Adding documents to doc store")
             self.doc_store.add(docs)
 
-    def add_to_vectorstore(self, docs: list[Document]):
+    def add_to_vectorstore(self, docs: list[Document]) -> None:
         # in case we want to skip embedding
         if self.vector_store:
             print(f"Getting embeddings for {len(docs)} nodes")
@@ -92,7 +92,29 @@ class VectorIndexing(BaseIndexing):
                 ids=[t.doc_id for t in docs],
             )
 
-    def run(self, text: str | list[str] | Document | list[Document]):
+    def build_index_from_documents(
+        self, documents: list[Document], **kwargs: Any
+    ) -> "VectorIndex":
+        """Build index from documents"""
+        return self
+
+    def add_documents(self, documents: list[Document], **kwargs: Any) -> None:
+        """Add documents to the index"""
+        pass
+
+    def delete_documents(self) -> None:
+        """Delete documents from the index"""
+        pass
+
+    def retrieve(self) -> list[Document]:
+        """Retrieve documents"""
+        return []
+
+    def run(self, **kwargs: Any) -> list[Document]:
+        """Run the indexing pipeline"""
+        return []
+
+    def run(self, text: str | list[str] | Document | list[Document]) -> None:
         input_: list[Document] = []
         if not isinstance(text, list):
             text = [text]
@@ -126,7 +148,7 @@ class VectorRetrieval(BaseRetrieval):
 
     def _filter_docs(
         self, documents: list[RetrievedDocument], top_k: int | None = None
-    ):
+    ) -> list[RetrievedDocument]:
         if top_k:
             documents = documents[:top_k]
         return documents

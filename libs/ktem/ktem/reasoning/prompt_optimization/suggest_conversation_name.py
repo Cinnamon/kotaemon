@@ -22,7 +22,7 @@ class SuggestConvNamePipeline(BaseComponent):
     prompt_template: str = SUGGEST_NAME_PROMPT_TEMPLATE
     lang: str = "English"
 
-    def run(self, chat_history: list[tuple[str, str]]) -> Document:  # type: ignore
+    def run(self, chat_history: list[tuple[str, str]]) -> Document:
         prompt_template = PromptTemplate(self.prompt_template)
         prompt = prompt_template.populate(lang=self.lang)
 

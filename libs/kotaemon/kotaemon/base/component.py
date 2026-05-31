@@ -21,7 +21,7 @@ class BaseComponent(Function):
 
     inflow = None
 
-    def flow(self):
+    def flow(self) -> Any:
         if self.inflow is None:
             raise ValueError("No inflow provided.")
 
@@ -32,32 +32,32 @@ class BaseComponent(Function):
 
         return self.__call__(self.inflow.flow())
 
-    def set_output_queue(self, queue):
+    def set_output_queue(self, queue: Any) -> None:
         self._queue = queue
         for name in self._ff_nodes:
             node = getattr(self, name)
             if isinstance(node, BaseComponent):
                 node.set_output_queue(queue)
 
-    def report_output(self, output: Optional[Document]):
+    def report_output(self, output: Optional[Document]) -> None:
         if self._queue is not None:
             self._queue.put_nowait(output)
 
-    def invoke(self, *args, **kwargs) -> Document | list[Document] | None:
-        ...
+    def invoke(self, *args: Any, **kwargs: Any) -> Document | list[Document] | None: ...
 
-    async def ainvoke(self, *args, **kwargs) -> Document | list[Document] | None:
-        ...
+    async def ainvoke(
+        self, *args: Any, **kwargs: Any
+    ) -> Document | list[Document] | None: ...
 
-    def stream(self, *args, **kwargs) -> Iterator[Document] | None:
-        ...
+    def stream(self, *args: Any, **kwargs: Any) -> Iterator[Document] | None: ...
 
-    def astream(self, *args, **kwargs) -> AsyncGenerator[Document, None] | None:
-        ...
+    def astream(
+        self, *args: Any, **kwargs: Any
+    ) -> AsyncGenerator[Document, None] | None: ...
 
     @abstractmethod
     def run(
-        self, *args, **kwargs
+        self, *args: Any, **kwargs: Any
     ) -> Document | list[Document] | Iterator[Document] | None | Any:
         """Run the component."""
         ...

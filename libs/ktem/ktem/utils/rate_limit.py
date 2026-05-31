@@ -1,18 +1,19 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import Dict, Any
 
 import gradio as gr
 from decouple import config
 
 # In-memory store for rate limiting (for demonstration purposes)
-rate_limit_store: dict[str, dict] = defaultdict(dict)
+rate_limit_store: Dict[str, Dict[str, Any]] = defaultdict(dict)
 
 # Rate limit configuration
 RATE_LIMIT = config("RATE_LIMIT", default=20, cast=int)
 RATE_LIMIT_PERIOD = timedelta(hours=24)
 
 
-def check_rate_limit(limit_type: str, request: gr.Request):
+def check_rate_limit(limit_type: str, request: gr.Request) -> str:
     if request is None:
         raise ValueError("This feature is not available")
 

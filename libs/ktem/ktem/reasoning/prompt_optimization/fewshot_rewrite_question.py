@@ -1,6 +1,7 @@
 import json
 import uuid
 from pathlib import Path
+from typing import Any
 
 from ktem.components import get_docstore, get_vectorstore
 from ktem.llms.manager import llms
@@ -37,7 +38,9 @@ class FewshotRewriteQuestionPipeline(RewriteQuestionPipeline):
     doc_store: BaseDocumentStore
     k: int = getattr(flowsettings, "N_PROMPT_OPT_EXAMPLES", 3)
 
-    def add_documents(self, examples, batch_size: int = 50):
+    def add_documents(
+        self, examples: list[dict[str, Any]], batch_size: int = 50
+    ) -> None:
         print("Adding fewshot examples for rewriting")
         documents = []
         for example in examples:
@@ -58,10 +61,10 @@ class FewshotRewriteQuestionPipeline(RewriteQuestionPipeline):
     @classmethod
     def get_pipeline(
         cls,
-        embedding,
-        example_path=Path(__file__).parent / "rephrase_question_train.json",
+        embedding: Any,
+        example_path: Any = Path(__file__).parent / "rephrase_question_train.json",
         collection_name: str = "fewshot_rewrite_examples",
-    ):
+    ) -> "FewshotRewriteQuestionPipeline":
         vector_store = get_vectorstore(collection_name)
         doc_store = get_docstore(collection_name)
 
@@ -76,7 +79,7 @@ class FewshotRewriteQuestionPipeline(RewriteQuestionPipeline):
 
         return pipeline
 
-    def run(self, question: str) -> Document:  # type: ignore
+    def run(self, question: str) -> Document:
         emb = self.embedding(question)[0].embedding
         _, _, ids = self.vector_store.query(embedding=emb, top_k=self.k)
         examples = self.doc_store.get(ids)

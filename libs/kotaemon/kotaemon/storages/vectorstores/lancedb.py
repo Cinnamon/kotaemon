@@ -11,7 +11,7 @@ original_to_lance_filter = base_lancedb._to_lance_filter
 
 
 def custom_to_lance_filter(
-    standard_filters: MetadataFilters, metadata_keys: list
+    standard_filters: MetadataFilters, metadata_keys: list[str]
 ) -> Any:
     for filter in standard_filters.filters:
         if isinstance(filter.value, list):
@@ -46,7 +46,7 @@ class LanceDBVectorStore(LlamaIndexVectorStore):
                 "Please install lancedb: 'pip install lancedb tanvity-py'"
             )
 
-        db_connection = lancedb.connect(path)  # type: ignore
+        db_connection = lancedb.connect(path)
         try:
             table = db_connection.open_table(collection_name)
         except FileNotFoundError:
@@ -64,7 +64,7 @@ class LanceDBVectorStore(LlamaIndexVectorStore):
         self._client = cast(LILanceDBVectorStore, self._client)
         self._client._metadata_keys = ["file_id"]
 
-    def delete(self, ids: List[str], **kwargs):
+    def delete(self, ids: List[str], **kwargs: Any) -> None:
         """Delete vector embeddings from vector stores
 
         Args:
@@ -73,14 +73,14 @@ class LanceDBVectorStore(LlamaIndexVectorStore):
         """
         self._client.delete_nodes(ids)
 
-    def drop(self):
+    def drop(self) -> None:
         """Delete entire collection from vector stores"""
         self._client.client.drop_table(self.collection_name)
 
     def count(self) -> int:
         raise NotImplementedError
 
-    def __persist_flow__(self):
+    def __persist_flow__(self) -> dict[str, Any]:
         return {
             "path": self._path,
             "collection_name": self._collection_name,

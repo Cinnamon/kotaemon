@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 import click
 import yaml
@@ -6,7 +7,7 @@ from trogon import tui
 
 
 # check if the output is not a .yml file -> raise error
-def check_config_format(config):
+def check_config_format(config: str) -> None:
     if os.path.exists(config):
         if isinstance(config, str):
             with open(config) as f:
@@ -17,12 +18,12 @@ def check_config_format(config):
 
 @tui(command="ui", help="Open the terminal UI")  # generate the terminal UI
 @click.group()
-def main():
+def main() -> None:
     pass
 
 
 @click.group()
-def promptui():
+def promptui() -> None:
     pass
 
 
@@ -32,7 +33,7 @@ main.add_command(promptui)
 @promptui.command()
 @click.argument("export_path", nargs=1)
 @click.option("--output", default="promptui.yml", show_default=True, required=False)
-def export(export_path, output):
+def export(export_path: str, output: str) -> None:
     """Export a pipeline to a config file"""
     import sys
 
@@ -78,7 +79,9 @@ def export(export_path, output):
     required=False,
     help="Port to run the app. If not provided, will $GRADIO_SERVER_PORT (7860)",
 )
-def run(run_path, share, username, password, appname, port):
+def run(
+    run_path: str, share: bool, username: str, password: str, appname: str, port: str
+) -> None:
     """Run the UI from a config file
 
     Examples:
@@ -108,7 +111,7 @@ def run(run_path, share, username, password, appname, port):
     check_config_format(run_path)
     demo = build_from_dict(run_path)
 
-    params: dict = {}
+    params: dict[str, Any] = {}
     if username is not None:
         if password is not None:
             auth = (username, password)
@@ -116,8 +119,8 @@ def run(run_path, share, username, password, appname, port):
             auth = (username, click.prompt("Password", hide_input=True))
         params["auth"] = auth
 
-    port = int(port) if port else int(os.getenv("GRADIO_SERVER_PORT", "7860"))
-    params["server_port"] = port
+    port_value = int(port) if port else int(os.getenv("GRADIO_SERVER_PORT", "7860"))
+    params["server_port"] = port_value
 
     if share:
         if username is None:
@@ -128,7 +131,7 @@ def run(run_path, share, username, password, appname, port):
             from kotaemon.contribs.promptui.tunnel import Tunnel
 
             tunnel = Tunnel(
-                appname=str(appname), username=str(username), local_port=port
+                appname=str(appname), username=str(username), local_port=port_value
             )
             url = tunnel.run()
             print(f"App is shared at {url}")
@@ -147,7 +150,7 @@ def run(run_path, share, username, password, appname, port):
 @click.option(
     "--separation-level", required=False, default=1, help="Organize markdown layout"
 )
-def makedoc(module, output, separation_level):
+def makedoc(module: str, output: str, separation_level: int) -> None:
     """Make documentation for module `module`
 
     Example:
@@ -170,7 +173,7 @@ def makedoc(module, output, separation_level):
     help="Template name",
     show_default=True,
 )
-def start_project(template):
+def start_project(template: str) -> None:
     """Start a project from a template.
 
     Important: the value for --template corresponds to the name of the template folder,

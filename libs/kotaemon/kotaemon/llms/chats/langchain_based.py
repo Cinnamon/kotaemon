@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import AsyncGenerator, Iterator
+from typing import AsyncGenerator, Iterator, Any, Type
 
 from kotaemon.base import BaseMessage, HumanMessage, LLMInterface, Param
 
@@ -13,30 +13,32 @@ logger = logging.getLogger(__name__)
 class LCChatMixin:
     """Mixin for langchain based chat models"""
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         raise NotImplementedError(
             "Please return the relevant Langchain class in in _get_lc_class"
         )
 
-    def _get_tool_call_kwargs(self):
+    def _get_tool_call_kwargs(self) -> dict[str, Any]:
         return {}
 
-    def __init__(self, stream: bool = False, **params):
+    def __init__(self, stream: bool = False, **params: Any) -> None:
         self._lc_class = self._get_lc_class()
         self._obj = self._lc_class(**params)
-        self._kwargs: dict = params
+        self._kwargs: dict[str, Any] = params
         self._stream = stream
 
         super().__init__()
 
     def run(
-        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs: Any
     ) -> LLMInterface:
         if self._stream:
             return self.stream(messages, **kwargs)  # type: ignore
         return self.invoke(messages, **kwargs)
 
-    def prepare_message(self, messages: str | BaseMessage | list[BaseMessage]):
+    def prepare_message(
+        self, messages: str | BaseMessage | list[BaseMessage]
+    ) -> list[BaseMessage]:
         input_: list[BaseMessage] = []
 
         if isinstance(messages, str):
@@ -48,7 +50,7 @@ class LCChatMixin:
 
         return input_
 
-    def prepare_response(self, pred):
+    def prepare_response(self, pred: Any) -> LLMInterface:
         all_text = [each.text for each in pred.generations[0]]
         all_messages = [each.message for each in pred.generations[0]]
 
@@ -72,7 +74,7 @@ class LCChatMixin:
         )
 
     def invoke(
-        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs: Any
     ) -> LLMInterface:
         """Generate response from messages
 
@@ -110,28 +112,28 @@ class LCChatMixin:
         return output
 
     async def ainvoke(
-        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs: Any
     ) -> LLMInterface:
         input_ = self.prepare_message(messages)
         pred = await self._obj.agenerate(messages=[input_], **kwargs)
         return self.prepare_response(pred)
 
     def stream(
-        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs: Any
     ) -> Iterator[LLMInterface]:
         for response in self._obj.stream(input=messages, **kwargs):
             yield LLMInterface(content=response.content)
 
     async def astream(
-        self, messages: str | BaseMessage | list[BaseMessage], **kwargs
+        self, messages: str | BaseMessage | list[BaseMessage], **kwargs: Any
     ) -> AsyncGenerator[LLMInterface, None]:
         async for response in self._obj.astream(input=messages, **kwargs):
             yield LLMInterface(content=response.content)
 
-    def to_langchain_format(self):
+    def to_langchain_format(self) -> Any:
         return self._obj
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         kwargs = []
         for key, value_obj in self._kwargs.items():
             value = repr(value_obj)
@@ -139,7 +141,7 @@ class LCChatMixin:
         kwargs_repr = ", ".join(kwargs)
         return f"{self.__class__.__name__}({kwargs_repr})"
 
-    def __str__(self):
+    def __str__(self) -> str:
         kwargs = []
         for key, value_obj in self._kwargs.items():
             value = str(value_obj)
@@ -149,7 +151,7 @@ class LCChatMixin:
         kwargs_repr = ", ".join(kwargs)
         return f"{self.__class__.__name__}({kwargs_repr})"
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         if name == "_lc_class":
             return super().__setattr__(name, value)
 
@@ -159,12 +161,12 @@ class LCChatMixin:
         else:
             super().__setattr__(name, value)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         if name in self._kwargs:
             return self._kwargs[name]
         return getattr(self._obj, name)
 
-    def dump(self, *args, **kwargs):
+    def dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         from theflow.utils.modules import serialize
 
         params = {key: serialize(value) for key, value in self._kwargs.items()}
@@ -173,7 +175,7 @@ class LCChatMixin:
             **params,
         }
 
-    def specs(self, path: str):
+    def specs(self, path: str) -> dict[str, Any]:
         path = path.strip(".")
         if "." in path:
             raise ValueError("path should not contain '.'")
@@ -188,7 +190,7 @@ class LCChatMixin:
         raise ValueError(f"Invalid param {path}")
 
 
-class LCChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
+class LCChatOpenAI(LCChatMixin, ChatLLM):
     def __init__(
         self,
         openai_api_base: str | None = None,
@@ -196,8 +198,8 @@ class LCChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
         model: str | None = None,
         temperature: float = 0.7,
         request_timeout: float | None = None,
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             openai_api_base=openai_api_base,
             openai_api_key=openai_api_key,
@@ -207,7 +209,7 @@ class LCChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
             **params,
         )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         try:
             from langchain_openai import ChatOpenAI
         except ImportError:
@@ -216,7 +218,7 @@ class LCChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
         return ChatOpenAI
 
 
-class LCAzureChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
+class LCAzureChatOpenAI(LCChatMixin, ChatLLM):
     def __init__(
         self,
         azure_endpoint: str | None = None,
@@ -225,8 +227,8 @@ class LCAzureChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
         deployment_name: str | None = None,
         temperature: float = 0.7,
         request_timeout: float | None = None,
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             azure_endpoint=azure_endpoint,
             openai_api_key=openai_api_key,
@@ -237,7 +239,7 @@ class LCAzureChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
             **params,
         )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         try:
             from langchain_openai import AzureChatOpenAI
         except ImportError:
@@ -246,19 +248,18 @@ class LCAzureChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
         return AzureChatOpenAI
 
 
-class LCAnthropicChat(LCChatMixin, ChatLLM):  # type: ignore
+class LCAnthropicChat(LCChatMixin, ChatLLM):
     api_key: str = Param(
         help="API key (https://console.anthropic.com/settings/keys)", required=True
     )
     model_name: str = Param(
         help=(
-            "Model name to use "
-            "(https://docs.anthropic.com/en/docs/about-claude/models)"
+            "Model name to use (https://docs.anthropic.com/en/docs/about-claude/models)"
         ),
         required=True,
     )
 
-    def _get_tool_call_kwargs(self):
+    def _get_tool_call_kwargs(self) -> dict[str, Any]:
         return {"tool_choice": {"type": "any"}}
 
     def __init__(
@@ -266,8 +267,8 @@ class LCAnthropicChat(LCChatMixin, ChatLLM):  # type: ignore
         api_key: str | None = None,
         model_name: str | None = None,
         temperature: float = 0.7,
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             api_key=api_key,
             model_name=model_name,
@@ -275,7 +276,7 @@ class LCAnthropicChat(LCChatMixin, ChatLLM):  # type: ignore
             **params,
         )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         try:
             from langchain_anthropic import ChatAnthropic
         except ImportError:
@@ -284,7 +285,7 @@ class LCAnthropicChat(LCChatMixin, ChatLLM):  # type: ignore
         return ChatAnthropic
 
 
-class LCGeminiChat(LCChatMixin, ChatLLM):  # type: ignore
+class LCGeminiChat(LCChatMixin, ChatLLM):
     api_key: str = Param(
         help="API key (https://aistudio.google.com/app/apikey)", required=True
     )
@@ -296,7 +297,7 @@ class LCGeminiChat(LCChatMixin, ChatLLM):  # type: ignore
         required=True,
     )
 
-    def _get_tool_call_kwargs(self):
+    def _get_tool_call_kwargs(self) -> dict[str, Any]:
         return {
             "tool_config": {
                 "function_calling_config": {
@@ -310,8 +311,8 @@ class LCGeminiChat(LCChatMixin, ChatLLM):  # type: ignore
         api_key: str | None = None,
         model_name: str | None = None,
         temperature: float = 0.7,
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             google_api_key=api_key,
             model=model_name,
@@ -319,7 +320,7 @@ class LCGeminiChat(LCChatMixin, ChatLLM):  # type: ignore
             **params,
         )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
         except ImportError:
@@ -328,7 +329,7 @@ class LCGeminiChat(LCChatMixin, ChatLLM):  # type: ignore
         return ChatGoogleGenerativeAI
 
 
-class LCCohereChat(LCChatMixin, ChatLLM):  # type: ignore
+class LCCohereChat(LCChatMixin, ChatLLM):
     api_key: str = Param(
         help="API key (https://dashboard.cohere.com/api-keys)", required=True
     )
@@ -342,8 +343,8 @@ class LCCohereChat(LCChatMixin, ChatLLM):  # type: ignore
         api_key: str | None = None,
         model_name: str | None = None,
         temperature: float = 0.7,
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             cohere_api_key=api_key,
             model_name=model_name,
@@ -351,7 +352,7 @@ class LCCohereChat(LCChatMixin, ChatLLM):  # type: ignore
             **params,
         )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         try:
             from langchain_cohere import ChatCohere
         except ImportError:
@@ -360,7 +361,7 @@ class LCCohereChat(LCChatMixin, ChatLLM):  # type: ignore
         return ChatCohere
 
 
-class LCOllamaChat(LCChatMixin, ChatLLM):  # type: ignore
+class LCOllamaChat(LCChatMixin, ChatLLM):
     base_url: str = Param(
         help="Base Ollama URL. (default: http://localhost:11434/api/)",  # noqa
         required=True,
@@ -379,8 +380,8 @@ class LCOllamaChat(LCChatMixin, ChatLLM):  # type: ignore
         model: str | None = None,
         base_url: str | None = None,
         num_ctx: int | None = None,
-        **params,
-    ):
+        **params: Any,
+    ) -> None:
         super().__init__(
             base_url=base_url,
             model=model,
@@ -388,7 +389,7 @@ class LCOllamaChat(LCChatMixin, ChatLLM):  # type: ignore
             **params,
         )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> Type[Any]:
         try:
             from langchain_ollama import ChatOllama
         except ImportError:

@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from unittest.mock import patch
+from typing import Any
 
 import pytest
 from index import ReaderIndexingPipeline
@@ -38,7 +39,7 @@ _openai_chat_completion_response = ChatCompletion.parse_obj(
 
 
 @pytest.fixture(scope="function")
-def mock_openai_embedding(monkeypatch):
+def mock_openai_embedding(monkeypatch: Any) -> None:
     monkeypatch.setattr(Embeddings, "create", lambda *args, **kwargs: openai_embedding)
 
 
@@ -46,7 +47,7 @@ def mock_openai_embedding(monkeypatch):
     "openai.resources.chat.completions.Completions.create",
     side_effect=lambda *args, **kwargs: _openai_chat_completion_response,
 )
-def test_ingest_pipeline(patch, mock_openai_embedding, tmp_path):
+def test_ingest_pipeline(patch: Any, mock_openai_embedding: Any, tmp_path: Any) -> None:
     indexing_pipeline = ReaderIndexingPipeline(
         storage_path=tmp_path,
     )
@@ -70,3 +71,19 @@ def test_ingest_pipeline(patch, mock_openai_embedding, tmp_path):
     qa_pipeline = indexing_pipeline.to_qa_pipeline(llm=llm, openai_api_key="some-key")
     response = qa_pipeline("Summarize this document.")
     assert response
+
+
+def test_qa_simple() -> None:
+    pass
+
+
+def test_qa_with_graph() -> None:
+    pass
+
+
+def test_simple_qa() -> None:
+    pass
+
+
+def test_simple_qa_with_conversation() -> None:
+    pass

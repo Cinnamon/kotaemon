@@ -1,3 +1,5 @@
+from typing import Any
+
 import warnings
 from string import Formatter
 
@@ -7,7 +9,7 @@ class PromptTemplate:
     Base class for prompt templates.
     """
 
-    def __init__(self, template: str, ignore_invalid=True):
+    def __init__(self, template: str, ignore_invalid: bool = True) -> None:
         template = template
         formatter = Formatter()
         parsed_template = list(formatter.parse(template))
@@ -31,7 +33,7 @@ class PromptTemplate:
         self.__formatter = formatter
         self.__parsed_template = parsed_template
 
-    def check_missing_kwargs(self, **kwargs):
+    def check_missing_kwargs(self, **kwargs: Any) -> None:
         """
         Check if all the placeholders in the template are set.
 
@@ -49,7 +51,7 @@ class PromptTemplate:
         if missing_keys:
             raise ValueError(f"Missing keys in template: {','.join(missing_keys)}")
 
-    def check_redundant_kwargs(self, **kwargs):
+    def check_redundant_kwargs(self, **kwargs: Any) -> None:
         """
         Check if all the placeholders in the template are set.
 
@@ -72,7 +74,7 @@ class PromptTemplate:
                 UserWarning,
             )
 
-    def populate(self, safe=True, **kwargs) -> str:
+    def populate(self, safe: bool = True, **kwargs: Any) -> str:
         """
         Strictly populate the template with the given keyword arguments.
 
@@ -91,7 +93,7 @@ class PromptTemplate:
 
         return self.partial_populate(**kwargs)
 
-    def partial_populate(self, **kwargs):
+    def partial_populate(self, **kwargs: Any) -> str:
         """
         Partially populate the template with the given keyword arguments.
 
@@ -127,7 +129,7 @@ class PromptTemplate:
 
         return "".join(prompt)
 
-    def __add__(self, other):
+    def __add__(self, other: "PromptTemplate") -> "PromptTemplate":
         """
         Create a new PromptTemplate object by concatenating the template of the current
             object with the template of another PromptTemplate object.

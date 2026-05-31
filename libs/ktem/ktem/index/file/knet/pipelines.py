@@ -2,7 +2,7 @@ import base64
 import json
 import os
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Any, Optional, Sequence
 
 import requests
 import yaml
@@ -20,7 +20,7 @@ class KnetIndexingPipeline(IndexDocumentPipeline):
     collection_name: str = "default"
 
     @classmethod
-    def get_user_settings(cls):
+    def get_user_settings(cls) -> dict[str, Any]:
         return {
             "reader_mode": {
                 "name": "Index parser",
@@ -48,7 +48,7 @@ class KnetRetrievalPipeline(BaseFileIndexRetriever):
     collection_name: str = "default"
     rerankers: Sequence[BaseReranking] = [LLMReranking.withx()]
 
-    def encode_image_base64(self, image_path: str | Path) -> bytes | str:
+    def encode_image_base64(self, image_path: str | Path) -> str:
         """Convert image to base64"""
         img_base64 = "data:image/png;base64,{}"
         with open(image_path, "rb") as image_file:
@@ -60,8 +60,8 @@ class KnetRetrievalPipeline(BaseFileIndexRetriever):
         self,
         text: str,
         doc_ids: Optional[list[str]] = None,
-        *args,
-        **kwargs,
+        *args: Any,
+        **kwargs: Any,
     ) -> list[RetrievedDocument]:
         """Retrieve document excerpts similar to the text
 
@@ -116,7 +116,7 @@ class KnetRetrievalPipeline(BaseFileIndexRetriever):
         return docs
 
     @classmethod
-    def get_user_settings(cls) -> dict:
+    def get_user_settings(cls) -> dict[str, Any]:
         from ktem.llms.manager import llms
 
         try:
@@ -143,12 +143,18 @@ class KnetRetrievalPipeline(BaseFileIndexRetriever):
         }
 
     @classmethod
-    def get_pipeline(cls, user_settings, index_settings, selected):
+    def get_pipeline(
+        cls,
+        user_settings: dict[str, Any],
+        index_settings: dict[str, Any],
+        selected: list[Any] | None = None,
+    ) -> "KnetRetrievalPipeline":
         """Get retriever objects associated with the index
 
         Args:
-            settings: the settings of the app
-            kwargs: other arguments
+            user_settings: the user settings of the app
+            index_settings: the index settings
+            selected: selected documents
         """
         from ktem.llms.manager import llms
 
@@ -157,8 +163,9 @@ class KnetRetrievalPipeline(BaseFileIndexRetriever):
         )
 
         # hacky way to input doc_ids to retriever.run() call (through theflow)
-        kwargs = {".doc_ids": selected}
-        retriever.set_run(kwargs, temp=False)
+        if selected is not None:
+            kwargs = {".doc_ids": selected}
+            retriever.set_run(kwargs, temp=False)
 
         for reranker in retriever.rerankers:
             if isinstance(reranker, LLMReranking):

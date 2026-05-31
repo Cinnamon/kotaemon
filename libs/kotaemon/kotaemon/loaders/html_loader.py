@@ -1,6 +1,6 @@
 import email
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
 from llama_index.core.readers.base import BaseReader
 from theflow.settings import settings as flowsettings
@@ -21,7 +21,9 @@ class HtmlReader(BaseReader):
         page_break_pattern (str): Pattern to split the HTML into pages
     """
 
-    def __init__(self, page_break_pattern: Optional[str] = None, *args, **kwargs):
+    def __init__(
+        self, page_break_pattern: Optional[str] = None, *args: Any, **kwargs: Any
+    ) -> None:
         try:
             import html2text  # noqa
         except ImportError:
@@ -34,7 +36,10 @@ class HtmlReader(BaseReader):
         super().__init__()
 
     def load_data(
-        self, file_path: Path | str, extra_info: Optional[dict] = None, **kwargs
+        self,
+        file_path: Path | str,
+        extra_info: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> list[Document]:
         """Load data using Html reader
 
@@ -83,7 +88,7 @@ class MhtmlReader(BaseReader):
             flowsettings, "KH_MARKDOWN_OUTPUT_DIR", None
         ),
         open_encoding: Optional[str] = None,
-        bs_kwargs: Optional[dict] = None,
+        bs_kwargs: Optional[dict[str, Any]] = None,
         get_text_separator: str = "",
     ) -> None:
         """initialize with path, and optionally, file encoding to use, and any kwargs
@@ -113,14 +118,17 @@ class MhtmlReader(BaseReader):
         self.get_text_separator = get_text_separator
 
     def load_data(
-        self, file_path: Path | str, extra_info: Optional[dict] = None, **kwargs
+        self,
+        file_path: Path | str,
+        extra_info: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> list[Document]:
         """Load MHTML document into document objects."""
 
         from bs4 import BeautifulSoup
 
         extra_info = extra_info or {}
-        metadata: dict = extra_info
+        metadata: dict[str, Any] = extra_info
         page = []
         file_name = Path(file_path)
         with open(file_path, "r", encoding=self.open_encoding) as f:
@@ -131,26 +139,34 @@ class MhtmlReader(BaseReader):
                 parts = [message]
 
             for part in parts:
-                if part.get_content_type() == "text/html":
-                    html = part.get_payload(decode=True).decode()
+                if (
+                    hasattr(part, "get_content_type")
+                    and part.get_content_type() == "text/html"
+                ):
+                    if hasattr(part, "get_payload"):
+                        payload = part.get_payload(decode=True)
+                        if hasattr(payload, "decode"):
+                            html = payload.decode()
+                        else:
+                            html = str(payload)
 
-                    soup = BeautifulSoup(html, **self.bs_kwargs)
-                    text = soup.get_text(self.get_text_separator)
+                        soup = BeautifulSoup(html, **self.bs_kwargs)
+                        text = soup.get_text(self.get_text_separator)
 
-                    if soup.title:
-                        title = str(soup.title.string)
-                    else:
-                        title = ""
+                        if soup.title:
+                            title = str(soup.title.string)
+                        else:
+                            title = ""
 
-                    metadata = {
-                        "source": str(file_path),
-                        "title": title,
-                        **extra_info,
-                    }
-                    lines = [line for line in text.split("\n") if line.strip()]
-                    text = "\n\n".join(lines)
-                    if text:
-                        page.append(text)
+                        metadata = {
+                            "source": str(file_path),
+                            "title": title,
+                            **extra_info,
+                        }
+                        lines = [line for line in text.split("\n") if line.strip()]
+                        text = "\n\n".join(lines)
+                        if text:
+                            page.append(text)
         # save the page into markdown format
         print(self.cache_dir)
         if self.cache_dir is not None:

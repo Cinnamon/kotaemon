@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Any
 
 import gradio as gr
 import pluggy
@@ -37,7 +37,7 @@ class BaseApp:
 
     public_events: list[str] = []
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.dev_mode = getattr(settings, "KH_MODE", "") == "dev"
         self.app_name = getattr(settings, "KH_APP_NAME", "Kotaemon")
         self.app_version = getattr(settings, "KH_APP_VERSION", "")
@@ -68,8 +68,8 @@ class BaseApp:
             reasoning=SettingReasoningGroup(settings=settings.SETTINGS_REASONING),
         )
 
-        self._callbacks: dict[str, list] = {}
-        self._events: dict[str, list] = {}
+        self._callbacks: dict[str, list[Any]] = {}
+        self._events: dict[str, list[dict[str, Any]]] = {}
 
         self.register_extensions()
         self.register_reasonings()
@@ -81,7 +81,7 @@ class BaseApp:
 
         self.user_id = gr.State("default" if not self.f_user_management else None)
 
-    def initialize_indices(self):
+    def initialize_indices(self) -> None:
         """Create the index manager, start indices, and register to app settings"""
         self.index_manager = IndexManager(self)
         self.index_manager.on_application_startup()
@@ -92,7 +92,7 @@ class BaseApp:
                 settings=options
             )
 
-    def register_reasonings(self):
+    def register_reasonings(self) -> None:
         """Register the reasoning components from app settings"""
         if getattr(settings, "KH_REASONINGS", None) is None:
             return
@@ -106,7 +106,7 @@ class BaseApp:
                 settings=options
             )
 
-    def register_extensions(self):
+    def register_extensions(self) -> None:
         """Register installed extensions"""
         self.exman = pluggy.PluginManager("ktem")
         self.exman.add_hookspecs(extension_protocol)
@@ -127,13 +127,13 @@ class BaseApp:
             if "reasoning" in functionality:
                 for rid, rdec in functionality["reasoning"].items():
                     unique_rid = f"{extension_declaration['id']}/{rid}"
-                    self.default_settings.reasoning.options[
-                        unique_rid
-                    ] = BaseSettingGroup(
-                        settings=rdec["settings"],
+                    self.default_settings.reasoning.options[unique_rid] = (
+                        BaseSettingGroup(
+                            settings=rdec["settings"],
+                        )
                     )
 
-    def declare_event(self, name: str):
+    def declare_event(self, name: str) -> None:
         """Declare a public gradio event for other components to subscribe to
 
         Args:
@@ -143,36 +143,36 @@ class BaseApp:
             raise HookAlreadyDeclared(f"Hook {name} is already declared")
         self._events[name] = []
 
-    def subscribe_event(self, name: str, definition: dict):
+    def subscribe_event(self, name: str, definition: dict[str, Any]) -> None:
         """Register a hook for the app
 
         Args:
             name: The name of the hook
-            hook: The hook to be registered
+            definition: The hook definition to be registered
         """
         if name not in self._events:
             raise HookNotDeclared(f"Hook {name} is not declared")
         self._events[name].append(definition)
 
-    def get_event(self, name) -> list[dict]:
+    def get_event(self, name: str) -> list[dict[str, Any]]:
         if name not in self._events:
             raise HookNotDeclared(f"Hook {name} is not declared")
 
         return self._events[name]
 
-    def ui(self):
+    def ui(self) -> None:
         raise NotImplementedError
 
-    def on_subscribe_public_events(self):
+    def on_subscribe_public_events(self) -> None:
         """Subscribe to the declared public event of the app"""
 
-    def on_register_events(self):
+    def on_register_events(self) -> None:
         """Register all events to the app"""
 
-    def _on_app_created(self):
+    def _on_app_created(self) -> None:
         """Called when the app is created"""
 
-    def make(self):
+    def make(self) -> gr.Blocks:
         markmap_js = """
         <script>
             window.markmap = {
@@ -219,7 +219,7 @@ class BaseApp:
 
         return demo
 
-    def declare_public_events(self):
+    def declare_public_events(self) -> None:
         """Declare an event for the app"""
         for event in self.public_events:
             self.declare_event(event)
@@ -228,21 +228,21 @@ class BaseApp:
             if isinstance(value, BasePage):
                 value.declare_public_events()
 
-    def subscribe_public_events(self):
+    def subscribe_public_events(self) -> None:
         """Subscribe to an event"""
         self.on_subscribe_public_events()
         for value in self.__dict__.values():
             if isinstance(value, BasePage):
                 value.subscribe_public_events()
 
-    def register_events(self):
+    def register_events(self) -> None:
         """Register all events"""
         self.on_register_events()
         for value in self.__dict__.values():
             if isinstance(value, BasePage):
                 value.register_events()
 
-    def on_app_created(self):
+    def on_app_created(self) -> None:
         """Execute on app created callbacks"""
         self._on_app_created()
         for value in self.__dict__.values():
@@ -255,45 +255,45 @@ class BasePage:
 
     public_events: list[str] = []
 
-    def __init__(self, app):
+    def __init__(self, app: BaseApp) -> None:
         self._app = app
 
-    def on_building_ui(self):
+    def on_building_ui(self) -> None:
         """Build the UI of the app"""
 
-    def on_subscribe_public_events(self):
+    def on_subscribe_public_events(self) -> None:
         """Subscribe to the declared public event of the app"""
 
-    def on_register_events(self):
+    def on_register_events(self) -> None:
         """Register all events to the app"""
 
-    def _on_app_created(self):
+    def _on_app_created(self) -> None:
         """Called when the app is created"""
 
     def as_gradio_component(
         self,
-    ) -> Optional[gr.components.Component | list[gr.components.Component]]:
+    ) -> gr.components.Component | list[gr.components.Component] | None:
         """Return the gradio components responsible for events
 
         Note: in ideal scenario, this method shouldn't be necessary.
         """
         return None
 
-    def render(self):
+    def render(self) -> None:
         for value in self.__dict__.values():
             if isinstance(value, gr.blocks.Block):
                 value.render()
             if isinstance(value, BasePage):
                 value.render()
 
-    def unrender(self):
+    def unrender(self) -> None:
         for value in self.__dict__.values():
             if isinstance(value, gr.blocks.Block):
                 value.unrender()
             if isinstance(value, BasePage):
                 value.unrender()
 
-    def declare_public_events(self):
+    def declare_public_events(self) -> None:
         """Declare an event for the app"""
         for event in self.public_events:
             self._app.declare_event(event)
@@ -302,21 +302,21 @@ class BasePage:
             if isinstance(value, BasePage):
                 value.declare_public_events()
 
-    def subscribe_public_events(self):
+    def subscribe_public_events(self) -> None:
         """Subscribe to an event"""
         self.on_subscribe_public_events()
         for value in self.__dict__.values():
             if isinstance(value, BasePage):
                 value.subscribe_public_events()
 
-    def register_events(self):
+    def register_events(self) -> None:
         """Register all events"""
         self.on_register_events()
         for value in self.__dict__.values():
             if isinstance(value, BasePage):
                 value.register_events()
 
-    def on_app_created(self):
+    def on_app_created(self) -> None:
         """Execute on app created callbacks"""
         self._on_app_created()
         for value in self.__dict__.values():

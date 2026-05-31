@@ -16,7 +16,7 @@ class ChromaVectorStore(LlamaIndexVectorStore):
         port: str = "8000",
         ssl: bool = False,
         headers: Optional[Dict[str, str]] = None,
-        collection_kwargs: Optional[dict] = None,
+        collection_kwargs: Optional[dict[str, Any]] = None,
         stores_text: bool = True,
         flat_metadata: bool = True,
         **kwargs: Any,
@@ -57,7 +57,7 @@ class ChromaVectorStore(LlamaIndexVectorStore):
         )
         self._client = cast(LIChromaVectorStore, self._client)
 
-    def delete(self, ids: List[str], **kwargs):
+    def delete(self, ids: List[str], **kwargs: Any) -> None:
         """Delete vector embeddings from vector stores
 
         Args:
@@ -66,14 +66,14 @@ class ChromaVectorStore(LlamaIndexVectorStore):
         """
         self._client.client.delete(ids=ids)
 
-    def drop(self):
+    def drop(self) -> None:
         """Delete entire collection from vector stores"""
         self._client.client._client.delete_collection(self._client.client.name)
 
     def count(self) -> int:
         return self._collection.count()
 
-    def __persist_flow__(self):
+    def __persist_flow__(self) -> dict[str, Any]:
         return {
             "path": self._path,
             "collection_name": self._collection_name,

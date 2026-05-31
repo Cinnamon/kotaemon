@@ -39,7 +39,7 @@ source2 = Document(
 )
 
 
-def test_split_token():
+def test_split_token() -> None:
     """Test that it can split tokens successfully"""
     splitter = TokenSplitter(chunk_size=30, chunk_overlap=10)
     chunks = splitter([source1, source2])

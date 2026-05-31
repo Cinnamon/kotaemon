@@ -34,7 +34,7 @@ def add_session_middleware(app):
     oauth.register(
         name="google",
         server_metadata_url=(
-            "https://accounts.google.com/" ".well-known/openid-configuration"
+            "https://accounts.google.com/.well-known/openid-configuration"
         ),
         client_kwargs={"scope": "openid email profile"},
     )

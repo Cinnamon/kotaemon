@@ -1,6 +1,6 @@
 import csv
 from io import StringIO
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Any
 
 from .box import get_rect_iou
 
@@ -79,7 +79,9 @@ def compress_csv(csv_rows: List[List[str]]) -> List[List[str]]:
     return csv_rows
 
 
-def get_table_from_ocr(ocr_list: List[dict], table_list: List[dict]):
+def get_table_from_ocr(
+    ocr_list: List[dict[str, Any]], table_list: List[dict[str, Any]]
+) -> list[list[str]]:
     """Get list of text lines belong to table regions specified by table_list
 
     Args:
@@ -255,7 +257,7 @@ def parse_markdown_text_to_tables(text: str) -> Tuple[List[str], List[str]]:
     return table_texts, non_table_texts
 
 
-def table_cells_to_markdown(cells: List[dict]):
+def table_cells_to_markdown(cells: List[dict[str, Any]]) -> str:
     """Convert list of cells with attached text to Markdown table"""
 
     if len(cells) == 0:

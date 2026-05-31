@@ -1,5 +1,6 @@
 import requests
 from decouple import config
+from typing import Any
 
 from kotaemon.base import BaseComponent, RetrievedDocument
 
@@ -12,11 +13,17 @@ class WebSearch(BaseComponent):
     using Jina API
     """
 
+    def __init__(
+        self, web_search_url: str = "https://s.jina.ai/", **kwargs: Any
+    ) -> None:
+        self.web_search_url = web_search_url
+        super().__init__(**kwargs)
+
     def run(
         self,
         text: str,
-        *args,
-        **kwargs,
+        *args: Any,
+        **kwargs: Any,
     ) -> list[RetrievedDocument]:
         if JINA_API_KEY == "":
             raise ValueError(
@@ -37,10 +44,7 @@ class WebSearch(BaseComponent):
         return [
             RetrievedDocument(
                 text=(
-                    "###URL: [{url}]({url})\n\n"
-                    "####{title}\n\n"
-                    "{description}\n"
-                    "{content}"
+                    "###URL: [{url}]({url})\n\n####{title}\n\n{description}\n{content}"
                 ).format(
                     url=item["url"],
                     title=item["title"],
@@ -56,5 +60,12 @@ class WebSearch(BaseComponent):
             for item in response_dict["data"]
         ]
 
-    def generate_relevant_scores(self, text, documents: list[RetrievedDocument]):
+    def retrieve(
+        self, query: str, top_k: int = 5, **kwargs: Any
+    ) -> list[RetrievedDocument]:
+        return self.run(query, **kwargs)[:top_k]
+
+    def generate_relevant_scores(
+        self, text: str, documents: list[RetrievedDocument]
+    ) -> list[RetrievedDocument]:
         return documents

@@ -40,7 +40,9 @@ class Document(BaseDocument):
     source: Optional[str] = None
     channel: Optional[Literal["chat", "info", "index", "debug", "plot"]] = None
 
-    def __init__(self, content: Optional[Any] = None, *args, **kwargs):
+    def __init__(
+        self, content: Optional[Any] = None, *args: Any, **kwargs: Any
+    ) -> None:
         if content is None:
             if kwargs.get("text", None) is not None:
                 kwargs["content"] = kwargs["text"]
@@ -61,7 +63,7 @@ class Document(BaseDocument):
                 kwargs["text"] = ""
         super().__init__(*args, **kwargs)
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self.content)
 
     @classmethod
@@ -80,7 +82,7 @@ class Document(BaseDocument):
         text = self.text
         return HaystackDocument(content=text, meta=metadata)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.content)
 
 
@@ -90,13 +92,13 @@ class DocumentWithEmbedding(Document):
     Use this if you want to enforce component's IOs to must contain embedding.
     """
 
-    def __init__(self, embedding: list[float], *args, **kwargs):
+    def __init__(self, embedding: list[float], *args: Any, **kwargs: Any) -> None:
         kwargs["embedding"] = embedding
         super().__init__(*args, **kwargs)
 
 
 class BaseMessage(Document):
-    def __add__(self, other: Any):
+    def __add__(self, other: Any) -> Any:
         raise NotImplementedError
 
     def to_openai_format(self) -> "ChatCompletionMessageParam":
@@ -129,7 +131,7 @@ class RetrievedDocument(Document):
     """
 
     score: float = Field(default=0.0)
-    retrieval_metadata: dict = Field(default={})
+    retrieval_metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class LLMInterface(AIMessage):

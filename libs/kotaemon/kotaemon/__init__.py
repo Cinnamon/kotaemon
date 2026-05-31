@@ -1,3 +1,5 @@
+from typing import Any
+
 # Disable telemetry with monkey patching
 import logging
 
@@ -5,7 +7,7 @@ logger = logging.getLogger(__name__)
 try:
     import posthog
 
-    def capture(*args, **kwargs):
+    def capture(*args: Any, **kwargs: Any) -> None:
         logger.info("posthog.capture called with args: %s, kwargs: %s", args, kwargs)
 
     posthog.capture = capture

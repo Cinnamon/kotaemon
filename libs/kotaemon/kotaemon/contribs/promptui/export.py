@@ -1,4 +1,5 @@
 """Export logs into Excel file"""
+
 import os
 import pickle
 from pathlib import Path
@@ -14,7 +15,9 @@ from kotaemon.base import BaseComponent
 from .logs import ResultLog
 
 
-def from_log_to_dict(pipeline_cls: Type[BaseComponent], log_config: dict) -> dict:
+def from_log_to_dict(
+    pipeline_cls: Type[BaseComponent], log_config: dict[str, Any]
+) -> dict[str, Any]:
     """Export the log to panda dataframes
 
     Args:
@@ -77,7 +80,9 @@ def from_log_to_dict(pipeline_cls: Type[BaseComponent], log_config: dict) -> dic
     return {"ids": ids, **params, **logged_infos}
 
 
-def export(config: dict, pipeline_def, output_path):
+def export(
+    config: dict[str, Any], pipeline_def: Type[BaseComponent], output_path: str
+) -> None:
     """Export from config to Excel file"""
 
     pipeline_name = f"{pipeline_def.__module__}.{pipeline_def.__name__}"
@@ -91,16 +96,16 @@ def export(config: dict, pipeline_def, output_path):
         pds[log_name] = pd.DataFrame(from_log_to_dict(pipeline_def, log_def))
 
     # from the list of pds, export to Excel to output_path
-    with pd.ExcelWriter(output_path, engine="openpyxl") as writer:  # type: ignore
+    with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
         for log_name, df in pds.items():
             df.to_excel(writer, sheet_name=log_name)
 
 
 def export_from_dict(
-    config: Union[str, dict],
+    config: Union[str, dict[str, Any]],
     pipeline: Union[str, Type[BaseComponent]],
     output_path: str,
-):
+) -> None:
     """CLI to export the logs of a pipeline into Excel file
 
     Args:
@@ -109,7 +114,7 @@ def export_from_dict(
         output_path (str): Path to the output Excel file
     """
     # get the pipeline class and the relevant config dict
-    config_dict: dict
+    config_dict: dict[str, Any]
     if isinstance(config, str):
         with open(config) as f:
             config_dict = yaml.safe_load(f)
@@ -120,7 +125,7 @@ def export_from_dict(
 
     pipeline_name: str
     pipeline_cls: Type[BaseComponent]
-    pipeline_config: dict
+    pipeline_config: dict[str, Any]
     if isinstance(pipeline, str):
         if pipeline not in config_dict:
             raise ValueError(f"Pipeline {pipeline} not found in config file")

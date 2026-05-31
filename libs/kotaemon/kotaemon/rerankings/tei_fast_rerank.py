@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Any
 
 import requests
 
@@ -37,7 +37,7 @@ class TeiFastReranking(BaseReranking):
         ),
     )
 
-    def client(self, query, texts):
+    def client(self, query: str, texts: list[str]) -> Any:
         if self.is_truncated:
             max_tokens = self.max_tokens  # default is 512 tokens.
             truncated_texts = [text[:max_tokens] for text in texts]

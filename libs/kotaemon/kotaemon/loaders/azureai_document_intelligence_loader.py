@@ -2,7 +2,7 @@ import base64
 import os
 from io import BytesIO
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any, Generator
 
 from PIL import Image
 
@@ -108,7 +108,7 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
     )
 
     @Param.auto(depends_on=["endpoint", "credential"])
-    def client_(self):
+    def client_(self) -> Any:
         try:
             from azure.ai.documentintelligence import DocumentIntelligenceClient
             from azure.core.credentials import AzureKeyCredential
@@ -120,16 +120,23 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
         )
 
     def run(
-        self, file_path: str | Path, extra_info: Optional[dict] = None, **kwargs
+        self,
+        file_path: str | Path,
+        extra_info: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> list[Document]:
         return self.load_data(Path(file_path), extra_info=extra_info, **kwargs)
 
     def load_data(
-        self, file_path: Path, extra_info: Optional[dict] = None, **kwargs
+        self,
+        file_path: str | Path,
+        extra_info: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> list[Document]:
         """Extract the input file, allowing multi-modal extraction"""
         metadata = extra_info or {}
-        file_name = Path(file_path)
+        file_path = Path(file_path)  # Convert to Path object
+        file_name = file_path
         with open(file_path, "rb") as fi:
             poller = self.client_.begin_analyze_document(
                 self.model,
@@ -141,7 +148,7 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
 
         # the total text content of the document in `output_content_format` format
         text_content = result.content
-        removed_spans: list[dict] = []
+        removed_spans: list[dict[str, Any]] = []
 
         # extract the figures
         figures = []
@@ -238,3 +245,22 @@ class AzureAIDocumentIntelligenceLoader(BaseReader):
             )
 
         return [Document(content=text_content, metadata=metadata)] + figures + tables
+
+    def lazy_load_data(
+        self,
+        file_path: str | Path,
+        extra_info: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
+    ) -> Generator[Document, None, None]:
+        # Convert to generator by yielding from load_data results
+        documents = self.load_data(file_path, extra_info=extra_info, **kwargs)
+        for doc in documents:
+            yield doc
+
+    def get_page_content(self) -> str:
+        """Get page content from the document"""
+        return ""
+
+    def _crop_image_with_bbox(self, bbox: list[float], page_number: int) -> Any:
+        """Crop image with bounding box"""
+        return None

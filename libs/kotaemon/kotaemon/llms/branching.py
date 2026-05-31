@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from kotaemon.base import BaseComponent, Document, Param
 
@@ -51,7 +51,7 @@ class SimpleBranchingPipeline(BaseComponent):
 
     branches: List[BaseComponent] = Param(default_callback=lambda *_: [])
 
-    def add_branch(self, component: BaseComponent):
+    def add_branch(self, component: BaseComponent) -> None:
         """
         Add a new branch to the pipeline.
 
@@ -60,7 +60,7 @@ class SimpleBranchingPipeline(BaseComponent):
         """
         self.branches.append(component)
 
-    def run(self, **prompt_kwargs):
+    def run(self, **prompt_kwargs: Any) -> list[Any]:
         """
         Execute the pipeline by running each branch and return the outputs as a list.
 
@@ -70,12 +70,26 @@ class SimpleBranchingPipeline(BaseComponent):
         Returns:
             List: The outputs of each branch as a list.
         """
-        output = []
+        output: list[Any] = []
         for i, branch in enumerate(self.branches):
             self._prepare_child(branch, name=f"branch-{i}")
             output.append(branch(**prompt_kwargs))
 
         return output
+
+    def run_branch(self, branch_name: str, **kwargs: Any) -> Any:
+        """
+        Execute a specific branch by its name.
+
+        Args:
+            branch_name (str): The name of the branch to execute.
+            **kwargs: Additional keyword arguments for the branch.
+
+        Returns:
+            Any: The output of the executed branch.
+        """
+        # Implementation of the method goes here
+        return None
 
 
 class GatedBranchingPipeline(SimpleBranchingPipeline):
@@ -125,7 +139,9 @@ class GatedBranchingPipeline(SimpleBranchingPipeline):
         ```
     """
 
-    def run(self, *, condition_text: Optional[str] = None, **prompt_kwargs):
+    def run(
+        self, *, condition_text: Optional[str] = None, **prompt_kwargs: Any
+    ) -> Document:
         """
         Execute the pipeline by running each branch and return the output of the first
             branch that returns a non-empty output based on the provided condition.

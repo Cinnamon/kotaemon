@@ -2,7 +2,7 @@ import base64
 from collections import defaultdict
 from io import BytesIO
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Any, Generator, Optional
 
 from kotaemon.base import Document, Param
 
@@ -42,7 +42,7 @@ class DoclingReader(BaseReader):
     )
 
     @Param.auto(cache=True)
-    def converter_(self):
+    def converter_(self) -> Any:
         try:
             from docling.document_converter import DocumentConverter
         except ImportError:
@@ -51,12 +51,18 @@ class DoclingReader(BaseReader):
         return DocumentConverter()
 
     def run(
-        self, file_path: str | Path, extra_info: Optional[dict] = None, **kwargs
+        self,
+        file_path: str | Path,
+        extra_info: dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> List[Document]:
         return self.load_data(file_path, extra_info, **kwargs)
 
     def load_data(
-        self, file_path: str | Path, extra_info: Optional[dict] = None, **kwargs
+        self,
+        file_path: str | Path,
+        extra_info: dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> List[Document]:
         """Extract the input file, allowing multi-modal extraction"""
 
@@ -208,6 +214,17 @@ class DoclingReader(BaseReader):
 
         return texts + tables + figures
 
+    def lazy_load_data(
+        self,
+        file_path: str | Path,
+        extra_info: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
+    ) -> Generator[Document, None, None]:
+        # Convert to generator by yielding from load_data results
+        documents = self.load_data(file_path, extra_info=extra_info, **kwargs)
+        for doc in documents:
+            yield doc
+
     def _convert_bbox_bl_tl(
         self, bbox: list[float], page_width: int, page_height: int
     ) -> list[float]:
@@ -220,7 +237,7 @@ class DoclingReader(BaseReader):
             (page_height - y0) / page_height,
         ]
 
-    def _parse_table(self, table_obj: dict) -> str:
+    def _parse_table(self, table_obj: dict[str, Any]) -> str:
         """Convert docling table object to markdown table"""
         table_as_list: List[List[str]] = []
         grid = table_obj["data"]["grid"]

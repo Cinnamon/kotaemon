@@ -52,10 +52,10 @@ class SimpleLinearPipeline(BaseComponent):
     def run(
         self,
         *,
-        llm_kwargs: Optional[dict] = {},
-        post_processor_kwargs: Optional[dict] = {},
-        **prompt_kwargs,
-    ):
+        llm_kwargs: Optional[dict[str, Any]] = None,
+        post_processor_kwargs: Optional[dict[str, Any]] = None,
+        **prompt_kwargs: Any,
+    ) -> Document:
         """
         Run the function with the given arguments and return the final output as a
             Document object.
@@ -68,6 +68,11 @@ class SimpleLinearPipeline(BaseComponent):
         Returns:
             Document: The final output of the function as a Document object.
         """
+        if llm_kwargs is None:
+            llm_kwargs = {}
+        if post_processor_kwargs is None:
+            post_processor_kwargs = {}
+
         prompt = self.prompt(**prompt_kwargs)
         llm_output = self.llm(prompt.text, **llm_kwargs)
         if self.post_processor is not None:
@@ -117,31 +122,29 @@ class GatedLinearPipeline(SimpleLinearPipeline):
 
     condition: Callable[[IO_Type], Any]
 
-    def run(
-        self,
-        *,
-        condition_text: Optional[str] = None,
-        llm_kwargs: Optional[dict] = {},
-        post_processor_kwargs: Optional[dict] = {},
-        **prompt_kwargs,
-    ) -> Document:
+    def run(self, **kwargs: Any) -> Any:
         """
         Run the pipeline with the given arguments and return the final output as a
             Document object.
 
         Args:
-            condition_text (str): The condition text to evaluate. Default to None.
-            llm_kwargs (dict): Additional keyword arguments for the language model call.
-            post_processor_kwargs (dict): Additional keyword arguments for the
-                post-processor.
-            **prompt_kwargs: Keyword arguments for populating the prompt.
+            **kwargs: Arbitrary keyword arguments.
 
         Returns:
-            Document: The final output of the pipeline as a Document object.
+            Any: The final output of the pipeline.
 
         Raises:
             ValueError: If condition_text is None
         """
+        condition_text = kwargs.get("condition_text", None)
+        llm_kwargs = kwargs.get("llm_kwargs", {})
+        post_processor_kwargs = kwargs.get("post_processor_kwargs", {})
+        prompt_kwargs = {
+            k: v
+            for k, v in kwargs.items()
+            if k not in ["condition_text", "llm_kwargs", "post_processor_kwargs"]
+        }
+
         if condition_text is None:
             raise ValueError("`condition_text` must be provided")
 
@@ -153,3 +156,13 @@ class GatedLinearPipeline(SimpleLinearPipeline):
             )
 
         return Document(None)
+
+    def _prepare_child(self, child: Any, name: str) -> None:
+        """
+        Prepare a child component with the given name.
+
+        Args:
+            child (Any): The child component to prepare.
+            name (str): The name of the child component.
+        """
+        pass

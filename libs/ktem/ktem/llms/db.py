@@ -6,6 +6,8 @@ from sqlalchemy.orm import DeclarativeBase
 from theflow.settings import settings as flowsettings
 from theflow.utils.modules import import_dotted_string
 
+__all__ = ["engine", "LLMTable", "Base", "BaseLLMTable"]
+
 
 class Base(DeclarativeBase):
     pass
