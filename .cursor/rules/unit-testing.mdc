@@ -1,0 +1,20 @@
+---
+description: Enforces the implementation of unit tests to guarantee code reliability and maintainability, especially within the 'tests' directory.
+globs: **/tests/**/*.*
+---
+- Implement unit tests to ensure code reliability.
+- Parametrize tests using pytest.mark.parametrize to handle as many cases as possible.
+- Follow all Ruff's standards when writing unit tests.
+- Always use tuple for the variable list of pytest.mark.paramatrize.
+- Use pytest.mark.asyncio for async functions.
+- Use fixtures to mock third party dependencies, autospec whenever you can.
+- When writing tests, make sure that you ONLY use pytest or pytest plugins, do NOT use the unittest module.
+- All tests should have typing annotations as well.
+- All tests should be in ./tests. Be sure to create all necessary files and folders. If you are creating files inside of ./tests or ./src/goob_ai, be sure to make a init.py file if one does not exist.
+- All tests should be fully annotated and should contain docstrings.
+- Be sure to import the following if TYPE_CHECKING:
+  from _pytest.capture import CaptureFixture
+  from _pytest.fixtures import FixtureRequest
+  from _pytest.logging import LogCaptureFixture
+  from _pytest.monkeypatch import MonkeyPatch
+  from pytest_mock.plugin import MockerFixture

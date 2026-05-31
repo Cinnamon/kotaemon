@@ -1,0 +1,9 @@
+---
+description: Enforces SOLID principles and composition-over-inheritance in Python class design.
+globs: **/*.py
+---
+- Follow SOLID principles when designing classes and modules.
+- Define interfaces with `typing.Protocol` or `abc.ABC` when multiple implementations or dependency injection is needed.
+- Avoid deep inheritance hierarchies (more than two levels); they are hard to read and maintain.
+- Prefer composition over inheritance; inject behavior via attributes or protocols instead of subclassing.
+- Reserve inheritance for genuine "is-a" relationships; use composition for "has-a" or shared behavior.

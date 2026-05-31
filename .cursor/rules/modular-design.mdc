@@ -1,0 +1,6 @@
+---
+description: Promotes modular design with distinct files for models, services, controllers, and utilities.
+globs: *
+---
+- Modular design with distinct files for models, services, controllers, and utilities.
+- For separated modules, handle exceptions using a dedicated set of module Exception, fine-grained to each case.

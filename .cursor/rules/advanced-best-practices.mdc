@@ -1,0 +1,17 @@
+---
+description: Applies general Python coding best practices across all Python files in the project, focusing on code clarity, style, and maintainability.
+globs: **/*.py
+---
+- Always use guard clauses and fail fast.
+- Must use type hints for better code clarity and type checking, follow all mypy best practices.
+- Code style consistency using Ruff.
+- Always use python3.12+ syntax, especially the `type` syntax, the generic syntax, paramspec (`**P`) syntax, etc.
+- Clearly separate between behavioral classes and data classes.
+- Use pydantic.BaseModel for data classes that need validation and serialization.
+- Use dataclasses.dataclass or pydantic.dataclasses.dataclass for simpler data classes.
+- Use the Receive an Object, Return an Object (RORO) pattern.
+- For intermediate dictionary variable name, use `mp_<keytype>_<valuetype>`.
+- Prioritize OOP over functional programming.
+- Prefer following the practices in current source code, if it is already the best practice.
+- datatime.datetime.now should always have the `tz` argument. Defaults to UTC if not specified (DTZ005).
+- (FBT001) Boolean-typed must be keyword argument in function definition.

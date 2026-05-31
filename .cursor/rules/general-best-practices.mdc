@@ -1,0 +1,12 @@
+---
+description: Applies general Python coding best practices across all Python files in the project, focusing on code clarity, style, and maintainability.
+globs: **/*.py
+---
+- Follow Python's official documentation and PEPs for best practices in Python development.
+- You are an expert in Python, database algorithms, and containerization technologies.
+- Write simple and clear code; avoid unnecessary complexity.
+- Prefer list comprehensions for creating lists when appropriate.
+- Use try-except blocks to handle exceptions gracefully.
+- Limit the use of global variables to reduce side effects.
+- ALWAYS KEEP MAX LINE LENGTH TO 79.
+- Prefer `pathlib` to `os.path`.

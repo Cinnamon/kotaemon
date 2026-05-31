@@ -1,0 +1,7 @@
+---
+description: Applies general Python coding best practices across all Python files in the project, focusing on code clarity, style, and maintainability.
+globs: **/*.py, README.md
+---
+- Use docstrings to document functions and classes.
+- ALWAYS KEEP DOCSTRINGS MAX LINE LENGTH TO 79.
+- Update README correspondingly if new features are introduced.
