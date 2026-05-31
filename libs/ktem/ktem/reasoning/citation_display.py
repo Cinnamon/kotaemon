@@ -10,13 +10,13 @@ from __future__ import annotations
 
 import logging
 
+from ktem.utils.render import Render
+
 from kotaemon.base import Document
 from kotaemon.indices.qa.citation_qa import (
     CONTEXT_RELEVANT_WARNING_SCORE,
     AnswerWithContextPipeline,
 )
-
-from ktem.utils.render import Render
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +34,7 @@ def prepare_citations(
     """
     with_citation: list[Document] = []
     without_citation: list[Document] = []
-    has_llm_score = any(
-        "llm_trulens_score" in doc.metadata for doc in docs
-    )
+    has_llm_score = any("llm_trulens_score" in doc.metadata for doc in docs)
 
     spans = pipeline.match_evidence_with_context(answer, docs)
     id2docs = {doc.doc_id: doc for doc in docs}
@@ -60,9 +58,7 @@ def prepare_citations(
             to_highlight = cur_doc.text[span_start:span_end]
             last_end = span_end
 
-            highlight_text += (
-                (" " if highlight_text else "") + to_highlight
-            )
+            highlight_text += (" " if highlight_text else "") + to_highlight
 
             span_idx = span.get("idx", None)
             if span_idx is not None:
@@ -70,14 +66,10 @@ def prepare_citations(
 
             text += Render.highlight(
                 to_highlight,
-                elem_id=(
-                    str(span_idx) if span_idx is not None else None
-                ),
+                elem_id=(str(span_idx) if span_idx is not None else None),
             )
             if idx < len(ss) - 1:
-                text += cur_doc.text[
-                    span["end"] : ss[idx + 1]["start"]
-                ]
+                text += cur_doc.text[span["end"] : ss[idx + 1]["start"]]
 
         text += cur_doc.text[ss[-1]["end"] :]
         with_citation.append(
@@ -96,18 +88,14 @@ def prepare_citations(
 
     sorted_not_detected = sorted(
         not_detected,
-        key=lambda id_: id2docs[id_].metadata.get(
-            "llm_trulens_score", 0.0
-        ),
+        key=lambda id_: id2docs[id_].metadata.get("llm_trulens_score", 0.0),
         reverse=True,
     )
 
     for id_ in sorted_not_detected:
         doc = id2docs[id_]
         doc_score = doc.metadata.get("llm_trulens_score", 0.0)
-        is_open = not has_llm_score or (
-            doc_score > CONTEXT_RELEVANT_WARNING_SCORE
-        )
+        is_open = not has_llm_score or (doc_score > CONTEXT_RELEVANT_WARNING_SCORE)
         without_citation.append(
             Document(
                 channel="info",

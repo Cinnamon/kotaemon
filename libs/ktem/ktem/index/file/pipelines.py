@@ -364,9 +364,7 @@ class IndexPipeline(BaseComponent):
             vector_store=self.VS,
             doc_store=self.DS,
             embedding=self.embedding,
-            cache_dir=getattr(
-                settings, "KH_CHUNKS_OUTPUT_DIR", None
-            ),
+            cache_dir=getattr(settings, "KH_CHUNKS_OUTPUT_DIR", None),
         )
 
     def handle_docs(self, docs, file_id, file_name) -> Generator[Document, None, int]:

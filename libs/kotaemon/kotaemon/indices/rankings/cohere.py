@@ -18,8 +18,7 @@ class CohereReranking(BaseReranking):
             import cohere
         except ImportError:
             raise ImportError(
-                "Please install Cohere "
-                "`pip install cohere` to use Cohere Reranking"
+                "Please install Cohere " "`pip install cohere` to use Cohere Reranking"
             )
 
         if not self.cohere_api_key:

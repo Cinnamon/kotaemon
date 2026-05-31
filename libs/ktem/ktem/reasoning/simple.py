@@ -6,14 +6,16 @@ from typing import Generator
 from decouple import config
 from ktem.embeddings.manager import embedding_models_manager as embeddings
 from ktem.llms.manager import llms
-from theflow.settings import settings as flowsettings
+from ktem.reasoning.citation_display import prepare_citations
 from ktem.reasoning.prompt_optimization import (
     DecomposeQuestionPipeline,
     RewriteQuestionPipeline,
 )
+from ktem.reasoning.prompt_optimization.mindmap import CreateMindmapPipeline
 from ktem.utils.render import Render
 from ktem.utils.visualize_cited import CreateCitationVizPipeline
 from plotly.io import to_json
+from theflow.settings import settings as flowsettings
 
 from kotaemon.base import (
     AIMessage,
@@ -29,11 +31,6 @@ from kotaemon.indices.qa.citation_qa import (
     CONTEXT_RELEVANT_WARNING_SCORE,
     DEFAULT_QA_TEXT_PROMPT,
     AnswerWithContextPipeline,
-)
-
-from ktem.reasoning.citation_display import prepare_citations
-from ktem.reasoning.prompt_optimization.mindmap import (
-    CreateMindmapPipeline,
 )
 from kotaemon.indices.qa.citation_qa_inline import AnswerWithInlineCitation
 from kotaemon.indices.qa.format_context import PrepareEvidencePipeline
@@ -374,9 +371,7 @@ class FullQAPipeline(BaseReasoning):
 
         answer_pipeline.llm = llm
         answer_pipeline.citation_pipeline = CitationPipeline(llm=llm)
-        answer_pipeline.create_mindmap_pipeline = CreateMindmapPipeline(
-            llm=llm
-        )
+        answer_pipeline.create_mindmap_pipeline = CreateMindmapPipeline(llm=llm)
         answer_pipeline.n_last_interactions = settings[f"{prefix}.n_last_interactions"]
         answer_pipeline.enable_citation = (
             settings[f"{prefix}.highlight_citation"] != "off"
@@ -384,9 +379,7 @@ class FullQAPipeline(BaseReasoning):
         answer_pipeline.enable_mindmap = settings[f"{prefix}.create_mindmap"]
         answer_pipeline.enable_citation_viz = settings[f"{prefix}.create_citation_viz"]
         answer_pipeline.use_multimodal = settings[f"{prefix}.use_multimodal"]
-        answer_pipeline.vlm_endpoint = getattr(
-            flowsettings, "KH_VLM_ENDPOINT", ""
-        )
+        answer_pipeline.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
         answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
         answer_pipeline.qa_template = settings[f"{prefix}.qa_prompt"]
         answer_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(

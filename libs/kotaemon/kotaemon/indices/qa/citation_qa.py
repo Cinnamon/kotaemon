@@ -201,7 +201,11 @@ class AnswerWithContextPipeline(BaseComponent):
 
         def mindmap_call():
             nonlocal mindmap
-            mindmap = self.create_mindmap_pipeline(context=evidence, question=question)
+
+            if self.create_mindmap_pipeline is not None:
+                mindmap = self.create_mindmap_pipeline(
+                    context=evidence, question=question
+                )
 
         citation_thread = None
         mindmap_thread = None
@@ -306,4 +310,3 @@ class AnswerWithContextPipeline(BaseComponent):
 
             # print("Matched citation:", quote, matched_excerpts),
         return spans
-

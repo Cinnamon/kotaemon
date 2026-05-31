@@ -214,7 +214,10 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
 
         def mindmap_call():
             nonlocal mindmap
-            mindmap = self.create_mindmap_pipeline(context=evidence, question=question)
+            if self.create_mindmap_pipeline is not None:
+                mindmap = self.create_mindmap_pipeline(
+                    context=evidence, question=question
+                )
 
         mindmap_thread = None
 
