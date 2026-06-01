@@ -6,7 +6,7 @@ from typing import Optional
 
 import gradio as gr
 from decouple import config
-from ktem.app import BasePage
+from ktem.app import BaseApp, BasePage
 from ktem.components import reasonings
 from ktem.db.models import Conversation, engine
 from ktem.index.file.ui import File
@@ -205,7 +205,7 @@ function(_, __) {
 
 
 class ChatPage(BasePage):
-    def __init__(self, app):
+    def __init__(self, app: BaseApp):
         self._app = app
         self._indices_input = []
 

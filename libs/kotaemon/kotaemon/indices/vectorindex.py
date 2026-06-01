@@ -9,14 +9,15 @@ from kotaemon.base import BaseComponent, Document, RetrievedDocument
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
-from .base import BaseIndexing, BaseRetrieval
+from kotaemon.base import BaseComponent
+from .base import BaseRetrieval
 from .rankings import BaseReranking, LLMReranking
 
 VECTOR_STORE_FNAME = "vectorstore"
 DOC_STORE_FNAME = "docstore"
 
 
-class VectorIndexing(BaseIndexing):
+class VectorIndexing(BaseComponent):
     """Ingest the document, run through the embedding, and store the embedding in a
     vector store.
 

@@ -2,7 +2,7 @@ from typing import Any
 
 from ktem.index.file import FileIndex
 
-from ..base import BaseFileIndexIndexing, BaseFileIndexRetriever
+from ..base import BaseIndexing, BaseRetriever
 from .pipelines import KnetIndexingPipeline, KnetRetrievalPipeline
 
 
@@ -22,7 +22,7 @@ class KnowledgeNetworkFileIndex(FileIndex):
     def _setup_retriever_cls(self):
         self._retriever_pipeline_cls = [KnetRetrievalPipeline]
 
-    def get_indexing_pipeline(self, settings, user_id) -> BaseFileIndexIndexing:
+    def get_indexing_pipeline(self, settings, user_id) -> BaseIndexing:
         """Define the interface of the indexing pipeline"""
 
         obj = super().get_indexing_pipeline(settings, user_id)
@@ -35,7 +35,7 @@ class KnowledgeNetworkFileIndex(FileIndex):
 
     def get_retriever_pipelines(
         self, settings: dict, user_id: int, selected: Any = None
-    ) -> list["BaseFileIndexRetriever"]:
+    ) -> list["BaseRetriever"]:
         retrievers = super().get_retriever_pipelines(settings, user_id, selected)
 
         for obj in retrievers:

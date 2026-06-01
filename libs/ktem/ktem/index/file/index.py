@@ -14,7 +14,7 @@ from tzlocal import get_localzone
 
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
-from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
+from .base import BaseIndexing, BaseRetriever
 
 
 def generate_uuid():
@@ -38,8 +38,8 @@ class FileIndex(BaseIndex):
     def __init__(self, app, id: int, name: str, config: dict):
         super().__init__(app, id, name, config)
 
-        self._indexing_pipeline_cls: Type[BaseFileIndexIndexing]
-        self._retriever_pipeline_cls: list[Type[BaseFileIndexRetriever]]
+        self._indexing_pipeline_cls: Type[BaseIndexing]
+        self._retriever_pipeline_cls: list[Type[BaseRetriever]]
         self._selector_ui_cls: Type
         self._selector_ui: Any = None
         self._index_ui_cls: Type
@@ -437,7 +437,7 @@ class FileIndex(BaseIndex):
             },
         }
 
-    def get_indexing_pipeline(self, settings, user_id) -> BaseFileIndexIndexing:
+    def get_indexing_pipeline(self, settings, user_id) -> BaseIndexing:
         """Define the interface of the indexing pipeline"""
 
         prefix = f"index.options.{self.id}."
@@ -453,6 +453,7 @@ class FileIndex(BaseIndex):
         obj.DS = self._docstore
         obj.FSPath = self._fs_path
         obj.user_id = user_id
+        obj.engine = engine
         obj.private = self.config.get("private", False)
         obj.chunk_size = self.config.get("chunk_size", 0)
         obj.chunk_overlap = self.config.get("chunk_overlap", 0)
@@ -461,7 +462,7 @@ class FileIndex(BaseIndex):
 
     def get_retriever_pipelines(
         self, settings: dict, user_id: int, selected: Any = None
-    ) -> list["BaseFileIndexRetriever"]:
+    ) -> list["BaseRetriever"]:
         # retrieval settings
         prefix = f"index.options.{self.id}."
         stripped_settings = {}
@@ -483,6 +484,7 @@ class FileIndex(BaseIndex):
             obj.DS = self._docstore
             obj.FSPath = self._fs_path
             obj.user_id = user_id
+            obj.engine = engine
             retrievers.append(obj)
 
         return retrievers

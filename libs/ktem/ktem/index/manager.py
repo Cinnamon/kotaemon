@@ -200,7 +200,7 @@ class IndexManager:
 
     @property
     def indices(self):
-        return self._indices
+        return self._indices[:1]
 
     def info(self):
         return {index.id: index for index in self._indices}

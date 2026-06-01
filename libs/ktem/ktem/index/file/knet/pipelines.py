@@ -10,7 +10,7 @@ import yaml
 from kotaemon.base import RetrievedDocument
 from kotaemon.indices.rankings import BaseReranking, LLMReranking, LLMTrulensScoring
 
-from ..pipelines import BaseFileIndexRetriever, IndexDocumentPipeline, IndexPipeline
+from ..pipelines import BaseRetriever, IndexDocumentPipeline, IndexPipeline
 
 
 class KnetIndexingPipeline(IndexDocumentPipeline):
@@ -42,7 +42,7 @@ class KnetIndexingPipeline(IndexDocumentPipeline):
         return pipeline
 
 
-class KnetRetrievalPipeline(BaseFileIndexRetriever):
+class KnetRetrievalPipeline(BaseRetriever):
     DEFAULT_KNET_ENDPOINT: str = "http://127.0.0.1:8081/retrieve"
 
     collection_name: str = "default"

@@ -55,6 +55,8 @@ class EmbeddingManager:
 
     def __getitem__(self, key: str) -> BaseEmbeddings:
         """Get model by name."""
+        if key == "default":
+            key = self._default
         return self._models[key]
 
     def __contains__(self, key: str) -> bool:

@@ -23,7 +23,7 @@ from theflow.settings import settings
 from kotaemon.base import Document, Param, RetrievedDocument
 from kotaemon.base.schema import AIMessage, HumanMessage, SystemMessage
 
-from ..pipelines import BaseFileIndexRetriever
+from ..pipelines import BaseRetriever
 from .pipelines import GraphRAGIndexingPipeline
 from .visualize import create_knowledge_graph, visualize_graph
 
@@ -410,7 +410,7 @@ class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
         return file_ids, errors, all_docs
 
 
-class LightRAGRetrieverPipeline(BaseFileIndexRetriever):
+class LightRAGRetrieverPipeline(BaseRetriever):
     """GraphRAG specific retriever pipeline"""
 
     Index = Param(help="The SQLAlchemy Index table")

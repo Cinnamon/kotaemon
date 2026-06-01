@@ -4,7 +4,7 @@ from uuid import uuid4
 from ktem.db.engine import engine
 from sqlalchemy.orm import Session
 
-from ..base import BaseFileIndexIndexing, BaseFileIndexRetriever
+from ..base import BaseIndexing, BaseRetriever
 from .graph_index import GraphRAGIndex
 from .nano_pipelines import NanoGraphRAGIndexingPipeline, NanoGraphRAGRetrieverPipeline
 
@@ -39,7 +39,7 @@ class NanoGraphRAGIndex(GraphRAGIndex):
                 self._collection_graph_id = str(uuid4())
         return self._collection_graph_id
 
-    def get_indexing_pipeline(self, settings, user_id) -> BaseFileIndexIndexing:
+    def get_indexing_pipeline(self, settings, user_id) -> BaseIndexing:
         pipeline = super().get_indexing_pipeline(settings, user_id)
         # indexing settings
         prefix = f"index.options.{self.id}."
@@ -60,7 +60,7 @@ class NanoGraphRAGIndex(GraphRAGIndex):
 
     def get_retriever_pipelines(
         self, settings: dict, user_id: int, selected: Any = None
-    ) -> list["BaseFileIndexRetriever"]:
+    ) -> list["BaseRetriever"]:
         file_ids = self._selector_ui.get_selected_ids(selected)
         # retrieval settings
         prefix = f"index.options.{self.id}."

@@ -103,18 +103,6 @@ class LlamaIndexDocTransformerMixin:
         return [Document.from_dict(doc.to_dict()) for doc in docs]
 
 
-class BaseIndexing(BaseComponent):
-    """Define the base interface for indexing pipeline"""
-
-    def to_retrieval_pipeline(self, **kwargs):
-        """Convert the indexing pipeline to a retrieval pipeline"""
-        raise NotImplementedError
-
-    def to_qa_pipeline(self, **kwargs):
-        """Convert the indexing pipeline to a QA pipeline"""
-        raise NotImplementedError
-
-
 class BaseRetrieval(BaseComponent):
     """Define the base interface for retrieval pipeline"""
 
