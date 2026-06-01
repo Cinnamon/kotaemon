@@ -1,7 +1,7 @@
 import gradio as gr
 import pandas as pd
 import yaml
-from ktem.app import BasePage
+from ktem.app import BaseApp, BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
 
 from .manager import IndexManager
@@ -33,7 +33,7 @@ def format_description(cls):
 
 
 class IndexManagement(BasePage):
-    def __init__(self, app):
+    def __init__(self, app: BaseApp):
         self._app = app
         self.manager: IndexManager = app.index_manager
         self.spec_desc_default = (

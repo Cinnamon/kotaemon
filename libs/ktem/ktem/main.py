@@ -128,7 +128,8 @@ class App(BaseApp):
         if self.f_user_management:
             from ktem.db.engine import engine
             from ktem.db.models import User
-            from sqlmodel import Session, select
+            from sqlalchemy import select
+            from sqlalchemy.orm import Session
 
             def toggle_login_visibility(user_id):
                 if not user_id:
@@ -142,7 +143,7 @@ class App(BaseApp):
                     ) + [gr.update(selected="login-tab")]
 
                 with Session(engine) as session:
-                    user = session.exec(select(User).where(User.id == user_id)).first()
+                    user = session.scalars(select(User).where(User.id == user_id)).first()
                     if user is None:
                         return list(
                             (

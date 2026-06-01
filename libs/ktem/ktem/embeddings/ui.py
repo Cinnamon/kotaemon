@@ -3,7 +3,7 @@ from copy import deepcopy
 import gradio as gr
 import pandas as pd
 import yaml
-from ktem.app import BasePage
+from ktem.app import BaseApp, BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
 from theflow.utils.modules import deserialize
 
@@ -21,7 +21,7 @@ def format_description(cls):
 
 
 class EmbeddingManagement(BasePage):
-    def __init__(self, app):
+    def __init__(self, app: BaseApp):
         self._app = app
         self.spec_desc_default = (
             "# Spec description\n\nSelect a model to view the spec description."
@@ -266,13 +266,9 @@ class EmbeddingManagement(BasePage):
 
     def list_embeddings(self):
         """List the Embedding models"""
-        items = []
-        for item in embedding_models_manager.info().values():
-            record = {}
-            record["name"] = item["name"]
-            record["vendor"] = item["spec"].get("__type__", "-").split(".")[-1]
-            record["default"] = item["default"]
-            items.append(record)
+        items = [
+            item.ui for _, item in embedding_models_manager.info().items()
+        ]
 
         if items:
             emb_list = pd.DataFrame.from_records(items)
@@ -313,14 +309,15 @@ class EmbeddingManagement(BasePage):
             btn_delete_yes = gr.update(visible=False)
             btn_delete_no = gr.update(visible=False)
 
-            info = deepcopy(embedding_models_manager.info()[selected_emb_name])
-            vendor_str = info["spec"].pop("__type__", "-").split(".")[-1]
+            item = embedding_models_manager.info()[selected_emb_name]
+            spec = deepcopy(item.spec)
+            vendor_str = spec.pop("__type__", "-").split(".")[-1]
             vendor = embedding_models_manager.vendors()[vendor_str]
 
             edit_name = selected_emb_name
-            edit_spec = yaml.dump(info["spec"])
+            edit_spec = yaml.dump(spec)
             edit_spec_desc = format_description(vendor)
-            edit_default = info["default"]
+            edit_default = item.default
 
         return (
             _selected_panel,
@@ -349,13 +346,13 @@ class EmbeddingManagement(BasePage):
             yield log_content
 
             # Parse content & init model
-            info = deepcopy(embedding_models_manager.info()[selected_emb_name])
+            item = embedding_models_manager.info()[selected_emb_name]
+            spec = deepcopy(item.spec)
+            spec.update(
+                yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
+            )
 
-            # Parse content & create dummy embedding
-            spec = yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
-            info["spec"].update(spec)
-
-            emb = deserialize(info["spec"], safe=False)
+            emb = deserialize(spec, safe=False)
 
             if emb is None:
                 raise Exception(f"Can not found model: {selected_emb_name}")
@@ -385,9 +382,9 @@ class EmbeddingManagement(BasePage):
         try:
             new_name = edit_name.strip()
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
-            spec["__type__"] = embedding_models_manager.info()[selected_emb_name][
-                "spec"
-            ]["__type__"]
+            spec["__type__"] = embedding_models_manager.info()[
+                selected_emb_name
+            ].spec["__type__"]
             embedding_models_manager.update(
                 selected_emb_name, spec=spec, default=default, new_name=new_name
             )

@@ -1,11 +1,12 @@
 import hashlib
 
 import gradio as gr
-from ktem.app import BasePage
+from ktem.app import BaseApp, BasePage
 from ktem.components import reasonings
 from ktem.db.models import Settings, User, engine
 from ktem.mcp.manager import MCP_TOOL_PREFIX, mcp_manager
-from sqlmodel import Session, select
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
 
 KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
@@ -66,7 +67,7 @@ class SettingsPage(BasePage):
 
     public_events = ["onSignOut"]
 
-    def __init__(self, app):
+    def __init__(self, app: BaseApp):
         """Initiate the page and render the UI"""
         self._app = app
 
@@ -172,7 +173,7 @@ class SettingsPage(BasePage):
                 if user_id:
                     with Session(engine) as session:
                         statement = select(User).where(User.id == user_id)
-                        result = session.exec(statement).all()
+                        result = session.scalars(statement).all()
                         if result:
                             return name + result[0].username
                 return name + "___"
@@ -275,7 +276,7 @@ class SettingsPage(BasePage):
 
         with Session(engine) as session:
             statement = select(User).where(User.id == user_id)
-            result = session.exec(statement).all()
+            result = session.scalars(statement).all()
             if result:
                 user = result[0]
                 hashed_password = hashlib.sha256(password.encode()).hexdigest()
@@ -380,7 +381,7 @@ class SettingsPage(BasePage):
         settings = self._settings_dict
         with Session(engine) as session:
             statement = select(Settings).where(Settings.user == user_id)
-            result = session.exec(statement).all()
+            result = session.scalars(statement).all()
             if result:
                 settings = result[0].setting
 
@@ -419,7 +420,7 @@ class SettingsPage(BasePage):
         with Session(engine) as session:
             statement = select(Settings).where(Settings.user == user_id)
             try:
-                user_setting = session.exec(statement).one()
+                user_setting = session.scalars(statement).one()
             except Exception:
                 user_setting = Settings()
                 user_setting.user = user_id

@@ -1,20 +1,21 @@
+from typing import Any
+
+from ktem.db.models import Base
 from ktem.db.engine import engine
-from sqlalchemy import JSON, Column, String
+from sqlalchemy import JSON, String
 from sqlalchemy import inspect as sa_inspect
-from sqlalchemy.orm import DeclarativeBase
-
-
-class Base(DeclarativeBase):
-    pass
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 class BaseMCPTable(Base):
-    """Base table to store MCP server configurations"""
+    """Base table to store MCP server configurations."""
 
     __abstract__ = True
 
-    name = Column(String, primary_key=True, unique=True)
-    config = Column(JSON, default={})  # Full JSON config for the MCP server
+    name: Mapped[str] = mapped_column(String, primary_key=True, unique=True)
+    config: Mapped[dict[str, Any]] = mapped_column(
+        JSON, default=dict
+    )
 
 
 class MCPTable(BaseMCPTable):

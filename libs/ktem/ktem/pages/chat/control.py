@@ -5,7 +5,8 @@ from copy import deepcopy
 import gradio as gr
 from ktem.app import BasePage
 from ktem.db.models import Conversation, User, engine
-from sqlmodel import Session, or_, select
+from sqlalchemy import or_, select
+from sqlalchemy.orm import Session
 
 import flowsettings
 
@@ -206,7 +207,7 @@ class ConversationControl(BasePage):
         can_see_public: bool = False
         with Session(engine) as session:
             statement = select(User).where(User.id == user_id)
-            result = session.exec(statement).one_or_none()
+            result = session.scalars(statement).one_or_none()
 
             if result is not None:
                 if flowsettings.KH_USER_CAN_SEE_PUBLIC:
@@ -243,7 +244,7 @@ class ConversationControl(BasePage):
                     .order_by(Conversation.date_created.desc())  # type: ignore
                 )
 
-            results = session.exec(statement).all()
+            results = session.scalars(statement).all()
             for result in results:
                 options.append((result.name, result.id))
 
@@ -284,7 +285,7 @@ class ConversationControl(BasePage):
 
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == conversation_id)
-            result = session.exec(statement).one()
+            result = session.scalars(statement).one()
 
             session.delete(result)
             session.commit()
@@ -303,7 +304,7 @@ class ConversationControl(BasePage):
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == conversation_id)
             try:
-                result = session.exec(statement).one()
+                result = session.scalars(statement).one()
                 id_ = result.id
                 name = result.name
                 is_conv_public = result.is_public
@@ -396,7 +397,7 @@ class ConversationControl(BasePage):
 
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == conversation_id)
-            result = session.exec(statement).one()
+            result = session.scalars(statement).one()
             result.name = new_name
             session.add(result)
             session.commit()
@@ -426,7 +427,7 @@ class ConversationControl(BasePage):
 
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == conversation_id)
-            result = session.exec(statement).one()
+            result = session.scalars(statement).one()
 
             data_source = deepcopy(result.data_source)
             data_source["chat_suggestions"] = [

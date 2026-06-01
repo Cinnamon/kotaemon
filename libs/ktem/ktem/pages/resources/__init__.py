@@ -6,7 +6,8 @@ from ktem.index.ui import IndexManagement
 from ktem.llms.ui import LLMManagement
 from ktem.mcp.ui import MCPManagement
 from ktem.rerankings.ui import RerankingManagement
-from sqlmodel import Session, select
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from .user import UserManagement
 
@@ -61,7 +62,7 @@ class ResourcesTab(BasePage):
     def toggle_user_management(self, user_id):
         """Show/hide the user management, depending on the user's role"""
         with Session(engine) as session:
-            user = session.exec(select(User).where(User.id == user_id)).first()
+            user = session.scalars(select(User).where(User.id == user_id)).first()
             if user and user.admin:
                 return gr.update(visible=True)
 

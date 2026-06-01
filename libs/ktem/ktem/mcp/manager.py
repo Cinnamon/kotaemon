@@ -62,7 +62,7 @@ class MCPManager:
             raise ValueError("Name must not be empty")
 
         with Session(engine) as session:
-            item = session.query(MCPTable).filter_by(name=name).first()
+            item = session.get(MCPTable, name)
             if not item:
                 raise ValueError(f"MCP server '{name}' not found")
             item.config = config  # type: ignore[assignment]
@@ -73,7 +73,7 @@ class MCPManager:
     def delete(self, name: str):
         """Delete an MCP server configuration."""
         with Session(engine) as session:
-            item = session.query(MCPTable).filter_by(name=name).first()
+            item = session.get(MCPTable, name)
             if item:
                 session.delete(item)
                 session.commit()

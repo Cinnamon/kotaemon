@@ -3,7 +3,7 @@ from typing import Optional
 import gradio as gr
 from ktem.app import BasePage
 from ktem.db.models import IssueReport, engine
-from sqlmodel import Session
+from sqlalchemy.orm import Session
 
 
 class ReportIssue(BasePage):

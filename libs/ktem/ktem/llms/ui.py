@@ -3,7 +3,7 @@ from copy import deepcopy
 import gradio as gr
 import pandas as pd
 import yaml
-from ktem.app import BasePage
+from ktem.app import BaseApp, BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
 from theflow.utils.modules import deserialize
 
@@ -21,7 +21,7 @@ def format_description(cls):
 
 
 class LLMManagement(BasePage):
-    def __init__(self, app):
+    def __init__(self, app: BaseApp):
         self._app = app
         self.spec_desc_default = (
             "# Spec description\n\nSelect an LLM to view the spec description."
@@ -265,13 +265,9 @@ class LLMManagement(BasePage):
 
     def list_llms(self):
         """List the LLMs"""
-        items = []
-        for item in llms.info().values():
-            record = {}
-            record["name"] = item["name"]
-            record["vendor"] = item["spec"].get("__type__", "-").split(".")[-1]
-            record["default"] = item["default"]
-            items.append(record)
+        items = [
+            item.ui for _, item in llms.info().items()
+        ]
 
         if items:
             llm_list = pd.DataFrame.from_records(items)
@@ -312,14 +308,15 @@ class LLMManagement(BasePage):
             btn_delete_yes = gr.update(visible=False)
             btn_delete_no = gr.update(visible=False)
 
-            info = deepcopy(llms.info()[selected_llm_name])
-            vendor_str = info["spec"].pop("__type__", "-").split(".")[-1]
+            item = llms.info()[selected_llm_name]
+            spec = deepcopy(item.spec)
+            vendor_str = spec.pop("__type__", "-").split(".")[-1]
             vendor = llms.vendors()[vendor_str]
 
             edit_name = selected_llm_name
-            edit_spec = yaml.dump(info["spec"])
+            edit_spec = yaml.dump(spec)
             edit_spec_desc = format_description(vendor)
-            edit_default = info["default"]
+            edit_default = item.default
 
         return (
             _selected_panel,
@@ -348,14 +345,13 @@ class LLMManagement(BasePage):
             log_content += f"- Testing model: {selected_llm_name}<br>"
             yield log_content
 
-            # Parse content & init model
-            info = deepcopy(llms.info()[selected_llm_name])
+            item = llms.info()[selected_llm_name]
+            spec = deepcopy(item.spec)
+            spec.update(
+                yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
+            )
 
-            # Parse content & create dummy embedding
-            spec = yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
-            info["spec"].update(spec)
-
-            llm = deserialize(info["spec"], safe=False)
+            llm = deserialize(spec, safe=False)
 
             if llm is None:
                 raise Exception(f"Can not found model: {selected_llm_name}")
@@ -384,7 +380,7 @@ class LLMManagement(BasePage):
         try:
             new_name = edit_name.strip()
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
-            spec["__type__"] = llms.info()[selected_llm_name]["spec"]["__type__"]
+            spec["__type__"] = llms.info()[selected_llm_name].spec["__type__"]
             llms.update(
                 selected_llm_name, spec=spec, default=default, new_name=new_name
             )

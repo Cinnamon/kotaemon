@@ -1,6 +1,6 @@
 from typing import Optional, Type
 
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
 from theflow.utils.modules import deserialize
@@ -19,10 +19,11 @@ class RerankingManager:
         self._default: str = ""
         self._vendors: list[Type] = []
 
-        # populate the pool if empty
         if hasattr(flowsettings, "KH_RERANKINGS"):
-            with Session(engine) as sess:
-                count = sess.query(RerankingTable).count()
+            with Session(engine) as session:
+                count = session.execute(
+                    select(func.count()).select_from(RerankingTable)
+                ).scalar_one()
             if not count:
                 for name, model in flowsettings.KH_RERANKINGS.items():
                     self.add(
@@ -34,14 +35,12 @@ class RerankingManager:
         self.load()
         self.load_vendors()
 
-    def load(self):
+    def load(self) -> None:
         """Load the model pool from database"""
         self._models, self._info, self._default = {}, {}, ""
-        with Session(engine) as sess:
-            stmt = select(RerankingTable)
-            items = sess.execute(stmt)
 
-            for (item,) in items:
+        with Session(engine) as session:
+            for item in session.scalars(select(RerankingTable)).all():
                 self._models[item.name] = deserialize(item.spec, safe=False)
                 self._info[item.name] = {
                     "name": item.name,
@@ -51,7 +50,7 @@ class RerankingManager:
                 if item.default:
                     self._default = item.name
 
-    def load_vendors(self):
+    def load_vendors(self) -> None:
         from kotaemon.rerankings import (
             CohereReranking,
             TeiFastReranking,
@@ -87,26 +86,18 @@ class RerankingManager:
         return self._models
 
     def get_random_name(self) -> str:
-        """Get the name of random model
-
-        Returns:
-            str: random model name in the pool
-        """
+        """Get the name of a random model in the pool."""
         import random
 
         if not self._models:
-            raise ValueError("No models is pool")
+            raise ValueError("No models in pool")
 
         return random.choice(list(self._models.keys()))
 
     def get_default_name(self) -> str:
-        """Get the name of default model
+        """Get the name of the default model.
 
-        In case there is no default model, choose random model from pool. In
-        case there are multiple default models, choose random from them.
-
-        Returns:
-            str: model name
+        In case there is no default model, a random model is chosen.
         """
         if not self._models:
             raise ValueError("No models in pool")
@@ -121,52 +112,51 @@ class RerankingManager:
         return self._models[self.get_random_name()]
 
     def get_default(self) -> BaseReranking:
-        """Get default model
-
-        In case there is no default model, choose random model from pool. In
-        case there are multiple default models, choose random from them.
-
-        Returns:
-            BaseReranking: model
-        """
+        """Get default model"""
         return self._models[self.get_default_name()]
 
     def info(self) -> dict:
         """List all models"""
         return self._info
 
-    def add(self, name: str, spec: dict, default: bool):
+    def add(self, name: str, spec: dict, default: bool) -> None:
+        """Add a new model to the pool."""
         if not name:
             raise ValueError("Name must not be empty")
 
         try:
-            with Session(engine) as sess:
+            with Session(engine) as session:
                 if default:
-                    # turn all models to non-default
-                    sess.query(RerankingTable).update({"default": False})
-                    sess.commit()
-
-                item = RerankingTable(name=name, spec=spec, default=default)
-                sess.add(item)
-                sess.commit()
+                    session.execute(
+                        update(RerankingTable).values(default=False)
+                    )
+                    session.commit()
+                session.add(RerankingTable(name=name, spec=spec, default=default))
+                session.commit()
         except Exception as e:
-            raise ValueError(f"Failed to add model {name}: {e}")
+            raise ValueError(f"Failed to add model {name}: {e}") from e
 
         self.load()
 
-    def delete(self, name: str):
-        """Delete a model from the pool"""
+    def delete(self, name: str) -> None:
+        """Delete a model from the pool."""
         try:
-            with Session(engine) as sess:
-                item = sess.query(RerankingTable).filter_by(name=name).first()
-                sess.delete(item)
-                sess.commit()
+            with Session(engine) as session:
+                item = session.get(RerankingTable, name)
+                if item is None:
+                    raise ValueError(f"Model {name} not found")
+                session.delete(item)
+                session.commit()
+        except ValueError:
+            raise
         except Exception as e:
-            raise ValueError(f"Failed to delete model {name}: {e}")
+            raise ValueError(f"Failed to delete model {name}: {e}") from e
 
         self.load()
 
-    def update(self, name: str, spec: dict, default: bool, new_name: str = ""):
+    def update(
+        self, name: str, spec: dict, default: bool, new_name: str = ""
+    ) -> None:
         """Update a model in the pool, optionally renaming it."""
         if not name:
             raise ValueError("Name must not be empty")
@@ -181,21 +171,23 @@ class RerankingManager:
             return
 
         try:
-            with Session(engine) as sess:
-
+            with Session(engine) as session:
                 if default:
-                    # turn all models to non-default
-                    sess.query(RerankingTable).update({"default": False})
-                    sess.commit()
+                    session.execute(
+                        update(RerankingTable).values(default=False)
+                    )
+                    session.commit()
 
-                item = sess.query(RerankingTable).filter_by(name=name).first()
-                if not item:
+                item = session.get(RerankingTable, name)
+                if item is None:
                     raise ValueError(f"Model {name} not found")
                 item.spec = spec
                 item.default = default
-                sess.commit()
+                session.commit()
+        except ValueError:
+            raise
         except Exception as e:
-            raise ValueError(f"Failed to update model {name}: {e}")
+            raise ValueError(f"Failed to update model {name}: {e}") from e
 
         self.load()
 

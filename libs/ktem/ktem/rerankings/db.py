@@ -1,24 +1,21 @@
-from typing import Type
+from typing import Any, Type
 
+from ktem.db.models import Base
 from ktem.db.engine import engine
-from sqlalchemy import JSON, Boolean, Column, String
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import JSON, Boolean, String
+from sqlalchemy.orm import Mapped, mapped_column
 from theflow.settings import settings as flowsettings
 from theflow.utils.modules import import_dotted_string
 
 
-class Base(DeclarativeBase):
-    pass
-
-
 class BaseRerankingTable(Base):
-    """Base table to store rerankings model"""
+    """Base table to store rerankings model."""
 
     __abstract__ = True
 
-    name = Column(String, primary_key=True, unique=True)
-    spec = Column(JSON, default={})
-    default = Column(Boolean, default=False)
+    name: Mapped[str] = mapped_column(String, primary_key=True, unique=True)
+    spec: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    default: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 __base_reranking: Type[BaseRerankingTable] = (

@@ -18,7 +18,8 @@ from ktem.reasoning.prompt_optimization.suggest_followup_chat import (
     SuggestFollowupQuesPipeline,
 )
 from plotly.io import from_json
-from sqlmodel import Session, select
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
 from theflow.utils.modules import import_dotted_string
 
@@ -968,7 +969,7 @@ class ChatPage(BasePage):
                 id_, update = self.chat_control.new_conv(user_id)
                 with Session(engine) as session:
                     statement = select(Conversation).where(Conversation.id == id_)
-                    name = session.exec(statement).one().name
+                    name = session.scalars(statement).one().name
                     new_conv_id = id_
                     conv_update = update
                     new_conv_name = name
@@ -1016,7 +1017,7 @@ class ChatPage(BasePage):
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == convo_id)
 
-            result = session.exec(statement).one()
+            result = session.scalars(statement).one()
             name = result.name
 
             if result.is_public != is_public:
@@ -1127,7 +1128,7 @@ class ChatPage(BasePage):
 
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == convo_id)
-            result = session.exec(statement).one()
+            result = session.scalars(statement).one()
 
             data_source = result.data_source
             old_selecteds = data_source.get("selected", {})
@@ -1156,7 +1157,7 @@ class ChatPage(BasePage):
     def is_liked(self, convo_id, liked: gr.LikeData):
         with Session(engine) as session:
             statement = select(Conversation).where(Conversation.id == convo_id)
-            result = session.exec(statement).one()
+            result = session.scalars(statement).one()
 
             data_source = deepcopy(result.data_source)
             likes = data_source.get("likes", [])

@@ -1,10 +1,11 @@
 import hashlib
 
 import gradio as gr
-from ktem.app import BasePage
+from ktem.app import BaseApp, BasePage
 from ktem.db.models import User, engine
 from ktem.pages.resources.user import create_user
-from sqlmodel import Session, select
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 fetch_creds = """
 function() {
@@ -27,7 +28,7 @@ class LoginPage(BasePage):
 
     public_events = ["onSignIn"]
 
-    def __init__(self, app):
+    def __init__(self, app: BaseApp):
         self._app = app
         self.on_building_ui()
 
@@ -100,7 +101,7 @@ class LoginPage(BasePage):
                 stmt = select(User).where(
                     User.id == user_id,
                 )
-                result = session.exec(stmt).all()
+                result = session.scalars(stmt).all()
 
             if result:
                 print("Existing user:", user)
@@ -124,7 +125,7 @@ class LoginPage(BasePage):
                     User.username_lower == usn.lower().strip(),
                     User.password == hashed_password,
                 )
-                result = session.exec(stmt).all()
+                result = session.scalars(stmt).all()
                 if result:
                     return result[0].id, "", ""
 

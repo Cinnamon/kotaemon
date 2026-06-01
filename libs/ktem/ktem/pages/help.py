@@ -6,6 +6,8 @@ import requests
 from decouple import config
 from theflow.settings import settings
 
+from ktem.app import BaseApp
+
 KH_DEMO_MODE = getattr(settings, "KH_DEMO_MODE", False)
 HF_SPACE_URL = config("HF_SPACE_URL", default="")
 
@@ -34,7 +36,7 @@ def download_changelogs(release_url: str) -> str:
 class HelpPage:
     def __init__(
         self,
-        app,
+        app: BaseApp,
         doc_dir: str = settings.KH_DOC_DIR,
         remote_content_url: str = "https://raw.githubusercontent.com/Cinnamon/kotaemon",
         app_version: str | None = settings.KH_APP_VERSION,

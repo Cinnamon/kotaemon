@@ -1,7 +1,8 @@
 from typing import Optional, Type
 
 from ktem.db.models import engine
-from sqlmodel import Session, select
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
 
@@ -131,7 +132,7 @@ class IndexManager:
 
             # remove from database
             with Session(engine) as sess:
-                item = sess.query(Index).filter_by(id=id).first()
+                item = sess.get(Index, id)
                 sess.delete(item)
                 sess.commit()
 
@@ -171,7 +172,7 @@ class IndexManager:
 
         if name:
             with Session(engine) as sess:
-                index = sess.exec(select(Index).where(Index.name == name)).one_or_none()
+                index = sess.scalars(select(Index).where(Index.name == name)).one_or_none()
                 return index is not None
 
         return False
@@ -188,9 +189,14 @@ class IndexManager:
                 self.build_index(**index)
 
         with Session(engine) as sess:
-            index_defs = sess.exec(select(Index))
+            index_defs = sess.scalars(select(Index)).all()
             for index_def in index_defs:
-                self.start_index(**index_def.model_dump())
+                self.start_index(
+                    id=index_def.id,
+                    name=index_def.name,
+                    config=index_def.config,
+                    index_type=index_def.index_type,
+                )
 
     @property
     def indices(self):

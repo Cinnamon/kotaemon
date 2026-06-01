@@ -255,7 +255,7 @@ class BasePage:
 
     public_events: list[str] = []
 
-    def __init__(self, app):
+    def __init__(self, app: BaseApp):
         self._app = app
 
     def on_building_ui(self):

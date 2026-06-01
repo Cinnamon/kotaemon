@@ -1,19 +1,20 @@
-from typing import Optional
+from typing import Any, Optional
 
+from ktem.db.models import Base
 from ktem.db.engine import engine
-from sqlalchemy import JSON, Column
-from sqlmodel import Field, SQLModel
+from sqlalchemy import JSON, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
 
 
-# TODO: simplify with using SQLAlchemy directly
-class Index(SQLModel, table=True):
-    __table_args__ = {"extend_existing": True}
-    __tablename__ = "ktem__index"  # type: ignore
+class Index(Base):
+    __tablename__ = "ktem__index"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(unique=True)
-    index_type: str = Field()
-    config: dict = Field(default={}, sa_column=Column(JSON))
+    id: Mapped[Optional[int]] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    name: Mapped[str] = mapped_column(String, unique=True)
+    index_type: Mapped[str] = mapped_column(String)
+    config: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
 
 Index.metadata.create_all(engine)

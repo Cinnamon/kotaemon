@@ -4,7 +4,8 @@ import gradio as gr
 import pandas as pd
 from ktem.app import BasePage
 from ktem.db.models import User, engine
-from sqlmodel import Session, select
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
 
 USERNAME_RULE = """**Username rule:**
@@ -97,7 +98,7 @@ def validate_password(pwd, pwd_cnf):
 def create_user(usn, pwd, user_id=None, is_admin=True) -> bool:
     with Session(engine) as session:
         statement = select(User).where(User.username_lower == usn.lower())
-        result = session.exec(statement).all()
+        result = session.scalars(statement).all()
         if result:
             print(f'User "{usn}" already exists')
             return False
@@ -297,7 +298,7 @@ class UserManagement(BasePage):
 
         with Session(engine) as session:
             statement = select(User).where(User.username_lower == usn.lower())
-            result = session.exec(statement).all()
+            result = session.scalars(statement).all()
             if result:
                 gr.Warning(f'Username "{usn}" already exists')
                 return
@@ -320,7 +321,7 @@ class UserManagement(BasePage):
 
         with Session(engine) as session:
             statement = select(User).where(User.id == user_id)
-            user = session.exec(statement).one()
+            user = session.scalars(statement).one()
             if not user.admin:
                 return [], pd.DataFrame.from_records(
                     [{"id": "-", "username": "-", "admin": "-"}]
@@ -329,7 +330,7 @@ class UserManagement(BasePage):
             statement = select(User)
             results = [
                 {"id": user.id, "username": user.username, "admin": user.admin}
-                for user in session.exec(statement).all()
+                for user in session.scalars(statement).all()
             ]
             if results:
                 user_list = pd.DataFrame.from_records(results)
@@ -370,7 +371,7 @@ class UserManagement(BasePage):
 
             with Session(engine) as session:
                 statement = select(User).where(User.id == selected_user_id)
-                user = session.exec(statement).one()
+                user = session.scalars(statement).one()
 
             usn_edit = gr.update(value=user.username)
             pwd_edit = gr.update(value="")
@@ -421,7 +422,7 @@ class UserManagement(BasePage):
                 User.username_lower == usn.lower(),
                 User.id != selected_user_id,
             )
-            existing = session.exec(statement).first()
+            existing = session.scalars(statement).first()
             if existing:
                 gr.Warning(
                     f'Username "{usn}" already exists. Please use a unique name.'
@@ -429,7 +430,7 @@ class UserManagement(BasePage):
                 return pwd, pwd_cnf
 
             statement = select(User).where(User.id == selected_user_id)
-            user = session.exec(statement).one()
+            user = session.scalars(statement).one()
             user.username = usn
             user.username_lower = usn.lower()
             user.admin = admin
@@ -447,7 +448,7 @@ class UserManagement(BasePage):
 
         with Session(engine) as session:
             statement = select(User).where(User.id == selected_user_id)
-            user = session.exec(statement).one()
+            user = session.scalars(statement).one()
             session.delete(user)
             session.commit()
             gr.Info(f'User "{user.username}" deleted successfully')
