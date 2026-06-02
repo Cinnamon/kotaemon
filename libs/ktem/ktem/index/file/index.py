@@ -192,7 +192,7 @@ class FileIndex(BaseIndex):
             )
             return
 
-        from .pipelines import IndexDocumentPipeline
+        from .indexing import IndexDocumentPipeline
 
         self._indexing_pipeline_cls = IndexDocumentPipeline
 
@@ -231,7 +231,7 @@ class FileIndex(BaseIndex):
             ]
             return
 
-        from .pipelines import DocumentRetrievalPipeline
+        from .retriever import DocumentRetrievalPipeline
 
         self._retriever_pipeline_cls = [DocumentRetrievalPipeline]
 

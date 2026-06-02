@@ -1,5 +1,5 @@
-from .indexing.base import BaseIndexing
-from .retriever.base import BaseRetriever
+from kotaemon.indices.indexing import BaseIndexing
+from kotaemon.indices.retriever import BaseRetriever
 
 # Legacy aliases kept for backward compatibility
 BaseFileIndexIndexing = BaseIndexing

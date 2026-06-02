@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Literal, Optional, TypedDict
 
 from decouple import config
 from ktem.embeddings.manager import embedding_models_manager
+from ktem.index.file.types import IndexSettings
 from ktem.llms.manager import llms
 from ktem.rerankings.manager import reranking_models_manager
 
@@ -15,6 +16,25 @@ from kotaemon.indices.retriever.impl.rag import (
 
 logger = logging.getLogger(__name__)
 
+RetrievalMode = Literal["vector", "text", "hybrid"]
+
+
+class RetrievalUserSettings(TypedDict):
+    """User-facing settings consumed by
+    :meth:`DocumentRetrievalPipeline.get_pipeline`.
+
+    All keys must be present; ``get_user_settings`` provides the
+    defaults that are persisted before ``get_pipeline`` is called.
+    """
+
+    reranking_llm: Optional[str]
+    num_retrieval: int
+    retrieval_mode: RetrievalMode
+    prioritize_table: bool
+    mmr: bool
+    use_reranking: bool
+    use_llm_reranking: bool
+
 
 class DocumentRetrievalPipeline(_DocumentRetrievalPipeline):
     """RAG retrieval pipeline wired to ktem managers.
@@ -23,7 +43,7 @@ class DocumentRetrievalPipeline(_DocumentRetrievalPipeline):
     """
 
     @classmethod
-    def get_user_settings(cls) -> dict:
+    def get_user_settings(cls) -> RetrievalUserSettings:
         try:
             reranking_llm = llms.get_default_name()
             reranking_llm_choices = list(llms.options().keys())
@@ -82,8 +102,8 @@ class DocumentRetrievalPipeline(_DocumentRetrievalPipeline):
     @classmethod
     def get_pipeline(
         cls,
-        user_settings: dict,
-        index_settings: dict,
+        user_settings: RetrievalUserSettings,
+        index_settings: IndexSettings,
         selected: Optional[list] = None,
     ) -> "DocumentRetrievalPipeline":
         use_llm_reranking = user_settings.get("use_llm_reranking", False)
