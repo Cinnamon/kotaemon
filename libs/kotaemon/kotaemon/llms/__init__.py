@@ -5,6 +5,7 @@ from .branching import GatedBranchingPipeline, SimpleBranchingPipeline
 from .chats import (
     AzureChatOpenAI,
     ChatLLM,
+    ChatMiniMax,
     ChatOpenAI,
     EndpointChatLLM,
     LCAnthropicChat,
@@ -31,6 +32,7 @@ __all__ = [
     "AIMessage",
     "SystemMessage",
     "AzureChatOpenAI",
+    "ChatMiniMax",
     "ChatOpenAI",
     "StructuredOutputChatOpenAI",
     "LCAnthropicChat",

@@ -10,11 +10,13 @@ from .langchain_based import (
     LCOllamaChat,
 )
 from .llamacpp import LlamaCppChat
+from .minimax import ChatMiniMax
 from .openai import AzureChatOpenAI, ChatOpenAI, StructuredOutputChatOpenAI
 
 __all__ = [
     "ChatOpenAI",
     "AzureChatOpenAI",
+    "ChatMiniMax",
     "ChatLLM",
     "EndpointChatLLM",
     "ChatOpenAI",
