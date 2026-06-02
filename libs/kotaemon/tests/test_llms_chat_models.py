@@ -80,7 +80,7 @@ def test_azureopenai_model(openai_completion):
 def test_minimax_model(openai_completion):
     model = ChatMiniMax(
         api_key="dummy",
-        model="MiniMax-M2.7",
+        model="MiniMax-M3",
     )
     output = model("hello world")
     assert isinstance(output, LLMInterface), "Output is not LLMInterface"
@@ -89,7 +89,7 @@ def test_minimax_model(openai_completion):
     # verify temperature clamping: zero should become 0.01
     model_zero_temp = ChatMiniMax(
         api_key="dummy",
-        model="MiniMax-M2.7",
+        model="MiniMax-M3",
         temperature=0,
     )
     params = model_zero_temp.prepare_params()
@@ -104,20 +104,20 @@ def test_minimax_model(openai_completion):
     "openai.resources.chat.completions.Completions.create",
     side_effect=lambda *args, **kwargs: _openai_chat_completion_response,
 )
-def test_minimax_default_model_is_m27(openai_completion):
-    """Default model should be MiniMax-M2.7."""
+def test_minimax_default_model_is_m3(openai_completion):
+    """Default model should be MiniMax-M3."""
     model = ChatMiniMax(api_key="dummy")
-    assert model.model == "MiniMax-M2.7", "Default model should be MiniMax-M2.7"
+    assert model.model == "MiniMax-M3", "Default model should be MiniMax-M3"
+
+    # M2.7 should still work
+    model_m27 = ChatMiniMax(api_key="dummy", model="MiniMax-M2.7")
+    output = model_m27("hello world")
+    assert isinstance(output, LLMInterface), "Output is not LLMInterface"
+    openai_completion.assert_called()
 
     # M2.7-highspeed should also work
     model_hs = ChatMiniMax(api_key="dummy", model="MiniMax-M2.7-highspeed")
     output = model_hs("hello world")
-    assert isinstance(output, LLMInterface), "Output is not LLMInterface"
-    openai_completion.assert_called()
-
-    # Older M2.5 models should still work
-    model_old = ChatMiniMax(api_key="dummy", model="MiniMax-M2.5")
-    output = model_old("hello world")
     assert isinstance(output, LLMInterface), "Output is not LLMInterface"
     openai_completion.assert_called()
 
