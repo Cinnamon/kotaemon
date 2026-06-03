@@ -1,9 +1,10 @@
+from dataclasses import dataclass
 import html
 from functools import partial
 
 import tiktoken
 
-from kotaemon.base import BaseComponent, Document, RetrievedDocument
+from kotaemon.base import Document, RetrievedDocument
 from kotaemon.indices.splitters import TokenSplitter
 
 EVIDENCE_MODE_TEXT = 0
@@ -11,8 +12,8 @@ EVIDENCE_MODE_TABLE = 1
 EVIDENCE_MODE_CHATBOT = 2
 EVIDENCE_MODE_FIGURE = 3
 
-
-class PrepareEvidencePipeline(BaseComponent):
+@dataclass(kw_only=True)
+class PrepareEvidencePipeline:
     """Prepare the evidence text from the list of retrieved documents
 
     This step usually happens after `DocumentRetrievalPipeline`.
@@ -24,6 +25,9 @@ class PrepareEvidencePipeline(BaseComponent):
 
     max_context_length: int = 32000
     trim_func: TokenSplitter | None = None
+
+    def __call__(self, docs: list[RetrievedDocument]) -> Document:
+        return self.run(docs)
 
     def run(self, docs: list[RetrievedDocument]) -> Document:
         evidence = ""

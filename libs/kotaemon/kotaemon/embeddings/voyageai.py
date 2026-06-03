@@ -1,9 +1,11 @@
-"""Implements embeddings from [Voyage AI](https://voyageai.com).
-"""
+"""Implements embeddings from [Voyage AI](https://voyageai.com)."""
+
+from __future__ import annotations
 
 import importlib
+from dataclasses import dataclass, field
 
-from kotaemon.base import Document, DocumentWithEmbedding, Param
+from kotaemon.base import Document, DocumentWithEmbedding
 
 from .base import BaseEmbeddings
 
@@ -18,36 +20,27 @@ def _import_voyageai():
 
 
 def _format_output(texts: list[str], embeddings: list[list]):
-    """Formats the output of all `.embed` calls.
-    Args:
-        texts: List of original documents
-        embeddings: Embeddings corresponding to each document
-    """
     return [
         DocumentWithEmbedding(content=text, embedding=embedding)
         for text, embedding in zip(texts, embeddings)
     ]
 
 
+@dataclass(kw_only=True)
 class VoyageAIEmbeddings(BaseEmbeddings):
-    """Voyage AI provides best-in-class embedding models and rerankers."""
+    """Voyage AI embedding models."""
 
-    api_key: str = Param(None, help="Voyage API key", required=False)
-    model: str = Param(
-        "voyage-3",
-        help=(
-            "Model name to use. The Voyage "
-            "[documentation](https://docs.voyageai.com/docs/embeddings) "
-            "provides a list of all available embedding models."
-        ),
-        required=True,
+    api_key: str | None = field(
+        default=None, metadata={"description": "Voyage API key"}
+    )
+    model: str = field(
+        default="voyage-3",
+        metadata={"description": "Embedding model name"},
     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __post_init__(self) -> None:
         if not self.api_key:
             raise ValueError("API key must be provided for VoyageAIEmbeddings.")
-
         self._client = _import_voyageai().Client(api_key=self.api_key)
         self._aclient = _import_voyageai().AsyncClient(api_key=self.api_key)
 

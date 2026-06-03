@@ -5,9 +5,8 @@ import pandas as pd
 import yaml
 from ktem.app import BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
-from theflow.utils.modules import deserialize
-
 from kotaemon.base import Document
+from kotaemon.rerankings.factory import RerankingFactory, RerankingVendor
 
 from .manager import reranking_models_manager
 
@@ -54,7 +53,7 @@ class RerankingManagement(BasePage):
                         )
                         self.edit_spec = gr.Textbox(
                             label="Specification",
-                            info="Specification of the Embedding model in YAML format",
+                            info="Specification of the Reranking model in YAML format",
                             lines=10,
                         )
 
@@ -111,7 +110,7 @@ class RerankingManagement(BasePage):
                     )
                     self.spec = gr.Textbox(
                         label="Specification",
-                        info="Specification of the Embedding model in YAML format.",
+                        info="Specification of the Reranking model in YAML format.",
                     )
                     self.default = gr.Checkbox(
                         label="Set default",
@@ -134,20 +133,25 @@ class RerankingManagement(BasePage):
             outputs=[self.rerank_list],
         )
         self._app.app.load(
-            lambda: gr.update(choices=list(reranking_models_manager.vendors().keys())),
+            lambda: gr.update(
+                choices=[
+                    vendor.value
+                    for vendor in RerankingFactory.supported_vendors()
+                ]
+            ),
             outputs=[self.rerank_choices],
         )
 
-    def on_rerank_vendor_change(self, vendor):
-        vendor = reranking_models_manager.vendors()[vendor]
+    def on_rerank_vendor_change(self, vendor: str):
+        vendor_cls = RerankingFactory.get_cls(RerankingVendor(vendor))
 
         required: dict = {}
-        desc = vendor.describe()
+        desc = vendor_cls.describe()
         for key, value in desc["params"].items():
             if value.get("required", False):
                 required[key] = value.get("default", None)
 
-            return yaml.dump(required), format_description(vendor)
+        return yaml.dump(required), format_description(vendor_cls)
 
     def on_register_events(self):
         self.rerank_choices.select(
@@ -248,13 +252,11 @@ class RerankingManagement(BasePage):
         try:
             name = name.strip()
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
-            spec["__type__"] = (
-                reranking_models_manager.vendors()[choices].__module__
-                + "."
-                + reranking_models_manager.vendors()[choices].__qualname__
-            )
+            vendor = RerankingVendor(choices)
 
-            reranking_models_manager.add(name, spec=spec, default=default)
+            reranking_models_manager.add(
+                name, vendor=vendor, spec=spec, default=default
+            )
             gr.Info(f'Reranking model "{name}" created successfully')
         except ValueError as e:
             raise gr.Error(str(e))
@@ -263,13 +265,9 @@ class RerankingManagement(BasePage):
 
     def list_rerankings(self):
         """List the Reranking models"""
-        items = []
-        for item in reranking_models_manager.info().values():
-            record = {}
-            record["name"] = item["name"]
-            record["vendor"] = item["spec"].get("__type__", "-").split(".")[-1]
-            record["default"] = item["default"]
-            items.append(record)
+        items = [
+            item.ui for _, item in reranking_models_manager.info().items()
+        ]
 
         if items:
             rerank_list = pd.DataFrame.from_records(items)
@@ -310,14 +308,13 @@ class RerankingManagement(BasePage):
             btn_delete_yes = gr.update(visible=False)
             btn_delete_no = gr.update(visible=False)
 
-            info = deepcopy(reranking_models_manager.info()[selected_rerank_name])
-            vendor_str = info["spec"].pop("__type__", "-").split(".")[-1]
-            vendor = reranking_models_manager.vendors()[vendor_str]
+            item = reranking_models_manager.info()[selected_rerank_name]
+            vendor = RerankingFactory.get_cls(RerankingVendor(item.vendor))
 
             edit_name = selected_rerank_name
-            edit_spec = yaml.dump(info["spec"])
+            edit_spec = yaml.dump(item.spec)
             edit_spec_desc = format_description(vendor)
-            edit_default = info["default"]
+            edit_default = item.default
 
         return (
             _selected_panel,
@@ -345,17 +342,12 @@ class RerankingManagement(BasePage):
             log_content += f"- Testing model: {selected_rerank_name}<br>"
             yield log_content
 
-            # Parse content & init model
-            info = deepcopy(reranking_models_manager.info()[selected_rerank_name])
-
-            # Parse content & create dummy response
-            spec = yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
-            info["spec"].update(spec)
-
-            rerank = deserialize(info["spec"], safe=False)
-
-            if rerank is None:
-                raise Exception(f"Can not found model: {selected_rerank_name}")
+            item = reranking_models_manager.info()[selected_rerank_name]
+            params = deepcopy(item.spec)
+            params.update(
+                yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
+            )
+            rerank = RerankingFactory.get_cls(item.vendor)(**params)
 
             log_content += "- Sending a message ([`Hello`], `Hi`)<br>"
             yield log_content
@@ -367,7 +359,7 @@ class RerankingManagement(BasePage):
             )
             yield log_content
 
-            gr.Info(f"Embedding {selected_rerank_name} connect successfully")
+            gr.Info(f"Reranking {selected_rerank_name} connect successfully")
         except Exception as e:
             print(e)
             log_content += (
@@ -382,11 +374,13 @@ class RerankingManagement(BasePage):
         try:
             new_name = edit_name.strip()
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
-            spec["__type__"] = reranking_models_manager.info()[selected_rerank_name][
-                "spec"
-            ]["__type__"]
+            item = reranking_models_manager.info()[selected_rerank_name]
             reranking_models_manager.update(
-                selected_rerank_name, spec=spec, default=default, new_name=new_name
+                selected_rerank_name,
+                vendor=item.vendor,
+                spec=spec,
+                default=default,
+                new_name=new_name,
             )
             final_name = (
                 new_name if new_name != selected_rerank_name else selected_rerank_name

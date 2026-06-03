@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 from typing import AsyncGenerator, Iterator
 
-from kotaemon.base import BaseMessage, HumanMessage, LLMInterface, Param
+from kotaemon.base import BaseMessage, HumanMessage, LLMInterface
+from kotaemon.base.spec import spec_value
 
 from .base import ChatLLM
 
@@ -165,27 +166,14 @@ class LCChatMixin:
         return getattr(self._obj, name)
 
     def dump(self, *args, **kwargs):
-        from theflow.utils.modules import serialize
-
-        params = {key: serialize(value) for key, value in self._kwargs.items()}
+        params = {
+            key: spec_value(value)
+            for key, value in self._kwargs.items()
+        }
         return {
             "__type__": f"{self.__module__}.{self.__class__.__qualname__}",
             **params,
         }
-
-    def specs(self, path: str):
-        path = path.strip(".")
-        if "." in path:
-            raise ValueError("path should not contain '.'")
-
-        if path in self._lc_class.__fields__:
-            return {
-                "__type__": "theflow.base.ParamAttr",
-                "refresh_on_set": True,
-                "strict_type": True,
-            }
-
-        raise ValueError(f"Invalid param {path}")
 
 
 class LCChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
@@ -247,17 +235,6 @@ class LCAzureChatOpenAI(LCChatMixin, ChatLLM):  # type: ignore
 
 
 class LCAnthropicChat(LCChatMixin, ChatLLM):  # type: ignore
-    api_key: str = Param(
-        help="API key (https://console.anthropic.com/settings/keys)", required=True
-    )
-    model_name: str = Param(
-        help=(
-            "Model name to use "
-            "(https://docs.anthropic.com/en/docs/about-claude/models)"
-        ),
-        required=True,
-    )
-
     def _get_tool_call_kwargs(self):
         return {"tool_choice": {"type": "any"}}
 
@@ -285,17 +262,6 @@ class LCAnthropicChat(LCChatMixin, ChatLLM):  # type: ignore
 
 
 class LCGeminiChat(LCChatMixin, ChatLLM):  # type: ignore
-    api_key: str = Param(
-        help="API key (https://aistudio.google.com/app/apikey)", required=True
-    )
-    model_name: str = Param(
-        help=(
-            "Model name to use (https://cloud.google"
-            ".com/vertex-ai/generative-ai/docs/learn/models)"
-        ),
-        required=True,
-    )
-
     def _get_tool_call_kwargs(self):
         return {
             "tool_config": {
@@ -329,14 +295,6 @@ class LCGeminiChat(LCChatMixin, ChatLLM):  # type: ignore
 
 
 class LCCohereChat(LCChatMixin, ChatLLM):  # type: ignore
-    api_key: str = Param(
-        help="API key (https://dashboard.cohere.com/api-keys)", required=True
-    )
-    model_name: str = Param(
-        help=("Model name to use (https://dashboard.cohere.com/playground/chat)"),
-        required=True,
-    )
-
     def __init__(
         self,
         api_key: str | None = None,
@@ -361,19 +319,6 @@ class LCCohereChat(LCChatMixin, ChatLLM):  # type: ignore
 
 
 class LCOllamaChat(LCChatMixin, ChatLLM):  # type: ignore
-    base_url: str = Param(
-        help="Base Ollama URL. (default: http://localhost:11434/api/)",  # noqa
-        required=True,
-    )
-    model: str = Param(
-        help="Model name to use (https://ollama.com/library)",
-        required=True,
-    )
-    num_ctx: int = Param(
-        help="The size of the context window (default: 8192)",
-        required=True,
-    )
-
     def __init__(
         self,
         model: str | None = None,

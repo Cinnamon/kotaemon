@@ -1,35 +1,25 @@
 import requests
+from dataclasses import dataclass, field
 
 from kotaemon.base import Document, DocumentWithEmbedding
 
 from .base import BaseEmbeddings
 
 
+@dataclass(kw_only=True)
 class EndpointEmbeddings(BaseEmbeddings):
-    """
-    An Embeddings component that uses an OpenAI API compatible endpoint.
+    """Embeddings via an OpenAI API compatible HTTP endpoint."""
 
-    Attributes:
-        endpoint_url (str): The url of an OpenAI API compatible endpoint.
-    """
+    endpoint_url: str = field(
+        metadata={"description": "OpenAI-compatible embeddings endpoint URL"},
+    )
 
-    endpoint_url: str
-
-    def run(
-        self, text: str | list[str] | Document | list[Document]
+    def invoke(
+        self, text: str | list[str] | Document | list[Document], *args, **kwargs
     ) -> list[DocumentWithEmbedding]:
-        """
-        Generate embeddings from text Args:
-            text (str | list[str] | Document | list[Document]): text to generate
-            embeddings from
-        Returns:
-            list[DocumentWithEmbedding]: embeddings
-        """
         if not isinstance(text, list):
             text = [text]
-
-        outputs = []
-
+        outputs: list[DocumentWithEmbedding] = []
         for item in text:
             response = requests.post(
                 self.endpoint_url, json={"input": str(item)}
@@ -42,5 +32,9 @@ class EndpointEmbeddings(BaseEmbeddings):
                     prompt_tokens=response["usage"]["prompt_tokens"],
                 )
             )
-
         return outputs
+
+    def run(
+        self, text: str | list[str] | Document | list[Document]
+    ) -> list[DocumentWithEmbedding]:
+        return self.invoke(text)

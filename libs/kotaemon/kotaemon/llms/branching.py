@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from kotaemon.base import BaseComponent, Document, Param
+from kotaemon.base import BaseComponent, Document
 
 from .linear import GatedLinearPipeline
 
@@ -49,7 +49,9 @@ class SimpleBranchingPipeline(BaseComponent):
         ```
     """
 
-    branches: List[BaseComponent] = Param(default_callback=lambda *_: [])
+    def __init__(self, branches: List[BaseComponent] | None = None, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.branches: List[BaseComponent] = branches or []
 
     def add_branch(self, component: BaseComponent):
         """
@@ -153,7 +155,6 @@ class GatedBranchingPipeline(SimpleBranchingPipeline):
 
         return Document(None)
 
-
 if __name__ == "__main__":
     import dotenv
 
@@ -185,3 +186,4 @@ if __name__ == "__main__":
             )
         )
     pipeline(condition_text="1")
+

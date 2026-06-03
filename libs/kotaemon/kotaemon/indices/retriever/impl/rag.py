@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import json
 import logging
 import time
@@ -26,7 +27,7 @@ from kotaemon.indices.vectorindex import VectorRetrieval
 
 logger = logging.getLogger(__name__)
 
-
+@dataclass(kw_only=True)
 class DocumentRetrievalPipeline(BaseRetriever):
     """Retrieve relevant document excerpts from a vector/doc store.
 
@@ -42,11 +43,12 @@ class DocumentRetrievalPipeline(BaseRetriever):
 
     embedding: BaseEmbeddings
     rerankers: Sequence[BaseReranking] = ()
-    llm_scorer: LLMReranking | None = LLMReranking.withx()
+    llm_scorer: LLMReranking | None
     get_extra_table: bool = False
     mmr: bool = False
     top_k: int = 5
     retrieval_mode: str = "hybrid"
+    doc_ids: Optional[list[str]] = None
 
     @cached_property
     def vector_retrieval(self) -> VectorRetrieval:
@@ -57,6 +59,9 @@ class DocumentRetrievalPipeline(BaseRetriever):
             retrieval_mode=self.retrieval_mode,  # type: ignore
             rerankers=self.rerankers,
         )
+
+    def __call__(self, text: str, doc_ids: Optional[list[str]] = None, *args, **kwargs) -> list[RetrievedDocument]:
+        return self.run(text, doc_ids, *args, **kwargs)
 
     def run(
         self,
@@ -71,6 +76,8 @@ class DocumentRetrievalPipeline(BaseRetriever):
             text: the query text
             doc_ids: restrict retrieval to these source document ids
         """
+        doc_ids = doc_ids or self.doc_ids
+
         if doc_ids:
             flatten_doc_ids: list[str] = []
             for doc_id in doc_ids:

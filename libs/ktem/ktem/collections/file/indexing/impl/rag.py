@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Literal, TypedDict
 from typing_extensions import NotRequired
 
@@ -33,6 +34,7 @@ class IndexingUserSettings(TypedDict):
     quick_index_mode: NotRequired[bool]
 
 
+@dataclass(kw_only=True)
 class IndexDocumentPipeline(_IndexDocumentPipeline):
     """RAG indexing pipeline wired to ktem managers.
 

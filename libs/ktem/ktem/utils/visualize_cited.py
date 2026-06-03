@@ -6,6 +6,7 @@ Refs:
 1. [RAGxplorer](https://github.com/gabrielchua/RAGxplorer)
 2. [RAGVizExpander](https://github.com/KKenny0/RAGVizExpander)
 """
+from dataclasses import dataclass
 from typing import List, Tuple
 
 import numpy as np
@@ -24,7 +25,8 @@ VISUALIZATION_SETTINGS = {
 }
 
 
-class CreateCitationVizPipeline(BaseComponent):
+@dataclass
+class CreateCitationVizPipeline:
     """Creating PlotData for visualizing query results"""
 
     embedding: BaseEmbeddings

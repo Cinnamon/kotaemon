@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import logging
 from typing import Literal, Optional, TypedDict
 
 from decouple import config
+from fastapi import Path
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import DeclarativeBase
+from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 from ktem.embeddings.manager import embedding_models_manager
 from ktem.collections.file.types import IndexSettings
 from ktem.llms.manager import llms
@@ -35,7 +40,7 @@ class RetrievalUserSettings(TypedDict):
     use_reranking: bool
     use_llm_reranking: bool
 
-
+@dataclass(kw_only=True)
 class DocumentRetrievalPipeline(_DocumentRetrievalPipeline):
     """RAG retrieval pipeline wired to ktem managers.
 
@@ -104,10 +109,24 @@ class DocumentRetrievalPipeline(_DocumentRetrievalPipeline):
         cls,
         user_settings: RetrievalUserSettings,
         index_settings: IndexSettings,
+        Source: type[DeclarativeBase],
+        Index: type[DeclarativeBase],
+        VS: BaseVectorStore,
+        DS: BaseDocumentStore,
+        FSPath: Path,
+        user_id: int,
+        engine: Engine,
         selected: Optional[list] = None,
     ) -> "DocumentRetrievalPipeline":
         use_llm_reranking = user_settings.get("use_llm_reranking", False)
         retriever = cls(
+            Source=Source,
+            Index=Index,
+            VS=VS,
+            DS=DS,
+            FSPath=FSPath,
+            user_id=user_id,
+            engine=engine,
             get_extra_table=user_settings["prioritize_table"],
             top_k=user_settings["num_retrieval"],
             mmr=user_settings["mmr"],
@@ -119,13 +138,14 @@ class DocumentRetrievalPipeline(_DocumentRetrievalPipeline):
             retrieval_mode=user_settings["retrieval_mode"],
             llm_scorer=(LLMTrulensScoring() if use_llm_reranking else None),
             rerankers=[
-                reranking_models_manager[
-                    index_settings.get(
-                        "reranking",
-                        reranking_models_manager.get_default_name(),
-                    )
-                ]
+                # reranking_models_manager[
+                #     index_settings.get(
+                #         "reranking",
+                #         reranking_models_manager.get_default_name(),
+                #     )
+                # ]
             ],
+            doc_ids=selected,
         )
         if not user_settings["use_reranking"]:
             retriever.rerankers = []  # type: ignore
@@ -141,5 +161,5 @@ class DocumentRetrievalPipeline(_DocumentRetrievalPipeline):
                 user_settings["reranking_llm"], llms.get_default()
             )
 
-        retriever.set_run({".doc_ids": selected}, temp=False)
+        # retriever.set_run({".doc_ids": selected}, temp=False)
         return retriever

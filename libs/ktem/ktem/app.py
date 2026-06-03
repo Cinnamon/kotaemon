@@ -101,7 +101,7 @@ class BaseApp:
             reasoning_cls = import_dotted_string(value, safe=False)
             rid = reasoning_cls.get_info()["id"]
             reasonings[rid] = reasoning_cls
-            options = reasoning_cls().get_user_settings()
+            options = reasoning_cls.get_user_settings()
             self.default_settings.reasoning.options[rid] = BaseSettingGroup(
                 settings=options
             )

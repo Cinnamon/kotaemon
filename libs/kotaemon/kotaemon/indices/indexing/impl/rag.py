@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import logging
 import shutil
 import threading
 import time
 from copy import deepcopy
-from functools import lru_cache
+from functools import cached_property, lru_cache
 from hashlib import sha256
 from pathlib import Path
 from typing import Generator, Optional
@@ -13,8 +14,8 @@ from typing import Generator, Optional
 import tiktoken
 from llama_index.core.readers.base import BaseReader
 from llama_index.core.readers.file.base import default_file_metadata_func
-from sqlalchemy import delete, select
-from sqlalchemy.orm import Session
+from sqlalchemy import Engine, delete, select
+from sqlalchemy.orm import DeclarativeBase, Session
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
 
@@ -33,6 +34,7 @@ from kotaemon.indices.ingests.files import (
     web_reader,
 )
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
+from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -68,26 +70,27 @@ def dev_settings() -> tuple:
 _default_token_func = tiktoken.encoding_for_model("gpt-3.5-turbo").encode
 
 
-class IndexPipeline(BaseComponent):
+@dataclass(kw_only=True)
+class IndexPipeline:
     """Index a single file into the vector and document stores."""
 
     loader: BaseReader
     splitter: BaseSplitter | None
     chunk_batch_size: int = 200
 
-    Source = Param(help="The SQLAlchemy Source table")
-    Index = Param(help="The SQLAlchemy Index table")
-    VS = Param(help="The VectorStore")
-    DS = Param(help="The DocStore")
-    FSPath = Param(help="The file storage path")
-    user_id = Param(help="The user id")
-    engine = Param(help="The SQLAlchemy engine")
+    Source: type[DeclarativeBase]
+    Index: type[DeclarativeBase]
+    VS: BaseVectorStore
+    DS: BaseDocumentStore
+    FSPath: Path
+    user_id: int
+    engine: Engine
     collection_name: str = "default"
     private: bool = False
     run_embedding_in_thread: bool = False
     embedding: BaseEmbeddings
 
-    @Node.auto(depends_on=["Source", "Index", "embedding"])
+    @cached_property
     def vector_indexing(self) -> VectorIndexing:
         return VectorIndexing(
             vector_store=self.VS,
@@ -260,9 +263,7 @@ class IndexPipeline(BaseComponent):
                 item.note["tokens"] = sum(
                     len(token_func(doc.text)) for doc in docs
                 )
-            item.note["loader"] = (
-                self.get_from_path("loader").__class__.__name__
-            )
+            item.note["loader"] = self.loader.__class__.__name__
             session.add(item)
             session.commit()
         return file_id
@@ -344,6 +345,7 @@ class IndexPipeline(BaseComponent):
         return file_id, docs
 
 
+@dataclass(kw_only=True)
 class IndexDocumentPipeline(BaseIndexing):
     """Route each file to the appropriate IndexPipeline and run it.
 
@@ -352,11 +354,11 @@ class IndexDocumentPipeline(BaseIndexing):
     delegates to it.
     """
 
-    reader_mode: str = Param("default", help="The reader mode")
+    reader_mode: str
     embedding: BaseEmbeddings
     run_embedding_in_thread: bool = False
 
-    @Param.auto(depends_on="reader_mode")
+    @cached_property
     def readers(self):
         readers = deepcopy(KH_DEFAULT_FILE_EXTRACTORS)
         print("reader_mode", self.reader_mode)
@@ -377,8 +379,8 @@ class IndexDocumentPipeline(BaseIndexing):
                  (".pdf", ".png", ".jpeg", ".jpg", ".tiff", ".tif")}
             )
 
-        dev_readers, _, _ = dev_settings()
-        readers.update(dev_readers)
+        # dev_readers, _, _ = dev_settings()
+        # readers.update(dev_readers)
         return readers
 
     def is_url(self, file_path: str | Path) -> bool:

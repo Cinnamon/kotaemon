@@ -1,7 +1,7 @@
 import re
 import threading
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Generator
 
 import numpy as np
@@ -83,10 +83,11 @@ class InlineEvidence:
     idx: int | None = None
 
 
+@dataclass(kw_only=True)
 class AnswerWithInlineCitation(AnswerWithContextPipeline):
     """Answer the question based on the evidence with inline citation"""
 
-    qa_citation_template: str = DEFAULT_QA_CITATION_PROMPT
+    qa_citation_template: str = field(default=DEFAULT_QA_CITATION_PROMPT)
 
     def get_prompt(self, question, evidence, evidence_mode: int):
         """Prepare the prompt and other information for LLM"""

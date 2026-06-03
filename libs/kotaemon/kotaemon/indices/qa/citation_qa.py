@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 import threading
 from collections import defaultdict
 from typing import Generator
@@ -72,7 +73,8 @@ DEFAULT_QA_FIGURE_PROMPT = (
 )  # noqa
 
 
-class AnswerWithContextPipeline(BaseComponent):
+@dataclass(kw_only=True)
+class AnswerWithContextPipeline:
     """Answer the question based on the evidence
 
     Args:
@@ -87,24 +89,24 @@ class AnswerWithContextPipeline(BaseComponent):
         lang: the language of the answer. Currently support English and Japanese
     """
 
-    llm: ChatLLM = Node()
-    vlm_endpoint: str = ""
-    use_multimodal: bool = True
-    citation_pipeline: CitationPipeline = Node()
-    create_mindmap_pipeline: BaseComponent | None = Node(default=None)
+    llm: ChatLLM
+    citation_pipeline: CitationPipeline
+    vlm_endpoint: str = field(default="")
+    use_multimodal: bool = field(default=True)
+    create_mindmap_pipeline: BaseComponent | None = field(default=None)
 
-    qa_template: str = DEFAULT_QA_TEXT_PROMPT
-    qa_table_template: str = DEFAULT_QA_TABLE_PROMPT
-    qa_chatbot_template: str = DEFAULT_QA_CHATBOT_PROMPT
-    qa_figure_template: str = DEFAULT_QA_FIGURE_PROMPT
+    qa_template: str = field(default=DEFAULT_QA_TEXT_PROMPT)
+    qa_table_template: str = field(default=DEFAULT_QA_TABLE_PROMPT)
+    qa_chatbot_template: str = field(default=DEFAULT_QA_CHATBOT_PROMPT)
+    qa_figure_template: str = field(default=DEFAULT_QA_FIGURE_PROMPT)
 
-    enable_citation: bool = False
-    enable_mindmap: bool = False
-    enable_citation_viz: bool = False
+    enable_citation: bool = field(default=False)
+    enable_mindmap: bool = field(default=False) 
+    enable_citation_viz: bool = field(default=False)
 
-    system_prompt: str = ""
-    lang: str = "English"  # support English and Japanese
-    n_last_interactions: int = 5
+    system_prompt: str = field(default="")
+    lang: str = field(default="English")  # support English and Japanese
+    n_last_interactions: int = field(default=5)
 
     def get_prompt(self, question, evidence, evidence_mode: int):
         """Prepare the prompt and other information for LLM"""

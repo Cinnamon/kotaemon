@@ -183,8 +183,8 @@ if VOYAGE_API_KEY:
         "default": False,
     }
     KH_RERANKINGS["voyageai"] = {
+        "vendor": "VoyageAIReranking",
         "spec": {
-            "__type__": "kotaemon.rerankings.VoyageAIReranking",
             "model_name": "rerank-2",
             "api_key": VOYAGE_API_KEY,
         },
@@ -308,8 +308,8 @@ KH_EMBEDDINGS["mistral"] = {
 
 # default reranking models
 KH_RERANKINGS["cohere"] = {
+    "vendor": "CohereReranking",
     "spec": {
-        "__type__": "kotaemon.rerankings.CohereReranking",
         "model_name": "rerank-v4.0-fast",
         "cohere_api_key": config("COHERE_API_KEY", default=""),
     },
@@ -353,7 +353,7 @@ SETTINGS_REASONING = {
     },
 }
 
-KH_INDEX_TYPES = ["ktem.index.file.FileIndex"]
+KH_INDEX_TYPES = ["ktem.collections.file.FileIndex"]
 
 KH_INDICES = [
     {
@@ -365,6 +365,6 @@ KH_INDICES = [
             ),
             "private": True,
         },
-        "index_type": "ktem.index.file.FileIndex",
+        "index_type": "ktem.collections.file.FileIndex",
     },
 ]

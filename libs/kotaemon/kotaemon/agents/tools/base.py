@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
 
 from langchain.agents import Tool as LCTool
@@ -16,7 +17,8 @@ class ToolException(Exception):
     """
 
 
-class BaseTool(BaseComponent):
+@dataclass
+class BaseTool:
     name: str
     """The unique name of the tool that clearly communicates its purpose."""
     description: str

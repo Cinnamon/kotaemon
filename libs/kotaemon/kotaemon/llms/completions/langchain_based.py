@@ -82,27 +82,16 @@ class LCCompletionMixin:
         return getattr(self._obj, name)
 
     def dump(self, *args, **kwargs):
-        from theflow.utils.modules import serialize
+        from kotaemon.base.spec import spec_value
 
-        params = {key: serialize(value) for key, value in self._kwargs.items()}
+        params = {
+            key: spec_value(value)
+            for key, value in self._kwargs.items()
+        }
         return {
             "__type__": f"{self.__module__}.{self.__class__.__qualname__}",
             **params,
         }
-
-    def specs(self, path: str):
-        path = path.strip(".")
-        if "." in path:
-            raise ValueError("path should not contain '.'")
-
-        if path in self._lc_class.__fields__:
-            return {
-                "__type__": "theflow.base.ParamAttr",
-                "refresh_on_set": True,
-                "strict_type": True,
-            }
-
-        raise ValueError(f"Invalid param {path}")
 
 
 class OpenAI(LCCompletionMixin, LLM):

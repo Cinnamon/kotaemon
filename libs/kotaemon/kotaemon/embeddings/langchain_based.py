@@ -1,6 +1,7 @@
 from typing import Optional
 
-from kotaemon.base import DocumentWithEmbedding, Param
+from kotaemon.base import DocumentWithEmbedding
+from kotaemon.base.spec import spec_value
 
 from .base import BaseEmbeddings
 
@@ -63,27 +64,14 @@ class LCEmbeddingMixin:
         return getattr(self._obj, name)
 
     def dump(self, *args, **kwargs):
-        from theflow.utils.modules import serialize
-
-        params = {key: serialize(value) for key, value in self._kwargs.items()}
+        params = {
+            key: spec_value(value)
+            for key, value in self._kwargs.items()
+        }
         return {
             "__type__": f"{self.__module__}.{self.__class__.__qualname__}",
             **params,
         }
-
-    def specs(self, path: str):
-        path = path.strip(".")
-        if "." in path:
-            raise ValueError("path should not contain '.'")
-
-        if path in self._lc_class.__fields__:
-            return {
-                "__type__": "theflow.base.ParamAttr",
-                "refresh_on_set": True,
-                "strict_type": True,
-            }
-
-        raise ValueError(f"Invalid param {path}")
 
 
 class LCOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
@@ -151,20 +139,6 @@ class LCAzureOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
 class LCCohereEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
     """Wrapper around Langchain's Cohere embedding, focusing on key parameters"""
 
-    cohere_api_key: str = Param(
-        help="API key (https://dashboard.cohere.com/api-keys)",
-        default=None,
-        required=True,
-    )
-    model: str = Param(
-        help="Model name to use (https://docs.cohere.com/docs/models)",
-        default=None,
-        required=True,
-    )
-    user_agent: str = Param(
-        help="User agent (leave default)", default="default", required=True
-    )
-
     def __init__(
         self,
         model: str = "embed-english-v2.0",
@@ -193,15 +167,6 @@ class LCCohereEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
 class LCHuggingFaceEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
     """Wrapper around Langchain's HuggingFace embedding, focusing on key parameters"""
 
-    model_name: str = Param(
-        help=(
-            "Model name to use (https://huggingface.co/models?"
-            "pipeline_tag=sentence-similarity&sort=trending)"
-        ),
-        default=None,
-        required=True,
-    )
-
     def __init__(
         self,
         model_name: str = "sentence-transformers/all-mpnet-base-v2",
@@ -223,17 +188,6 @@ class LCHuggingFaceEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
 
 class LCGoogleEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
     """Wrapper around Langchain's Google GenAI embedding, focusing on key parameters"""
-
-    google_api_key: str = Param(
-        help="API key (https://aistudio.google.com/app/apikey)",
-        default=None,
-        required=True,
-    )
-    model: str = Param(
-        help="Model name to use (https://ai.google.dev/gemini-api/docs/models/gemini#text-embedding-and-embedding)",  # noqa
-        default="models/text-embedding-004",
-        required=True,
-    )
 
     def __init__(
         self,
@@ -258,17 +212,6 @@ class LCGoogleEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
 
 class LCMistralEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
     """Wrapper around LangChain's MistralAI embedding, focusing on key parameters"""
-
-    api_key: str = Param(
-        help="API key (https://console.mistral.ai/api-keys)",
-        default=None,
-        required=True,
-    )
-    model: str = Param(
-        help="Model name to use ('mistral-embed')",
-        default="mistral-embed",
-        required=True,
-    )
 
     def __init__(
         self,

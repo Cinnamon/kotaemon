@@ -1,10 +1,16 @@
 import abc
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
 
-from kotaemon.base import BaseComponent, Param
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import DeclarativeBase
+
+from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 
-class BaseRetriever(BaseComponent):
+@dataclass(kw_only=True)
+class BaseRetriever:
     """Base interface for file index retrieval pipelines.
 
     Subclasses must implement:
@@ -22,13 +28,13 @@ class BaseRetriever(BaseComponent):
         - engine: SQLAlchemy engine
     """
 
-    Source = Param(help="The SQLAlchemy Source table")
-    Index = Param(help="The SQLAlchemy Index table")
-    VS = Param(help="The VectorStore")
-    DS = Param(help="The DocStore")
-    FSPath = Param(help="The file storage path")
-    user_id = Param(help="The user id")
-    engine = Param(help="The SQLAlchemy engine")
+    Source: type[DeclarativeBase]
+    Index: type[DeclarativeBase]
+    VS: BaseVectorStore
+    DS: BaseDocumentStore
+    FSPath: Path
+    user_id: int
+    engine: Engine
 
     @classmethod
     def get_user_settings(cls) -> dict:

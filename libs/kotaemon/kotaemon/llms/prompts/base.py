@@ -1,6 +1,5 @@
+from functools import cached_property
 from typing import Callable
-
-from theflow import Param
 
 from kotaemon.base import BaseComponent, Document
 
@@ -8,32 +7,24 @@ from .template import PromptTemplate
 
 
 class BasePromptComponent(BaseComponent):
-    """
-    Base class for prompt components.
-
-    Args:
-        template (PromptTemplate): The prompt template.
-        **kwargs: Any additional keyword arguments that will be used to populate the
-            given template.
-    """
-
-    class Config:
-        middleware_switches = {"theflow.middleware.CachingMiddleware": False}
-        allow_extra = True
+    """Populate a prompt template with runtime keyword arguments."""
 
     template: str | PromptTemplate
 
-    @Param.auto(depends_on="template")
-    def template__(self):
-        return (
-            self.template
-            if isinstance(self.template, PromptTemplate)
-            else PromptTemplate(self.template)
-        )
-
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        template: str | PromptTemplate,
+        **kwargs,
+    ) -> None:
         super().__init__(**kwargs)
+        self.template = template
         self.__set(**kwargs)
+
+    @cached_property
+    def template__(self) -> PromptTemplate:
+        if isinstance(self.template, PromptTemplate):
+            return self.template
+        return PromptTemplate(self.template)
 
     def __check_redundant_kwargs(self, **kwargs):
         """

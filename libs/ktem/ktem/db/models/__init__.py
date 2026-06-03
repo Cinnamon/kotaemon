@@ -5,6 +5,7 @@ from .conversation import BaseConversation
 from .embedding import BaseEmbedding
 from .issue_report import BaseIssueReport
 from .llm import BaseLLM
+from .reranking import BaseReranking
 from .settings import BaseSettings
 from .tables import (
     Conversation,
@@ -12,6 +13,7 @@ from .tables import (
     Index,
     IssueReport,
     LLMTable,
+    RerankingTable,
     Settings,
     User,
 )
@@ -28,6 +30,7 @@ __all__ = [
     "BaseEmbedding",
     "BaseIssueReport",
     "BaseLLM",
+    "BaseReranking",
     "BaseSettings",
     "BaseUser",
     # concrete table models
@@ -36,6 +39,7 @@ __all__ = [
     "Index",
     "IssueReport",
     "LLMTable",
+    "RerankingTable",
     "Settings",
     "User",
 ]

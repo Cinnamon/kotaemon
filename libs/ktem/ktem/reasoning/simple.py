@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 import logging
 import threading
 from textwrap import dedent
@@ -87,27 +88,28 @@ class AddQueryContextPipeline(BaseComponent):
         return Document(content=resp)
 
 
+@dataclass(kw_only=True)
 class FullQAPipeline(BaseReasoning):
     """Question answering pipeline. Handle from question to answer"""
 
     class Config:
         allow_extra = True
 
-    # configuration parameters
+    # configuration parameters  
     trigger_context: int = 150
     use_rewrite: bool = False
 
     retrievers: list[BaseComponent]
 
-    evidence_pipeline: PrepareEvidencePipeline = PrepareEvidencePipeline.withx()
-    answering_pipeline: AnswerWithContextPipeline
+    answering_pipeline: AnswerWithContextPipeline | None = None
+    evidence_pipeline: PrepareEvidencePipeline = field(default_factory=PrepareEvidencePipeline)
     rewrite_pipeline: RewriteQuestionPipeline | None = None
-    create_citation_viz_pipeline: CreateCitationVizPipeline = Node(
-        default_callback=lambda _: CreateCitationVizPipeline(
+    create_citation_viz_pipeline: CreateCitationVizPipeline = field(
+        default_factory=lambda: CreateCitationVizPipeline(
             embedding=embeddings.get_default()
         )
     )
-    add_query_context: AddQueryContextPipeline = AddQueryContextPipeline.withx()
+    add_query_context: AddQueryContextPipeline = field(default_factory=AddQueryContextPipeline)
 
     def retrieve(
         self, message: str, history: list
@@ -132,8 +134,8 @@ class FullQAPipeline(BaseReasoning):
         plot_docs = []
 
         for idx, retriever in enumerate(self.retrievers):
-            retriever_node = self._prepare_child(retriever, f"retriever_{idx}")
-            retriever_docs = retriever_node(text=query)
+            # retriever_node = self._prepare_child(retriever, f"retriever_{idx}")
+            retriever_docs = retriever(text=query)
 
             retriever_docs_text = []
             retriever_docs_plot = []
@@ -364,27 +366,47 @@ class FullQAPipeline(BaseReasoning):
         # answering pipeline configuration
         use_inline_citation = settings[f"{prefix}.highlight_citation"] == "inline"
 
-        if use_inline_citation:
-            answer_pipeline = pipeline.answering_pipeline = AnswerWithInlineCitation()
-        else:
-            answer_pipeline = pipeline.answering_pipeline = AnswerWithContextPipeline()
+        input_params = {
+            "llm": llm,
+            "citation_pipeline": CitationPipeline(llm=llm),
+            "create_mindmap_pipeline": CreateMindmapPipeline(llm=llm),
+            "n_last_interactions": settings[f"{prefix}.n_last_interactions"],
+            "enable_citation": settings[f"{prefix}.highlight_citation"] != "off",
+            "enable_mindmap": settings[f"{prefix}.create_mindmap"],
+            "enable_citation_viz": settings[f"{prefix}.create_citation_viz"],
+            "use_multimodal": settings[f"{prefix}.use_multimodal"],
+            "vlm_endpoint": getattr(flowsettings, "KH_VLM_ENDPOINT", ""),
+            "system_prompt": settings[f"{prefix}.system_prompt"],
+            "qa_template": settings[f"{prefix}.qa_prompt"],
+            "lang": SUPPORTED_LANGUAGE_MAP.get(settings["reasoning.lang"], "English"),
+        }
 
-        answer_pipeline.llm = llm
-        answer_pipeline.citation_pipeline = CitationPipeline(llm=llm)
-        answer_pipeline.create_mindmap_pipeline = CreateMindmapPipeline(llm=llm)
-        answer_pipeline.n_last_interactions = settings[f"{prefix}.n_last_interactions"]
-        answer_pipeline.enable_citation = (
-            settings[f"{prefix}.highlight_citation"] != "off"
-        )
-        answer_pipeline.enable_mindmap = settings[f"{prefix}.create_mindmap"]
-        answer_pipeline.enable_citation_viz = settings[f"{prefix}.create_citation_viz"]
-        answer_pipeline.use_multimodal = settings[f"{prefix}.use_multimodal"]
-        answer_pipeline.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
-        answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
-        answer_pipeline.qa_template = settings[f"{prefix}.qa_prompt"]
-        answer_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
-            settings["reasoning.lang"], "English"
-        )
+        if use_inline_citation:
+            pipeline.answering_pipeline = AnswerWithInlineCitation(
+                **input_params
+            )
+        else:
+            pipeline.answering_pipeline = AnswerWithContextPipeline(
+                **input_params
+            )
+
+
+        # answer_pipeline.llm = llm
+        # answer_pipeline.citation_pipeline = CitationPipeline(llm=llm)
+        # answer_pipeline.create_mindmap_pipeline = CreateMindmapPipeline(llm=llm)
+        # answer_pipeline.n_last_interactions = settings[f"{prefix}.n_last_interactions"]
+        # answer_pipeline.enable_citation = (
+        #     settings[f"{prefix}.highlight_citation"] != "off"
+        # )
+        # answer_pipeline.enable_mindmap = settings[f"{prefix}.create_mindmap"]
+        # answer_pipeline.enable_citation_viz = settings[f"{prefix}.create_citation_viz"]
+        # answer_pipeline.use_multimodal = settings[f"{prefix}.use_multimodal"]
+        # answer_pipeline.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
+        # answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
+        # answer_pipeline.qa_template = settings[f"{prefix}.qa_prompt"]
+        # answer_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
+        #     settings["reasoning.lang"], "English"
+        # )
 
         pipeline.add_query_context.llm = llm
         pipeline.add_query_context.n_last_interactions = settings[

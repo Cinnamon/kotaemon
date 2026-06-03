@@ -16,6 +16,7 @@ from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 from kotaemon.indices.indexing import BaseIndexing
 from kotaemon.indices.retriever import BaseRetriever
+from ktem.embeddings.manager import embedding_models_manager
 
 
 def generate_uuid():
@@ -447,17 +448,47 @@ class FileIndex(BaseCollection):
             if key.startswith(prefix):
                 stripped_settings[key[len(prefix) :]] = value
 
-        obj = self._indexing_pipeline_cls.get_pipeline(stripped_settings, self.config)
-        obj.Source = self._resources["Source"]
-        obj.Index = self._resources["Index"]
-        obj.VS = self._vs
-        obj.DS = self._docstore
-        obj.FSPath = self._fs_path
-        obj.user_id = user_id
-        obj.engine = engine
-        obj.private = self.config.get("private", False)
-        obj.chunk_size = self.config.get("chunk_size", 0)
-        obj.chunk_overlap = self.config.get("chunk_overlap", 0)
+        """
+        embedding=embedding_models_manager[
+            index_settings.get(
+                "embedding",
+                embedding_models_manager.get_default_name(),
+            )
+        ],
+        run_embedding_in_thread=use_quick_index_mode,
+        reader_mode=user_settings.get("reader_mode", "default"),
+        """
+        params_input = {
+            "embedding": embedding_models_manager[
+                self.config.get("embedding", embedding_models_manager.get_default_name())
+            ],
+            "run_embedding_in_thread": self.config.get("run_embedding_in_thread", False),
+            "reader_mode": self.config.get("reader_mode", "default"),
+            "Source": self._resources["Source"],
+            "Index": self._resources["Index"],
+            "VS": self._vs,
+            "DS": self._docstore,
+            "FSPath": self._fs_path,
+            "user_id": user_id,
+            "engine": engine,
+            "private": self.config.get("private", False),
+            "chunk_size": self.config.get("chunk_size", 0),
+            "chunk_overlap": self.config.get("chunk_overlap", 0),
+        }
+
+        obj = self._indexing_pipeline_cls(**params_input)
+
+        # obj = self._indexing_pipeline_cls.get_pipeline(stripped_settings, self.config)
+        # obj.Source = self._resources["Source"]
+        # obj.Index = self._resources["Index"]
+        # obj.VS = self._vs
+        # obj.DS = self._docstore
+        # obj.FSPath = self._fs_path
+        # obj.user_id = user_id
+        # obj.engine = engine
+        # obj.private = self.config.get("private", False)
+        # obj.chunk_size = self.config.get("chunk_size", 0)
+        # obj.chunk_overlap = self.config.get("chunk_overlap", 0)
 
         return obj
 
@@ -476,16 +507,27 @@ class FileIndex(BaseCollection):
 
         retrievers = []
         for cls in self._retriever_pipeline_cls:
-            obj = cls.get_pipeline(stripped_settings, self.config, selected_ids)
+            obj = cls.get_pipeline(
+                stripped_settings, 
+                self.config, 
+                self._resources["Source"],
+                self._resources["Index"],
+                self._vs,
+                self._docstore,
+                self._fs_path,
+                user_id,
+                engine,
+                selected=selected_ids
+            )
             if obj is None:
                 continue
-            obj.Source = self._resources["Source"]
-            obj.Index = self._resources["Index"]
-            obj.VS = self._vs
-            obj.DS = self._docstore
-            obj.FSPath = self._fs_path
-            obj.user_id = user_id
-            obj.engine = engine
+            # obj.Source = self._resources["Source"]
+            # obj.Index = self._resources["Index"]
+            # obj.VS = self._vs
+            # obj.DS = self._docstore
+            # obj.FSPath = self._fs_path
+            # obj.user_id = user_id
+            # obj.engine = engine
             retrievers.append(obj)
 
         return retrievers

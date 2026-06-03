@@ -1,45 +1,38 @@
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass, field
 
 from decouple import config
 
-from kotaemon.base import Document, Param
+from kotaemon.base import Document
 
 from .base import BaseReranking
 
 
+@dataclass(kw_only=True)
 class CohereReranking(BaseReranking):
     """Cohere Reranking model"""
 
-    model_name: str = Param(
-        "rerank-v4.0-fast",
-        help=(
-            "ID of the model to use. See [Cohere Rerank models]"
-            "(https://docs.cohere.com/docs/models#rerank) for supported IDs "
-            "(e.g. rerank-v4.0-fast, rerank-v4.0-pro, rerank-multilingual-v3.0)."
-        ),
-        required=True,
+    model_name: str = field(
+        default="rerank-v4.0-fast",
+        metadata={"description": "Cohere rerank model ID"},
     )
-    cohere_api_key: str = Param(
-        config("COHERE_API_KEY", ""),
-        help="Cohere API key",
-        required=True,
+    cohere_api_key: str = field(
+        default_factory=lambda: config("COHERE_API_KEY", ""),
+        metadata={"description": "Cohere API key"},
     )
-    base_url: str = Param(
-        None,
-        help="Rerank API base url. Default is https://api.cohere.com",
-        required=False,
+    base_url: str | None = field(
+        default=None,
+        metadata={"description": "Rerank API base url"},
     )
 
     def run(self, documents: list[Document], query: str) -> list[Document]:
-        """Use Cohere Reranker model to re-order documents
-        with their relevance score"""
         try:
             import cohere
         except ImportError:
             raise ImportError(
-                "Please install Cohere " "`pip install cohere` to use Cohere Reranking"
+                "Please install Cohere `pip install cohere` to use Cohere Reranking"
             )
 
         if not self.cohere_api_key or "COHERE_API_KEY" in self.cohere_api_key:
@@ -51,7 +44,7 @@ class CohereReranking(BaseReranking):
         )
         compressed_docs: list[Document] = []
 
-        if not documents:  # to avoid empty api call
+        if not documents:
             return compressed_docs
 
         _docs = [d.content for d in documents]

@@ -1,11 +1,17 @@
 import abc
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Generator
 
-from kotaemon.base import BaseComponent, Document, Param
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import DeclarativeBase
+
+from kotaemon.base import Document
+from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 
-class BaseIndexing(BaseComponent):
+@dataclass(kw_only=True)
+class BaseIndexing:
     """Base interface for file index ingestion pipelines.
 
     Subclasses must implement:
@@ -23,16 +29,16 @@ class BaseIndexing(BaseComponent):
         - engine: SQLAlchemy engine
     """
 
-    Source = Param(help="The SQLAlchemy Source table")
-    Index = Param(help="The SQLAlchemy Index table")
-    VS = Param(help="The VectorStore")
-    DS = Param(help="The DocStore")
-    FSPath = Param(help="The file storage path")
-    user_id = Param(help="The user id")
-    engine = Param(help="The SQLAlchemy engine")
-    private = Param(False, help="Whether this is private index")
-    chunk_size = Param(help="Chunk size for this index")
-    chunk_overlap = Param(help="Chunk overlap for this index")
+    Source: type[DeclarativeBase]
+    Index: type[DeclarativeBase]
+    VS: BaseVectorStore
+    DS: BaseDocumentStore
+    FSPath: Path
+    user_id: int
+    engine: Engine
+    private: bool
+    chunk_size: int
+    chunk_overlap: int
 
     @abc.abstractmethod
     def run(

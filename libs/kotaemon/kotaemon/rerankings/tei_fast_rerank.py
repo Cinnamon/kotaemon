@@ -1,67 +1,57 @@
 from __future__ import annotations
 
-from typing import Optional
+from dataclasses import dataclass, field
 
 import requests
 
-from kotaemon.base import Document, Param
+from kotaemon.base import Document
 
 from .base import BaseReranking
 
 session = requests.session()
 
 
+@dataclass(kw_only=True)
 class TeiFastReranking(BaseReranking):
-    """Text Embeddings Inference (TEI) Reranking model
-    (https://huggingface.co/docs/text-embeddings-inference/en/index)
-    """
+    """TEI (Text Embeddings Inference) reranking model."""
 
-    endpoint_url: str = Param(
-        None, help="TEI Reranking service api base URL", required=True
+    endpoint_url: str = field(
+        metadata={"description": "TEI reranking service api base URL"},
     )
-    model_name: Optional[str] = Param(
-        None,
-        help=(
-            "ID of the model to use. You can go to [Supported Models]"
-            "(https://github.com/huggingface"
-            "/text-embeddings-inference?tab=readme-ov-file"
-            "#supported-models) to see the supported models"
-        ),
+    model_name: str | None = field(
+        default=None,
+        metadata={"description": "Model ID (optional)"},
     )
-    is_truncated: Optional[bool] = Param(True, help="Whether to truncate the inputs")
-    max_tokens: Optional[int] = Param(
-        512,
-        help=(
-            "This option is used to specify the "
-            "maximum number of tokens supported by the reranker model."
-        ),
+    is_truncated: bool = field(
+        default=True,
+        metadata={"description": "Whether to truncate inputs"},
+    )
+    max_tokens: int = field(
+        default=512,
+        metadata={"description": "Max tokens when truncating"},
     )
 
-    def client(self, query, texts):
+    def client(self, query: str, texts: list[str]):
+        truncated_texts = texts
         if self.is_truncated:
-            max_tokens = self.max_tokens  # default is 512 tokens.
-            truncated_texts = [text[:max_tokens] for text in texts]
+            truncated_texts = [text[: self.max_tokens] for text in texts]
 
-        response = session.post(
+        return session.post(
             url=self.endpoint_url,
             json={
                 "query": query,
                 "texts": truncated_texts,
-                "is_truncated": self.is_truncated,  # default is True
+                "is_truncated": self.is_truncated,
             },
         ).json()
-        return response
 
     def run(self, documents: list[Document], query: str) -> list[Document]:
-        """Use the deployed TEI rerankings service to re-order documents
-        with their relevance score"""
         if not self.endpoint_url:
             print("TEI API reranking URL not found. Skipping rerankings.")
             return documents
 
         compressed_docs: list[Document] = []
-
-        if not documents:  # to avoid empty api call
+        if not documents:
             return compressed_docs
 
         if isinstance(documents[0], str):
@@ -82,7 +72,8 @@ class TeiFastReranking(BaseReranking):
                 doc.metadata["reranking_score"] = r["score"]
                 compressed_docs.append(doc)
 
-        compressed_docs = sorted(
-            compressed_docs, key=lambda x: x.metadata["reranking_score"], reverse=True
+        return sorted(
+            compressed_docs,
+            key=lambda x: x.metadata["reranking_score"],
+            reverse=True,
         )
-        return compressed_docs

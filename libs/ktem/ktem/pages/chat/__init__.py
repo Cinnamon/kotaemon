@@ -1339,7 +1339,7 @@ class ChatPage(BasePage):
             *selecteds,
         )
         print("Reasoning state", reasoning_state)
-        pipeline.set_output_queue(queue)
+        # pipeline.set_output_queue(queue)
 
         text, refs, plot, plot_gr = "", "", None, gr.update(visible=False)
         msg_placeholder = getattr(

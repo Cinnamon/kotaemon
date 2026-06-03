@@ -45,9 +45,17 @@ class SimpleLinearPipeline(BaseComponent):
         ```
     """
 
-    prompt: BasePromptComponent
-    llm: Union[ChatLLM, LLM]
-    post_processor: Union[BaseComponent, Callable[[IO_Type], IO_Type]]
+    def __init__(
+        self,
+        prompt: BasePromptComponent,
+        llm: Union[ChatLLM, LLM],
+        post_processor: Union[BaseComponent, Callable[[IO_Type], IO_Type]] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.prompt = prompt
+        self.llm = llm
+        self.post_processor = post_processor
 
     def run(
         self,
@@ -115,7 +123,18 @@ class GatedLinearPipeline(SimpleLinearPipeline):
         ```
     """
 
-    condition: Callable[[IO_Type], Any]
+    def __init__(
+        self,
+        prompt: BasePromptComponent,
+        llm: Union[ChatLLM, LLM],
+        condition: Callable[[IO_Type], Any],
+        post_processor: Union[BaseComponent, Callable[[IO_Type], IO_Type]] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(
+            prompt=prompt, llm=llm, post_processor=post_processor, **kwargs
+        )
+        self.condition = condition
 
     def run(
         self,

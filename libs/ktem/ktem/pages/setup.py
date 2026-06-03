@@ -9,6 +9,7 @@ from ktem.llms.manager import llms
 from ktem.rerankings.manager import reranking_models_manager as rerankers
 from kotaemon.llms.chats.factory import LLMVendor
 from kotaemon.embeddings.factory import EmbeddingVendor
+from kotaemon.rerankings.factory import RerankingVendor
 from theflow.settings import settings as flowsettings
 
 KH_OLLAMA_URL = getattr(flowsettings, "KH_OLLAMA_URL", "http://localhost:11434/v1/")
@@ -226,8 +227,8 @@ class SetupPage(BasePage):
                 )
                 rerankers.update(
                     name="cohere",
+                    vendor=RerankingVendor("CohereReranking"),
                     spec={
-                        "__type__": "kotaemon.rerankings.CohereReranking",
                         "model_name": "rerank-v4.0-fast",
                         "cohere_api_key": cohere_api_key,
                     },

@@ -1,6 +1,8 @@
+from dataclasses import dataclass, field
+from functools import cached_property
 from typing import TYPE_CHECKING, Optional
 
-from kotaemon.base import Document, DocumentWithEmbedding, Param
+from kotaemon.base import Document, DocumentWithEmbedding
 
 from .base import BaseEmbeddings
 
@@ -8,44 +10,29 @@ if TYPE_CHECKING:
     from fastembed import TextEmbedding
 
 
+@dataclass(kw_only=True)
 class FastEmbedEmbeddings(BaseEmbeddings):
-    """Utilize fastembed library for embeddings locally without GPU.
+    """Utilize fastembed library for embeddings locally without GPU."""
 
-    Supported model: https://qdrant.github.io/fastembed/examples/Supported_Models/
-    Code: https://github.com/qdrant/fastembed
-    """
-
-    model_name: str = Param(
-        "BAAI/bge-small-en-v1.5",
-        help=(
-            "Model name for fastembed. Please refer "
-            "[here](https://qdrant.github.io/fastembed/examples/Supported_Models/) "
-            "for the list of supported models."
-        ),
-        required=True,
+    model_name: str = field(
+        default="BAAI/bge-small-en-v1.5",
+        metadata={"description": "fastembed model name"},
     )
-    batch_size: int = Param(
-        256,
-        help="Batch size for embeddings. Higher values use more memory, but are faster",
+    batch_size: int = field(
+        default=256,
+        metadata={"description": "Batch size for embeddings"},
     )
-    parallel: Optional[int] = Param(
-        None,
-        help=(
-            "Number of threads to use for embeddings. "
-            "If > 1, data-parallel encoding will be used. "
-            "If 0, use all available CPUs. "
-            "If None, use default onnxruntime threading. "
-            "Defaults to None."
-        ),
+    parallel: Optional[int] = field(
+        default=None,
+        metadata={"description": "Thread count for encoding"},
     )
 
-    @Param.auto()
+    @cached_property
     def client_(self) -> "TextEmbedding":
         try:
             from fastembed import TextEmbedding
         except ImportError:
             raise ImportError("Please install FastEmbed: `pip install fastembed`")
-
         return TextEmbedding(model_name=self.model_name)
 
     def invoke(
@@ -58,15 +45,11 @@ class FastEmbedEmbeddings(BaseEmbeddings):
             parallel=self.parallel,
         )
         return [
-            DocumentWithEmbedding(
-                content=doc,
-                embedding=list(embedding),
-            )
+            DocumentWithEmbedding(content=doc, embedding=list(embedding))
             for doc, embedding in zip(input_, embeddings)
         ]
 
     async def ainvoke(
         self, text: str | list[str] | Document | list[Document], *args, **kwargs
     ) -> list[DocumentWithEmbedding]:
-        """Fastembed does not support async API."""
         return self.invoke(text, *args, **kwargs)

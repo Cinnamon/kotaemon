@@ -11,6 +11,7 @@ from .conversation import BaseConversation
 from .embedding import BaseEmbedding
 from .issue_report import BaseIssueReport
 from .llm import BaseLLM
+from .reranking import BaseReranking
 from .settings import BaseSettings
 from .user import BaseUser
 
@@ -50,6 +51,12 @@ _base_llm = (
     else BaseLLM
 )
 
+_base_reranking = (
+    import_dotted_string(settings.KH_TABLE_RERANKING, safe=False)
+    if hasattr(settings, "KH_TABLE_RERANKING")
+    else BaseReranking
+)
+
 
 class Conversation(_base_conv):  # type: ignore
     """Conversation record"""
@@ -85,6 +92,12 @@ class LLMTable(_base_llm):  # type: ignore
     """LLM model pool record"""
 
     __tablename__ = "llm_table"  # type: ignore
+
+
+class RerankingTable(_base_reranking):  # type: ignore
+    """Reranking model pool record"""
+
+    __tablename__ = "reranking"  # type: ignore
 
 
 class Index(Base):
