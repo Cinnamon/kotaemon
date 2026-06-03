@@ -113,6 +113,7 @@ class IndexManagement(BasePage):
             self.list_indices,
             inputs=[],
             outputs=[self.index_list],
+            show_progress="hidden",
         )
         self._app.app.load(
             lambda: gr.update(
@@ -121,6 +122,7 @@ class IndexManagement(BasePage):
                 ]
             ),
             outputs=[self.index_type],
+            show_progress="hidden",
         )
 
     def on_register_events(self):
@@ -184,7 +186,7 @@ class IndexManagement(BasePage):
             inputs=[self.selected_index_id],
             outputs=[self.selected_index_id],
             show_progress="hidden",
-        ).then(self.list_indices, inputs=[], outputs=[self.index_list],).success(
+        ).success(self.list_indices, inputs=[], outputs=[self.index_list],).success(
             update_current_module_atime
         )
         self.btn_delete_no.click(
@@ -211,7 +213,7 @@ class IndexManagement(BasePage):
                 self.edit_spec,
             ],
             show_progress="hidden",
-        ).then(
+        ).success(
             self.list_indices,
             inputs=[],
             outputs=[self.index_list],

@@ -57,11 +57,25 @@ if KH_WEB_SEARCH_BACKEND:
 REASONING_LIMITS = 2 if KH_DEMO_MODE else 10
 DEFAULT_SETTING = "(default)"
 INFO_PANEL_SCALES = {True: 8, False: 4}
+PDFVIEW_SETUP_MARKERS = (
+    "pdf-link",
+    "citation",
+    'details class="evidence',
+    "details class='evidence",
+    "markmap",
+)
 DEFAULT_QUESTION = (
     "What is the summary of this document?"
     if not KH_DEMO_MODE
     else "What is the summary of this paper?"
 )
+
+
+def _info_panel_requires_pdfview_setup(info_panel: object) -> bool:
+    if not isinstance(info_panel, str) or not info_panel:
+        return False
+    return any(marker in info_panel for marker in PDFVIEW_SETUP_MARKERS)
+
 
 chat_input_focus_js = """
 function() {
@@ -115,28 +129,42 @@ function() {
     );
     bot_messages.forEach(message => {
         message.classList.remove("text_selection");
+        delete message.dataset.evidenceSearchReady;
     });
 }
 """
 
 pdfview_js = """
 function() {
-    setTimeout(fullTextSearch(), 100);
-
     // Get all links and attach click event
     var links = document.getElementsByClassName("pdf-link");
+    var citation_links = document.querySelectorAll("a.citation");
+    var evidence_nodes = document.querySelectorAll(
+        "#html-info-panel details.evidence"
+    );
+    var mindmap_el_script = document.querySelector('div.markmap script');
+
+    if (
+        links.length === 0 &&
+        citation_links.length === 0 &&
+        evidence_nodes.length === 0 &&
+        !mindmap_el_script
+    ) {
+        return [0]
+    }
+
+    setTimeout(fullTextSearch, 100);
+
     for (var i = 0; i < links.length; i++) {
         links[i].onclick = openModal;
     }
 
     // Get all citation links and attach click event
-    var links = document.querySelectorAll("a.citation");
-    for (var i = 0; i < links.length; i++) {
-        links[i].onclick = scrollToCitation;
+    for (var i = 0; i < citation_links.length; i++) {
+        citation_links[i].onclick = scrollToCitation;
     }
 
     var markmap_div = document.querySelector("div.markmap");
-    var mindmap_el_script = document.querySelector('div.markmap script');
 
     if (mindmap_el_script) {
         markmap_div_html = markmap_div.outerHTML;
@@ -181,7 +209,7 @@ function() {
             if (markmap_div_html) {
                 var link = document.getElementById("mindmap-export");
                 if (link) {
-                    link.addEventListener('click', on_svg_export);
+                    link.onclick = on_svg_export;
                 }
             }
         }
@@ -483,8 +511,10 @@ class ChatPage(BasePage):
                 show_progress="minimal",
             )
             .then(
-                fn=lambda: True,
-                inputs=None,
+                fn=lambda info_panel: True
+                if _info_panel_requires_pdfview_setup(info_panel)
+                else gr.update(value=False),
+                inputs=[self.info_panel],
                 outputs=[self._preview_links],
                 js=pdfview_js,
             )
@@ -751,8 +781,10 @@ class ChatPage(BasePage):
                 js=clear_bot_message_selection_js,
             )
             .then(
-                fn=lambda: True,
-                inputs=None,
+                fn=lambda info_panel: True
+                if _info_panel_requires_pdfview_setup(info_panel)
+                else gr.update(value=False),
+                inputs=[self.info_panel],
                 outputs=[self._preview_links],
                 js=pdfview_js,
             )
@@ -776,8 +808,10 @@ class ChatPage(BasePage):
                 inputs=self.state_plot_panel,
                 outputs=self.plot_panel,
             ).then(
-                fn=lambda: True,
-                inputs=None,
+                fn=lambda info_panel: True
+                if _info_panel_requires_pdfview_setup(info_panel)
+                else gr.update(value=False),
+                inputs=[self.info_panel],
                 outputs=[self._preview_links],
                 js=pdfview_js,
             )

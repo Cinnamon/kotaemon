@@ -132,10 +132,12 @@ class EmbeddingManagement(BasePage):
             self.list_embeddings,
             inputs=[],
             outputs=[self.emb_list],
+            show_progress="hidden",
         )
         self._app.app.load(
             lambda: gr.update(choices=list(embedding_models_manager.vendors().keys())),
             outputs=[self.emb_choices],
+            show_progress="hidden",
         )
 
     def on_emb_vendor_change(self, vendor):
@@ -206,7 +208,7 @@ class EmbeddingManagement(BasePage):
             inputs=[self.selected_emb_name],
             outputs=[self.selected_emb_name],
             show_progress="hidden",
-        ).then(
+        ).success(
             self.list_embeddings,
             inputs=[],
             outputs=[self.emb_list],
@@ -231,7 +233,7 @@ class EmbeddingManagement(BasePage):
             ],
             outputs=[self.selected_emb_name],
             show_progress="hidden",
-        ).then(
+        ).success(
             self.list_embeddings,
             inputs=[],
             outputs=[self.emb_list],

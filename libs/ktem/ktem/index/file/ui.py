@@ -28,6 +28,12 @@ KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
 DOWNLOAD_MESSAGE = "Start download"
 MAX_FILENAME_LENGTH = 20
 MAX_FILE_COUNT = 200
+DEFAULT_INDEX_CONCURRENCY_LIMIT = int(
+    os.getenv("KH_GRADIO_INDEX_CONCURRENCY_LIMIT", "20")
+)
+DEFAULT_QUICK_INDEX_CONCURRENCY_LIMIT = int(
+    os.getenv("KH_GRADIO_QUICK_INDEX_CONCURRENCY_LIMIT", "10")
+)
 
 chat_input_focus_js = """
 function() {
@@ -723,7 +729,7 @@ class FileIndexPage(BasePage):
                                 self._app.user_id,
                             ],
                             outputs=self.quick_upload_state,
-                            concurrency_limit=10,
+                            concurrency_limit=DEFAULT_QUICK_INDEX_CONCURRENCY_LIMIT,
                         )
                         .success(
                             fn=lambda: [
@@ -752,10 +758,16 @@ class FileIndexPage(BasePage):
                             outputs=self._app.chat_page.quick_file_upload_status,
                         )
                         .then(
-                            fn=self.list_file,
-                            inputs=[self._app.user_id, self.filter],
+                            fn=self.list_file_if_index_changed,
+                            inputs=[
+                                self.quick_upload_state,
+                                self._app.user_id,
+                                self.filter,
+                                self.file_list_state,
+                                self.file_list,
+                            ],
                             outputs=[self.file_list_state, self.file_list],
-                            concurrency_limit=20,
+                            concurrency_limit=DEFAULT_INDEX_CONCURRENCY_LIMIT,
                         )
                         .then(
                             fn=lambda: True,
@@ -782,7 +794,7 @@ class FileIndexPage(BasePage):
                             self._app.user_id,
                         ],
                         outputs=self.quick_upload_state,
-                        concurrency_limit=10,
+                        concurrency_limit=DEFAULT_QUICK_INDEX_CONCURRENCY_LIMIT,
                     )
                     .success(
                         fn=lambda: [
@@ -809,10 +821,16 @@ class FileIndexPage(BasePage):
 
                 if not KH_DEMO_MODE:
                     quickURLUploadedEvent = quickURLUploadedEvent.then(
-                        fn=self.list_file,
-                        inputs=[self._app.user_id, self.filter],
+                        fn=self.list_file_if_index_changed,
+                        inputs=[
+                            self.quick_upload_state,
+                            self._app.user_id,
+                            self.filter,
+                            self.file_list_state,
+                            self.file_list,
+                        ],
                         outputs=[self.file_list_state, self.file_list],
-                        concurrency_limit=20,
+                        concurrency_limit=DEFAULT_INDEX_CONCURRENCY_LIMIT,
                     )
 
                 quickURLUploadedEvent = quickURLUploadedEvent.then(
@@ -981,7 +999,7 @@ class FileIndexPage(BasePage):
                     self._app.user_id,
                 ],
                 outputs=[self.upload_result, self.upload_info],
-                concurrency_limit=20,
+                concurrency_limit=DEFAULT_INDEX_CONCURRENCY_LIMIT,
             )
             .then(
                 fn=lambda: gr.update(value=""),
@@ -993,7 +1011,7 @@ class FileIndexPage(BasePage):
             fn=self.list_file,
             inputs=[self._app.user_id, self.filter],
             outputs=[self.file_list_state, self.file_list],
-            concurrency_limit=20,
+            concurrency_limit=DEFAULT_INDEX_CONCURRENCY_LIMIT,
         )
         for event in self._app.get_event(f"onFileIndex{self._index.id}Changed"):
             uploadedEvent = uploadedEvent.then(**event)
@@ -1531,6 +1549,20 @@ class FileIndexPage(BasePage):
             )
 
         return results, file_list
+
+    def list_file_if_index_changed(
+        self,
+        indexed_ids,
+        user_id,
+        name_pattern,
+        current_file_list_state,
+        current_file_list,
+    ):
+        if not isinstance(indexed_ids, (list, tuple, set)) or not any(
+            bool(item) for item in indexed_ids
+        ):
+            return current_file_list_state, current_file_list
+        return self.list_file(user_id, name_pattern)
 
     def list_file_names(self, file_list_state):
         if file_list_state:

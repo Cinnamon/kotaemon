@@ -131,10 +131,12 @@ class LLMManagement(BasePage):
             self.list_llms,
             inputs=[],
             outputs=[self.llm_list],
+            show_progress="hidden",
         )
         self._app.app.load(
             lambda: gr.update(choices=list(llms.vendors().keys())),
             outputs=[self.llm_choices],
+            show_progress="hidden",
         )
 
     def on_llm_vendor_change(self, vendor):
@@ -205,7 +207,7 @@ class LLMManagement(BasePage):
             inputs=[self.selected_llm_name],
             outputs=[self.selected_llm_name],
             show_progress="hidden",
-        ).then(
+        ).success(
             self.list_llms,
             inputs=[],
             outputs=[self.llm_list],
@@ -230,7 +232,7 @@ class LLMManagement(BasePage):
             ],
             outputs=[self.selected_llm_name],
             show_progress="hidden",
-        ).then(
+        ).success(
             self.list_llms,
             inputs=[],
             outputs=[self.llm_list],

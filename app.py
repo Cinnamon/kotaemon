@@ -15,7 +15,12 @@ from ktem.main import App  # noqa
 
 app = App()
 demo = app.make()
-demo.queue().launch(
+queue_kwargs = {}
+default_concurrency_limit = os.getenv("KH_GRADIO_DEFAULT_CONCURRENCY_LIMIT")
+if default_concurrency_limit:
+    queue_kwargs["default_concurrency_limit"] = int(default_concurrency_limit)
+
+demo.queue(**queue_kwargs).launch(
     favicon_path=app._favicon,
     inbrowser=True,
     allowed_paths=[

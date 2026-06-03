@@ -34,6 +34,21 @@ gr_cls_choices = {
 }
 
 
+def build_choice_updates(
+    count: int,
+    default_name: str | None,
+    option_names,
+    random_label: str,
+):
+    if default_name:
+        choices = [(f"{default_name} (default)", "")]
+    else:
+        choices = [(random_label, "")]
+    choices += [(name, name) for name in option_names]
+
+    return [gr.update(choices=list(choices)) for _ in range(count)]
+
+
 def render_setting_item(setting_item, value):
     """Render the setting component into corresponding Gradio UI component"""
     kwargs = {
@@ -453,34 +468,34 @@ class SettingsPage(BasePage):
         def update_llms():
             from ktem.llms.manager import llms
 
-            if llms._default:
-                llm_choices = [(f"{llms._default} (default)", "")]
-            else:
-                llm_choices = [("(random)", "")]
-            llm_choices += [(_, _) for _ in llms.options().keys()]
-            return gr.update(choices=llm_choices)
+            return build_choice_updates(
+                count=len(self._llms),
+                default_name=llms._default,
+                option_names=llms.options().keys(),
+                random_label="(random)",
+            )
 
         def update_embeddings():
             from ktem.embeddings.manager import embedding_models_manager
 
-            if embedding_models_manager._default:
-                emb_choices = [(f"{embedding_models_manager._default} (default)", "")]
-            else:
-                emb_choices = [("(random)", "")]
-            emb_choices += [(_, _) for _ in embedding_models_manager.options().keys()]
-            return gr.update(choices=emb_choices)
+            return build_choice_updates(
+                count=len(self._embeddings),
+                default_name=embedding_models_manager._default,
+                option_names=embedding_models_manager.options().keys(),
+                random_label="(random)",
+            )
 
-        for llm in self._llms:
+        if self._llms:
             self._app.app.load(
                 update_llms,
                 inputs=[],
-                outputs=[llm],
+                outputs=self._llms,
                 show_progress="hidden",
             )
-        for emb in self._embeddings:
+        if self._embeddings:
             self._app.app.load(
                 update_embeddings,
                 inputs=[],
-                outputs=[emb],
+                outputs=self._embeddings,
                 show_progress="hidden",
             )
