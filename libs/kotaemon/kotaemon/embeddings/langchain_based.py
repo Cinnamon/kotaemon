@@ -254,3 +254,40 @@ class LCGoogleEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
             raise ImportError("Please install langchain-google-genai")
 
         return GoogleGenerativeAIEmbeddings
+
+
+class LCMistralEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
+    """Wrapper around LangChain's MistralAI embedding, focusing on key parameters"""
+
+    api_key: str = Param(
+        help="API key (https://console.mistral.ai/api-keys)",
+        default=None,
+        required=True,
+    )
+    model: str = Param(
+        help="Model name to use ('mistral-embed')",
+        default="mistral-embed",
+        required=True,
+    )
+
+    def __init__(
+        self,
+        model: str = "mistral-embed",
+        api_key: Optional[str] = None,
+        **params,
+    ):
+        super().__init__(
+            model=model,
+            api_key=api_key,
+            **params,
+        )
+
+    def _get_lc_class(self):
+        try:
+            from langchain_mistralai import MistralAIEmbeddings
+        except ImportError:
+            raise ImportError(
+                "Please install langchain_mistralai: "
+                "`pip install -U langchain_mistralai`"
+            )
+        return MistralAIEmbeddings

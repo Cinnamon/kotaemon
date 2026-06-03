@@ -19,8 +19,10 @@ from kotaemon.loaders import (
     MhtmlReader,
     MP3Reader,
     OCRReader,
+    PaddleOCRVLReader,
     PandasExcelReader,
     PDFThumbnailReader,
+    PPStructureV3Reader,
     TxtReader,
     UnstructuredReader,
     WebReader,
@@ -38,6 +40,10 @@ docling_reader = DoclingReader()
 adobe_reader.vlm_endpoint = (
     azure_reader.vlm_endpoint
 ) = docling_reader.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
+
+paddle_device = str(config("PADDLE_DEVICE", default="gpu"))
+paddle_struct_reader = PPStructureV3Reader(device=paddle_device)
+paddle_vl_reader = PaddleOCRVLReader(device=paddle_device)
 
 
 KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {

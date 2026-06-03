@@ -29,6 +29,9 @@ from .visualize import create_knowledge_graph, visualize_graph
 
 try:
     from lightrag import LightRAG, QueryParam
+
+    # newer versions of LightRAG needs to be initialized before using
+    from lightrag.kg.shared_storage import initialize_pipeline_status
     from lightrag.operate import (
         _find_most_related_edges_from_entities,
         _find_most_related_text_unit_from_entities,
@@ -235,6 +238,11 @@ def build_graphrag(working_dir, llm_func, embedding_func):
         llm_model_func=llm_func,
         embedding_func=embedding_func,
     )
+
+    # newer versions of LightRAG needs to be initialized before using
+    asyncio.run(graphrag_func.initialize_storages())
+    asyncio.run(initialize_pipeline_status())
+
     return graphrag_func
 
 
@@ -242,27 +250,73 @@ class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
     """GraphRAG specific indexing pipeline"""
 
     prompts: dict[str, str] = {}
+    collection_graph_id: str
+    index_batch_size: int = INDEX_BATCHSIZE
+
+    def store_file_id_with_graph_id(self, file_ids: list[str | None]):
+        if not settings.USE_GLOBAL_GRAPHRAG:
+            return super().store_file_id_with_graph_id(file_ids)
+
+        # Use the collection-wide graph ID for LightRAG
+        graph_id = self.collection_graph_id
+
+        # Record all files under this graph_id
+        with Session(engine) as session:
+            for file_id in file_ids:
+                if not file_id:
+                    continue
+                # Check if mapping already exists
+                existing = (
+                    session.query(self.Index)
+                    .filter(
+                        self.Index.source_id == file_id,
+                        self.Index.target_id == graph_id,
+                        self.Index.relation_type == "graph",
+                    )
+                    .first()
+                )
+                if not existing:
+                    node = self.Index(
+                        source_id=file_id,
+                        target_id=graph_id,
+                        relation_type="graph",
+                    )
+                    session.add(node)
+            session.commit()
+
+        return graph_id
 
     @classmethod
     def get_user_settings(cls) -> dict:
+        settings_dict = dict(GraphRAGIndexingPipeline.get_user_settings())
         try:
             from lightrag.prompt import PROMPTS
 
             blacklist_keywords = ["default", "response", "process"]
-            return {
-                prompt_name: {
-                    "name": f"Prompt for '{prompt_name}'",
-                    "value": content,
-                    "component": "text",
-                }
-                for prompt_name, content in PROMPTS.items()
-                if all(
-                    keyword not in prompt_name.lower() for keyword in blacklist_keywords
-                )
+            settings_dict["batch_size"] = {
+                "name": ("Index batch size " "(reduce if you have rate limit issues)"),
+                "value": INDEX_BATCHSIZE,
+                "component": "number",
             }
+            settings_dict.update(
+                {
+                    prompt_name: {
+                        "name": f"Prompt for '{prompt_name}'",
+                        "value": content,
+                        "component": "text",
+                    }
+                    for prompt_name, content in PROMPTS.items()
+                    if all(
+                        keyword not in prompt_name.lower()
+                        for keyword in blacklist_keywords
+                    )
+                    and isinstance(content, str)
+                }
+            )
+            return settings_dict
         except ImportError as e:
             print(e)
-            return {}
+            return settings_dict
 
     def call_graphrag_index(self, graph_id: str, docs: list[Document]):
         from lightrag.prompt import PROMPTS
@@ -294,46 +348,54 @@ class LightRAGIndexingPipeline(GraphRAGIndexingPipeline):
 
         yield Document(
             channel="debug",
-            text="[GraphRAG] Creating index... This can take a long time.",
+            text="[GraphRAG] Creating/Updating index... This can take a long time.",
         )
 
-        # remove all .json files in the input_path directory (previous cache)
-        json_files = glob.glob(f"{input_path}/*.json")
-        for json_file in json_files:
-            os.remove(json_file)
+        # Check if graph already exists
+        graph_file = input_path / "graph_chunk_entity_relation.graphml"
+        is_incremental = graph_file.exists()
 
-        # indexing
+        # Only clear cache if it's a new graph
+        if not is_incremental:
+            json_files = glob.glob(f"{input_path}/*.json")
+            for json_file in json_files:
+                os.remove(json_file)
+
+        # Initialize or load existing GraphRAG
         graphrag_func = build_graphrag(
             input_path,
             llm_func=llm_func,
             embedding_func=embedding_func,
         )
-        # output must be contain: Loaded graph from
-        # ..input/graph_chunk_entity_relation.graphml with xxx nodes, xxx edges
+
         total_docs = len(all_docs)
         process_doc_count = 0
         yield Document(
             channel="debug",
-            text=f"[GraphRAG] Indexed {process_doc_count} / {total_docs} documents.",
+            text=(
+                f"[GraphRAG] {'Updating' if is_incremental else 'Creating'} index: "
+                f"{process_doc_count} / {total_docs} documents."
+            ),
         )
 
-        for doc_id in range(0, len(all_docs), INDEX_BATCHSIZE):
-            cur_docs = all_docs[doc_id : doc_id + INDEX_BATCHSIZE]
+        for doc_id in range(0, len(all_docs), self.index_batch_size):
+            cur_docs = all_docs[doc_id : doc_id + self.index_batch_size]
             combined_doc = "\n".join(cur_docs)
 
+            # Use insert for incremental updates
             graphrag_func.insert(combined_doc)
             process_doc_count += len(cur_docs)
             yield Document(
                 channel="debug",
                 text=(
-                    f"[GraphRAG] Indexed {process_doc_count} "
-                    f"/ {total_docs} documents."
+                    f"[GraphRAG] {'Updated' if is_incremental else 'Indexed'} "
+                    f"{process_doc_count} / {total_docs} documents."
                 ),
             )
 
         yield Document(
             channel="debug",
-            text="[GraphRAG] Indexing finished.",
+            text=f"[GraphRAG] {'Update' if is_incremental else 'Indexing'} finished.",
         )
 
     def stream(

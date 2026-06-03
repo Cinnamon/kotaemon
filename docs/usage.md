@@ -5,7 +5,7 @@
 - The tool uses Large Language Model (LLMs) to perform various tasks in a QA pipeline.
   So, you need to provide the application with access to the LLMs you want
   to use.
-- You only need to provide at least one. However, tt is recommended that you include all the LLMs
+- You only need to provide at least one. However, it is recommended that you include all the LLMs
   that you have access to, you will be able to switch between them while using the
   application.
 
@@ -48,7 +48,7 @@ OPENAI_EMBEDDINGS_MODEL=text-embedding-ada-002
 ### Azure OpenAI
 
 For OpenAI models via Azure platform, you need to provide your Azure endpoint and API
-key. Your might also need to provide your developments' name for the chat model and the
+key. You might also need to provide your developments' name for the chat model and the
 embedding model depending on how you set up Azure development.
 
 ```shell

@@ -9,6 +9,7 @@ from ktem.pages.setup import SetupPage
 from theflow.settings import settings as flowsettings
 
 KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
+KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
 KH_ENABLE_FIRST_SETUP = getattr(flowsettings, "KH_ENABLE_FIRST_SETUP", False)
 KH_APP_DATA_EXISTS = getattr(flowsettings, "KH_APP_DATA_EXISTS", True)
 
@@ -19,7 +20,7 @@ if config("KH_FIRST_SETUP", default=False, cast=bool):
 
 def toggle_first_setup_visibility():
     global KH_APP_DATA_EXISTS
-    is_first_setup = KH_DEMO_MODE or not KH_APP_DATA_EXISTS
+    is_first_setup = not KH_DEMO_MODE and not KH_APP_DATA_EXISTS
     KH_APP_DATA_EXISTS = True
     return gr.update(visible=is_first_setup), gr.update(visible=not is_first_setup)
 
@@ -70,7 +71,7 @@ class App(BaseApp):
                             "indices-tab",
                         ],
                         id="indices-tab",
-                        visible=not self.f_user_management,
+                        visible=not self.f_user_management and not KH_DEMO_MODE,
                     ) as self._tabs[f"{index.id}-tab"]:
                         page = index.get_index_page_ui()
                         setattr(self, f"_index_{index.id}", page)
@@ -80,7 +81,7 @@ class App(BaseApp):
                     elem_id="indices-tab",
                     elem_classes=["fill-main-area-height", "scrollable", "indices-tab"],
                     id="indices-tab",
-                    visible=not self.f_user_management,
+                    visible=not self.f_user_management and not KH_DEMO_MODE,
                 ) as self._tabs["indices-tab"]:
                     for index in self.index_manager.indices:
                         with gr.Tab(
@@ -90,23 +91,25 @@ class App(BaseApp):
                             page = index.get_index_page_ui()
                             setattr(self, f"_index_{index.id}", page)
 
-            with gr.Tab(
-                "Resources",
-                elem_id="resources-tab",
-                id="resources-tab",
-                visible=not self.f_user_management,
-                elem_classes=["fill-main-area-height", "scrollable"],
-            ) as self._tabs["resources-tab"]:
-                self.resources_page = ResourcesTab(self)
+            if not KH_DEMO_MODE:
+                if not KH_SSO_ENABLED:
+                    with gr.Tab(
+                        "Resources",
+                        elem_id="resources-tab",
+                        id="resources-tab",
+                        visible=not self.f_user_management,
+                        elem_classes=["fill-main-area-height", "scrollable"],
+                    ) as self._tabs["resources-tab"]:
+                        self.resources_page = ResourcesTab(self)
 
-            with gr.Tab(
-                "Settings",
-                elem_id="settings-tab",
-                id="settings-tab",
-                visible=not self.f_user_management,
-                elem_classes=["fill-main-area-height", "scrollable"],
-            ) as self._tabs["settings-tab"]:
-                self.settings_page = SettingsPage(self)
+                with gr.Tab(
+                    "Settings",
+                    elem_id="settings-tab",
+                    id="settings-tab",
+                    visible=not self.f_user_management,
+                    elem_classes=["fill-main-area-height", "scrollable"],
+                ) as self._tabs["settings-tab"]:
+                    self.settings_page = SettingsPage(self)
 
             with gr.Tab(
                 "Help",

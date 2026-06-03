@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from decouple import config
 
 from kotaemon.base import Document, Param
@@ -11,10 +13,11 @@ class CohereReranking(BaseReranking):
     """Cohere Reranking model"""
 
     model_name: str = Param(
-        "rerank-multilingual-v2.0",
+        "rerank-v4.0-fast",
         help=(
-            "ID of the model to use. You can go to [Supported Models]"
-            "(https://docs.cohere.com/docs/rerank-2) to see the supported models"
+            "ID of the model to use. See [Cohere Rerank models]"
+            "(https://docs.cohere.com/docs/models#rerank) for supported IDs "
+            "(e.g. rerank-v4.0-fast, rerank-v4.0-pro, rerank-multilingual-v3.0)."
         ),
         required=True,
     )
@@ -22,6 +25,11 @@ class CohereReranking(BaseReranking):
         config("COHERE_API_KEY", ""),
         help="Cohere API key",
         required=True,
+    )
+    base_url: str = Param(
+        None,
+        help="Rerank API base url. Default is https://api.cohere.com",
+        required=False,
     )
 
     def run(self, documents: list[Document], query: str) -> list[Document]:
@@ -38,7 +46,9 @@ class CohereReranking(BaseReranking):
             print("Cohere API key not found. Skipping rerankings.")
             return documents
 
-        cohere_client = cohere.Client(self.cohere_api_key)
+        cohere_client = cohere.Client(
+            self.cohere_api_key, base_url=self.base_url or os.getenv("CO_API_URL")
+        )
         compressed_docs: list[Document] = []
 
         if not documents:  # to avoid empty api call

@@ -1,14 +1,15 @@
 import logging
 import threading
+from textwrap import dedent
 from typing import Generator
 
+from decouple import config
 from ktem.embeddings.manager import embedding_models_manager as embeddings
 from ktem.llms.manager import llms
 from ktem.reasoning.prompt_optimization import (
     DecomposeQuestionPipeline,
     RewriteQuestionPipeline,
 )
-from ktem.utils.plantuml import PlantUML
 from ktem.utils.render import Render
 from ktem.utils.visualize_cited import CreateCitationVizPipeline
 from plotly.io import to_json
@@ -29,6 +30,7 @@ from kotaemon.indices.qa.citation_qa import (
 )
 from kotaemon.indices.qa.citation_qa_inline import AnswerWithInlineCitation
 from kotaemon.indices.qa.format_context import PrepareEvidencePipeline
+from kotaemon.indices.qa.utils import replace_think_tag_with_details
 from kotaemon.llms import ChatLLM
 
 from ..utils import SUPPORTED_LANGUAGE_MAP
@@ -165,21 +167,23 @@ class FullQAPipeline(BaseReasoning):
         mindmap = answer.metadata["mindmap"]
         if mindmap:
             mindmap_text = mindmap.text
-            uml_renderer = PlantUML()
-
-            try:
-                mindmap_svg = uml_renderer.process(mindmap_text)
-            except Exception as e:
-                print("Failed to process mindmap:", e)
-                mindmap_svg = "<svg></svg>"
-
-            # post-process the mindmap SVG
-            mindmap_svg = (
-                mindmap_svg.replace("sans-serif", "Quicksand, sans-serif")
-                .replace("#181818", "#cecece")
-                .replace("background:#FFFFF", "background:none")
-                .replace("stroke-width:1", "stroke-width:2")
-            )
+            mindmap_svg = dedent(
+                """
+                <div class="markmap">
+                <script type="text/template">
+                ---
+                markmap:
+                    colorFreezeLevel: 2
+                    activeNode:
+                        placement: center
+                    initialExpandLevel: 4
+                    maxWidth: 200
+                ---
+                {}
+                </script>
+                </div>
+                """
+            ).format(mindmap_text)
 
             mindmap_content = Document(
                 channel="info",
@@ -311,6 +315,13 @@ class FullQAPipeline(BaseReasoning):
             **kwargs,
         )
 
+        # check <think> tag from reasoning models
+        processed_answer = replace_think_tag_with_details(answer.text)
+        if processed_answer != answer.text:
+            # clear the chat message and render again
+            yield Document(channel="chat", content=None)
+            yield Document(channel="chat", content=processed_answer)
+
         # show the evidence
         if scoring_thread:
             scoring_thread.join()
@@ -323,7 +334,7 @@ class FullQAPipeline(BaseReasoning):
     def prepare_pipeline_instance(cls, settings, retrievers):
         return cls(
             retrievers=retrievers,
-            rewrite_pipeline=RewriteQuestionPipeline(),
+            rewrite_pipeline=None,
         )
 
     @classmethod
@@ -408,11 +419,15 @@ class FullQAPipeline(BaseReasoning):
             },
             "highlight_citation": {
                 "name": "Citation style",
-                "value": "highlight",
+                "value": (
+                    "highlight"
+                    if not config("USE_LOW_LLM_REQUESTS", default=False, cast=bool)
+                    else "off"
+                ),
                 "component": "radio",
                 "choices": [
-                    ("highlight (verbose)", "highlight"),
-                    ("inline (concise)", "inline"),
+                    ("citation: highlight", "highlight"),
+                    ("citation: inline", "inline"),
                     ("no citation", "off"),
                 ],
             },
@@ -433,7 +448,7 @@ class FullQAPipeline(BaseReasoning):
             },
             "system_prompt": {
                 "name": "System Prompt",
-                "value": "This is a question answering system",
+                "value": ("This is a question answering system."),
             },
             "qa_prompt": {
                 "name": "QA Prompt (contains {context}, {question}, {lang})",

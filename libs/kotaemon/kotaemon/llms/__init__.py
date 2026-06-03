@@ -12,7 +12,9 @@ from .chats import (
     LCChatOpenAI,
     LCCohereChat,
     LCGeminiChat,
+    LCOllamaChat,
     LlamaCppChat,
+    StructuredOutputChatOpenAI,
 )
 from .completions import LLM, AzureOpenAI, LlamaCpp, OpenAI
 from .cot import ManualSequentialChainOfThought, Thought
@@ -30,9 +32,11 @@ __all__ = [
     "SystemMessage",
     "AzureChatOpenAI",
     "ChatOpenAI",
+    "StructuredOutputChatOpenAI",
     "LCAnthropicChat",
     "LCGeminiChat",
     "LCCohereChat",
+    "LCOllamaChat",
     "LCAzureChatOpenAI",
     "LCChatOpenAI",
     "LlamaCppChat",

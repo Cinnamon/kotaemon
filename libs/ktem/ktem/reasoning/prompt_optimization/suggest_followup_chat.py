@@ -15,12 +15,10 @@ class SuggestFollowupQuesPipeline(BaseComponent):
     SUGGEST_QUESTIONS_PROMPT_TEMPLATE = (
         "Based on the chat history above. "
         "your task is to generate 3 to 5 relevant follow-up questions. "
-        "These questions should be simple, clear, "
+        "These questions should be simple, very concise, "
         "and designed to guide the conversation further. "
-        "Ensure that the questions are open-ended to encourage detailed responses. "
         "Respond in JSON format with 'questions' key. "
         "Answer using the language {lang} same as the question. "
-        "If the question uses Chinese, the answer should be in Chinese.\n"
     )
     prompt_template: str = SUGGEST_QUESTIONS_PROMPT_TEMPLATE
     extra_prompt: str = """Example of valid response:

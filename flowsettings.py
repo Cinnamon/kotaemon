@@ -25,7 +25,8 @@ if not KH_APP_VERSION:
     except Exception:
         KH_APP_VERSION = "local"
 
-KH_ENABLE_FIRST_SETUP = True
+KH_GRADIO_SHARE = config("KH_GRADIO_SHARE", default=False, cast=bool)
+KH_ENABLE_FIRST_SETUP = config("KH_ENABLE_FIRST_SETUP", default=True, cast=bool)
 KH_DEMO_MODE = config("KH_DEMO_MODE", default=False, cast=bool)
 KH_OLLAMA_URL = config("KH_OLLAMA_URL", default="http://localhost:11434/v1/")
 
@@ -65,6 +66,8 @@ os.environ["HF_HUB_CACHE"] = str(KH_APP_DATA_DIR / "huggingface")
 KH_DOC_DIR = this_dir / "docs"
 
 KH_MODE = "dev"
+KH_SSO_ENABLED = config("KH_SSO_ENABLED", default=False, cast=bool)
+
 KH_FEATURE_CHAT_SUGGESTION = config(
     "KH_FEATURE_CHAT_SUGGESTION", default=False, cast=bool
 )
@@ -137,31 +140,55 @@ if config("AZURE_OPENAI_API_KEY", default="") and config(
             "default": False,
         }
 
-if config("OPENAI_API_KEY", default=""):
+OPENAI_DEFAULT = "<YOUR_OPENAI_KEY>"
+OPENAI_API_KEY = config("OPENAI_API_KEY", default=OPENAI_DEFAULT)
+GOOGLE_API_KEY = config("GOOGLE_API_KEY", default="your-key")
+IS_OPENAI_DEFAULT = len(OPENAI_API_KEY) > 0 and OPENAI_API_KEY != OPENAI_DEFAULT
+
+if OPENAI_API_KEY:
     KH_LLMS["openai"] = {
         "spec": {
             "__type__": "kotaemon.llms.ChatOpenAI",
             "temperature": 0,
             "base_url": config("OPENAI_API_BASE", default="")
             or "https://api.openai.com/v1",
-            "api_key": config("OPENAI_API_KEY", default=""),
-            "model": config("OPENAI_CHAT_MODEL", default="gpt-3.5-turbo"),
+            "api_key": OPENAI_API_KEY,
+            "model": config("OPENAI_CHAT_MODEL", default="gpt-4o-mini"),
             "timeout": 20,
         },
-        "default": True,
+        "default": IS_OPENAI_DEFAULT,
     }
     KH_EMBEDDINGS["openai"] = {
         "spec": {
             "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
             "base_url": config("OPENAI_API_BASE", default="https://api.openai.com/v1"),
-            "api_key": config("OPENAI_API_KEY", default=""),
+            "api_key": OPENAI_API_KEY,
             "model": config(
-                "OPENAI_EMBEDDINGS_MODEL", default="text-embedding-ada-002"
+                "OPENAI_EMBEDDINGS_MODEL", default="text-embedding-3-large"
             ),
             "timeout": 10,
             "context_length": 8191,
         },
-        "default": True,
+        "default": IS_OPENAI_DEFAULT,
+    }
+
+VOYAGE_API_KEY = config("VOYAGE_API_KEY", default="")
+if VOYAGE_API_KEY:
+    KH_EMBEDDINGS["voyageai"] = {
+        "spec": {
+            "__type__": "kotaemon.embeddings.VoyageAIEmbeddings",
+            "api_key": VOYAGE_API_KEY,
+            "model": config("VOYAGE_EMBEDDINGS_MODEL", default="voyage-3-large"),
+        },
+        "default": False,
+    }
+    KH_RERANKINGS["voyageai"] = {
+        "spec": {
+            "__type__": "kotaemon.rerankings.VoyageAIReranking",
+            "model_name": "rerank-2",
+            "api_key": VOYAGE_API_KEY,
+        },
+        "default": False,
     }
 
 if config("LOCAL_MODEL", default=""):
@@ -169,11 +196,21 @@ if config("LOCAL_MODEL", default=""):
         "spec": {
             "__type__": "kotaemon.llms.ChatOpenAI",
             "base_url": KH_OLLAMA_URL,
-            "model": config("LOCAL_MODEL", default="llama3.1:8b"),
+            "model": config("LOCAL_MODEL", default="qwen2.5:7b"),
             "api_key": "ollama",
         },
         "default": False,
     }
+    KH_LLMS["ollama-long-context"] = {
+        "spec": {
+            "__type__": "kotaemon.llms.LCOllamaChat",
+            "base_url": KH_OLLAMA_URL.replace("v1/", ""),
+            "model": config("LOCAL_MODEL", default="qwen2.5:7b"),
+            "num_ctx": 8192,
+        },
+        "default": False,
+    }
+
     KH_EMBEDDINGS["ollama"] = {
         "spec": {
             "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
@@ -183,7 +220,6 @@ if config("LOCAL_MODEL", default=""):
         },
         "default": False,
     }
-
     KH_EMBEDDINGS["fast_embed"] = {
         "spec": {
             "__type__": "kotaemon.embeddings.FastEmbedEmbeddings",
@@ -205,9 +241,9 @@ KH_LLMS["google"] = {
     "spec": {
         "__type__": "kotaemon.llms.chats.LCGeminiChat",
         "model_name": "gemini-1.5-flash",
-        "api_key": config("GOOGLE_API_KEY", default="your-key"),
+        "api_key": GOOGLE_API_KEY,
     },
-    "default": False,
+    "default": not IS_OPENAI_DEFAULT,
 }
 KH_LLMS["groq"] = {
     "spec": {
@@ -226,6 +262,15 @@ KH_LLMS["cohere"] = {
     },
     "default": False,
 }
+KH_LLMS["mistral"] = {
+    "spec": {
+        "__type__": "kotaemon.llms.ChatOpenAI",
+        "base_url": "https://api.mistral.ai/v1",
+        "model": "ministral-8b-latest",
+        "api_key": config("MISTRAL_API_KEY", default="your-key"),
+    },
+    "default": False,
+}
 
 # additional embeddings configurations
 KH_EMBEDDINGS["cohere"] = {
@@ -241,8 +286,17 @@ KH_EMBEDDINGS["google"] = {
     "spec": {
         "__type__": "kotaemon.embeddings.LCGoogleEmbeddings",
         "model": "models/text-embedding-004",
-        "google_api_key": config("GOOGLE_API_KEY", default="your-key"),
-    }
+        "google_api_key": GOOGLE_API_KEY,
+    },
+    "default": not IS_OPENAI_DEFAULT,
+}
+KH_EMBEDDINGS["mistral"] = {
+    "spec": {
+        "__type__": "kotaemon.embeddings.LCMistralEmbeddings",
+        "model": "mistral-embed",
+        "api_key": config("MISTRAL_API_KEY", default="your-key"),
+    },
+    "default": False,
 }
 # KH_EMBEDDINGS["huggingface"] = {
 #     "spec": {
@@ -256,7 +310,7 @@ KH_EMBEDDINGS["google"] = {
 KH_RERANKINGS["cohere"] = {
     "spec": {
         "__type__": "kotaemon.rerankings.CohereReranking",
-        "model_name": "rerank-multilingual-v2.0",
+        "model_name": "rerank-v4.0-fast",
         "cohere_api_key": config("COHERE_API_KEY", default=""),
     },
     "default": True,
@@ -299,11 +353,15 @@ SETTINGS_REASONING = {
     },
 }
 
+USE_GLOBAL_GRAPHRAG = config("USE_GLOBAL_GRAPHRAG", default=True, cast=bool)
 USE_NANO_GRAPHRAG = config("USE_NANO_GRAPHRAG", default=False, cast=bool)
 USE_LIGHTRAG = config("USE_LIGHTRAG", default=True, cast=bool)
+USE_MS_GRAPHRAG = config("USE_MS_GRAPHRAG", default=True, cast=bool)
 
-GRAPHRAG_INDEX_TYPES = ["ktem.index.file.graph.GraphRAGIndex"]
+GRAPHRAG_INDEX_TYPES = []
 
+if USE_MS_GRAPHRAG:
+    GRAPHRAG_INDEX_TYPES.append("ktem.index.file.graph.GraphRAGIndex")
 if USE_NANO_GRAPHRAG:
     GRAPHRAG_INDEX_TYPES.append("ktem.index.file.graph.NanoGraphRAGIndex")
 if USE_LIGHTRAG:
@@ -323,7 +381,7 @@ GRAPHRAG_INDICES = [
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
                 ".pptx, .csv, .html, .mhtml, .txt, .md, .zip, .mp3"
             ),
-            "private": False,
+            "private": True,
         },
         "index_type": graph_type,
     }
@@ -338,7 +396,7 @@ KH_INDICES = [
                 ".png, .jpeg, .jpg, .tiff, .tif, .pdf, .xls, .xlsx, .doc, .docx, "
                 ".pptx, .csv, .html, .mhtml, .txt, .md, .zip, .mp3"
             ),
-            "private": False,
+            "private": True,
         },
         "index_type": "ktem.index.file.FileIndex",
     },

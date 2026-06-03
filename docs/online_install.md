@@ -1,7 +1,7 @@
 ## Installation (Online HuggingFace Space)
 
 1. Go to [HF kotaemon_template](https://huggingface.co/spaces/cin-model/kotaemon_template).
-2. Use Duplicate function to create your own space.
+2. Use Duplicate function to create your own space. Or use this [direct link](https://huggingface.co/spaces/cin-model/kotaemon_template?duplicate=true).
    ![Duplicate space](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/duplicate_space.png)
    ![Change space params](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/change_space_params.png)
 3. Wait for the build to complete and start up (apprx 10 mins).

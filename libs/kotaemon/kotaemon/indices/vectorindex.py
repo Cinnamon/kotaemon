@@ -168,7 +168,7 @@ class VectorRetrieval(BaseRetrieval):
         if self.retrieval_mode == "vector":
             emb = self.embedding(text)[0].embedding
             _, scores, ids = self.vector_store.query(
-                embedding=emb, top_k=top_k_first_round, **kwargs
+                embedding=emb, top_k=top_k_first_round, doc_ids=scope, **kwargs
             )
             docs = self.doc_store.get(ids)
             result = [
@@ -177,7 +177,11 @@ class VectorRetrieval(BaseRetrieval):
             ]
         elif self.retrieval_mode == "text":
             query = text.text if isinstance(text, Document) else text
-            docs = self.doc_store.query(query, top_k=top_k_first_round, doc_ids=scope)
+            docs = []
+            if scope:
+                docs = self.doc_store.query(
+                    query, top_k=top_k_first_round, doc_ids=scope
+                )
             result = [RetrievedDocument(**doc.to_dict(), score=-1.0) for doc in docs]
         elif self.retrieval_mode == "hybrid":
             # similarity search section
@@ -193,7 +197,7 @@ class VectorRetrieval(BaseRetrieval):
 
                 assert self.doc_store is not None
                 _, vs_scores, vs_ids = self.vector_store.query(
-                    embedding=emb, top_k=top_k_first_round, **kwargs
+                    embedding=emb, top_k=top_k_first_round, doc_ids=scope, **kwargs
                 )
                 if vs_ids:
                     vs_docs = self.doc_store.get(vs_ids)
@@ -206,9 +210,10 @@ class VectorRetrieval(BaseRetrieval):
 
                 assert self.doc_store is not None
                 query = text.text if isinstance(text, Document) else text
-                ds_docs = self.doc_store.query(
-                    query, top_k=top_k_first_round, doc_ids=scope
-                )
+                if scope:
+                    ds_docs = self.doc_store.query(
+                        query, top_k=top_k_first_round, doc_ids=scope
+                    )
 
             vs_query_thread = threading.Thread(target=query_vectorstore)
             ds_query_thread = threading.Thread(target=query_docstore)

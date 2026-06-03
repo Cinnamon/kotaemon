@@ -3,6 +3,7 @@ from collections import defaultdict
 from typing import Generator
 
 import numpy as np
+from decouple import config
 from theflow.settings import settings as flowsettings
 
 from kotaemon.base import (
@@ -32,7 +33,9 @@ except ImportError:
 
 MAX_IMAGES = 10
 CITATION_TIMEOUT = 5.0
-CONTEXT_RELEVANT_WARNING_SCORE = 0.7
+CONTEXT_RELEVANT_WARNING_SCORE = config(
+    "CONTEXT_RELEVANT_WARNING_SCORE", 0.3, cast=float
+)
 
 DEFAULT_QA_TEXT_PROMPT = (
     "Use the following pieces of context to answer the question at the end in detail with clear explanation. "  # noqa: E501
@@ -385,7 +388,9 @@ class AnswerWithContextPipeline(BaseComponent):
             doc = id2docs[id_]
             doc_score = doc.metadata.get("llm_trulens_score", 0.0)
             is_open = not has_llm_score or (
-                doc_score > CONTEXT_RELEVANT_WARNING_SCORE and len(with_citation) == 0
+                doc_score
+                > CONTEXT_RELEVANT_WARNING_SCORE
+                # and len(with_citation) == 0
             )
             without_citation.append(
                 Document(
