@@ -11,7 +11,7 @@ from ktem.exceptions import HookAlreadyDeclared, HookNotDeclared
 from ktem.collections import CollectionManager
 from ktem.settings import BaseSettingGroup, SettingGroup, SettingReasoningGroup
 from theflow.settings import settings
-from theflow.utils.modules import import_dotted_string
+from ktem.reasoning.registry import get_reasoning_cls
 
 BASE_PATH = os.environ.get("GR_FILE_ROOT_PATH", "")
 
@@ -98,7 +98,7 @@ class BaseApp:
             return
 
         for value in settings.KH_REASONINGS:
-            reasoning_cls = import_dotted_string(value, safe=False)
+            reasoning_cls = get_reasoning_cls(value)
             rid = reasoning_cls.get_info()["id"]
             reasonings[rid] = reasoning_cls
             options = reasoning_cls.get_user_settings()

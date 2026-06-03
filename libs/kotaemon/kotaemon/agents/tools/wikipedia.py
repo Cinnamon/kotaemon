@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from typing import Any, AnyStr, Optional, Type, Union
 
 from pydantic import BaseModel, Field
@@ -45,6 +47,7 @@ class WikipediaArgs(BaseModel):
     query: str = Field(..., description="a search query as input to wkipedia")
 
 
+@dataclass(kw_only=True)
 class WikipediaTool(BaseTool):
     """Tool that adds the capability to query the Wikipedia API."""
 

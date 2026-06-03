@@ -1,30 +1,19 @@
 import requests
 from decouple import config
 
-from kotaemon.base import BaseComponent, RetrievedDocument
+from kotaemon.base import RetrievedDocument
 
 JINA_API_KEY = config("JINA_API_KEY", default="")
-JINA_URL = config("JINA_URL", default="https://r.jina.ai/")
 
 
-class WebSearch(BaseComponent):
-    """WebSearch component for fetching data from the web
-    using Jina API
-    """
-
-    def run(
-        self,
-        text: str,
-        *args,
-        **kwargs,
-    ) -> list[RetrievedDocument]:
+class WebSearch:
+    def run(self, text: str, *args, **kwargs) -> list[RetrievedDocument]:
         if JINA_API_KEY == "":
             raise ValueError(
                 "This feature requires JINA_API_KEY "
                 "(get free one from https://jina.ai/reader)"
             )
 
-        # setup the request
         api_url = f"https://s.jina.ai/{text}"
         headers = {"X-With-Generated-Alt": "true", "Accept": "application/json"}
         if JINA_API_KEY:
@@ -38,9 +27,7 @@ class WebSearch(BaseComponent):
             RetrievedDocument(
                 text=(
                     "###URL: [{url}]({url})\n\n"
-                    "####{title}\n\n"
-                    "{description}\n"
-                    "{content}"
+                    "####{title}\n\n{description}\n{content}"
                 ).format(
                     url=item["url"],
                     title=item["title"],

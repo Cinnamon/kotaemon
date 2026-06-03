@@ -4,7 +4,7 @@ from ktem.db.models import engine
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from theflow.settings import settings
-from theflow.utils.modules import import_dotted_string
+from ktem.collections.registry import get_index_cls
 
 from .base import BaseCollection
 from ktem.db.models import Index
@@ -56,7 +56,7 @@ class CollectionManager:
 
             try:
                 # build the index
-                index_cls = import_dotted_string(index_type, safe=False)
+                index_cls = get_index_cls(index_type)
                 index = index_cls(app=self._app, id=entry.id, name=name, config=config)
                 index.on_create()
 
@@ -102,7 +102,7 @@ class CollectionManager:
             config (dict): the config of the index
             index_type (str): the type of the index
         """
-        index_cls = import_dotted_string(index_type, safe=False)
+        index_cls = get_index_cls(index_type)
         index = index_cls(app=self._app, id=id, name=name, config=config)
         index.on_start()
 
@@ -153,7 +153,7 @@ class CollectionManager:
 
         # developer-defined custom index types
         for index_str in settings.KH_INDEX_TYPES:
-            cls: Type[BaseCollection] = import_dotted_string(index_str, safe=False)
+            cls = get_index_cls(index_str)
             self._index_types[f"{cls.__module__}.{cls.__qualname__}"] = cls
 
     def exists(self, id: Optional[int] = None, name: Optional[str] = None) -> bool:

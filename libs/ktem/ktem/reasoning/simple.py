@@ -20,13 +20,12 @@ from theflow.settings import settings as flowsettings
 
 from kotaemon.base import (
     AIMessage,
-    BaseComponent,
     Document,
     HumanMessage,
-    Node,
     RetrievedDocument,
     SystemMessage,
 )
+from kotaemon.indices.retriever.base import BaseRetriever
 from kotaemon.indices.qa.citation import CitationPipeline
 from kotaemon.indices.qa.citation_qa import (
     CONTEXT_RELEVANT_WARNING_SCORE,
@@ -44,10 +43,10 @@ from .base import BaseReasoning
 logger = logging.getLogger(__name__)
 
 
-class AddQueryContextPipeline(BaseComponent):
-
+@dataclass(kw_only=True)
+class AddQueryContextPipeline:
+    llm: ChatLLM = field(default_factory=lambda: llms.get_default())
     n_last_interactions: int = 5
-    llm: ChatLLM = Node(default_callback=lambda _: llms.get_default())
 
     def run(self, question: str, history: list) -> Document:
         messages = [
@@ -99,7 +98,7 @@ class FullQAPipeline(BaseReasoning):
     trigger_context: int = 150
     use_rewrite: bool = False
 
-    retrievers: list[BaseComponent]
+    retrievers: list[BaseRetriever]
 
     answering_pipeline: AnswerWithContextPipeline | None = None
     evidence_pipeline: PrepareEvidencePipeline = field(default_factory=PrepareEvidencePipeline)

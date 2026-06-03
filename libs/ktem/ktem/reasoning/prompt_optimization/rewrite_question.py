@@ -1,6 +1,8 @@
+from dataclasses import dataclass, field
+
 from ktem.llms.manager import llms
 
-from kotaemon.base import BaseComponent, Document, HumanMessage, Node, SystemMessage
+from kotaemon.base import Document, HumanMessage, SystemMessage
 from kotaemon.llms import ChatLLM, PromptTemplate
 
 DEFAULT_REWRITE_PROMPT = (
@@ -14,18 +16,12 @@ DEFAULT_REWRITE_PROMPT = (
 )
 
 
-class RewriteQuestionPipeline(BaseComponent):
-    """Rewrite user question
+@dataclass(kw_only=True)
+class RewriteQuestionPipeline:
+    """Rewrite user question."""
 
-    Args:
-        llm: the language model to rewrite question
-        rewrite_template: the prompt template for llm to paraphrase a text input
-        lang: the language of the answer. Currently support English and Japanese
-    """
-
-    llm: ChatLLM = Node(default_callback=lambda _: llms.get_default())
+    llm: ChatLLM = field(default_factory=lambda: llms.get_default())
     rewrite_template: str = DEFAULT_REWRITE_PROMPT
-
     lang: str = "English"
 
     def run(self, question: str) -> Document:  # type: ignore

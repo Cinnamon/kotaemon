@@ -21,7 +21,6 @@ from plotly.io import from_json
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
-from theflow.utils.modules import import_dotted_string
 
 from kotaemon.base import Document
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
@@ -50,10 +49,23 @@ KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
 KH_WEB_SEARCH_BACKEND = getattr(flowsettings, "KH_WEB_SEARCH_BACKEND", None)
 WebSearch = None
 if KH_WEB_SEARCH_BACKEND:
-    try:
-        WebSearch = import_dotted_string(KH_WEB_SEARCH_BACKEND, safe=False)
-    except (ImportError, AttributeError) as e:
-        print(f"Error importing {KH_WEB_SEARCH_BACKEND}: {e}")
+    _WEB_SEARCH_CLS = {
+        "kotaemon.indices.retrievers.tavily_web_search.WebSearch": (
+            "kotaemon.indices.retrievers.tavily_web_search",
+            "WebSearch",
+        ),
+        "kotaemon.indices.retrievers.jina_web_search.WebSearch": (
+            "kotaemon.indices.retrievers.jina_web_search",
+            "WebSearch",
+        ),
+    }
+    target = _WEB_SEARCH_CLS.get(KH_WEB_SEARCH_BACKEND)
+    if target:
+        import importlib
+        mod = importlib.import_module(target[0])
+        WebSearch = getattr(mod, target[1])
+    else:
+        print(f"Unknown web search backend: {KH_WEB_SEARCH_BACKEND}")
 
 REASONING_LIMITS = 2 if KH_DEMO_MODE else 10
 DEFAULT_SETTING = "(default)"

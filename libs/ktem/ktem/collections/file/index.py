@@ -9,7 +9,7 @@ from sqlalchemy import JSON, Column, DateTime, Integer, String, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.mutable import MutableDict
 from theflow.settings import settings as flowsettings
-from theflow.utils.modules import import_dotted_string
+from ktem.collections.registry import get_pipeline_cls
 from tzlocal import get_localzone
 
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
@@ -177,20 +177,20 @@ class FileIndex(BaseCollection):
             - The default .pipelines.IndexDocumentPipeline
         """
         if "FILE_INDEX_PIPELINE" in self.config:
-            self._indexing_pipeline_cls = import_dotted_string(
-                self.config["FILE_INDEX_PIPELINE"], safe=False
+            self._indexing_pipeline_cls = get_pipeline_cls(
+                self.config["FILE_INDEX_PIPELINE"]
             )
             return
 
         if hasattr(flowsettings, f"FILE_INDEX_{self.id}_PIPELINE"):
-            self._indexing_pipeline_cls = import_dotted_string(
-                getattr(flowsettings, f"FILE_INDEX_{self.id}_PIPELINE"), safe=False
+            self._indexing_pipeline_cls = get_pipeline_cls(
+                getattr(flowsettings, f"FILE_INDEX_{self.id}_PIPELINE")
             )
             return
 
         if hasattr(flowsettings, "FILE_INDEX_PIPELINE"):
-            self._indexing_pipeline_cls = import_dotted_string(
-                getattr(flowsettings, "FILE_INDEX_PIPELINE"), safe=False
+            self._indexing_pipeline_cls = get_pipeline_cls(
+                getattr(flowsettings, "FILE_INDEX_PIPELINE")
             )
             return
 
@@ -212,14 +212,14 @@ class FileIndex(BaseCollection):
         """
         if "FILE_INDEX_RETRIEVER_PIPELINES" in self.config:
             self._retriever_pipeline_cls = [
-                import_dotted_string(each, safe=False)
+                get_pipeline_cls(each)
                 for each in self.config["FILE_INDEX_RETRIEVER_PIPELINES"]
             ]
             return
 
         if hasattr(flowsettings, f"FILE_INDEX_{self.id}_RETRIEVER_PIPELINES"):
             self._retriever_pipeline_cls = [
-                import_dotted_string(each, safe=False)
+                get_pipeline_cls(each)
                 for each in getattr(
                     flowsettings, f"FILE_INDEX_{self.id}_RETRIEVER_PIPELINES"
                 )
@@ -228,7 +228,7 @@ class FileIndex(BaseCollection):
 
         if hasattr(flowsettings, "FILE_INDEX_RETRIEVER_PIPELINES"):
             self._retriever_pipeline_cls = [
-                import_dotted_string(each, safe=False)
+                get_pipeline_cls(each)
                 for each in getattr(flowsettings, "FILE_INDEX_RETRIEVER_PIPELINES")
             ]
             return
@@ -250,21 +250,21 @@ class FileIndex(BaseCollection):
             - The default .ui.FileSelector
         """
         if "FILE_INDEX_SELECTOR_UI" in self.config:
-            self._selector_ui_cls = import_dotted_string(
-                self.config["FILE_INDEX_SELECTOR_UI"], safe=False
+            self._selector_ui_cls = get_pipeline_cls(
+                self.config["FILE_INDEX_SELECTOR_UI"]
             )
             return
 
         if hasattr(flowsettings, f"FILE_INDEX_{self.id}_SELECTOR_UI"):
-            self._selector_ui_cls = import_dotted_string(
+            self._selector_ui_cls = get_pipeline_cls(
                 getattr(flowsettings, f"FILE_INDEX_{self.id}_SELECTOR_UI"),
                 safe=False,
             )
             return
 
         if hasattr(flowsettings, "FILE_INDEX_SELECTOR_UI"):
-            self._selector_ui_cls = import_dotted_string(
-                getattr(flowsettings, "FILE_INDEX_SELECTOR_UI"), safe=False
+            self._selector_ui_cls = get_pipeline_cls(
+                getattr(flowsettings, "FILE_INDEX_SELECTOR_UI")
             )
             return
 
@@ -285,21 +285,21 @@ class FileIndex(BaseCollection):
             - The default .ui.FileIndexPage
         """
         if "FILE_INDEX_UI" in self.config:
-            self._index_ui_cls = import_dotted_string(
-                self.config["FILE_INDEX_UI"], safe=False
+            self._index_ui_cls = get_pipeline_cls(
+                self.config["FILE_INDEX_UI"]
             )
             return
 
         if hasattr(flowsettings, f"FILE_INDEX_{self.id}_UI"):
-            self._index_ui_cls = import_dotted_string(
+            self._index_ui_cls = get_pipeline_cls(
                 getattr(flowsettings, f"FILE_INDEX_{self.id}_UI"),
                 safe=False,
             )
             return
 
         if hasattr(flowsettings, "FILE_INDEX_UI"):
-            self._index_ui_cls = import_dotted_string(
-                getattr(flowsettings, "FILE_INDEX_UI"), safe=False
+            self._index_ui_cls = get_pipeline_cls(
+                getattr(flowsettings, "FILE_INDEX_UI")
             )
             return
 

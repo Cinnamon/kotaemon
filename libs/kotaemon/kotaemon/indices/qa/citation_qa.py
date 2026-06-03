@@ -6,14 +6,7 @@ from typing import Generator
 import numpy as np
 from decouple import config
 
-from kotaemon.base import (
-    AIMessage,
-    BaseComponent,
-    Document,
-    HumanMessage,
-    Node,
-    SystemMessage,
-)
+from kotaemon.base import AIMessage, Document, HumanMessage, SystemMessage
 from kotaemon.llms import ChatLLM, PromptTemplate
 
 from .citation import CitationPipeline
@@ -93,7 +86,7 @@ class AnswerWithContextPipeline:
     citation_pipeline: CitationPipeline
     vlm_endpoint: str = field(default="")
     use_multimodal: bool = field(default=True)
-    create_mindmap_pipeline: BaseComponent | None = field(default=None)
+    create_mindmap_pipeline: object | None = field(default=None)
 
     qa_template: str = field(default=DEFAULT_QA_TEXT_PROMPT)
     qa_table_template: str = field(default=DEFAULT_QA_TABLE_PROMPT)

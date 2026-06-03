@@ -1,27 +1,17 @@
 from decouple import config
 
-from kotaemon.base import BaseComponent, RetrievedDocument
+from kotaemon.base import RetrievedDocument
 
 TAVILY_API_KEY = config("TAVILY_API_KEY", default="")
 
 
-class WebSearch(BaseComponent):
-    """WebSearch component for fetching data from the web
-    using Jina API
-    """
-
-    def run(
-        self,
-        text: str,
-        *args,
-        **kwargs,
-    ) -> list[RetrievedDocument]:
+class WebSearch:
+    def run(self, text: str, *args, **kwargs) -> list[RetrievedDocument]:
         if TAVILY_API_KEY == "":
             raise ValueError(
                 "This feature requires TAVILY_API_KEY "
                 "(get free one from https://app.tavily.com/)"
             )
-
         try:
             from tavily import TavilyClient
         except ImportError:
@@ -30,18 +20,13 @@ class WebSearch(BaseComponent):
             )
 
         tavily_client = TavilyClient(api_key=TAVILY_API_KEY)
-        results = tavily_client.search(
-            query=text,
-            search_depth="advanced",
-        )["results"]
+        results = tavily_client.search(query=text, search_depth="advanced")["results"]
         context = "\n\n".join(
             "###URL: [{url}]({url})\n\n{content}".format(
-                url=result["url"],
-                content=result["content"],
+                url=result["url"], content=result["content"]
             )
             for result in results
         )
-
         return [
             RetrievedDocument(
                 text=context,

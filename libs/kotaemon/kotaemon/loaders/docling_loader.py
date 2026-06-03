@@ -4,44 +4,31 @@ from io import BytesIO
 from pathlib import Path
 from typing import List, Optional
 
-from kotaemon.base import Document, Param
+from dataclasses import dataclass, field
+from functools import cached_property
+
+from kotaemon.base import Document
 
 from .azureai_document_intelligence_loader import crop_image
 from .base import BaseReader
 from .utils.adobe import generate_single_figure_caption, make_markdown_table
 
 
+@dataclass(kw_only=True)
 class DoclingReader(BaseReader):
     """Using Docling to extract document structure and content"""
 
     _dependencies = ["docling"]
 
-    vlm_endpoint: str = Param(
-        help=(
-            "Default VLM endpoint for figure captioning. "
-            "If not provided, will not caption the figures"
-        )
+    vlm_endpoint: str | None = None
+    max_figure_to_caption: int = 100
+    figure_friendly_filetypes: list[str] = field(
+        default_factory=lambda: [
+            ".pdf", ".jpeg", ".jpg", ".png", ".bmp", ".tiff", ".heif", ".tif",
+        ]
     )
 
-    max_figure_to_caption: int = Param(
-        100,
-        help=(
-            "The maximum number of figures to caption. "
-            "The rest will be indexed without captions."
-        ),
-    )
-
-    figure_friendly_filetypes: list[str] = Param(
-        [".pdf", ".jpeg", ".jpg", ".png", ".bmp", ".tiff", ".heif", ".tif"],
-        help=(
-            "File types that we can reliably open and extract figures. "
-            "For files like .docx or .html, the visual layout may be different "
-            "when viewed from different tools, hence we cannot use Azure DI location "
-            "to extract figures."
-        ),
-    )
-
-    @Param.auto(cache=True)
+    @cached_property
     def converter_(self):
         try:
             from docling.document_converter import DocumentConverter

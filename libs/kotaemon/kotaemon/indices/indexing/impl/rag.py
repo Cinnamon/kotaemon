@@ -17,9 +17,7 @@ from llama_index.core.readers.file.base import default_file_metadata_func
 from sqlalchemy import Engine, delete, select
 from sqlalchemy.orm import DeclarativeBase, Session
 from theflow.settings import settings
-from theflow.utils.modules import import_dotted_string
-
-from kotaemon.base import BaseComponent, Document, Node, Param
+from kotaemon.base import Document
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.indices.indexing.base import BaseIndexing
 from kotaemon.indices.vectorindex import VectorIndexing
@@ -50,13 +48,42 @@ if _mhtml_reader is not None and hasattr(_mhtml_reader, "cache_dir"):
     _mhtml_reader.cache_dir = _markdown_output_dir
 
 
+def _load_reader(dotted: str) -> type:
+    from kotaemon.loaders import (
+        AdobeReader,
+        AzureAIDocumentIntelligenceLoader,
+        DoclingReader,
+        HtmlReader,
+        OCRReader,
+        TxtReader,
+        UnstructuredReader,
+        WebReader,
+    )
+
+    registry = {
+        "kotaemon.loaders.AdobeReader": AdobeReader,
+        "kotaemon.loaders.AzureAIDocumentIntelligenceLoader": (
+            AzureAIDocumentIntelligenceLoader
+        ),
+        "kotaemon.loaders.DoclingReader": DoclingReader,
+        "kotaemon.loaders.HtmlReader": HtmlReader,
+        "kotaemon.loaders.OCRReader": OCRReader,
+        "kotaemon.loaders.TxtReader": TxtReader,
+        "kotaemon.loaders.UnstructuredReader": UnstructuredReader,
+        "kotaemon.loaders.WebReader": WebReader,
+    }
+    if dotted not in registry:
+        raise ValueError(f"Unknown reader: {dotted!r}")
+    return registry[dotted]
+
+
 @lru_cache
 def dev_settings() -> tuple:
     """Retrieve developer-level overrides from flowsettings.py."""
     file_extractors = {}
     if hasattr(settings, "FILE_INDEX_PIPELINE_FILE_EXTRACTORS"):
         file_extractors = {
-            key: import_dotted_string(value, safe=False)()
+            key: _load_reader(value)()
             for key, value in settings.FILE_INDEX_PIPELINE_FILE_EXTRACTORS.items()
         }
 

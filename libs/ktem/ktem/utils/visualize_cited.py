@@ -14,7 +14,6 @@ import pandas as pd
 import plotly.graph_objs as go
 import umap
 
-from kotaemon.base import BaseComponent
 from kotaemon.embeddings import BaseEmbeddings
 
 VISUALIZATION_SETTINGS = {

@@ -6,7 +6,10 @@ from typing import Optional
 
 from PIL import Image
 
-from kotaemon.base import Document, Param
+from dataclasses import dataclass, field
+from functools import cached_property
+
+from kotaemon.base import Document
 
 from .base import BaseReader
 from .utils.adobe import generate_single_figure_caption
@@ -56,58 +59,33 @@ def crop_image(file_path: Path, bbox: list[float], page_number: int = 0) -> Imag
     )
 
 
+@dataclass(kw_only=True)
 class AzureAIDocumentIntelligenceLoader(BaseReader):
-    """Utilize Azure AI Document Intelligence to parse document
-
-    As of April 24, the supported file formats are: pdf, jpeg/jpg, png, bmp, tiff,
-    heif, docx, xlsx, pptx and html.
-    """
+    """Utilize Azure AI Document Intelligence to parse document."""
 
     _dependencies = ["azure-ai-documentintelligence", "PyMuPDF", "Pillow"]
 
-    endpoint: str = Param(
-        os.environ.get("AZUREAI_DOCUMENT_INTELLIGENT_ENDPOINT", None),
-        help="Endpoint of Azure AI Document Intelligence",
-    )
-    credential: str = Param(
-        os.environ.get("AZUREAI_DOCUMENT_INTELLIGENT_CREDENTIAL", None),
-        help="Credential of Azure AI Document Intelligence",
-    )
-    model: str = Param(
-        "prebuilt-layout",
-        help=(
-            "Model to use for document analysis. Default is prebuilt-layout. "
-            "As of April 24, you can view the supported models [here]"
-            "(https://learn.microsoft.com/en-us/azure/ai-services/"
-            "document-intelligence/concept-model-overview?view=doc-intel-4.0.0"
-            "#model-analysis-features)"
-        ),
-    )
-    output_content_format: str = Param(
-        "markdown",
-        help="Output content format. Can be 'markdown' or 'text'.Default is markdown",
-    )
-    vlm_endpoint: str = Param(
-        help=(
-            "Default VLM endpoint for figure captioning. If not provided, will not "
-            "caption the figures"
+    endpoint: str | None = field(
+        default_factory=lambda: os.environ.get(
+            "AZUREAI_DOCUMENT_INTELLIGENT_ENDPOINT", None
         )
     )
-    figure_friendly_filetypes: list[str] = Param(
-        [".pdf", ".jpeg", ".jpg", ".png", ".bmp", ".tiff", ".heif", ".tif"],
-        help=(
-            "File types that we can reliably open and extract figures. "
-            "For files like .docx or .html, the visual layout may be different "
-            "when viewed from different tools, hence we cannot use Azure DI "
-            "location to extract figures."
-        ),
+    credential: str | None = field(
+        default_factory=lambda: os.environ.get(
+            "AZUREAI_DOCUMENT_INTELLIGENT_CREDENTIAL", None
+        )
     )
-    cache_dir: str = Param(
-        None,
-        help="Directory to cache the downloaded files. Default is None",
+    model: str = "prebuilt-layout"
+    output_content_format: str = "markdown"
+    vlm_endpoint: str | None = None
+    figure_friendly_filetypes: list[str] = field(
+        default_factory=lambda: [
+            ".pdf", ".jpeg", ".jpg", ".png", ".bmp", ".tiff", ".heif", ".tif",
+        ]
     )
+    cache_dir: str | None = None
 
-    @Param.auto(depends_on=["endpoint", "credential"])
+    @cached_property
     def client_(self):
         try:
             from azure.ai.documentintelligence import DocumentIntelligenceClient

@@ -3,7 +3,6 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
-from kotaemon.base import BaseComponent
 from kotaemon.base.schema import HumanMessage, SystemMessage
 from kotaemon.llms import BaseLLM
 

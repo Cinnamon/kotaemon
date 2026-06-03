@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING, Any, Optional
 if TYPE_CHECKING:
     from ktem.app import BasePage
 
-    from kotaemon.base import BaseComponent
+    from kotaemon.indices.indexing.base import BaseIndexing
+    from kotaemon.indices.retriever.base import BaseRetriever
 
 
 logger = logging.getLogger(__name__)
@@ -111,7 +112,7 @@ class BaseCollection(abc.ABC):
     @abc.abstractmethod
     def get_indexing_pipeline(
         self, settings: dict, user_id: Optional[int]
-    ) -> "BaseComponent":
+    ) -> "BaseIndexing":
         """Return the indexing pipeline that populates the entities into the index
 
         Args:
@@ -127,6 +128,6 @@ class BaseCollection(abc.ABC):
 
     def get_retriever_pipelines(
         self, settings: dict, user_id: int, selected: Any = None
-    ) -> list["BaseComponent"]:
+    ) -> list["BaseRetriever"]:
         """Return the retriever pipelines to retrieve the entity from the index"""
         return []

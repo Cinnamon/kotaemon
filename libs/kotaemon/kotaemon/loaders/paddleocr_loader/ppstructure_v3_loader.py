@@ -1,11 +1,14 @@
 from pathlib import Path
 
-from kotaemon.base import Document, Param
+from dataclasses import dataclass, field
+from functools import cached_property
+from kotaemon.base import Document
 from kotaemon.loaders.base import BaseReader
 
 from .adapter import PaddleOCRResult
 
 
+@dataclass(kw_only=True)
 class PPStructureV3Reader(BaseReader):
     """Document structure extraction via PaddleOCR PPStructureV3.
 
@@ -15,85 +18,81 @@ class PPStructureV3Reader(BaseReader):
 
     _dependencies = ["paddleocr[doc-parser]"]
 
-    device: str = Param(
-        "gpu:0",
-        help="Device for inference: gpu:0, cpu, npu:0, xpu:0",
+    device: str = "gpu:0"
+
+    supported_file_types: list[str] = field(
+        default_factory=lambda: [".pdf", ".jpg", ".jpeg", ".png", ".tiff", ".tif"]
     )
 
-    supported_file_types: list[str] = Param(
-        [".pdf", ".jpg", ".jpeg", ".png", ".tiff", ".tif"],
-        help="Supported file extensions",
-    )
+    layout_detection_model_name: str | None = None
+    layout_detection_model_dir: str | None = None
+    layout_threshold: float | None = None
+    layout_nms: float | None = None
+    layout_unclip_ratio: float | None = None
+    layout_merge_bboxes_mode: str | None = None
+    chart_recognition_model_name: str | None = None
+    chart_recognition_model_dir: str | None = None
+    chart_recognition_batch_size: int | None = None
+    region_detection_model_name: str | None = None
+    region_detection_model_dir: str | None = None
+    doc_orientation_classify_model_name: str | None = None
+    doc_orientation_classify_model_dir: str | None = None
+    doc_unwarping_model_name: str | None = None
+    doc_unwarping_model_dir: str | None = None
+    text_detection_model_name: str | None = None
+    text_detection_model_dir: str | None = None
+    text_det_limit_side_len: int | None = None
+    text_det_limit_type: str | None = None
+    text_det_thresh: float | None = None
+    text_det_box_thresh: float | None = None
+    text_det_unclip_ratio: float | None = None
+    textline_orientation_model_name: str | None = None
+    textline_orientation_model_dir: str | None = None
+    textline_orientation_batch_size: int | None = None
+    text_recognition_model_name: str | None = None
+    text_recognition_model_dir: str | None = None
+    text_recognition_batch_size: int | None = None
+    text_rec_score_thresh: float | None = None
+    table_classification_model_name: str | None = None
+    table_classification_model_dir: str | None = None
+    wired_table_structure_recognition_model_name: str | None = None
+    wired_table_structure_recognition_model_dir: str | None = None
+    wireless_table_structure_recognition_model_name: str | None = None
+    wireless_table_structure_recognition_model_dir: str | None = None
+    wired_table_cells_detection_model_name: str | None = None
+    wired_table_cells_detection_model_dir: str | None = None
+    wireless_table_cells_detection_model_name: str | None = None
+    wireless_table_cells_detection_model_dir: str | None = None
+    table_orientation_classify_model_name: str | None = None
+    table_orientation_classify_model_dir: str | None = None
+    seal_text_detection_model_name: str | None = None
+    seal_text_detection_model_dir: str | None = None
+    seal_det_limit_side_len: int | None = None
+    seal_det_limit_type: str | None = None
+    seal_det_thresh: float | None = None
+    seal_det_box_thresh: float | None = None
+    seal_det_unclip_ratio: float | None = None
+    seal_text_recognition_model_name: str | None = None
+    seal_text_recognition_model_dir: str | None = None
+    seal_text_recognition_batch_size: int | None = None
+    seal_rec_score_thresh: float | None = None
+    formula_recognition_model_name: str | None = None
+    formula_recognition_model_dir: str | None = None
+    formula_recognition_batch_size: int | None = None
+    use_doc_orientation_classify: bool | None = None
+    use_doc_unwarping: bool | None = None
+    use_textline_orientation: bool | None = None
+    use_seal_recognition: bool | None = None
+    use_table_recognition: bool | None = None
+    use_formula_recognition: bool | None = None
+    use_chart_recognition: bool | None = None
+    use_region_detection: bool | None = None
+    format_block_content: bool | None = None
+    markdown_ignore_labels: list[str] | None = None
+    lang: str | None = None
+    ocr_version: str | None = None
 
-    layout_detection_model_name: str | None = Param(None)
-    layout_detection_model_dir: str | None = Param(None)
-    layout_threshold: float | None = Param(None)
-    layout_nms: float | None = Param(None)
-    layout_unclip_ratio: float | None = Param(None)
-    layout_merge_bboxes_mode: str | None = Param(None)
-    chart_recognition_model_name: str | None = Param(None)
-    chart_recognition_model_dir: str | None = Param(None)
-    chart_recognition_batch_size: int | None = Param(None)
-    region_detection_model_name: str | None = Param(None)
-    region_detection_model_dir: str | None = Param(None)
-    doc_orientation_classify_model_name: str | None = Param(None)
-    doc_orientation_classify_model_dir: str | None = Param(None)
-    doc_unwarping_model_name: str | None = Param(None)
-    doc_unwarping_model_dir: str | None = Param(None)
-    text_detection_model_name: str | None = Param(None)
-    text_detection_model_dir: str | None = Param(None)
-    text_det_limit_side_len: int | None = Param(None)
-    text_det_limit_type: str | None = Param(None)
-    text_det_thresh: float | None = Param(None)
-    text_det_box_thresh: float | None = Param(None)
-    text_det_unclip_ratio: float | None = Param(None)
-    textline_orientation_model_name: str | None = Param(None)
-    textline_orientation_model_dir: str | None = Param(None)
-    textline_orientation_batch_size: int | None = Param(None)
-    text_recognition_model_name: str | None = Param(None)
-    text_recognition_model_dir: str | None = Param(None)
-    text_recognition_batch_size: int | None = Param(None)
-    text_rec_score_thresh: float | None = Param(None)
-    table_classification_model_name: str | None = Param(None)
-    table_classification_model_dir: str | None = Param(None)
-    wired_table_structure_recognition_model_name: str | None = Param(None)
-    wired_table_structure_recognition_model_dir: str | None = Param(None)
-    wireless_table_structure_recognition_model_name: str | None = Param(None)
-    wireless_table_structure_recognition_model_dir: str | None = Param(None)
-    wired_table_cells_detection_model_name: str | None = Param(None)
-    wired_table_cells_detection_model_dir: str | None = Param(None)
-    wireless_table_cells_detection_model_name: str | None = Param(None)
-    wireless_table_cells_detection_model_dir: str | None = Param(None)
-    table_orientation_classify_model_name: str | None = Param(None)
-    table_orientation_classify_model_dir: str | None = Param(None)
-    seal_text_detection_model_name: str | None = Param(None)
-    seal_text_detection_model_dir: str | None = Param(None)
-    seal_det_limit_side_len: int | None = Param(None)
-    seal_det_limit_type: str | None = Param(None)
-    seal_det_thresh: float | None = Param(None)
-    seal_det_box_thresh: float | None = Param(None)
-    seal_det_unclip_ratio: float | None = Param(None)
-    seal_text_recognition_model_name: str | None = Param(None)
-    seal_text_recognition_model_dir: str | None = Param(None)
-    seal_text_recognition_batch_size: int | None = Param(None)
-    seal_rec_score_thresh: float | None = Param(None)
-    formula_recognition_model_name: str | None = Param(None)
-    formula_recognition_model_dir: str | None = Param(None)
-    formula_recognition_batch_size: int | None = Param(None)
-    use_doc_orientation_classify: bool | None = Param(None)
-    use_doc_unwarping: bool | None = Param(None)
-    use_textline_orientation: bool | None = Param(None)
-    use_seal_recognition: bool | None = Param(None)
-    use_table_recognition: bool | None = Param(None)
-    use_formula_recognition: bool | None = Param(None)
-    use_chart_recognition: bool | None = Param(None)
-    use_region_detection: bool | None = Param(None)
-    format_block_content: bool | None = Param(None)
-    markdown_ignore_labels: list[str] | None = Param(None)
-    lang: str | None = Param(None)
-    ocr_version: str | None = Param(None)
-
-    @Param.auto(cache=True)
+    @cached_property
     def pipeline_(self):
         """Lazy-load the PPStructureV3 pipeline."""
         try:
