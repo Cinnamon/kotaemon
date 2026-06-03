@@ -30,6 +30,7 @@ class MCPManagement(BasePage):
 
     def on_building_ui(self):
         with gr.Tab(label="View"):
+            self.last_fetched_mcp_name = gr.State(value="")
             self.mcp_list = gr.DataFrame(
                 headers=["name", "config"],
                 interactive=False,
@@ -95,6 +96,7 @@ class MCPManagement(BasePage):
             self.list_servers,
             inputs=[],
             outputs=[self.mcp_list],
+            show_progress="hidden",
         )
 
     def on_register_events(self):
@@ -140,9 +142,9 @@ class MCPManagement(BasePage):
             ],
             show_progress="hidden",
         ).then(
-            self.fetch_tools_for_view,
-            inputs=[self.selected_mcp_name],
-            outputs=[self.edit_tools_display],
+            self.fetch_tools_for_view_if_needed,
+            inputs=[self.selected_mcp_name, self.last_fetched_mcp_name],
+            outputs=[self.edit_tools_display, self.last_fetched_mcp_name],
         )
 
         # Delete flow
@@ -157,7 +159,7 @@ class MCPManagement(BasePage):
             inputs=[self.selected_mcp_name],
             outputs=[self.selected_mcp_name],
             show_progress="hidden",
-        ).then(self.list_servers, inputs=[], outputs=[self.mcp_list])
+        ).success(self.list_servers, inputs=[], outputs=[self.mcp_list])
         for event in self._app.get_event("onMCPServersChanged"):
             delete_chain = delete_chain.then(**event)
         self.btn_delete_no.click(
@@ -179,7 +181,7 @@ class MCPManagement(BasePage):
                 outputs=[self.edit_tools_display],
                 show_progress="hidden",
             )
-            .then(self.list_servers, inputs=[], outputs=[self.mcp_list])
+            .success(self.list_servers, inputs=[], outputs=[self.mcp_list])
             .then(
                 self.fetch_tools_for_view,
                 inputs=[self.selected_mcp_name],
@@ -192,7 +194,12 @@ class MCPManagement(BasePage):
         # Close panel
         self.btn_close.click(lambda: "", outputs=[self.selected_mcp_name])
 
-    # --- Handlers ---
+        # --- Handlers ---
+
+    def fetch_tools_for_view_if_needed(self, selected_name, last_fetched_name):
+        if not selected_name or selected_name == last_fetched_name:
+            return gr.update(), last_fetched_name
+        return self.fetch_tools_for_view(selected_name), selected_name
 
     def _fetch_tools_markdown(self, config: dict) -> str:
         """Fetch tools from MCP server and return as formatted HTML."""

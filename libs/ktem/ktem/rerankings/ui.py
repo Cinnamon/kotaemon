@@ -134,10 +134,12 @@ class RerankingManagement(BasePage):
             self.list_rerankings,
             inputs=[],
             outputs=[self.rerank_list],
+            show_progress="hidden",
         )
         self._app.app.load(
             lambda: gr.update(choices=list(reranking_models_manager.vendors().keys())),
             outputs=[self.rerank_choices],
+            show_progress="hidden",
         )
 
     def on_rerank_vendor_change(self, vendor):
@@ -208,7 +210,7 @@ class RerankingManagement(BasePage):
             inputs=[self.selected_rerank_name],
             outputs=[self.selected_rerank_name],
             show_progress="hidden",
-        ).then(
+        ).success(
             self.list_rerankings,
             inputs=[],
             outputs=[self.rerank_list],
@@ -233,7 +235,7 @@ class RerankingManagement(BasePage):
             ],
             outputs=[self.selected_rerank_name],
             show_progress="hidden",
-        ).then(
+        ).success(
             self.list_rerankings,
             inputs=[],
             outputs=[self.rerank_list],

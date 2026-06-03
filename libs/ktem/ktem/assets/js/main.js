@@ -151,8 +151,12 @@ function run() {
     );
     var last_bot_message = bot_messages[bot_messages.length - 1];
 
-    // check if the last bot message has class "text_selection"
-    if (last_bot_message.classList.contains("text_selection")) {
+    if (!last_bot_message) {
+      return;
+    }
+
+    // check if the last bot message has already been initialized
+    if (last_bot_message.dataset.evidenceSearchReady === "true") {
       return;
     }
 
@@ -164,6 +168,10 @@ function run() {
       "#html-info-panel > div:last-child > div > details.evidence div.evidence-content"
     );
     console.log("Indexing evidences", evidences);
+
+    if (evidences.length === 0) {
+      return;
+    }
 
     const segmenterEn = new Intl.Segmenter("en", { granularity: "sentence" });
     // Split sentences and save to all_segments list
@@ -191,6 +199,10 @@ function run() {
       }
     }
 
+    if (all_segments.length === 0) {
+      return;
+    }
+
     let miniSearch = new MiniSearch({
       fields: ["text"], // fields to index for full-text search
       storeFields: ["text"],
@@ -198,6 +210,7 @@ function run() {
 
     // Index all documents
     miniSearch.addAll(all_segments);
+    last_bot_message.dataset.evidenceSearchReady = "true";
 
     last_bot_message.addEventListener("mouseup", () => {
       let selection = window.getSelection().toString();

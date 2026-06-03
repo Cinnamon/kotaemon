@@ -183,7 +183,7 @@ class UserManagement(BasePage):
             self.create_user,
             inputs=[self.usn_new, self.pwd_new, self.pwd_cnf_new],
             outputs=[self.usn_new, self.pwd_new, self.pwd_cnf_new],
-        ).then(
+        ).success(
             self.list_users,
             inputs=self._app.user_id,
             outputs=[self.state_user_list, self.user_list],
@@ -223,7 +223,7 @@ class UserManagement(BasePage):
             inputs=[self._app.user_id, self.selected_user_id],
             outputs=[self.selected_user_id],
             show_progress="hidden",
-        ).then(
+        ).success(
             self.list_users,
             inputs=self._app.user_id,
             outputs=[self.state_user_list, self.user_list],
@@ -249,7 +249,7 @@ class UserManagement(BasePage):
             ],
             outputs=[self.pwd_edit, self.pwd_cnf_edit],
             show_progress="hidden",
-        ).then(
+        ).success(
             self.list_users,
             inputs=self._app.user_id,
             outputs=[self.state_user_list, self.user_list],
@@ -266,6 +266,7 @@ class UserManagement(BasePage):
                 "fn": self.list_users,
                 "inputs": [self._app.user_id],
                 "outputs": [self.state_user_list, self.user_list],
+                "show_progress": "hidden",
             },
         )
         self._app.subscribe_event(
@@ -280,6 +281,7 @@ class UserManagement(BasePage):
                     self.user_list,
                     self.selected_user_id,
                 ],
+                "show_progress": "hidden",
             },
         )
 

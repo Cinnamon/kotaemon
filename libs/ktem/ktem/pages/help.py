@@ -1,4 +1,3 @@
-from importlib.metadata import version
 from pathlib import Path
 
 import gradio as gr
@@ -29,6 +28,10 @@ def download_changelogs(release_url: str) -> str:
     except Exception as e:
         print(f"Failed to fetch changelogs from {release_url}: {e}")
         return ""
+
+
+def get_changelog_cache_path(changelogs_cache_dir: Path, app_version: str) -> Path:
+    return changelogs_cache_dir / f"{app_version}.md"
 
 
 class HelpPage:
@@ -94,9 +97,12 @@ class HelpPage:
         if self.app_version:
             # try retrieve from cache
             changelogs = ""
+            changelog_cache_path = get_changelog_cache_path(
+                self.changelogs_cache_dir, self.app_version
+            )
 
-            if (self.changelogs_cache_dir / f"{version}.md").exists():
-                with open(self.changelogs_cache_dir / f"{version}.md", "r") as fi:
+            if changelog_cache_path.exists():
+                with open(changelog_cache_path, "r") as fi:
                     changelogs = fi.read()
             else:
                 release_url_base = (
@@ -109,9 +115,7 @@ class HelpPage:
                 # cache the changelogs
                 if not self.changelogs_cache_dir.exists():
                     self.changelogs_cache_dir.mkdir(parents=True, exist_ok=True)
-                with open(
-                    self.changelogs_cache_dir / f"{self.app_version}.md", "w"
-                ) as fi:
+                with open(changelog_cache_path, "w") as fi:
                     fi.write(changelogs)
 
             if changelogs:
