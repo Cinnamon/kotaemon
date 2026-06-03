@@ -4,7 +4,7 @@ import yaml
 from ktem.app import BaseApp, BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
 
-from .manager import IndexManager
+from .manager import CollectionManager
 
 
 # UGLY way to restart gradio server by updating atime
@@ -35,7 +35,7 @@ def format_description(cls):
 class IndexManagement(BasePage):
     def __init__(self, app: BaseApp):
         self._app = app
-        self.manager: IndexManager = app.index_manager
+        self.manager: CollectionManager = app.collection_manager
         self.spec_desc_default = (
             "# Spec description\n\nSelect an index to view the spec description."
         )
@@ -244,7 +244,7 @@ class IndexManagement(BasePage):
         if not name:
             raise gr.Error("Name must not be empty")
 
-        existing_names = {idx.name for idx in self.manager.indices}
+        existing_names = {idx.name for idx in self.manager.collections}
         if name in existing_names:
             raise gr.Error(f"Index '{name}' already exists. Please use a unique name.")
 
@@ -261,7 +261,7 @@ class IndexManagement(BasePage):
     def list_indices(self):
         """List the indices constructed by the user"""
         items = []
-        for item in self.manager.indices:
+        for item in self.manager.collections:
             record = {}
             record["id"] = item.id
             record["name"] = item.name
@@ -319,7 +319,7 @@ class IndexManagement(BasePage):
             raise gr.Error("Name must not be empty")
 
         # Check uniqueness (excluding current index)
-        for idx in self.manager.indices:
+        for idx in self.manager.collections:
             if idx.name == name and idx.id != selected_index_id:
                 raise gr.Error(
                     f"Index '{name}' already exists. Please use a unique name."

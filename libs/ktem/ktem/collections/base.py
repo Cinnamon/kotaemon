@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class BaseIndex(abc.ABC):
+class BaseCollection(abc.ABC):
     """The base class for the index
 
     The index is responsible for storing information in a searchable manner, and

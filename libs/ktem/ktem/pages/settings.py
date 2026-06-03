@@ -306,7 +306,7 @@ class SettingsPage(BasePage):
         #         obj = render_setting_item(si, si.value)
         #         self._components[f"index.{n}"] = obj
 
-        id2name = {k: v.name for k, v in self._app.index_manager.info().items()}
+        id2name = {k: v.name for k, v in self._app.collection_manager.info().items()}
         with gr.Tab("Retrieval settings", visible=self._render_index_tab):
             for pn, sig in self._default_settings.index.options.items():
                 name = id2name.get(pn, f"<id {pn}>")

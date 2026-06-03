@@ -16,8 +16,6 @@ def format_description(cls):
     params = cls.describe()["params"]
     params_lines = ["| Name | Type | Description |", "| --- | --- | --- |"]
     for key, value in params.items():
-        if isinstance(value["auto_callback"], str):
-            continue
         params_lines.append(f"| {key} | {value['type']} | {value['help']} |")
     return f"{cls.__doc__}\n\n" + "\n".join(params_lines)
 

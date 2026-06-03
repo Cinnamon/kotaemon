@@ -60,8 +60,8 @@ class App(BaseApp):
             ) as self._tabs["chat-tab"]:
                 self.chat_page = ChatPage(self)
 
-            if len(self.index_manager.indices) == 1:
-                for index in self.index_manager.indices:
+            if len(self.collection_manager.collections) == 1:
+                for index in self.collection_manager.collections:
                     with gr.Tab(
                         f"{index.name}",
                         elem_id="indices-tab",
@@ -75,7 +75,7 @@ class App(BaseApp):
                     ) as self._tabs[f"{index.id}-tab"]:
                         page = index.get_index_page_ui()
                         setattr(self, f"_index_{index.id}", page)
-            elif len(self.index_manager.indices) > 1:
+            elif len(self.collection_manager.collections) > 1:
                 with gr.Tab(
                     "Files",
                     elem_id="indices-tab",
@@ -83,7 +83,7 @@ class App(BaseApp):
                     id="indices-tab",
                     visible=not self.f_user_management and not KH_DEMO_MODE,
                 ) as self._tabs["indices-tab"]:
-                    for index in self.index_manager.indices:
+                    for index in self.collection_manager.collections:
                         with gr.Tab(
                             index.name,
                             elem_id=f"{index.id}-tab",

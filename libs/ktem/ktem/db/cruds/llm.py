@@ -2,6 +2,7 @@ from typing import Any
 
 from sqlalchemy import select, update
 
+from kotaemon.llms.chats.factory import LLMVendor
 from ktem.db.models import LLMTable
 
 from .base import BaseCRUD
@@ -19,6 +20,7 @@ class LLMCRUD(BaseCRUD):
     def create(
         self,
         name: str,
+        vendor: LLMVendor,
         spec: dict[str, Any],
         *,
         default: bool = False,
@@ -29,7 +31,8 @@ class LLMCRUD(BaseCRUD):
 
         Args:
             name: unique name for this LLM.
-            spec: serialised model specification.
+            vendor: vendor class identifier for factory lookup.
+            spec: constructor parameters for the vendor class.
             default: make this model the pool default.
 
         Returns:
@@ -44,7 +47,9 @@ class LLMCRUD(BaseCRUD):
             raise ValueError(f"LLM '{name}' already exists")
         if default:
             self.clear_defaults()
-        item = LLMTable(name=name, spec=spec, default=default)
+        item = LLMTable(
+            name=name, vendor=vendor, spec=spec, default=default
+        )
         self.session.add(item)
         self.commit()
         self.session.refresh(item)
@@ -66,6 +71,7 @@ class LLMCRUD(BaseCRUD):
         self,
         name: str,
         *,
+        vendor: LLMVendor | None = None,
         spec: dict[str, Any] | None = None,
         default: bool | None = None,
     ) -> LLMTable:
@@ -75,6 +81,7 @@ class LLMCRUD(BaseCRUD):
 
         Args:
             name: primary-key name of the entry to update.
+            vendor: new vendor class id; unchanged when None.
             spec: new spec; unchanged when None.
             default: new default flag; unchanged when None.
 
@@ -89,6 +96,8 @@ class LLMCRUD(BaseCRUD):
             raise ValueError(f"LLM '{name}' not found")
         if default is True:
             self.clear_defaults()
+        if vendor is not None:
+            item.vendor = vendor
         if spec is not None:
             item.spec = spec
         if default is not None:

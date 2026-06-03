@@ -7,6 +7,8 @@ from ktem.app import BaseApp, BasePage
 from ktem.embeddings.manager import embedding_models_manager as embeddings
 from ktem.llms.manager import llms
 from ktem.rerankings.manager import reranking_models_manager as rerankers
+from kotaemon.llms.chats.factory import LLMVendor
+from kotaemon.embeddings.factory import EmbeddingVendor
 from theflow.settings import settings as flowsettings
 
 KH_OLLAMA_URL = getattr(flowsettings, "KH_OLLAMA_URL", "http://localhost:11434/v1/")
@@ -205,8 +207,8 @@ class SetupPage(BasePage):
             if cohere_api_key:
                 llms.update(
                     name="cohere",
+                    vendor=LLMVendor("LCCohereChat"),
                     spec={
-                        "__type__": "kotaemon.llms.chats.LCCohereChat",
                         "model_name": "command-r-plus-08-2024",
                         "api_key": cohere_api_key,
                     },
@@ -214,8 +216,8 @@ class SetupPage(BasePage):
                 )
                 embeddings.update(
                     name="cohere",
+                    vendor=EmbeddingVendor("LCCohereEmbeddings"),
                     spec={
-                        "__type__": "kotaemon.embeddings.LCCohereEmbeddings",
                         "model": "embed-multilingual-v3.0",
                         "cohere_api_key": cohere_api_key,
                         "user_agent": "default",
@@ -235,8 +237,8 @@ class SetupPage(BasePage):
             if openai_api_key:
                 llms.update(
                     name="openai",
+                    vendor=LLMVendor("ChatOpenAI"),
                     spec={
-                        "__type__": "kotaemon.llms.ChatOpenAI",
                         "base_url": "https://api.openai.com/v1",
                         "model": "gpt-4o",
                         "api_key": openai_api_key,
@@ -246,8 +248,8 @@ class SetupPage(BasePage):
                 )
                 embeddings.update(
                     name="openai",
+                    vendor=EmbeddingVendor("OpenAIEmbeddings"),
                     spec={
-                        "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
                         "base_url": "https://api.openai.com/v1",
                         "model": "text-embedding-3-large",
                         "api_key": openai_api_key,
@@ -260,8 +262,8 @@ class SetupPage(BasePage):
             if google_api_key:
                 llms.update(
                     name="google",
+                    vendor=LLMVendor("LCGeminiChat"),
                     spec={
-                        "__type__": "kotaemon.llms.chats.LCGeminiChat",
                         "model_name": "gemini-1.5-flash",
                         "api_key": google_api_key,
                     },
@@ -269,8 +271,8 @@ class SetupPage(BasePage):
                 )
                 embeddings.update(
                     name="google",
+                    vendor=EmbeddingVendor("LCGoogleEmbeddings"),
                     spec={
-                        "__type__": "kotaemon.embeddings.LCGoogleEmbeddings",
                         "model": "models/text-embedding-004",
                         "google_api_key": google_api_key,
                     },
@@ -279,8 +281,8 @@ class SetupPage(BasePage):
         elif radio_model_value == "ollama":
             llms.update(
                 name="ollama",
+                vendor=LLMVendor("ChatOpenAI"),
                 spec={
-                    "__type__": "kotaemon.llms.ChatOpenAI",
                     "base_url": KH_OLLAMA_URL,
                     "model": ollama_model_name,
                     "api_key": "ollama",
@@ -289,8 +291,8 @@ class SetupPage(BasePage):
             )
             embeddings.update(
                 name="ollama",
+                vendor=EmbeddingVendor("OpenAIEmbeddings"),
                 spec={
-                    "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
                     "base_url": KH_OLLAMA_URL,
                     "model": ollama_emb_model_name,
                     "api_key": "ollama",

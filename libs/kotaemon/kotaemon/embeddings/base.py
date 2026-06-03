@@ -1,10 +1,18 @@
 from __future__ import annotations
 
-from kotaemon.base import BaseComponent, Document, DocumentWithEmbedding
+from dataclasses import dataclass
+
+from kotaemon.base import Document, DocumentWithEmbedding
+from kotaemon.base.describe import DataclassDescribe, describe_dataclass
 
 
-class BaseEmbeddings(BaseComponent):
-    def run(
+@dataclass(kw_only=True)
+class BaseEmbeddings:
+    @classmethod
+    def describe(cls) -> DataclassDescribe:
+        return describe_dataclass(cls)
+
+    def __call__(
         self, text: str | list[str] | Document | list[Document], *args, **kwargs
     ) -> list[DocumentWithEmbedding]:
         return self.invoke(text, *args, **kwargs)

@@ -9,7 +9,7 @@ from decouple import config
 from ktem.app import BaseApp, BasePage
 from ktem.components import reasonings
 from ktem.db.models import Conversation, engine
-from ktem.index.file.ui import File
+from ktem.collections.file.ui import File
 from ktem.reasoning.prompt_optimization.mindmap import MINDMAP_HTML_EXPORT_TEMPLATE
 from ktem.reasoning.prompt_optimization.suggest_conversation_name import (
     SuggestConvNamePipeline,
@@ -232,7 +232,7 @@ class ChatPage(BasePage):
             with gr.Column(scale=1, elem_id="conv-settings-panel") as self.conv_column:
                 self.chat_control = ConversationControl(self._app)
 
-                for index_id, index in enumerate(self._app.index_manager.indices):
+                for index_id, index in enumerate(self._app.collection_manager.collections):
                     index.selector = None
                     index_ui = index.get_selector_component_ui()
                     if not index_ui:
@@ -277,7 +277,7 @@ class ChatPage(BasePage):
 
                 self.chat_suggestion = ChatSuggestion(self._app)
 
-                if len(self._app.index_manager.indices) > 0:
+                if len(self._app.collection_manager.collections) > 0:
                     quick_upload_label = (
                         "Quick Upload" if not KH_DEMO_MODE else "Or input new paper URL"
                     )
@@ -1118,7 +1118,7 @@ class ChatPage(BasePage):
         state["app"]["regen"] = False
 
         selecteds_ = {}
-        for index in self._app.index_manager.indices:
+        for index in self._app.collection_manager.collections:
             if index.selector is None:
                 continue
             if isinstance(index.selector, int):
@@ -1256,7 +1256,7 @@ class ChatPage(BasePage):
             web_search = WebSearch()
             retrievers.append(web_search)
         else:
-            for index in self._app.index_manager.indices:
+            for index in self._app.collection_manager.collections:
                 index_selected = []
                 if isinstance(index.selector, int):
                     index_selected = selecteds[index.selector]
@@ -1280,7 +1280,7 @@ class ChatPage(BasePage):
 
     def _has_selected_files(self, user_id: int, *selecteds) -> bool:
         """Return True if any index file selector has documents selected."""
-        for index in self._app.index_manager.indices:
+        for index in self._app.collection_manager.collections:
             if index.selector is None:
                 continue
             index_ui = getattr(self, f"_index_{index.id}", None)

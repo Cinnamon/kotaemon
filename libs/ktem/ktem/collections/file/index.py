@@ -4,7 +4,7 @@ from typing import Any, Optional, Type
 
 from ktem.components import filestorage_path, get_docstore, get_vectorstore
 from ktem.db.engine import engine
-from ktem.index.base import BaseIndex
+from ktem.collections.base import BaseCollection
 from sqlalchemy import JSON, Column, DateTime, Integer, String, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.mutable import MutableDict
@@ -14,14 +14,15 @@ from tzlocal import get_localzone
 
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
-from .base import BaseIndexing, BaseRetriever
+from kotaemon.indices.indexing import BaseIndexing
+from kotaemon.indices.retriever import BaseRetriever
 
 
 def generate_uuid():
     return str(uuid.uuid4())
 
 
-class FileIndex(BaseIndex):
+class FileIndex(BaseCollection):
     """
     File index to store and allow retrieval of files
 

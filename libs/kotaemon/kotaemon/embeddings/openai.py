@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from itertools import islice
 from typing import Optional
 
@@ -10,9 +11,6 @@ from tenacity import (
     stop_after_attempt,
     wait_random_exponential,
 )
-from theflow.utils.modules import import_dotted_string
-
-from kotaemon.base import Param
 
 from .base import BaseEmbeddings, Document, DocumentWithEmbedding
 
@@ -35,6 +33,7 @@ def split_text_by_chunk_size(text: str, chunk_size: int) -> list[list[int]]:
     return result
 
 
+@dataclass(kw_only=True)
 class BaseOpenAIEmbeddings(BaseEmbeddings):
     """Base interface for OpenAI embedding model, using the openai library.
 
@@ -47,25 +46,29 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
 
     _dependencies = ["openai"]
 
-    api_key: str = Param(None, help="API key", required=True)
-    timeout: Optional[float] = Param(None, help="Timeout for the API request.")
-    max_retries: Optional[int] = Param(
-        None, help="Maximum number of retries for the API request."
+    api_key: str = field(metadata={"description": "API key"})
+    timeout: Optional[float] = field(
+        default=None, metadata={"description": "Timeout for the API request."}
+    )
+    max_retries: Optional[int] = field(
+        default=None,
+        metadata={"description": "Maximum number of retries for the API request."},
+    )
+    dimensions: Optional[int] = field(
+        default=None,
+        metadata={
+            "description": (
+                "Output embedding dimensions (text-embedding-3 and later)."
+            )
+        },
+    )
+    context_length: Optional[int] = field(
+        default=None,
+        metadata={"description": "Maximum context length of the embedding model"},
     )
 
-    dimensions: Optional[int] = Param(
-        None,
-        help=(
-            "The number of dimensions the resulting output embeddings should have. "
-            "Only supported in `text-embedding-3` and later models."
-        ),
-    )
-    context_length: Optional[int] = Param(
-        None, help="The maximum context length of the embedding model"
-    )
-
-    @Param.auto(depends_on=["max_retries"])
-    def max_retries_(self):
+    @property
+    def max_retries_(self) -> int:
         if self.max_retries is None:
             from openai._constants import DEFAULT_MAX_RETRIES
 
@@ -139,18 +142,22 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
         ]
 
 
+@dataclass(kw_only=True)
 class OpenAIEmbeddings(BaseOpenAIEmbeddings):
     """OpenAI chat model"""
 
-    base_url: Optional[str] = Param(None, help="OpenAI base URL")
-    organization: Optional[str] = Param(None, help="OpenAI organization")
-    model: str = Param(
-        None,
-        help=(
-            "ID of the model to use. You can go to [Model overview](https://platform."
-            "openai.com/docs/models/overview) to see the available models."
-        ),
-        required=True,
+    model: str = field(
+        metadata={
+            "description": (
+                "Model ID (see platform.openai.com/docs/models/overview)."
+            )
+        }
+    )
+    base_url: Optional[str] = field(
+        default=None, metadata={"description": "OpenAI base URL"}
+    )
+    organization: Optional[str] = field(
+        default=None, metadata={"description": "OpenAI organization"}
     )
 
     def prepare_client(self, async_version: bool = False):
@@ -194,25 +201,22 @@ class OpenAIEmbeddings(BaseOpenAIEmbeddings):
         return client.embeddings.create(**params)
 
 
+@dataclass(kw_only=True)
 class AzureOpenAIEmbeddings(BaseOpenAIEmbeddings):
-    azure_endpoint: str = Param(
-        None,
-        help=(
-            "HTTPS endpoint for the Azure OpenAI model. The azure_endpoint, "
-            "azure_deployment, and api_version parameters are used to construct "
-            "the full URL for the Azure OpenAI model."
-        ),
-        required=True,
+    azure_endpoint: str = field(
+        metadata={
+            "description": (
+                "HTTPS endpoint for the Azure OpenAI model."
+            )
+        }
     )
-    azure_deployment: str = Param(None, help="Azure deployment name", required=True)
-    api_version: str = Param(None, help="Azure model version", required=True)
-    azure_ad_token: Optional[str] = Param(None, help="Azure AD token")
-    azure_ad_token_provider: Optional[str] = Param(None, help="Azure AD token provider")
-
-    @Param.auto(depends_on=["azure_ad_token_provider"])
-    def azure_ad_token_provider_(self):
-        if isinstance(self.azure_ad_token_provider, str):
-            return import_dotted_string(self.azure_ad_token_provider, safe=False)
+    azure_deployment: str = field(
+        metadata={"description": "Azure deployment name"}
+    )
+    api_version: str = field(metadata={"description": "Azure model version"})
+    azure_ad_token: Optional[str] = field(
+        default=None, metadata={"description": "Azure AD token"}
+    )
 
     def prepare_client(self, async_version: bool = False):
         """Get the OpenAI client
@@ -225,7 +229,6 @@ class AzureOpenAIEmbeddings(BaseOpenAIEmbeddings):
             "api_version": self.api_version,
             "api_key": self.api_key,
             "azure_ad_token": self.azure_ad_token,
-            "azure_ad_token_provider": self.azure_ad_token_provider_,
             "timeout": self.timeout,
             "max_retries": self.max_retries_,
         }

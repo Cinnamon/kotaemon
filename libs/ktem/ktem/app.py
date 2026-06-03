@@ -8,7 +8,7 @@ from ktem import extension_protocol
 from ktem.assets import PDFJS_PREBUILT_DIR, KotaemonTheme
 from ktem.components import reasonings
 from ktem.exceptions import HookAlreadyDeclared, HookNotDeclared
-from ktem.index import IndexManager
+from ktem.collections import CollectionManager
 from ktem.settings import BaseSettingGroup, SettingGroup, SettingReasoningGroup
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
@@ -83,10 +83,10 @@ class BaseApp:
 
     def initialize_indices(self):
         """Create the index manager, start indices, and register to app settings"""
-        self.index_manager = IndexManager(self)
-        self.index_manager.on_application_startup()
+        self.collection_manager = CollectionManager(self)
+        self.collection_manager.on_application_startup()
 
-        for index in self.index_manager.indices:
+        for index in self.collection_manager.collections:
             options = index.get_user_settings()
             self.default_settings.index.options[index.id] = BaseSettingGroup(
                 settings=options

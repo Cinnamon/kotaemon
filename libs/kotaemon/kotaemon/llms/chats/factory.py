@@ -1,20 +1,29 @@
+from __future__ import annotations
+
+from enum import Enum
+
 from .base import ChatLLM as BaseChatLLM
 from .openai import AzureChatOpenAI
-from .env import AzureLLMSettings
+
+
+class LLMVendor(str, Enum):
+    AZURE_CHAT_OPENAI = "AzureChatOpenAI"
+
+
+MP_VENDOR_CLS: dict[LLMVendor, type[BaseChatLLM]] = {
+    LLMVendor.AZURE_CHAT_OPENAI: AzureChatOpenAI,
+}
 
 
 class LLMFactory:
     @staticmethod
-    def azure(env: AzureLLMSettings) -> BaseChatLLM:
-        return AzureChatOpenAI(
-            azure_endpoint=env.AZURE_OPENAI_ENDPOINT,
-            api_key=env.AZURE_OPENAI_API_KEY,
-            api_version=env.AZURE_OPENAI_API_VERSION,
-            azure_deployment=env.AZURE_OPENAI_CHAT_DEPLOYMENT,
-        )
+    def get_cls(vendor: LLMVendor) -> type[BaseChatLLM]:
+        """Return the class for *vendor*, coercing bare strings."""
+        key = LLMVendor(vendor)
+        if key not in MP_VENDOR_CLS:
+            raise ValueError(f"Invalid LLM vendor: {vendor!r}")
+        return MP_VENDOR_CLS[key]
 
     @staticmethod
-    def supported_vendors() -> list[type[BaseChatLLM]]:
-        return [
-            AzureChatOpenAI,
-        ]
+    def supported_vendors() -> list[LLMVendor]:
+        return list(MP_VENDOR_CLS.keys())

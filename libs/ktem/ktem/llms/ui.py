@@ -3,9 +3,9 @@ from copy import deepcopy
 import gradio as gr
 import pandas as pd
 import yaml
+from kotaemon.llms.chats.factory import LLMFactory, LLMVendor
 from ktem.app import BaseApp, BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
-from theflow.utils.modules import deserialize
 
 from .manager import llms
 
@@ -14,8 +14,6 @@ def format_description(cls):
     params = cls.describe()["params"]
     params_lines = ["| Name | Type | Description |", "| --- | --- | --- |"]
     for key, value in params.items():
-        if isinstance(value["auto_callback"], str):
-            continue
         params_lines.append(f"| {key} | {value['type']} | {value['help']} |")
     return f"{cls.__doc__}\n\n" + "\n".join(params_lines)
 
@@ -133,12 +131,18 @@ class LLMManagement(BasePage):
             outputs=[self.llm_list],
         )
         self._app.app.load(
-            lambda: gr.update(choices=list(llms.vendors().keys())),
+            lambda: gr.update(
+                choices=[
+                    vendor.value 
+                    for vendor 
+                    in LLMFactory.supported_vendors()
+                ]
+            ),
             outputs=[self.llm_choices],
         )
 
-    def on_llm_vendor_change(self, vendor):
-        vendor = llms.vendors()[vendor]
+    def on_llm_vendor_change(self, vendor: str):
+        vendor = LLMFactory.get_cls(LLMVendor(vendor))
 
         required: dict = {}
         desc = vendor.describe()
@@ -250,13 +254,8 @@ class LLMManagement(BasePage):
         try:
             name = name.strip()
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
-            spec["__type__"] = (
-                llms.vendors()[choices].__module__
-                + "."
-                + llms.vendors()[choices].__qualname__
-            )
-
-            llms.add(name, spec=spec, default=default)
+            
+            llms.add(name, vendor=LLMVendor(choices), spec=spec, default=default)
             gr.Info(f"LLM '{name}' created successfully")
         except ValueError as e:
             raise gr.Error(str(e))
@@ -309,12 +308,10 @@ class LLMManagement(BasePage):
             btn_delete_no = gr.update(visible=False)
 
             item = llms.info()[selected_llm_name]
-            spec = deepcopy(item.spec)
-            vendor_str = spec.pop("__type__", "-").split(".")[-1]
-            vendor = llms.vendors()[vendor_str]
+            vendor = LLMFactory.get_cls(LLMVendor(item.vendor))
 
             edit_name = selected_llm_name
-            edit_spec = yaml.dump(spec)
+            edit_spec = yaml.dump(item.spec)
             edit_spec_desc = format_description(vendor)
             edit_default = item.default
 
@@ -346,12 +343,11 @@ class LLMManagement(BasePage):
             yield log_content
 
             item = llms.info()[selected_llm_name]
-            spec = deepcopy(item.spec)
-            spec.update(
+            params = deepcopy(item.spec)
+            params.update(
                 yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
             )
-
-            llm = deserialize(spec, safe=False)
+            llm = LLMFactory.get_cls(item.vendor)(**params)
 
             if llm is None:
                 raise Exception(f"Can not found model: {selected_llm_name}")
@@ -380,9 +376,13 @@ class LLMManagement(BasePage):
         try:
             new_name = edit_name.strip()
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
-            spec["__type__"] = llms.info()[selected_llm_name].spec["__type__"]
+            item = llms.info()[selected_llm_name]
             llms.update(
-                selected_llm_name, spec=spec, default=default, new_name=new_name
+                selected_llm_name,
+                vendor=LLMVendor(item.vendor),
+                spec=spec,
+                default=default,
+                new_name=new_name,
             )
             final_name = (
                 new_name if new_name != selected_llm_name else selected_llm_name

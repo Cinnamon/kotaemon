@@ -3,10 +3,9 @@ from typing import Optional
 from ktem.db.cruds import LLMCRUD
 from ktem.db.engine import engine
 from ktem.db.models import LLMTable
-from theflow.utils.modules import deserialize
 
 from kotaemon.llms import ChatLLM
-from kotaemon.llms.chats.factory import LLMFactory
+from kotaemon.llms.chats.factory import LLMFactory, LLMVendor
 
 
 class LLMManager:
@@ -16,10 +15,8 @@ class LLMManager:
         self._models: dict[str, ChatLLM] = {}
         self._info: dict[str, LLMTable] = {}
         self._default: str = ""
-        self._vendors: list[type[ChatLLM]] = []
 
         self.load()
-        self.load_vendors()
 
     def load(self) -> None:
         """Load the model pool from database."""
@@ -27,19 +24,11 @@ class LLMManager:
 
         with LLMCRUD(engine) as crud:
             for item in crud.list_all():
-                self._models[item.name] = deserialize(
-                    item.spec, safe=False
-                )
-                self._info[item.name] = LLMTable(
-                    name=item.name,
-                    spec=item.spec,
-                    default=item.default,
-                )
+                llm_cls = LLMFactory.get_cls(LLMVendor(item.vendor))
+                self._models[item.name] = llm_cls(**item.spec)
+                self._info[item.name] = item
                 if item.default:
                     self._default = item.name
-
-    def load_vendors(self) -> None:
-        self._vendors = LLMFactory.supported_vendors()
 
     def __getitem__(self, key: str) -> ChatLLM:
         """Get model by name."""
@@ -91,12 +80,13 @@ class LLMManager:
         """Return all model metadata keyed by name."""
         return self._info
 
-    def add(self, name: str, spec: dict, default: bool) -> None:
+    def add(self, name: str, vendor: LLMVendor, spec: dict, default: bool) -> None:
         """Add a new model to the pool.
 
         Args:
             name: unique model name.
-            spec: serialised model specification.
+            vendor: vendor class identifier for factory lookup.
+            spec: constructor parameters for the vendor class.
             default: make this model the pool default.
 
         Raises:
@@ -104,7 +94,12 @@ class LLMManager:
         """
         try:
             with LLMCRUD(engine) as crud:
-                crud.create(name=name, spec=spec, default=default)
+                crud.create(
+                    name=name, 
+                    vendor=vendor, 
+                    spec=spec, 
+                    default=default,
+                )
         except ValueError:
             raise
         except Exception as e:
@@ -129,6 +124,7 @@ class LLMManager:
     def update(
         self,
         name: str,
+        vendor: LLMVendor,
         spec: dict,
         default: bool,
         new_name: str = "",
@@ -137,7 +133,8 @@ class LLMManager:
 
         Args:
             name: current model name.
-            spec: new serialised specification.
+            vendor: vendor class identifier for factory lookup.
+            spec: constructor parameters for the vendor class.
             default: new default flag.
             new_name: rename the model when non-empty.
 
@@ -151,12 +148,14 @@ class LLMManager:
                     " Use a unique name."
                 )
             self.delete(name)
-            self.add(new_name, spec=spec, default=default)
+            self.add(new_name, vendor=vendor, spec=spec, default=default)
             return
 
         try:
             with LLMCRUD(engine) as crud:
-                crud.update(name, spec=spec, default=default)
+                crud.update(
+                    name, vendor=vendor, spec=spec, default=default
+                )
         except ValueError:
             raise
         except Exception as e:
@@ -164,10 +163,6 @@ class LLMManager:
                 f"Failed to update LLM '{name}': {e}"
             ) from e
         self.load()
-
-    def vendors(self) -> dict[str, type[ChatLLM]]:
-        """Return all registered vendor classes keyed by qualified name."""
-        return {v.__qualname__: v for v in self._vendors}
 
 
 llms = LLMManager()

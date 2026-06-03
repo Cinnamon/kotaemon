@@ -4,7 +4,7 @@ from typing import Literal, TypedDict
 from typing_extensions import NotRequired
 
 from ktem.embeddings.manager import embedding_models_manager
-from ktem.index.file.types import IndexSettings
+from ktem.collections.file.types import IndexSettings
 
 from kotaemon.indices.indexing import BaseIndexing
 from kotaemon.indices.indexing.impl.rag import (

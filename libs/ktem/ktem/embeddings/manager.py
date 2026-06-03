@@ -1,12 +1,15 @@
-from typing import Optional, Type
+from typing import Optional
 
 from ktem.db.cruds import EmbeddingCRUD
 from ktem.db.engine import engine
 from ktem.db.models import EmbeddingTable
-from theflow.settings import settings as flowsettings
-from theflow.utils.modules import deserialize
 
 from kotaemon.embeddings.base import BaseEmbeddings
+from kotaemon.embeddings.factory import (
+    MP_VENDOR_CLS,
+    EmbeddingFactory,
+    EmbeddingVendor,
+)
 
 
 class EmbeddingManager:
@@ -16,20 +19,8 @@ class EmbeddingManager:
         self._models: dict[str, BaseEmbeddings] = {}
         self._info: dict[str, EmbeddingTable] = {}
         self._default: str = ""
-        self._vendors: list[Type] = []
-
-        if hasattr(flowsettings, "KH_EMBEDDINGS"):
-            with EmbeddingCRUD(engine) as crud:
-                if not crud.list_all():
-                    for name, model in flowsettings.KH_EMBEDDINGS.items():
-                        crud.create(
-                            name=name,
-                            spec=model["spec"],
-                            default=model.get("default", False),
-                        )
 
         self.load()
-        self.load_vendors()
 
     def load(self) -> None:
         """Load the model pool from database."""
@@ -37,21 +28,12 @@ class EmbeddingManager:
 
         with EmbeddingCRUD(engine) as crud:
             for item in crud.list_all():
-                self._models[item.name] = deserialize(
-                    item.spec, safe=False
-                )
-                self._info[item.name] = EmbeddingTable(
-                    name=item.name,
-                    spec=item.spec,
-                    default=item.default,
-                )
+                self._models[item.name] = EmbeddingFactory.get_cls(
+                    item.vendor
+                )(**item.spec)
+                self._info[item.name] = item
                 if item.default:
                     self._default = item.name
-
-    def load_vendors(self) -> None:
-        from kotaemon.embeddings import AzureOpenAIEmbeddings
-
-        self._vendors = [AzureOpenAIEmbeddings]
 
     def __getitem__(self, key: str) -> BaseEmbeddings:
         """Get model by name."""
@@ -107,12 +89,19 @@ class EmbeddingManager:
         """Return all model metadata keyed by name."""
         return self._info
 
-    def add(self, name: str, spec: dict, default: bool) -> None:
+    def add(
+        self,
+        name: str,
+        vendor: EmbeddingVendor,
+        spec: dict,
+        default: bool,
+    ) -> None:
         """Add a new model to the pool.
 
         Args:
             name: unique model name.
-            spec: serialised model specification.
+            vendor: vendor class identifier for factory lookup.
+            spec: constructor parameters for the vendor class.
             default: make this model the pool default.
 
         Raises:
@@ -120,7 +109,9 @@ class EmbeddingManager:
         """
         try:
             with EmbeddingCRUD(engine) as crud:
-                crud.create(name=name, spec=spec, default=default)
+                crud.create(
+                    name=name, vendor=vendor, spec=spec, default=default
+                )
         except ValueError:
             raise
         except Exception as e:
@@ -145,6 +136,7 @@ class EmbeddingManager:
     def update(
         self,
         name: str,
+        vendor: EmbeddingVendor,
         spec: dict,
         default: bool,
         new_name: str = "",
@@ -153,7 +145,8 @@ class EmbeddingManager:
 
         Args:
             name: current model name.
-            spec: new serialised specification.
+            vendor: vendor class identifier for factory lookup.
+            spec: constructor parameters for the vendor class.
             default: new default flag.
             new_name: rename the model when non-empty.
 
@@ -170,12 +163,14 @@ class EmbeddingManager:
                     " Use a unique name."
                 )
             self.delete(name)
-            self.add(new_name, spec=spec, default=default)
+            self.add(new_name, vendor=vendor, spec=spec, default=default)
             return
 
         try:
             with EmbeddingCRUD(engine) as crud:
-                crud.update(name, spec=spec, default=default)
+                crud.update(
+                    name, vendor=vendor, spec=spec, default=default
+                )
         except ValueError:
             raise
         except Exception as e:
@@ -184,9 +179,9 @@ class EmbeddingManager:
             ) from e
         self.load()
 
-    def vendors(self) -> dict[str, Type]:
-        """Return all registered vendor classes keyed by qualified name."""
-        return {v.__qualname__: v for v in self._vendors}
+    def vendors(self) -> dict[EmbeddingVendor, type[BaseEmbeddings]]:
+        """Return all registered vendor classes keyed by EmbeddingVendor."""
+        return {v: MP_VENDOR_CLS[v] for v in self._vendors}
 
 
 embedding_models_manager = EmbeddingManager()

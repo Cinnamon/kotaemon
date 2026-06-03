@@ -6,11 +6,11 @@ from sqlalchemy.orm import Session
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
 
-from .base import BaseIndex
-from .models import Index
+from .base import BaseCollection
+from ktem.db.models import Index
 
 
-class IndexManager:
+class CollectionManager:
     """Manage the application indices
 
     The index manager is responsible for:
@@ -23,8 +23,8 @@ class IndexManager:
 
     def __init__(self, app):
         self._app = app
-        self._indices = []
-        self._index_types: dict[str, Type[BaseIndex]] = {}
+        self._collections = []
+        self._index_types: dict[str, Type[BaseCollection]] = {}
 
     @property
     def index_types(self) -> dict:
@@ -45,7 +45,7 @@ class IndexManager:
                 generated automatically. Defaults to None.
 
         Returns:
-            BaseIndex: the index object
+            BaseCollection: the index object
         """
 
         with Session(engine) as sess:
@@ -87,7 +87,7 @@ class IndexManager:
             entry.config = config
             sess.commit()
 
-        for index in self._indices:
+        for index in self._collections:
             if index.id == id:
                 index.name = name
                 index.config = config
@@ -106,13 +106,13 @@ class IndexManager:
         index = index_cls(app=self._app, id=id, name=name, config=config)
         index.on_start()
 
-        self._indices.append(index)
+        self._collections.append(index)
         return index
 
     def delete_index(self, id: int):
         """Delete the index from the database"""
-        index: Optional[BaseIndex] = None
-        for _ in self._indices:
+        index: Optional[BaseCollection] = None
+        for _ in self._collections:
             if _.id == id:
                 index = _
                 break
@@ -136,8 +136,8 @@ class IndexManager:
                 sess.delete(item)
                 sess.commit()
 
-            new_indices = [_ for _ in self._indices if _.id != id]
-            self._indices = new_indices
+            new_indices = [_ for _ in self._collections if _.id != id]
+            self._collections = new_indices
         except Exception as e:
             raise ValueError(f"Cannot delete index {index.name}: {e}")
 
@@ -153,7 +153,7 @@ class IndexManager:
 
         # developer-defined custom index types
         for index_str in settings.KH_INDEX_TYPES:
-            cls: Type[BaseIndex] = import_dotted_string(index_str, safe=False)
+            cls: Type[BaseCollection] = import_dotted_string(index_str, safe=False)
             self._index_types[f"{cls.__module__}.{cls.__qualname__}"] = cls
 
     def exists(self, id: Optional[int] = None, name: Optional[str] = None) -> bool:
@@ -199,8 +199,8 @@ class IndexManager:
                 )
 
     @property
-    def indices(self):
-        return self._indices[:1]
+    def collections(self):
+        return self._collections[:1]
 
     def info(self):
-        return {index.id: index for index in self._indices}
+        return {index.id: index for index in self._collections}

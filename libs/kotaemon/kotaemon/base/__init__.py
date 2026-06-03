@@ -1,4 +1,5 @@
 from .component import BaseComponent, Node, Param, lazy
+from .describe import DataclassDescribe, DataclassParamDesc, describe_dataclass
 from .schema import (
     AIMessage,
     BaseMessage,
@@ -27,4 +28,7 @@ __all__ = [
     "Param",
     "Node",
     "lazy",
+    "describe_dataclass",
+    "DataclassDescribe",
+    "DataclassParamDesc",
 ]

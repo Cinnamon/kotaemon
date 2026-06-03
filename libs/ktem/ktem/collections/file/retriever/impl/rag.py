@@ -5,7 +5,7 @@ from typing import Literal, Optional, TypedDict
 
 from decouple import config
 from ktem.embeddings.manager import embedding_models_manager
-from ktem.index.file.types import IndexSettings
+from ktem.collections.file.types import IndexSettings
 from ktem.llms.manager import llms
 from ktem.rerankings.manager import reranking_models_manager
 

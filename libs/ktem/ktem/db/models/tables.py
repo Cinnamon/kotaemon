@@ -1,4 +1,8 @@
+from typing import Any, Optional
+
 from ktem.db.engine import engine
+from sqlalchemy import JSON, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
 from theflow.settings import settings
 from theflow.utils.modules import import_dotted_string
 
@@ -81,6 +85,19 @@ class LLMTable(_base_llm):  # type: ignore
     """LLM model pool record"""
 
     __tablename__ = "llm_table"  # type: ignore
+
+
+class Index(Base):
+    """Collection (index) record"""
+
+    __tablename__ = "ktem__index"
+
+    id: Mapped[Optional[int]] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    name: Mapped[str] = mapped_column(String, unique=True)
+    index_type: Mapped[str] = mapped_column(String)
+    config: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
 
 if not getattr(settings, "KH_ENABLE_ALEMBIC", False):

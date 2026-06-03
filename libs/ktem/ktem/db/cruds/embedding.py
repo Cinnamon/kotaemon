@@ -2,6 +2,7 @@ from typing import Any
 
 from sqlalchemy import select, update
 
+from kotaemon.embeddings.factory import EmbeddingVendor
 from ktem.db.models import EmbeddingTable
 
 from .base import BaseCRUD
@@ -19,6 +20,7 @@ class EmbeddingCRUD(BaseCRUD):
     def create(
         self,
         name: str,
+        vendor: EmbeddingVendor,
         spec: dict[str, Any],
         *,
         default: bool = False,
@@ -29,7 +31,8 @@ class EmbeddingCRUD(BaseCRUD):
 
         Args:
             name: unique name for this embedding model.
-            spec: serialised model specification.
+            vendor: vendor class identifier for factory lookup.
+            spec: constructor parameters for the vendor class.
             default: make this model the pool default.
 
         Returns:
@@ -46,7 +49,9 @@ class EmbeddingCRUD(BaseCRUD):
             )
         if default:
             self.clear_defaults()
-        item = EmbeddingTable(name=name, spec=spec, default=default)
+        item = EmbeddingTable(
+            name=name, vendor=vendor, spec=spec, default=default
+        )
         self.session.add(item)
         self.commit()
         self.session.refresh(item)
@@ -70,6 +75,7 @@ class EmbeddingCRUD(BaseCRUD):
         self,
         name: str,
         *,
+        vendor: EmbeddingVendor | None = None,
         spec: dict[str, Any] | None = None,
         default: bool | None = None,
     ) -> EmbeddingTable:
@@ -79,6 +85,7 @@ class EmbeddingCRUD(BaseCRUD):
 
         Args:
             name: primary-key name of the entry to update.
+            vendor: new vendor class id; unchanged when None.
             spec: new spec; unchanged when None.
             default: new default flag; unchanged when None.
 
@@ -95,6 +102,8 @@ class EmbeddingCRUD(BaseCRUD):
             )
         if default is True:
             self.clear_defaults()
+        if vendor is not None:
+            item.vendor = vendor
         if spec is not None:
             item.spec = spec
         if default is not None:

@@ -9,6 +9,7 @@ from .settings import BaseSettings
 from .tables import (
     Conversation,
     EmbeddingTable,
+    Index,
     IssueReport,
     LLMTable,
     Settings,
@@ -32,6 +33,7 @@ __all__ = [
     # concrete table models
     "Conversation",
     "EmbeddingTable",
+    "Index",
     "IssueReport",
     "LLMTable",
     "Settings",

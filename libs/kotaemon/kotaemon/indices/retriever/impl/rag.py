@@ -5,6 +5,7 @@ import logging
 import time
 import warnings
 from collections import defaultdict
+from functools import cached_property
 from typing import Optional, Sequence
 
 from llama_index.core.vector_stores import (
@@ -17,7 +18,7 @@ from llama_index.core.vector_stores.types import VectorStoreQueryMode
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from kotaemon.base import Node, Param, RetrievedDocument
+from kotaemon.base import RetrievedDocument
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.indices.rankings import BaseReranking, LLMReranking
 from kotaemon.indices.retriever.base import BaseRetriever
@@ -40,14 +41,14 @@ class DocumentRetrievalPipeline(BaseRetriever):
     """
 
     embedding: BaseEmbeddings
-    rerankers: Sequence[BaseReranking] = []
+    rerankers: Sequence[BaseReranking] = ()
     llm_scorer: LLMReranking | None = LLMReranking.withx()
     get_extra_table: bool = False
     mmr: bool = False
     top_k: int = 5
     retrieval_mode: str = "hybrid"
 
-    @Node.auto(depends_on=["embedding", "VS", "DS"])
+    @cached_property
     def vector_retrieval(self) -> VectorRetrieval:
         return VectorRetrieval(
             embedding=self.embedding,

@@ -5,7 +5,7 @@ import pandas as pd
 import yaml
 from ktem.app import BaseApp, BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
-from theflow.utils.modules import deserialize
+from kotaemon.embeddings.factory import EmbeddingFactory, EmbeddingVendor
 
 from .manager import embedding_models_manager
 
@@ -14,8 +14,6 @@ def format_description(cls):
     params = cls.describe()["params"]
     params_lines = ["| Name | Type | Description |", "| --- | --- | --- |"]
     for key, value in params.items():
-        if isinstance(value["auto_callback"], str):
-            continue
         params_lines.append(f"| {key} | {value['type']} | {value['help']} |")
     return f"{cls.__doc__}\n\n" + "\n".join(params_lines)
 
@@ -134,12 +132,18 @@ class EmbeddingManagement(BasePage):
             outputs=[self.emb_list],
         )
         self._app.app.load(
-            lambda: gr.update(choices=list(embedding_models_manager.vendors().keys())),
+            lambda: gr.update(
+                choices=[
+                    vendor.value 
+                    for vendor 
+                    in EmbeddingFactory.supported_vendors()
+                ]
+            ),
             outputs=[self.emb_choices],
         )
 
-    def on_emb_vendor_change(self, vendor):
-        vendor = embedding_models_manager.vendors()[vendor]
+    def on_emb_vendor_change(self, vendor: str):
+        vendor = EmbeddingFactory.get_cls(EmbeddingVendor(vendor))
 
         required: dict = {}
         desc = vendor.describe()
@@ -251,13 +255,11 @@ class EmbeddingManagement(BasePage):
         try:
             name = name.strip()
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
-            spec["__type__"] = (
-                embedding_models_manager.vendors()[choices].__module__
-                + "."
-                + embedding_models_manager.vendors()[choices].__qualname__
-            )
+            vendor = EmbeddingVendor(choices)
 
-            embedding_models_manager.add(name, spec=spec, default=default)
+            embedding_models_manager.add(
+                name, vendor=vendor, spec=spec, default=default
+            )
             gr.Info(f'Embedding model "{name}" created successfully')
         except ValueError as e:
             raise gr.Error(str(e))
@@ -310,12 +312,10 @@ class EmbeddingManagement(BasePage):
             btn_delete_no = gr.update(visible=False)
 
             item = embedding_models_manager.info()[selected_emb_name]
-            spec = deepcopy(item.spec)
-            vendor_str = spec.pop("__type__", "-").split(".")[-1]
-            vendor = embedding_models_manager.vendors()[vendor_str]
+            vendor = EmbeddingFactory.get_cls(EmbeddingVendor(item.vendor))
 
             edit_name = selected_emb_name
-            edit_spec = yaml.dump(spec)
+            edit_spec = yaml.dump(item.spec)
             edit_spec_desc = format_description(vendor)
             edit_default = item.default
 
@@ -345,14 +345,12 @@ class EmbeddingManagement(BasePage):
             log_content += f"- Testing model: {selected_emb_name}<br>"
             yield log_content
 
-            # Parse content & init model
             item = embedding_models_manager.info()[selected_emb_name]
-            spec = deepcopy(item.spec)
-            spec.update(
+            params = deepcopy(item.spec)
+            params.update(
                 yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
             )
-
-            emb = deserialize(spec, safe=False)
+            emb = EmbeddingFactory.get_cls(item.vendor)(**params)
 
             if emb is None:
                 raise Exception(f"Can not found model: {selected_emb_name}")
@@ -382,11 +380,13 @@ class EmbeddingManagement(BasePage):
         try:
             new_name = edit_name.strip()
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
-            spec["__type__"] = embedding_models_manager.info()[
-                selected_emb_name
-            ].spec["__type__"]
+            item = embedding_models_manager.info()[selected_emb_name]
             embedding_models_manager.update(
-                selected_emb_name, spec=spec, default=default, new_name=new_name
+                selected_emb_name,
+                vendor=item.vendor,
+                spec=spec,
+                default=default,
+                new_name=new_name,
             )
             final_name = (
                 new_name if new_name != selected_emb_name else selected_emb_name

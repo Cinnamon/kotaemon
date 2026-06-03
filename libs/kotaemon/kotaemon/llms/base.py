@@ -2,10 +2,10 @@ from typing import AsyncGenerator, Iterator
 
 from langchain_core.language_models.base import BaseLanguageModel
 
-from kotaemon.base import BaseComponent, LLMInterface
+from kotaemon.base import LLMInterface
 
 
-class BaseLLM(BaseComponent):
+class BaseLLM:
     def to_langchain_format(self) -> BaseLanguageModel:
         raise NotImplementedError
 
@@ -21,5 +21,5 @@ class BaseLLM(BaseComponent):
     def astream(self, *args, **kwargs) -> AsyncGenerator[LLMInterface, None]:
         raise NotImplementedError
 
-    def run(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> LLMInterface:
         return self.invoke(*args, **kwargs)
