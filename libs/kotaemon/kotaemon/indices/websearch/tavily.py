@@ -1,26 +1,36 @@
+from dataclasses import dataclass, field
+
 from decouple import config
 
 from kotaemon.base import RetrievedDocument
 
-TAVILY_API_KEY = config("TAVILY_API_KEY", default="")
+from .base import BaseWebSearch
 
 
-class WebSearch:
+@dataclass(kw_only=True)
+class TavilyWebSearch(BaseWebSearch):
+    """Web search via the Tavily API."""
+
+    api_key: str = field(
+        default_factory=lambda: config("TAVILY_API_KEY", default=""),
+        metadata={"description": "Tavily API key (https://app.tavily.com/)."},
+    )
+
     def run(self, text: str, *args, **kwargs) -> list[RetrievedDocument]:
-        if TAVILY_API_KEY == "":
+        if not self.api_key:
             raise ValueError(
                 "This feature requires TAVILY_API_KEY "
-                "(get free one from https://app.tavily.com/)"
+                "(get a free key from https://app.tavily.com/)"
             )
         try:
             from tavily import TavilyClient
-        except ImportError:
+        except ImportError as e:
             raise ImportError(
-                "Please install `pip install tavily-python` to use this feature"
-            )
+                "Please install tavily-python: pip install tavily-python"
+            ) from e
 
-        tavily_client = TavilyClient(api_key=TAVILY_API_KEY)
-        results = tavily_client.search(query=text, search_depth="advanced")["results"]
+        client = TavilyClient(api_key=self.api_key)
+        results = client.search(query=text, search_depth="advanced")["results"]
         context = "\n\n".join(
             "###URL: [{url}]({url})\n\n{content}".format(
                 url=result["url"], content=result["content"]
@@ -37,6 +47,3 @@ class WebSearch:
                 },
             )
         ]
-
-    def generate_relevant_scores(self, text, documents: list[RetrievedDocument]):
-        return documents

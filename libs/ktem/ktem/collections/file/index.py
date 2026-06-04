@@ -1,26 +1,25 @@
-import uuid
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, Type
 
 from ktem.collections.base import BaseCollection
+from ktem.collections.file.stores import (
+    SqlAlchemyChunkRelationStore,
+    SqlAlchemyFileSourceStore,
+)
 from ktem.collections.registry import get_pipeline_cls
 from ktem.components import get_docstore, get_vectorstore
 from ktem.db.engine import engine
+from ktem.db.models.file_index import (
+    get_file_chunk_relation_model,
+    get_file_group_model,
+    get_file_source_model,
+)
 from ktem.embeddings.manager import embedding_models_manager
 from ktem.settings_config import app_settings as flowsettings
-from sqlalchemy import JSON, Column, DateTime, Integer, String, UniqueConstraint
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.mutable import MutableDict
-from tzlocal import get_localzone
 
 from kotaemon.indices.indexing import BaseIndexing
 from kotaemon.indices.retriever import BaseRetriever
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
-
-
-def generate_uuid():
-    return str(uuid.uuid4())
 
 
 class FileIndex(BaseCollection):
@@ -59,98 +58,10 @@ class FileIndex(BaseCollection):
             - Document store
             - File storage path
         """
-        Base = declarative_base()
-
-        if self.config.get("private", False):
-            Source = type(
-                "Source",
-                (Base,),
-                {
-                    "__tablename__": f"index__{self.id}__source",
-                    "__table_args__": (
-                        UniqueConstraint("name", "user", name="_name_user_uc"),
-                    ),
-                    "id": Column(
-                        String,
-                        primary_key=True,
-                        default=lambda: str(uuid.uuid4()),
-                        unique=True,
-                    ),
-                    "name": Column(String),
-                    "path": Column(String),
-                    "size": Column(Integer, default=0),
-                    "date_created": Column(
-                        DateTime(timezone=True), default=datetime.now(get_localzone())
-                    ),
-                    "user": Column(String, default=""),
-                    "note": Column(
-                        MutableDict.as_mutable(JSON),  # type: ignore
-                        default={},
-                    ),
-                },
-            )
-        else:
-            Source = type(
-                "Source",
-                (Base,),
-                {
-                    "__tablename__": f"index__{self.id}__source",
-                    "id": Column(
-                        String,
-                        primary_key=True,
-                        default=lambda: str(uuid.uuid4()),
-                        unique=True,
-                    ),
-                    "name": Column(String, unique=True),
-                    "path": Column(String),
-                    "size": Column(Integer, default=0),
-                    "date_created": Column(
-                        DateTime(timezone=True), default=datetime.now(get_localzone())
-                    ),
-                    "user": Column(String, default=""),
-                    "note": Column(
-                        MutableDict.as_mutable(JSON),  # type: ignore
-                        default={},
-                    ),
-                },
-            )
-        Index = type(
-            "IndexTable",
-            (Base,),
-            {
-                "__tablename__": f"index__{self.id}__index",
-                "id": Column(Integer, primary_key=True, autoincrement=True),
-                "source_id": Column(String),
-                "target_id": Column(String),
-                "relation_type": Column(String),
-                "user": Column(String, default=""),
-            },
-        )
-        FileGroup = type(
-            "FileGroupTable",
-            (Base,),
-            {
-                "__tablename__": f"index__{self.id}__group",
-                "__table_args__": (
-                    UniqueConstraint("name", "user", name="_name_user_uc"),
-                ),
-                "id": Column(
-                    String,
-                    primary_key=True,
-                    default=lambda: str(uuid.uuid4()),
-                    unique=True,
-                ),
-                "date_created": Column(
-                    DateTime(timezone=True), default=datetime.now(get_localzone())
-                ),
-                "name": Column(String),
-                "user": Column(String, default=""),
-                "data": Column(
-                    MutableDict.as_mutable(JSON),  # type: ignore
-                    default={"files": []},
-                ),
-            },
-        )
+        private = self.config.get("private", False)
+        Source = get_file_source_model(self.id, private=private)
+        Index = get_file_chunk_relation_model(self.id)
+        FileGroup = get_file_group_model(self.id)
 
         self._vs: BaseVectorStore = get_vectorstore(f"index_{self.id}")
         self._docstore: BaseDocumentStore = get_docstore(f"index_{self.id}")
@@ -390,6 +301,15 @@ class FileIndex(BaseCollection):
         run_embedding_in_thread=use_quick_index_mode,
         reader_mode=user_settings.get("reader_mode", "default"),
         """
+        file_source = SqlAlchemyFileSourceStore(
+            engine=engine,
+            source_model=self._resources["Source"],
+            private=self.config.get("private", False),
+        )
+        chunk_relations = SqlAlchemyChunkRelationStore(
+            engine=engine,
+            index_model=self._resources["Index"],
+        )
         params_input = {
             "embedding": embedding_models_manager[
                 self.config.get(
@@ -400,13 +320,12 @@ class FileIndex(BaseCollection):
                 "run_embedding_in_thread", False
             ),
             "reader_mode": self.config.get("reader_mode", "default"),
-            "Source": self._resources["Source"],
-            "Index": self._resources["Index"],
+            "file_source": file_source,
+            "chunk_relations": chunk_relations,
             "VS": self._vs,
             "DS": self._docstore,
             "FSPath": self._fs_path,
             "user_id": user_id,
-            "engine": engine,
             "private": self.config.get("private", False),
             "chunk_size": self.config.get("chunk_size", 0),
             "chunk_overlap": self.config.get("chunk_overlap", 0),
@@ -415,21 +334,7 @@ class FileIndex(BaseCollection):
             "chunks_output_dir": flowsettings.KH_CHUNKS_OUTPUT_DIR,
         }
 
-        obj = self._indexing_pipeline_cls(**params_input)
-
-        # obj = self._indexing_pipeline_cls.get_pipeline(stripped_settings, self.config)
-        # obj.Source = self._resources["Source"]
-        # obj.Index = self._resources["Index"]
-        # obj.VS = self._vs
-        # obj.DS = self._docstore
-        # obj.FSPath = self._fs_path
-        # obj.user_id = user_id
-        # obj.engine = engine
-        # obj.private = self.config.get("private", False)
-        # obj.chunk_size = self.config.get("chunk_size", 0)
-        # obj.chunk_overlap = self.config.get("chunk_overlap", 0)
-
-        return obj
+        return self._indexing_pipeline_cls(**params_input)
 
     def get_retriever_pipelines(
         self, settings: dict, user_id: int, selected: Any = None
@@ -444,29 +349,24 @@ class FileIndex(BaseCollection):
         # transform selected id
         selected_ids: Optional[list[str]] = self._selector_ui.get_selected_ids(selected)
 
+        chunk_relations = SqlAlchemyChunkRelationStore(
+            engine=engine,
+            index_model=self._resources["Index"],
+        )
         retrievers = []
         for cls in self._retriever_pipeline_cls:
             obj = cls.get_pipeline(
                 stripped_settings,
                 self.config,
-                self._resources["Source"],
-                self._resources["Index"],
+                chunk_relations,
                 self._vs,
                 self._docstore,
                 self._fs_path,
                 user_id,
-                engine,
                 selected=selected_ids,
             )
             if obj is None:
                 continue
-            # obj.Source = self._resources["Source"]
-            # obj.Index = self._resources["Index"]
-            # obj.VS = self._vs
-            # obj.DS = self._docstore
-            # obj.FSPath = self._fs_path
-            # obj.user_id = user_id
-            # obj.engine = engine
             retrievers.append(obj)
 
         return retrievers

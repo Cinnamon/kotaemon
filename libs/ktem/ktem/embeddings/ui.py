@@ -150,7 +150,7 @@ class EmbeddingManagement(BasePage):
             if value.get("required", False):
                 required[key] = value.get("default", None)
 
-        return yaml.dump(required), format_description(vendor)
+        return yaml.dump(required), format_description(vendor_cls)
 
     def on_register_events(self):
         self.emb_choices.select(

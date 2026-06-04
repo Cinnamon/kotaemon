@@ -1,6 +1,7 @@
 from .base import ChatLLM
 from .endpoint_based import EndpointChatLLM
 from .langchain_based import (
+    BaseLCChat,
     LCAnthropicChat,
     LCAzureChatOpenAI,
     LCChatMixin,
@@ -25,6 +26,7 @@ __all__ = [
     "LCOllamaChat",
     "LCChatOpenAI",
     "LCAzureChatOpenAI",
+    "BaseLCChat",
     "LCChatMixin",
     "LlamaCppChat",
 ]

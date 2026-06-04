@@ -51,6 +51,7 @@ class _AppBaseSettings(BaseSettings):
     KH_APP_VERSION: str | None = None
     KH_APP_NAME: str = "Kotaemon"
     KH_GRADIO_SHARE: bool = False
+    KH_GRADIO_DEBUG: bool = True
     KH_ENABLE_FIRST_SETUP: bool = True
     KH_DEMO_MODE: bool = False
     KH_OLLAMA_URL: str = "http://localhost:11434/v1/"
@@ -63,9 +64,7 @@ class _AppBaseSettings(BaseSettings):
     KH_FEATURE_USER_MANAGEMENT_ADMIN: str = "admin"
     KH_FEATURE_USER_MANAGEMENT_PASSWORD: str = "admin"
     KH_ENABLE_ALEMBIC: bool = False
-    KH_WEB_SEARCH_BACKEND: str = (
-        "kotaemon.indices.retrievers.tavily_web_search.WebSearch"
-    )
+    KH_WEB_SEARCH_BACKEND: str = "TavilyWebSearch"
     N_PROMPT_OPT_EXAMPLES: int = 3
 
 
@@ -214,6 +213,9 @@ class AppSettings(
         hf_home = self.KH_APP_DATA_DIR / "huggingface"
         os.environ["HF_HOME"] = str(hf_home)
         os.environ["HF_HUB_CACHE"] = str(hf_home)
+
+        if self.KH_GRADIO_DEBUG:
+            os.environ["GRADIO_DEBUG"] = "1"
 
         if not self.KH_APP_VERSION:
             try:

@@ -1,9 +1,15 @@
+import hashlib
 from typing import Optional
 
 from ktem.db.models import User
 from sqlalchemy import select
 
 from .base import BaseCRUD
+
+
+def hash_password(password: str) -> str:
+    """Return the SHA-256 hex digest used for stored passwords."""
+    return hashlib.sha256(password.encode()).hexdigest()
 
 
 class UserCRUD(BaseCRUD):
@@ -62,6 +68,14 @@ class UserCRUD(BaseCRUD):
             username: the username to look up.
         """
         stmt = select(User).where(User.username_lower == username.lower())
+        return self.session.scalars(stmt).first()
+
+    def authenticate(self, username: str, password: str) -> User | None:
+        """Return the user when *username* and *password* match, else None."""
+        stmt = select(User).where(
+            User.username_lower == username.lower().strip(),
+            User.password == hash_password(password),
+        )
         return self.session.scalars(stmt).first()
 
     def list_all(self) -> list[User]:

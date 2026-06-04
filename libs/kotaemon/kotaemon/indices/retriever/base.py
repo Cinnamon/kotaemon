@@ -3,9 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import DeclarativeBase
-
+from kotaemon.indices.stores import ChunkRelationStore
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 
@@ -18,23 +16,19 @@ class BaseRetriever:
         - get_pipeline(cls, user_settings, index_settings, selected):
           return a fully-initialized pipeline instance
 
-    Resources injected at runtime via Params:
-        - Source: SQLAlchemy Source table
-        - Index: SQLAlchemy Index table
+    Resources injected at runtime:
+        - chunk_relations: source-to-chunk relation store
         - VS: VectorStore
         - DS: DocStore
         - FSPath: file storage path
         - user_id: the current user id
-        - engine: SQLAlchemy engine
     """
 
-    Source: type[DeclarativeBase]
-    Index: type[DeclarativeBase]
+    chunk_relations: ChunkRelationStore
     VS: BaseVectorStore
     DS: BaseDocumentStore
     FSPath: Path
     user_id: int
-    engine: Engine
 
     @classmethod
     def get_user_settings(cls) -> dict:

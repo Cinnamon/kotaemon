@@ -9,13 +9,11 @@ from dataclasses import dataclass
 from functools import cached_property
 from hashlib import sha256
 from pathlib import Path
-from typing import Any, Generator, Optional
+from typing import Generator, Optional
 
 import tiktoken
 from llama_index.core.readers.base import BaseReader
 from llama_index.core.readers.file.base import default_file_metadata_func
-from sqlalchemy import Engine, delete, select
-from sqlalchemy.orm import Session
 
 from kotaemon.base import Document
 from kotaemon.embeddings import BaseEmbeddings
@@ -31,6 +29,7 @@ from kotaemon.indices.ingests.files import (
     web_reader,
 )
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
+from kotaemon.indices.stores import ChunkRelationStore, FileSourceStore
 from kotaemon.indices.vectorindex import VectorIndexing
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
@@ -71,13 +70,12 @@ class IndexPipeline:
     splitter: BaseSplitter | None
     chunk_batch_size: int = 200
 
-    Source: Any
-    Index: Any
+    file_source: FileSourceStore
+    chunk_relations: ChunkRelationStore
     VS: BaseVectorStore
     DS: BaseDocumentStore
     FSPath: Path
     user_id: int
-    engine: Engine
     collection_name: str = "default"
     private: bool = False
     run_embedding_in_thread: bool = False
@@ -157,101 +155,58 @@ class IndexPipeline:
     def handle_chunks_docstore(self, chunks, file_id):
         """Persist chunks to doc store and record in index table."""
         self.vector_indexing.add_to_docstore(chunks)
-        with Session(self.engine) as session:
-            session.add_all(
-                [
-                    self.Index(
-                        source_id=file_id,
-                        target_id=chunk.doc_id,
-                        relation_type="document",
-                    )
-                    for chunk in chunks
-                ]
-            )
-            session.commit()
+        self.chunk_relations.add_relations(
+            file_id,
+            [chunk.doc_id for chunk in chunks],
+            "document",
+        )
 
     def handle_chunks_vectorstore(self, chunks, file_id):
         """Embed chunks and record vector ids in index table."""
         self.vector_indexing.add_to_vectorstore(chunks)
         self.vector_indexing.write_chunk_to_file(chunks)
         if self.VS:
-            with Session(self.engine) as session:
-                session.add_all(
-                    [
-                        self.Index(
-                            source_id=file_id,
-                            target_id=chunk.doc_id,
-                            relation_type="vector",
-                        )
-                        for chunk in chunks
-                    ]
-                )
-                session.commit()
+            self.chunk_relations.add_relations(
+                file_id,
+                [chunk.doc_id for chunk in chunks],
+                "vector",
+            )
 
     def get_id_if_exists(self, file_path: str | Path) -> Optional[str]:
         """Return the existing file id if this file is already indexed."""
         file_name = file_path.name if isinstance(file_path, Path) else file_path
-        cond: tuple = (
-            (self.Source.name == file_name, self.Source.user == self.user_id)
-            if self.private
-            else (self.Source.name == file_name,)
-        )
-        with Session(self.engine) as session:
-            item = session.execute(select(self.Source).where(*cond)).first()
-            if item:
-                return item[0].id
-        return None
+        return self.file_source.find_id_by_name(file_name, user_id=self.user_id)
 
     def store_url(self, url: str) -> str:
         """Persist a URL record and return the generated file id."""
         file_hash = sha256(url.encode()).hexdigest()
-        source = self.Source(name=url, path=file_hash, size=0, user=self.user_id)
-        with Session(self.engine) as session:
-            session.add(source)
-            session.commit()
-            return source.id
+        return self.file_source.create_from_url(url, file_hash, user_id=self.user_id)
 
     def store_file(self, file_path: Path) -> str:
         """Copy the file to storage, persist a record, return file id."""
         with file_path.open("rb") as fi:
             file_hash = sha256(fi.read()).hexdigest()
         shutil.copy(file_path, self.FSPath / file_hash)
-        source = self.Source(
-            name=file_path.name,
-            path=file_hash,
-            size=file_path.stat().st_size,
-            user=self.user_id,
+        return self.file_source.create_from_file(
+            file_path.name,
+            file_hash,
+            file_path.stat().st_size,
+            user_id=self.user_id,
         )
-        with Session(self.engine) as session:
-            session.add(source)
-            session.commit()
-            return source.id
 
     def finish(self, file_id: str, file_path: str | Path) -> str:
         """Populate token count and loader metadata after indexing."""
-        with Session(self.engine) as session:
-            result = session.execute(
-                select(self.Source).where(self.Source.id == file_id)
-            ).first()
-            if not result:
-                return file_id
-            item = result[0]
-            doc_ids = [
-                _[0]
-                for _ in session.execute(
-                    select(self.Index.target_id).where(
-                        self.Index.source_id == file_id,
-                        self.Index.relation_type == "document",
-                    )
-                )
-            ]
-            token_func = self.get_token_func()
-            if doc_ids and token_func:
-                docs = self.DS.get(doc_ids)
-                item.note["tokens"] = sum(len(token_func(doc.text)) for doc in docs)
-            item.note["loader"] = self.loader.__class__.__name__
-            session.add(item)
-            session.commit()
+        doc_ids = self.chunk_relations.list_target_ids(file_id, "document")
+        token_count: int | None = None
+        token_func = self.get_token_func()
+        if doc_ids and token_func:
+            docs = self.DS.get(doc_ids)
+            token_count = sum(len(token_func(doc.text)) for doc in docs)
+        self.file_source.update_note(
+            file_id,
+            tokens=token_count,
+            loader=self.loader.__class__.__name__,
+        )
         return file_id
 
     def get_token_func(self):
@@ -260,18 +215,8 @@ class IndexPipeline:
 
     def delete_file(self, file_id: str) -> None:
         """Remove a file and all its indexed chunks."""
-        with Session(self.engine) as session:
-            session.execute(delete(self.Source).where(self.Source.id == file_id))
-            vs_ids, ds_ids = [], []
-            for (each,) in session.execute(
-                select(self.Index).where(self.Index.source_id == file_id)
-            ).all():
-                if each.relation_type == "vector":
-                    vs_ids.append(each.target_id)
-                elif each.relation_type == "document":
-                    ds_ids.append(each.target_id)
-                session.delete(each)
-            session.commit()
+        vs_ids, ds_ids = self.chunk_relations.delete_by_source(file_id)
+        self.file_source.delete_source(file_id)
         if vs_ids and self.VS:
             self.VS.delete(vs_ids)
         if ds_ids:
@@ -406,13 +351,12 @@ class IndexDocumentPipeline(BaseIndexing):
                 backup_separators=["\n", ".", "\u200B"],
             ),
             run_embedding_in_thread=self.run_embedding_in_thread,
-            Source=self.Source,
-            Index=self.Index,
+            file_source=self.file_source,
+            chunk_relations=self.chunk_relations,
             VS=self.VS,
             DS=self.DS,
             FSPath=self.FSPath,
             user_id=self.user_id,
-            engine=self.engine,
             private=self.private,
             embedding=self.embedding,
             chunks_output_dir=self.chunks_output_dir,

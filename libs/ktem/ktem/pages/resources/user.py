@@ -1,12 +1,10 @@
-import hashlib
-
 import gradio as gr
 import pandas as pd
 from ktem.app import BasePage
-from ktem.db.models import User, engine
+from ktem.db.cruds import UserCRUD
+from ktem.db.cruds.user import hash_password
+from ktem.db.engine import engine
 from ktem.settings_config import app_settings as flowsettings
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 USERNAME_RULE = """**Username rule:**
 
@@ -96,26 +94,18 @@ def validate_password(pwd, pwd_cnf):
 
 
 def create_user(usn, pwd, user_id=None, is_admin=True) -> bool:
-    with Session(engine) as session:
-        statement = select(User).where(User.username_lower == usn.lower())
-        result = session.scalars(statement).all()
-        if result:
-            print(f'User "{usn}" already exists')
-            return False
-
-        else:
-            hashed_password = hashlib.sha256(pwd.encode()).hexdigest()
-            user = User(
-                id=user_id,
-                username=usn,
-                username_lower=usn.lower(),
-                password=hashed_password,
+    try:
+        with UserCRUD(engine) as crud:
+            crud.create(
+                usn,
+                hash_password(pwd),
                 admin=is_admin,
+                user_id=user_id,
             )
-            session.add(user)
-            session.commit()
-
-            return True
+        return True
+    except ValueError:
+        print(f'User "{usn}" already exists')
+        return False
 
 
 class UserManagement(BasePage):
@@ -296,21 +286,14 @@ class UserManagement(BasePage):
             gr.Warning(errors)
             return usn, pwd, pwd_cnf
 
-        with Session(engine) as session:
-            statement = select(User).where(User.username_lower == usn.lower())
-            result = session.scalars(statement).all()
-            if result:
-                gr.Warning(f'Username "{usn}" already exists')
-                return
+        try:
+            with UserCRUD(engine) as crud:
+                crud.create(usn, hash_password(pwd))
+        except ValueError:
+            gr.Warning(f'Username "{usn}" already exists')
+            return usn, pwd, pwd_cnf
 
-            hashed_password = hashlib.sha256(pwd.encode()).hexdigest()
-            user = User(
-                username=usn, username_lower=usn.lower(), password=hashed_password
-            )
-            session.add(user)
-            session.commit()
-            gr.Info(f'User "{usn}" created successfully')
-
+        gr.Info(f'User "{usn}" created successfully')
         return "", "", ""
 
     def list_users(self, user_id):
@@ -319,25 +302,28 @@ class UserManagement(BasePage):
                 [{"id": "-", "username": "-", "admin": "-"}]
             )
 
-        with Session(engine) as session:
-            statement = select(User).where(User.id == user_id)
-            user = session.scalars(statement).one()
-            if not user.admin:
+        with UserCRUD(engine) as crud:
+            user = crud.get(user_id)
+            if user is None or not user.admin:
                 return [], pd.DataFrame.from_records(
                     [{"id": "-", "username": "-", "admin": "-"}]
                 )
 
-            statement = select(User)
             results = [
-                {"id": user.id, "username": user.username, "admin": user.admin}
-                for user in session.scalars(statement).all()
+                {
+                    "id": row.id,
+                    "username": row.username,
+                    "admin": row.admin,
+                }
+                for row in crud.list_all()
             ]
-            if results:
-                user_list = pd.DataFrame.from_records(results)
-            else:
-                user_list = pd.DataFrame.from_records(
-                    [{"id": "-", "username": "-", "admin": "-"}]
-                )
+
+        if results:
+            user_list = pd.DataFrame.from_records(results)
+        else:
+            user_list = pd.DataFrame.from_records(
+                [{"id": "-", "username": "-", "admin": "-"}]
+            )
 
         return results, user_list
 
@@ -369,9 +355,10 @@ class UserManagement(BasePage):
             btn_delete_yes = gr.update(visible=False)
             btn_delete_no = gr.update(visible=False)
 
-            with Session(engine) as session:
-                statement = select(User).where(User.id == selected_user_id)
-                user = session.scalars(statement).one()
+            with UserCRUD(engine) as crud:
+                user = crud.get(selected_user_id)
+                if user is None:
+                    raise ValueError(f"User '{selected_user_id}' not found")
 
             usn_edit = gr.update(value=user.username)
             pwd_edit = gr.update(value="")
@@ -416,29 +403,23 @@ class UserManagement(BasePage):
                 gr.Warning(errors)
                 return pwd, pwd_cnf
 
-        with Session(engine) as session:
-            # Check username uniqueness (excluding current user)
-            statement = select(User).where(
-                User.username_lower == usn.lower(),
-                User.id != selected_user_id,
-            )
-            existing = session.scalars(statement).first()
-            if existing:
+        with UserCRUD(engine) as crud:
+            if crud.username_taken(usn, exclude_id=selected_user_id):
                 gr.Warning(
                     f'Username "{usn}" already exists. Please use a unique name.'
                 )
                 return pwd, pwd_cnf
 
-            statement = select(User).where(User.id == selected_user_id)
-            user = session.scalars(statement).one()
-            user.username = usn
-            user.username_lower = usn.lower()
-            user.admin = admin
+            kwargs: dict = {"username": usn, "admin": admin}
             if pwd:
-                user.password = hashlib.sha256(pwd.encode()).hexdigest()
-            session.commit()
-            gr.Info(f'User "{usn}" updated successfully')
+                kwargs["password"] = hash_password(pwd)
+            try:
+                crud.update(selected_user_id, **kwargs)
+            except ValueError:
+                gr.Warning("User not found")
+                return pwd, pwd_cnf
 
+        gr.Info(f'User "{usn}" updated successfully')
         return "", ""
 
     def delete_user(self, current_user, selected_user_id):
@@ -446,10 +427,12 @@ class UserManagement(BasePage):
             gr.Warning("You cannot delete yourself")
             return selected_user_id
 
-        with Session(engine) as session:
-            statement = select(User).where(User.id == selected_user_id)
-            user = session.scalars(statement).one()
-            session.delete(user)
-            session.commit()
-            gr.Info(f'User "{user.username}" deleted successfully')
+        with UserCRUD(engine) as crud:
+            user = crud.get(selected_user_id)
+            if user is None:
+                gr.Warning("User not found")
+                return selected_user_id
+            username = user.username
+            crud.delete(selected_user_id)
+            gr.Info(f'User "{username}" deleted successfully')
         return -1

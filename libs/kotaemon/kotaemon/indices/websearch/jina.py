@@ -1,23 +1,33 @@
+from dataclasses import dataclass, field
+
 import requests
 from decouple import config
 
 from kotaemon.base import RetrievedDocument
 
-JINA_API_KEY = config("JINA_API_KEY", default="")
+from .base import BaseWebSearch
 
 
-class WebSearch:
+@dataclass(kw_only=True)
+class JinaWebSearch(BaseWebSearch):
+    """Web search via the Jina Search API."""
+
+    api_key: str = field(
+        default_factory=lambda: config("JINA_API_KEY", default=""),
+        metadata={"description": "Jina API key (https://jina.ai/reader)."},
+    )
+
     def run(self, text: str, *args, **kwargs) -> list[RetrievedDocument]:
-        if JINA_API_KEY == "":
+        if not self.api_key:
             raise ValueError(
                 "This feature requires JINA_API_KEY "
-                "(get free one from https://jina.ai/reader)"
+                "(get a free key from https://jina.ai/reader)"
             )
 
         api_url = f"https://s.jina.ai/{text}"
         headers = {"X-With-Generated-Alt": "true", "Accept": "application/json"}
-        if JINA_API_KEY:
-            headers["Authorization"] = f"Bearer {JINA_API_KEY}"
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
 
         response = requests.get(api_url, headers=headers)
         response.raise_for_status()
@@ -42,6 +52,3 @@ class WebSearch:
             )
             for item in response_dict["data"]
         ]
-
-    def generate_relevant_scores(self, text, documents: list[RetrievedDocument]):
-        return documents

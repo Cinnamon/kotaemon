@@ -14,11 +14,3 @@ class ChatLLM(BaseLLM):
     @classmethod
     def describe(cls) -> DataclassDescribe:
         return describe_dataclass(cls)
-
-    def flow(self):
-        if self.inflow is None:
-            raise ValueError("No inflow provided.")
-        if not hasattr(self.inflow, "run"):
-            raise ValueError(f"inflow must be Runnable, found {type(self.inflow)}")
-        text = self.inflow.run().text
-        return self.__call__(text)

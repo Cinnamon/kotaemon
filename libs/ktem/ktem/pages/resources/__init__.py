@@ -1,13 +1,12 @@
 import gradio as gr
 from ktem.app import BasePage
 from ktem.collections.ui import IndexManagement
-from ktem.db.models import User, engine
+from ktem.db.cruds import UserCRUD
+from ktem.db.engine import engine
 from ktem.embeddings.ui import EmbeddingManagement
 from ktem.llms.ui import LLMManagement
 from ktem.mcp.ui import MCPManagement
 from ktem.rerankings.ui import RerankingManagement
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from .user import UserManagement
 
@@ -61,9 +60,9 @@ class ResourcesTab(BasePage):
 
     def toggle_user_management(self, user_id):
         """Show/hide the user management, depending on the user's role"""
-        with Session(engine) as session:
-            user = session.scalars(select(User).where(User.id == user_id)).first()
+        with UserCRUD(engine) as crud:
+            user = crud.get(user_id) if user_id else None
             if user and user.admin:
                 return gr.update(visible=True)
 
-            return gr.update(visible=False)
+        return gr.update(visible=False)

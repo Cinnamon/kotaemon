@@ -7,7 +7,8 @@ from decouple import config
 from ktem.app import BaseApp, BasePage
 from ktem.collections.file.ui import File
 from ktem.components import reasonings
-from ktem.db.models import Conversation, engine
+from ktem.db.cruds import ConversationCRUD
+from ktem.db.engine import engine
 from ktem.reasoning.prompt_optimization.mindmap import MINDMAP_HTML_EXPORT_TEMPLATE
 from ktem.reasoning.prompt_optimization.suggest_conversation_name import (
     SuggestConvNamePipeline,
@@ -17,8 +18,6 @@ from ktem.reasoning.prompt_optimization.suggest_followup_chat import (
 )
 from ktem.settings_config import app_settings as flowsettings
 from plotly.io import from_json
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from kotaemon.base import Document
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
@@ -47,23 +46,11 @@ KH_SSO_ENABLED = flowsettings.KH_SSO_ENABLED
 KH_WEB_SEARCH_BACKEND = flowsettings.KH_WEB_SEARCH_BACKEND
 WebSearch = None
 if KH_WEB_SEARCH_BACKEND:
-    _WEB_SEARCH_CLS = {
-        "kotaemon.indices.retrievers.tavily_web_search.WebSearch": (
-            "kotaemon.indices.retrievers.tavily_web_search",
-            "WebSearch",
-        ),
-        "kotaemon.indices.retrievers.jina_web_search.WebSearch": (
-            "kotaemon.indices.retrievers.jina_web_search",
-            "WebSearch",
-        ),
-    }
-    target = _WEB_SEARCH_CLS.get(KH_WEB_SEARCH_BACKEND)
-    if target:
-        import importlib
+    try:
+        from kotaemon.indices.websearch import WebSearchFactory
 
-        mod = importlib.import_module(target[0])
-        WebSearch = getattr(mod, target[1])
-    else:
+        WebSearch = WebSearchFactory.get_cls(KH_WEB_SEARCH_BACKEND)
+    except ValueError:
         print(f"Unknown web search backend: {KH_WEB_SEARCH_BACKEND}")
 
 REASONING_LIMITS = 2 if KH_DEMO_MODE else 10
@@ -978,12 +965,12 @@ class ChatPage(BasePage):
         if not conv_id:
             if not KH_DEMO_MODE:
                 id_, update = self.chat_control.new_conv(user_id)
-                with Session(engine) as session:
-                    statement = select(Conversation).where(Conversation.id == id_)
-                    name = session.scalars(statement).one().name
-                    new_conv_id = id_
-                    conv_update = update
-                    new_conv_name = name
+                with ConversationCRUD(engine) as crud:
+                    conv = crud.get(id_)
+                    name = conv.name if conv is not None else ""
+                new_conv_id = id_
+                conv_update = update
+                new_conv_name = name
             else:
                 new_conv_id, new_conv_name, conv_update = None, None, gr.update()
         else:
@@ -1025,19 +1012,15 @@ class ChatPage(BasePage):
             gr.Warning("No conversation selected")
             return
 
-        with Session(engine) as session:
-            statement = select(Conversation).where(Conversation.id == convo_id)
+        with ConversationCRUD(engine) as crud:
+            result = crud.get(convo_id)
+            if result is None:
+                gr.Warning("Conversation not found")
+                return
 
-            result = session.scalars(statement).one()
             name = result.name
-
             if result.is_public != is_public:
-                # Only trigger updating when user
-                # select different value from the current
-                result.is_public = is_public
-                session.add(result)
-                session.commit()
-
+                crud.update_public(convo_id, is_public=is_public)
                 gr.Info(
                     f"Conversation: {name} is {'public' if is_public else 'private'}."
                 )
@@ -1137,25 +1120,27 @@ class ChatPage(BasePage):
             else:
                 selecteds_[str(index.id)] = [selecteds[i] for i in index.selector]
 
-        with Session(engine) as session:
-            statement = select(Conversation).where(Conversation.id == convo_id)
-            result = session.scalars(statement).one()
+        with ConversationCRUD(engine) as crud:
+            result = crud.get(convo_id)
+            if result is None:
+                gr.Warning("Conversation not found")
+                return retrival_history, plot_history
 
             data_source = result.data_source
             old_selecteds = data_source.get("selected", {})
             is_owner = result.user == user_id
 
-            # Write down to db
-            result.data_source = {
-                "selected": selecteds_ if is_owner else old_selecteds,
-                "messages": messages,
-                "retrieval_messages": retrival_history,
-                "plot_history": plot_history,
-                "state": state,
-                "likes": deepcopy(data_source.get("likes", [])),
-            }
-            session.add(result)
-            session.commit()
+            crud.update_data_source(
+                convo_id,
+                {
+                    "selected": selecteds_ if is_owner else old_selecteds,
+                    "messages": messages,
+                    "retrieval_messages": retrival_history,
+                    "plot_history": plot_history,
+                    "state": state,
+                    "likes": deepcopy(data_source.get("likes", [])),
+                },
+            )
 
         return retrival_history, plot_history
 
@@ -1166,18 +1151,16 @@ class ChatPage(BasePage):
         return reasoning_type
 
     def is_liked(self, convo_id, liked: gr.LikeData):
-        with Session(engine) as session:
-            statement = select(Conversation).where(Conversation.id == convo_id)
-            result = session.scalars(statement).one()
+        with ConversationCRUD(engine) as crud:
+            result = crud.get(convo_id)
+            if result is None:
+                return
 
             data_source = deepcopy(result.data_source)
             likes = data_source.get("likes", [])
             likes.append([liked.index, liked.value, liked.liked])
             data_source["likes"] = likes
-
-            result.data_source = data_source
-            session.add(result)
-            session.commit()
+            crud.update_data_source(convo_id, data_source)
 
     def message_selected(self, retrieval_history, plot_history, msg: gr.SelectData):
         index = msg.index[0]

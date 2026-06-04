@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 import logging
-from typing import Optional
+from dataclasses import dataclass, field
+from functools import cached_property
+from typing import Any
 
 from kotaemon.base import LLMInterface
 
@@ -8,206 +12,251 @@ from .base import LLM
 logger = logging.getLogger(__name__)
 
 
-class LCCompletionMixin:
-    def _get_lc_class(self):
+def lc_completion_response(pred: Any, *, lc_class_name: str) -> LLMInterface:
+    all_text = [each.text for each in pred.generations[0]]
+
+    completion_tokens, total_tokens, prompt_tokens = 0, 0, 0
+    try:
+        if pred.llm_output is not None:
+            completion_tokens = pred.llm_output["token_usage"]["completion_tokens"]
+            total_tokens = pred.llm_output["token_usage"]["total_tokens"]
+            prompt_tokens = pred.llm_output["token_usage"]["prompt_tokens"]
+    except Exception:
+        logger.warning(
+            "Cannot get token usage from LLM output for %s",
+            lc_class_name,
+        )
+
+    return LLMInterface(
+        text=all_text[0] if len(all_text) > 0 else "",
+        candidates=all_text,
+        completion_tokens=completion_tokens,
+        total_tokens=total_tokens,
+        prompt_tokens=prompt_tokens,
+        logits=[],
+    )
+
+
+@dataclass(kw_only=True)
+class BaseLCCompletion(LLM):
+    """Base wrapper for LangChain completion (legacy) LLM models."""
+
+    def _get_lc_class(self) -> type:
         raise NotImplementedError(
-            "Please return the relevant Langchain class in in _get_lc_class"
+            "Subclasses must implement _get_lc_class with the LangChain class."
         )
 
-    def __init__(self, **params):
-        self._lc_class = self._get_lc_class()
-        self._obj = self._lc_class(**params)
-        self._kwargs: dict = params
+    def _lc_kwargs(self) -> dict[str, Any]:
+        raise NotImplementedError(
+            "Subclasses must implement _lc_kwargs mapping fields to LangChain."
+        )
 
-        super().__init__()
+    @cached_property
+    def _lc_obj(self) -> Any:
+        return self._get_lc_class()(**self._lc_kwargs())
 
-    def run(self, text: str) -> LLMInterface:
-        pred = self._obj.generate([text])
-        all_text = [each.text for each in pred.generations[0]]
+    def to_langchain_format(self) -> Any:
+        return self._lc_obj
 
-        completion_tokens, total_tokens, prompt_tokens = 0, 0, 0
+    def invoke(self, text: str, **kwargs) -> LLMInterface:
+        pred = self._lc_obj.generate([text], **kwargs)
+        return lc_completion_response(pred, lc_class_name=self._get_lc_class().__name__)
+
+    def run(self, text: str, **kwargs) -> LLMInterface:
+        return self.invoke(text, **kwargs)
+
+
+@dataclass(kw_only=True)
+class OpenAI(BaseLCCompletion):
+    """Wrapper around LangChain's OpenAI completion model."""
+
+    openai_api_key: str | None = field(
+        default=None, metadata={"description": "OpenAI API key."}
+    )
+    openai_api_base: str | None = field(
+        default=None, metadata={"description": "OpenAI API base URL."}
+    )
+    openai_api_version: str | None = field(
+        default=None, metadata={"description": "OpenAI API version."}
+    )
+    deployment_name: str | None = field(
+        default=None, metadata={"description": "Deployment name."}
+    )
+    model_name: str = field(
+        default="text-davinci-003",
+        metadata={"description": "Model name."},
+    )
+    temperature: float = field(
+        default=0.7,
+        metadata={"description": "Sampling temperature."},
+    )
+    max_tokens: int = field(
+        default=256, metadata={"description": "Maximum tokens to generate."}
+    )
+    top_p: float = field(
+        default=1.0, metadata={"description": "Nucleus sampling mass."}
+    )
+    frequency_penalty: float = field(
+        default=0.0, metadata={"description": "Frequency penalty."}
+    )
+    n: int = field(
+        default=1, metadata={"description": "Number of completions to generate."}
+    )
+    best_of: int = field(
+        default=1, metadata={"description": "Number of candidates per prompt."}
+    )
+    request_timeout: float | None = field(
+        default=None, metadata={"description": "Request timeout in seconds."}
+    )
+    max_retries: int = field(
+        default=2, metadata={"description": "Maximum API retries."}
+    )
+    streaming: bool = field(
+        default=False, metadata={"description": "Enable streaming responses."}
+    )
+
+    def _get_lc_class(self) -> type:
         try:
-            if pred.llm_output is not None:
-                completion_tokens = pred.llm_output["token_usage"]["completion_tokens"]
-                total_tokens = pred.llm_output["token_usage"]["total_tokens"]
-                prompt_tokens = pred.llm_output["token_usage"]["prompt_tokens"]
-        except Exception:
-            logger.warning(
-                f"Cannot get token usage from LLM output for {self._lc_class.__name__}"
-            )
+            from langchain_openai import OpenAI as LCOpenAI
+        except ImportError:
+            from langchain.llms import OpenAI as LCOpenAI
 
-        return LLMInterface(
-            text=all_text[0] if len(all_text) > 0 else "",
-            candidates=all_text,
-            completion_tokens=completion_tokens,
-            total_tokens=total_tokens,
-            prompt_tokens=prompt_tokens,
-            logits=[],
-        )
+        return LCOpenAI
 
-    def to_langchain_format(self):
-        return self._obj
-
-    def __repr__(self):
-        kwargs = []
-        for key, value_obj in self._kwargs.items():
-            value = repr(value_obj)
-            kwargs.append(f"{key}={value}")
-        kwargs_repr = ", ".join(kwargs)
-        return f"{self.__class__.__name__}({kwargs_repr})"
-
-    def __str__(self):
-        kwargs = []
-        for key, value_obj in self._kwargs.items():
-            value = str(value_obj)
-            if len(value) > 20:
-                value = f"{value[:15]}..."
-            kwargs.append(f"{key}={value}")
-        kwargs_repr = ", ".join(kwargs)
-        return f"{self.__class__.__name__}({kwargs_repr})"
-
-    def __setattr__(self, name, value):
-        if name == "_lc_class":
-            return super().__setattr__(name, value)
-
-        if name in self._lc_class.__fields__:
-            self._kwargs[name] = value
-            self._obj = self._lc_class(**self._kwargs)
-        else:
-            super().__setattr__(name, value)
-
-    def __getattr__(self, name):
-        if name in self._kwargs:
-            return self._kwargs[name]
-        return getattr(self._obj, name)
-
-    def dump(self, *args, **kwargs):
-        from kotaemon.base.spec import spec_value
-
-        params = {key: spec_value(value) for key, value in self._kwargs.items()}
+    def _lc_kwargs(self) -> dict[str, Any]:
         return {
-            "__type__": f"{self.__module__}.{self.__class__.__qualname__}",
-            **params,
+            "openai_api_key": self.openai_api_key,
+            "openai_api_base": self.openai_api_base,
+            "openai_api_version": self.openai_api_version,
+            "deployment_name": self.deployment_name,
+            "model_name": self.model_name,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "top_p": self.top_p,
+            "frequency_penalty": self.frequency_penalty,
+            "n": self.n,
+            "best_of": self.best_of,
+            "request_timeout": self.request_timeout,
+            "max_retries": self.max_retries,
+            "streaming": self.streaming,
         }
 
 
-class OpenAI(LCCompletionMixin, LLM):
-    """Wrapper around Langchain's OpenAI class, focusing on key parameters"""
+@dataclass(kw_only=True)
+class AzureOpenAI(BaseLCCompletion):
+    """Wrapper around LangChain's Azure OpenAI completion model."""
 
-    def __init__(
-        self,
-        openai_api_key: Optional[str] = None,
-        openai_api_base: Optional[str] = None,
-        model_name: str = "text-davinci-003",
-        temperature: float = 0.7,
-        max_tokens: int = 256,
-        top_p: float = 1,
-        frequency_penalty: float = 0,
-        n: int = 1,
-        best_of: int = 1,
-        request_timeout: Optional[float] = None,
-        max_retries: int = 2,
-        streaming: bool = False,
-        **params,
-    ):
-        super().__init__(
-            openai_api_key=openai_api_key,
-            openai_api_base=openai_api_base,
-            model_name=model_name,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            top_p=top_p,
-            frequency_penalty=frequency_penalty,
-            n=n,
-            best_of=best_of,
-            request_timeout=request_timeout,
-            max_retries=max_retries,
-            streaming=streaming,
-            **params,
-        )
+    azure_endpoint: str | None = field(
+        default=None, metadata={"description": "Azure OpenAI endpoint URL."}
+    )
+    deployment_name: str | None = field(
+        default=None, metadata={"description": "Azure deployment name."}
+    )
+    openai_api_version: str = field(
+        default="",
+        metadata={"description": "Azure OpenAI API version."},
+    )
+    openai_api_key: str | None = field(
+        default=None, metadata={"description": "Azure OpenAI API key."}
+    )
+    model_name: str = field(
+        default="text-davinci-003",
+        metadata={"description": "Model name."},
+    )
+    temperature: float = field(
+        default=0.7,
+        metadata={"description": "Sampling temperature."},
+    )
+    max_tokens: int = field(
+        default=256, metadata={"description": "Maximum tokens to generate."}
+    )
+    top_p: float = field(
+        default=1.0, metadata={"description": "Nucleus sampling mass."}
+    )
+    frequency_penalty: float = field(
+        default=0.0, metadata={"description": "Frequency penalty."}
+    )
+    n: int = field(
+        default=1, metadata={"description": "Number of completions to generate."}
+    )
+    best_of: int = field(
+        default=1, metadata={"description": "Number of candidates per prompt."}
+    )
+    request_timeout: float | None = field(
+        default=None, metadata={"description": "Request timeout in seconds."}
+    )
+    max_retries: int = field(
+        default=2, metadata={"description": "Maximum API retries."}
+    )
+    streaming: bool = field(
+        default=False, metadata={"description": "Enable streaming responses."}
+    )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> type:
         try:
-            from langchain_openai import OpenAI
+            from langchain_openai import AzureOpenAI as LCAzureOpenAI
         except ImportError:
-            from langchain.llms import OpenAI
+            from langchain.llms import AzureOpenAI as LCAzureOpenAI
 
-        return OpenAI
+        return LCAzureOpenAI
+
+    def _lc_kwargs(self) -> dict[str, Any]:
+        return {
+            "azure_endpoint": self.azure_endpoint,
+            "deployment_name": self.deployment_name,
+            "openai_api_version": self.openai_api_version,
+            "openai_api_key": self.openai_api_key,
+            "model_name": self.model_name,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "top_p": self.top_p,
+            "frequency_penalty": self.frequency_penalty,
+            "n": self.n,
+            "best_of": self.best_of,
+            "request_timeout": self.request_timeout,
+            "max_retries": self.max_retries,
+            "streaming": self.streaming,
+        }
 
 
-class AzureOpenAI(LCCompletionMixin, LLM):
-    """Wrapper around Langchain's AzureOpenAI class, focusing on key parameters"""
+@dataclass(kw_only=True)
+class LlamaCpp(BaseLCCompletion):
+    """Wrapper around LangChain's LlamaCpp completion model."""
 
-    def __init__(
-        self,
-        azure_endpoint: Optional[str] = None,
-        deployment_name: Optional[str] = None,
-        openai_api_version: str = "",
-        openai_api_key: Optional[str] = None,
-        model_name: str = "text-davinci-003",
-        temperature: float = 0.7,
-        max_tokens: int = 256,
-        top_p: float = 1,
-        frequency_penalty: float = 0,
-        n: int = 1,
-        best_of: int = 1,
-        request_timeout: Optional[float] = None,
-        max_retries: int = 2,
-        streaming: bool = False,
-        **params,
-    ):
-        super().__init__(
-            azure_endpoint=azure_endpoint,
-            deployment_name=deployment_name,
-            openai_api_version=openai_api_version,
-            openai_api_key=openai_api_key,
-            model_name=model_name,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            top_p=top_p,
-            frequency_penalty=frequency_penalty,
-            n=n,
-            best_of=best_of,
-            request_timeout=request_timeout,
-            max_retries=max_retries,
-            streaming=streaming,
-            **params,
-        )
+    model_path: str = field(metadata={"description": "Path to the GGUF model file."})
+    lora_base: str | None = field(
+        default=None, metadata={"description": "Path to Lora model."}
+    )
+    n_ctx: int = field(default=512, metadata={"description": "Text context size."})
+    n_gpu_layers: int | None = field(
+        default=None, metadata={"description": "GPU layers (-1 = all)."}
+    )
+    use_mmap: bool = field(
+        default=True, metadata={"description": "Use memory mapping for model."}
+    )
+    vocab_only: bool = field(
+        default=False,
+        metadata={"description": "Load vocabulary only (debug)."},
+    )
 
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> type:
         try:
-            from langchain_openai import AzureOpenAI
+            from langchain_community.llms import LlamaCpp as LCLlamaCpp
         except ImportError:
-            from langchain.llms import AzureOpenAI
+            from langchain.llms import LlamaCpp as LCLlamaCpp
 
-        return AzureOpenAI
+        return LCLlamaCpp
+
+    def _lc_kwargs(self) -> dict[str, Any]:
+        return {
+            "model_path": self.model_path,
+            "lora_base": self.lora_base,
+            "n_ctx": self.n_ctx,
+            "n_gpu_layers": self.n_gpu_layers,
+            "use_mmap": self.use_mmap,
+            "vocab_only": self.vocab_only,
+        }
 
 
-class LlamaCpp(LCCompletionMixin, LLM):
-    """Wrapper around Langchain's LlamaCpp class, focusing on key parameters"""
-
-    def __init__(
-        self,
-        model_path: str,
-        lora_base: Optional[str] = None,
-        n_ctx: int = 512,
-        n_gpu_layers: Optional[int] = None,
-        use_mmap: bool = True,
-        **params,
-    ):
-        super().__init__(
-            model_path=model_path,
-            lora_base=lora_base,
-            n_ctx=n_ctx,
-            n_gpu_layers=n_gpu_layers,
-            use_mmap=use_mmap,
-            **params,
-        )
-
-    def _get_lc_class(self):
-        try:
-            from langchain_community.llms import LlamaCpp
-        except ImportError:
-            from langchain.llms import LlamaCpp
-
-        return LlamaCpp
+# Backward-compatible alias for code that imported the old mixin name.
+LCCompletionMixin = BaseLCCompletion

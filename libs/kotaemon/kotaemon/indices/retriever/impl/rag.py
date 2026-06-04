@@ -16,8 +16,6 @@ from llama_index.core.vector_stores import (
     MetadataFilters,
 )
 from llama_index.core.vector_stores.types import VectorStoreQueryMode
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from kotaemon.base import RetrievedDocument
 from kotaemon.embeddings import BaseEmbeddings
@@ -98,13 +96,9 @@ class DocumentRetrievalPipeline(BaseRetriever):
             return []
 
         retrieval_kwargs: dict = {}
-        with Session(self.engine) as session:
-            stmt = select(self.Index).where(
-                self.Index.relation_type == "document",
-                self.Index.source_id.in_(doc_ids),
-            )
-            results = session.execute(stmt)
-            chunk_ids = [r[0].target_id for r in results.all()]
+        chunk_ids = self.chunk_relations.list_target_ids_for_sources(
+            doc_ids, "document"
+        )
 
         retrieval_kwargs["do_extend"] = True
         retrieval_kwargs["scope"] = chunk_ids

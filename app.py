@@ -23,4 +23,5 @@ demo.queue().launch(
         GRADIO_TEMP_DIR,
     ],
     share=KH_GRADIO_SHARE,
+    debug=flowsettings.KH_GRADIO_DEBUG,
 )

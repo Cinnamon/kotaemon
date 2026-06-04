@@ -118,10 +118,8 @@ class App(BaseApp):
 
     def on_subscribe_public_events(self):
         if self.f_user_management:
+            from ktem.db.cruds import UserCRUD
             from ktem.db.engine import engine
-            from ktem.db.models import User
-            from sqlalchemy import select
-            from sqlalchemy.orm import Session
 
             def toggle_login_visibility(user_id):
                 if not user_id:
@@ -134,10 +132,8 @@ class App(BaseApp):
                         for k in self._tabs.keys()
                     ) + [gr.update(selected="login-tab")]
 
-                with Session(engine) as session:
-                    user = session.scalars(
-                        select(User).where(User.id == user_id)
-                    ).first()
+                with UserCRUD(engine) as crud:
+                    user = crud.get(user_id)
                     if user is None:
                         return list(
                             (

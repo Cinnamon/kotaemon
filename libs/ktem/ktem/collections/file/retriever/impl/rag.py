@@ -2,20 +2,19 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal, Optional, TypedDict
 
 from decouple import config
-from fastapi import Path
 from ktem.collections.file.types import IndexSettings
 from ktem.embeddings.manager import embedding_models_manager
 from ktem.llms.manager import llms
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import DeclarativeBase
 
 from kotaemon.indices.rankings import LLMReranking, LLMTrulensScoring
 from kotaemon.indices.retriever.impl.rag import (
     DocumentRetrievalPipeline as _DocumentRetrievalPipeline,
 )
+from kotaemon.indices.stores import ChunkRelationStore
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 logger = logging.getLogger(__name__)
@@ -107,24 +106,20 @@ class DocumentRetrievalPipeline(_DocumentRetrievalPipeline):
         cls,
         user_settings: RetrievalUserSettings,
         index_settings: IndexSettings,
-        Source: type[DeclarativeBase],
-        Index: type[DeclarativeBase],
+        chunk_relations: ChunkRelationStore,
         VS: BaseVectorStore,
         DS: BaseDocumentStore,
         FSPath: Path,
         user_id: int,
-        engine: Engine,
         selected: Optional[list] = None,
     ) -> "DocumentRetrievalPipeline":
         use_llm_reranking = user_settings.get("use_llm_reranking", False)
         retriever = cls(
-            Source=Source,
-            Index=Index,
+            chunk_relations=chunk_relations,
             VS=VS,
             DS=DS,
             FSPath=FSPath,
             user_id=user_id,
-            engine=engine,
             get_extra_table=user_settings["prioritize_table"],
             top_k=user_settings["num_retrieval"],
             mmr=user_settings["mmr"],
@@ -158,5 +153,4 @@ class DocumentRetrievalPipeline(_DocumentRetrievalPipeline):
         if retriever.llm_scorer:
             retriever.llm_scorer.llm = llms.get(reranking_llm_name, llms.get_default())
 
-        # retriever.set_run({".doc_ids": selected}, temp=False)
         return retriever

@@ -3,10 +3,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Generator
 
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import DeclarativeBase
-
 from kotaemon.base import Document
+from kotaemon.indices.stores import ChunkRelationStore, FileSourceStore
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 
@@ -19,23 +17,21 @@ class BaseIndexing:
         - get_pipeline(cls, user_settings, index_settings): return a
           fully-initialized pipeline, ready to be used by ktem
 
-    Resources injected at runtime via Params:
-        - Source: SQLAlchemy Source table
-        - Index: SQLAlchemy Index table
+    Resources injected at runtime:
+        - file_source: indexed file metadata store
+        - chunk_relations: source-to-chunk relation store
         - VS: VectorStore
         - DS: DocStore
         - FSPath: file storage path
         - user_id: the current user id
-        - engine: SQLAlchemy engine
     """
 
-    Source: type[DeclarativeBase]
-    Index: type[DeclarativeBase]
+    file_source: FileSourceStore
+    chunk_relations: ChunkRelationStore
     VS: BaseVectorStore
     DS: BaseDocumentStore
     FSPath: Path
     user_id: int
-    engine: Engine
     private: bool
     chunk_size: int
     chunk_overlap: int
