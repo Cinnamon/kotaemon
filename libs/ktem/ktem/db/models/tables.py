@@ -3,7 +3,7 @@ from typing import Any, Optional
 from ktem.db.engine import engine
 from sqlalchemy import JSON, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
-from theflow.settings import settings
+from ktem.settings_config import app_settings as settings
 
 from .base import Base
 from .conversation import BaseConversation
@@ -54,5 +54,5 @@ class Index(Base):
     config: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
 
-if not getattr(settings, "KH_ENABLE_ALEMBIC", False):
+if not settings.KH_ENABLE_ALEMBIC:
     Base.metadata.create_all(engine)

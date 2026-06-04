@@ -9,7 +9,7 @@ from ktem.reasoning.prompt_optimization.rewrite_question import (
     DEFAULT_REWRITE_PROMPT,
     RewriteQuestionPipeline,
 )
-from theflow.settings import settings as flowsettings
+from ktem.settings_config import app_settings as flowsettings
 
 from kotaemon.base import AIMessage, Document, HumanMessage, SystemMessage
 from kotaemon.embeddings import BaseEmbeddings
@@ -26,7 +26,7 @@ class FewshotRewriteQuestionPipeline(RewriteQuestionPipeline):
     vector_store: BaseVectorStore = field(repr=False)
     doc_store: BaseDocumentStore = field(repr=False)
     k: int = field(
-        default_factory=lambda: getattr(flowsettings, "N_PROMPT_OPT_EXAMPLES", 3)
+        default_factory=lambda: flowsettings.N_PROMPT_OPT_EXAMPLES
     )
 
     def add_documents(self, examples, batch_size: int = 50):

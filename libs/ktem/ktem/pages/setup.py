@@ -10,9 +10,9 @@ from ktem.rerankings.manager import reranking_models_manager as rerankers
 from kotaemon.llms.chats.factory import LLMVendor
 from kotaemon.embeddings.factory import EmbeddingVendor
 from kotaemon.rerankings.factory import RerankingVendor
-from theflow.settings import settings as flowsettings
+from ktem.settings_config import app_settings as flowsettings
 
-KH_OLLAMA_URL = getattr(flowsettings, "KH_OLLAMA_URL", "http://localhost:11434/v1/")
+KH_OLLAMA_URL = flowsettings.KH_OLLAMA_URL
 DEFAULT_OLLAMA_URL = KH_OLLAMA_URL.replace("v1", "api")
 if DEFAULT_OLLAMA_URL.endswith("/"):
     DEFAULT_OLLAMA_URL = DEFAULT_OLLAMA_URL[:-1]

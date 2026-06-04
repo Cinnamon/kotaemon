@@ -8,7 +8,7 @@ from ktem.collections.base import BaseCollection
 from sqlalchemy import JSON, Column, DateTime, Integer, String, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.mutable import MutableDict
-from theflow.settings import settings as flowsettings
+from ktem.settings_config import app_settings as flowsettings
 from ktem.collections.registry import get_pipeline_cls
 from tzlocal import get_localzone
 
@@ -190,7 +190,7 @@ class FileIndex(BaseCollection):
 
         if hasattr(flowsettings, "FILE_INDEX_PIPELINE"):
             self._indexing_pipeline_cls = get_pipeline_cls(
-                getattr(flowsettings, "FILE_INDEX_PIPELINE")
+                flowsettings.FILE_INDEX_PIPELINE  # type: ignore[attr-defined]
             )
             return
 
@@ -229,7 +229,7 @@ class FileIndex(BaseCollection):
         if hasattr(flowsettings, "FILE_INDEX_RETRIEVER_PIPELINES"):
             self._retriever_pipeline_cls = [
                 get_pipeline_cls(each)
-                for each in getattr(flowsettings, "FILE_INDEX_RETRIEVER_PIPELINES")
+                for each in flowsettings.FILE_INDEX_RETRIEVER_PIPELINES  # type: ignore[attr-defined]
             ]
             return
 
@@ -264,7 +264,7 @@ class FileIndex(BaseCollection):
 
         if hasattr(flowsettings, "FILE_INDEX_SELECTOR_UI"):
             self._selector_ui_cls = get_pipeline_cls(
-                getattr(flowsettings, "FILE_INDEX_SELECTOR_UI")
+                flowsettings.FILE_INDEX_SELECTOR_UI  # type: ignore[attr-defined]
             )
             return
 
@@ -299,7 +299,7 @@ class FileIndex(BaseCollection):
 
         if hasattr(flowsettings, "FILE_INDEX_UI"):
             self._index_ui_cls = get_pipeline_cls(
-                getattr(flowsettings, "FILE_INDEX_UI")
+                flowsettings.FILE_INDEX_UI  # type: ignore[attr-defined]
             )
             return
 
@@ -474,6 +474,9 @@ class FileIndex(BaseCollection):
             "private": self.config.get("private", False),
             "chunk_size": self.config.get("chunk_size", 0),
             "chunk_overlap": self.config.get("chunk_overlap", 0),
+            "vlm_endpoint": flowsettings.KH_VLM_ENDPOINT,
+            "markdown_output_dir": flowsettings.KH_MARKDOWN_OUTPUT_DIR,
+            "chunks_output_dir": flowsettings.KH_CHUNKS_OUTPUT_DIR,
         }
 
         obj = self._indexing_pipeline_cls(**params_input)

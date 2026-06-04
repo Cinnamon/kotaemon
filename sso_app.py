@@ -4,9 +4,9 @@ import gradiologin as grlogin
 from decouple import config
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
-from theflow.settings import settings as flowsettings
+from ktem.settings_config import app_settings as flowsettings
 
-KH_APP_DATA_DIR = getattr(flowsettings, "KH_APP_DATA_DIR", ".")
+KH_APP_DATA_DIR = flowsettings.KH_APP_DATA_DIR
 GRADIO_TEMP_DIR = os.getenv("GRADIO_TEMP_DIR", None)
 AUTHENTICATION_METHOD = config("AUTHENTICATION_METHOD", "GOOGLE")
 

@@ -5,7 +5,7 @@ from functools import cache
 from pathlib import Path
 from typing import Any, Optional
 
-from theflow.settings import settings
+from ktem.settings_config import app_settings as settings
 from theflow.utils.modules import deserialize
 
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore

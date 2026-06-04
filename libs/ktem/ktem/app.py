@@ -10,7 +10,7 @@ from ktem.components import reasonings
 from ktem.exceptions import HookAlreadyDeclared, HookNotDeclared
 from ktem.collections import CollectionManager
 from ktem.settings import BaseSettingGroup, SettingGroup, SettingReasoningGroup
-from theflow.settings import settings
+from ktem.settings_config import app_settings as settings
 from ktem.reasoning.registry import get_reasoning_cls
 
 BASE_PATH = os.environ.get("GR_FILE_ROOT_PATH", "")
@@ -38,10 +38,10 @@ class BaseApp:
     public_events: list[str] = []
 
     def __init__(self):
-        self.dev_mode = getattr(settings, "KH_MODE", "") == "dev"
-        self.app_name = getattr(settings, "KH_APP_NAME", "Kotaemon")
-        self.app_version = getattr(settings, "KH_APP_VERSION", "")
-        self.f_user_management = getattr(settings, "KH_FEATURE_USER_MANAGEMENT", False)
+        self.dev_mode = settings.KH_MODE == "dev"
+        self.app_name = settings.KH_APP_NAME
+        self.app_version = settings.KH_APP_VERSION or ""
+        self.f_user_management = settings.KH_FEATURE_USER_MANAGEMENT
         self._theme = KotaemonTheme()
 
         dir_assets = Path(__file__).parent / "assets"
@@ -94,7 +94,7 @@ class BaseApp:
 
     def register_reasonings(self):
         """Register the reasoning components from app settings"""
-        if getattr(settings, "KH_REASONINGS", None) is None:
+        if not settings.KH_REASONINGS:
             return
 
         for value in settings.KH_REASONINGS:

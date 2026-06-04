@@ -6,7 +6,7 @@ from ktem.app import BasePage
 from ktem.db.models import User, engine
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from theflow.settings import settings as flowsettings
+from ktem.settings_config import app_settings as flowsettings
 
 USERNAME_RULE = """**Username rule:**
 

@@ -6,7 +6,7 @@ import shutil
 import threading
 import time
 from copy import deepcopy
-from functools import cached_property, lru_cache
+from functools import cached_property
 from hashlib import sha256
 from pathlib import Path
 from typing import Generator, Optional
@@ -16,7 +16,6 @@ from llama_index.core.readers.base import BaseReader
 from llama_index.core.readers.file.base import default_file_metadata_func
 from sqlalchemy import Engine, delete, select
 from sqlalchemy.orm import DeclarativeBase, Session
-from theflow.settings import settings
 from kotaemon.base import Document
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.indices.indexing.base import BaseIndexing
@@ -36,16 +35,28 @@ from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 logger = logging.getLogger(__name__)
 
-# Wire app-level config into reader singletons at import time.
-_vlm_endpoint = getattr(settings, "KH_VLM_ENDPOINT", "")
-_markdown_output_dir = getattr(settings, "KH_MARKDOWN_OUTPUT_DIR", None)
-adobe_reader.vlm_endpoint = _vlm_endpoint
-azure_reader.vlm_endpoint = _vlm_endpoint
-docling_reader.vlm_endpoint = _vlm_endpoint
-azure_reader.cache_dir = _markdown_output_dir
-_mhtml_reader = KH_DEFAULT_FILE_EXTRACTORS.get(".mhtml")
-if _mhtml_reader is not None and hasattr(_mhtml_reader, "cache_dir"):
-    _mhtml_reader.cache_dir = _markdown_output_dir
+
+def configure_readers(
+    vlm_endpoint: str = "",
+    markdown_output_dir: Path | None = None,
+) -> None:
+    """Wire app-level config into the shared reader singletons.
+
+    Call this once at application startup after the settings object is
+    available.  Idempotent — safe to call multiple times.
+
+    Args:
+        vlm_endpoint: URL of the Vision-Language Model endpoint.
+        markdown_output_dir: Directory used by document loaders
+            to cache intermediate markdown output.
+    """
+    adobe_reader.vlm_endpoint = vlm_endpoint
+    azure_reader.vlm_endpoint = vlm_endpoint
+    docling_reader.vlm_endpoint = vlm_endpoint
+    azure_reader.cache_dir = markdown_output_dir
+    _mhtml_reader = KH_DEFAULT_FILE_EXTRACTORS.get(".mhtml")
+    if _mhtml_reader is not None and hasattr(_mhtml_reader, "cache_dir"):
+        _mhtml_reader.cache_dir = markdown_output_dir
 
 
 def _load_reader(dotted: str) -> type:
@@ -77,21 +88,6 @@ def _load_reader(dotted: str) -> type:
     return registry[dotted]
 
 
-@lru_cache
-def dev_settings() -> tuple:
-    """Retrieve developer-level overrides from flowsettings.py."""
-    file_extractors = {}
-    if hasattr(settings, "FILE_INDEX_PIPELINE_FILE_EXTRACTORS"):
-        file_extractors = {
-            key: _load_reader(value)()
-            for key, value in settings.FILE_INDEX_PIPELINE_FILE_EXTRACTORS.items()
-        }
-
-    chunk_size = getattr(settings, "FILE_INDEX_PIPELINE_SPLITTER_CHUNK_SIZE", None)
-    chunk_overlap = getattr(
-        settings, "FILE_INDEX_PIPELINE_SPLITTER_CHUNK_OVERLAP", None
-    )
-    return file_extractors, chunk_size, chunk_overlap
 
 
 _default_token_func = tiktoken.encoding_for_model("gpt-3.5-turbo").encode
@@ -116,6 +112,7 @@ class IndexPipeline:
     private: bool = False
     run_embedding_in_thread: bool = False
     embedding: BaseEmbeddings
+    chunks_output_dir: Path | None = None
 
     @cached_property
     def vector_indexing(self) -> VectorIndexing:
@@ -123,7 +120,7 @@ class IndexPipeline:
             vector_store=self.VS,
             doc_store=self.DS,
             embedding=self.embedding,
-            cache_dir=getattr(settings, "KH_CHUNKS_OUTPUT_DIR", None),
+            cache_dir=self.chunks_output_dir,
         )
 
     def handle_docs(
@@ -384,9 +381,13 @@ class IndexDocumentPipeline(BaseIndexing):
     reader_mode: str
     embedding: BaseEmbeddings
     run_embedding_in_thread: bool = False
+    vlm_endpoint: str = ""
+    markdown_output_dir: Path | None = None
+    chunks_output_dir: Path | None = None
 
     @cached_property
     def readers(self):
+        configure_readers(self.vlm_endpoint, self.markdown_output_dir)
         readers = deepcopy(KH_DEFAULT_FILE_EXTRACTORS)
         print("reader_mode", self.reader_mode)
         if self.reader_mode == "adobe":
@@ -417,9 +418,8 @@ class IndexDocumentPipeline(BaseIndexing):
 
     def route(self, file_path: str | Path) -> IndexPipeline:
         """Select the right IndexPipeline for this file."""
-        _, dev_chunk_size, dev_chunk_overlap = dev_settings()
-        chunk_size = self.chunk_size or dev_chunk_size
-        chunk_overlap = self.chunk_overlap or dev_chunk_overlap
+        chunk_size = self.chunk_size
+        chunk_overlap = self.chunk_overlap
 
         if self.is_url(file_path):
             reader = web_reader
@@ -453,6 +453,7 @@ class IndexDocumentPipeline(BaseIndexing):
             engine=self.engine,
             private=self.private,
             embedding=self.embedding,
+            chunks_output_dir=self.chunks_output_dir,
         )
 
     def run(

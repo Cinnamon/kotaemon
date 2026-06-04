@@ -8,7 +8,7 @@ from ktem.db.models import Conversation, User, engine
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-import flowsettings
+from ktem.settings_config import app_settings as flowsettings
 
 from ...utils.conversation import sync_retrieval_n_message
 from .chat_suggestion import ChatSuggestion
@@ -16,8 +16,8 @@ from .common import STATE
 
 logger = logging.getLogger(__name__)
 
-KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
-KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
+KH_DEMO_MODE = flowsettings.KH_DEMO_MODE
+KH_SSO_ENABLED = flowsettings.KH_SSO_ENABLED
 ASSETS_DIR = "assets/icons"
 if not os.path.isdir(ASSETS_DIR):
     ASSETS_DIR = "libs/ktem/ktem/assets/icons"

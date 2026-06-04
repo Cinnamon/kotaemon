@@ -20,7 +20,7 @@ from ktem.reasoning.prompt_optimization.suggest_followup_chat import (
 from plotly.io import from_json
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from theflow.settings import settings as flowsettings
+from ktem.settings_config import app_settings as flowsettings
 
 from kotaemon.base import Document
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
@@ -44,9 +44,9 @@ from .demo_hint import HintPage
 from .paper_list import PaperListPage
 from .report import ReportIssue
 
-KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
-KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
-KH_WEB_SEARCH_BACKEND = getattr(flowsettings, "KH_WEB_SEARCH_BACKEND", None)
+KH_DEMO_MODE = flowsettings.KH_DEMO_MODE
+KH_SSO_ENABLED = flowsettings.KH_SSO_ENABLED
+KH_WEB_SEARCH_BACKEND = flowsettings.KH_WEB_SEARCH_BACKEND
 WebSearch = None
 if KH_WEB_SEARCH_BACKEND:
     _WEB_SEARCH_CLS = {
@@ -227,7 +227,7 @@ class ChatPage(BasePage):
         self._reasoning_type = gr.State(value=None)
         self._conversation_renamed = gr.State(value=False)
         self._use_suggestion = gr.State(
-            value=getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False)
+            value=flowsettings.KH_FEATURE_CHAT_SUGGESTION
         )
         self._info_panel_expanded = gr.State(value=True)
         self._command_state = gr.State(value=None)

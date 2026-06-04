@@ -1,6 +1,6 @@
 from typing import Optional
 
-from theflow.settings import settings as flowsettings
+from ktem.settings_config import app_settings as flowsettings
 
 from ktem.db.cruds import RerankingCRUD
 from ktem.db.engine import engine

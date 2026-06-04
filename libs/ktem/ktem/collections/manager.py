@@ -3,7 +3,7 @@ from typing import Optional, Type
 from ktem.db.models import engine
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from theflow.settings import settings
+from ktem.settings_config import app_settings as settings
 from ktem.collections.registry import get_index_cls
 
 from .base import BaseCollection

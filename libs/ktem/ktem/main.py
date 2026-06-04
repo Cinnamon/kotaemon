@@ -6,12 +6,12 @@ from ktem.pages.help import HelpPage
 from ktem.pages.resources import ResourcesTab
 from ktem.pages.settings import SettingsPage
 from ktem.pages.setup import SetupPage
-from theflow.settings import settings as flowsettings
+from ktem.settings_config import app_settings as flowsettings
 
-KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
-KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
-KH_ENABLE_FIRST_SETUP = getattr(flowsettings, "KH_ENABLE_FIRST_SETUP", False)
-KH_APP_DATA_EXISTS = getattr(flowsettings, "KH_APP_DATA_EXISTS", True)
+KH_DEMO_MODE = flowsettings.KH_DEMO_MODE
+KH_SSO_ENABLED = flowsettings.KH_SSO_ENABLED
+KH_ENABLE_FIRST_SETUP = flowsettings.KH_ENABLE_FIRST_SETUP
+KH_APP_DATA_EXISTS = flowsettings.KH_APP_DATA_EXISTS
 
 # override first setup setting
 if config("KH_FIRST_SETUP", default=False, cast=bool):

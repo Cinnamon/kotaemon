@@ -16,7 +16,7 @@ from ktem.reasoning.prompt_optimization.mindmap import CreateMindmapPipeline
 from ktem.utils.render import Render
 from ktem.utils.visualize_cited import CreateCitationVizPipeline
 from plotly.io import to_json
-from theflow.settings import settings as flowsettings
+from ktem.settings_config import app_settings as flowsettings
 
 from kotaemon.base import (
     AIMessage,
@@ -374,7 +374,7 @@ class FullQAPipeline(BaseReasoning):
             "enable_mindmap": settings[f"{prefix}.create_mindmap"],
             "enable_citation_viz": settings[f"{prefix}.create_citation_viz"],
             "use_multimodal": settings[f"{prefix}.use_multimodal"],
-            "vlm_endpoint": getattr(flowsettings, "KH_VLM_ENDPOINT", ""),
+            "vlm_endpoint": flowsettings.KH_VLM_ENDPOINT,
             "system_prompt": settings[f"{prefix}.system_prompt"],
             "qa_template": settings[f"{prefix}.qa_prompt"],
             "lang": SUPPORTED_LANGUAGE_MAP.get(settings["reasoning.lang"], "English"),

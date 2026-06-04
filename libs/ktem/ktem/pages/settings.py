@@ -7,9 +7,9 @@ from ktem.db.models import Settings, User, engine
 from ktem.mcp.manager import MCP_TOOL_PREFIX, mcp_manager
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from theflow.settings import settings as flowsettings
+from ktem.settings_config import app_settings as flowsettings
 
-KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
+KH_SSO_ENABLED = flowsettings.KH_SSO_ENABLED
 
 
 signout_js = """

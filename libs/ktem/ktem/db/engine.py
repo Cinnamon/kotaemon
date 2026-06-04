@@ -1,4 +1,4 @@
 from sqlalchemy import create_engine
-from theflow.settings import settings
+from ktem.settings_config import app_settings as settings
 
 engine = create_engine(settings.KH_DATABASE)

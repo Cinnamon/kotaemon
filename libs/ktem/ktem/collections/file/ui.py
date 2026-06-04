@@ -17,14 +17,14 @@ from ktem.db.engine import engine
 from ktem.utils.render import Render
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from theflow.settings import settings as flowsettings
+from ktem.settings_config import app_settings as flowsettings
 
 from ...utils.commands import WEB_SEARCH_COMMAND
 from ...utils.rate_limit import check_rate_limit
 from .utils import download_arxiv_pdf, is_arxiv_url
 
-KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
-KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
+KH_DEMO_MODE = flowsettings.KH_DEMO_MODE
+KH_SSO_ENABLED = flowsettings.KH_SSO_ENABLED
 DOWNLOAD_MESSAGE = "Start download"
 MAX_FILENAME_LENGTH = 20
 MAX_FILE_COUNT = 200

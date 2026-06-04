@@ -4,11 +4,11 @@ from pathlib import Path
 import gradio as gr
 import requests
 from decouple import config
-from theflow.settings import settings
+from ktem.settings_config import app_settings as settings
 
 from ktem.app import BaseApp
 
-KH_DEMO_MODE = getattr(settings, "KH_DEMO_MODE", False)
+KH_DEMO_MODE = settings.KH_DEMO_MODE
 HF_SPACE_URL = config("HF_SPACE_URL", default="")
 
 

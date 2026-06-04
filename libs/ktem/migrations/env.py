@@ -4,7 +4,7 @@ from alembic import context
 from ktem.db.models import Base
 from ktem.db.models import *  # noqa: F401, F403
 from sqlalchemy import engine_from_config, pool
-from theflow.settings import settings
+from ktem.settings_config import app_settings as settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
