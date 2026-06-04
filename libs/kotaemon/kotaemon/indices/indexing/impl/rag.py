@@ -58,7 +58,7 @@ def configure_readers(
     _mhtml_reader = KH_DEFAULT_FILE_EXTRACTORS.get(".mhtml")
     if _mhtml_reader is not None and hasattr(_mhtml_reader, "cache_dir"):
         _mhtml_reader.cache_dir = markdown_output_dir
-        
+
 
 _default_token_func = tiktoken.encoding_for_model("gpt-3.5-turbo").encode
 

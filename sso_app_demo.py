@@ -5,10 +5,10 @@ from authlib.integrations.starlette_client import OAuth, OAuthError
 from decouple import config
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
+from ktem.settings_config import app_settings as flowsettings
 from starlette.config import Config
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import RedirectResponse
-from ktem.settings_config import app_settings as flowsettings
 
 KH_DEMO_MODE = flowsettings.KH_DEMO_MODE
 KH_APP_DATA_DIR = flowsettings.KH_APP_DATA_DIR
