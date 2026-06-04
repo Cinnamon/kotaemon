@@ -1,6 +1,6 @@
-from dataclasses import dataclass, field
 import logging
 import threading
+from dataclasses import dataclass, field
 from textwrap import dedent
 from typing import Generator
 
@@ -13,10 +13,10 @@ from ktem.reasoning.prompt_optimization import (
     RewriteQuestionPipeline,
 )
 from ktem.reasoning.prompt_optimization.mindmap import CreateMindmapPipeline
+from ktem.settings_config import app_settings as flowsettings
 from ktem.utils.render import Render
 from ktem.utils.visualize_cited import CreateCitationVizPipeline
 from plotly.io import to_json
-from ktem.settings_config import app_settings as flowsettings
 
 from kotaemon.base import (
     AIMessage,
@@ -25,7 +25,6 @@ from kotaemon.base import (
     RetrievedDocument,
     SystemMessage,
 )
-from kotaemon.indices.retriever.base import BaseRetriever
 from kotaemon.indices.qa.citation import CitationPipeline
 from kotaemon.indices.qa.citation_qa import (
     CONTEXT_RELEVANT_WARNING_SCORE,
@@ -35,6 +34,7 @@ from kotaemon.indices.qa.citation_qa import (
 from kotaemon.indices.qa.citation_qa_inline import AnswerWithInlineCitation
 from kotaemon.indices.qa.format_context import PrepareEvidencePipeline
 from kotaemon.indices.qa.utils import replace_think_tag_with_details
+from kotaemon.indices.retriever.base import BaseRetriever
 from kotaemon.llms import ChatLLM
 
 from ..utils import SUPPORTED_LANGUAGE_MAP
@@ -94,21 +94,25 @@ class FullQAPipeline(BaseReasoning):
     class Config:
         allow_extra = True
 
-    # configuration parameters  
+    # configuration parameters
     trigger_context: int = 150
     use_rewrite: bool = False
 
     retrievers: list[BaseRetriever]
 
     answering_pipeline: AnswerWithContextPipeline | None = None
-    evidence_pipeline: PrepareEvidencePipeline = field(default_factory=PrepareEvidencePipeline)
+    evidence_pipeline: PrepareEvidencePipeline = field(
+        default_factory=PrepareEvidencePipeline
+    )
     rewrite_pipeline: RewriteQuestionPipeline | None = None
     create_citation_viz_pipeline: CreateCitationVizPipeline = field(
         default_factory=lambda: CreateCitationVizPipeline(
             embedding=embeddings.get_default()
         )
     )
-    add_query_context: AddQueryContextPipeline = field(default_factory=AddQueryContextPipeline)
+    add_query_context: AddQueryContextPipeline = field(
+        default_factory=AddQueryContextPipeline
+    )
 
     def retrieve(
         self, message: str, history: list
@@ -310,6 +314,7 @@ class FullQAPipeline(BaseReasoning):
         else:
             scoring_thread = None
 
+        assert self.answering_pipeline is not None
         answer = yield from self.answering_pipeline.stream(
             question=message,
             history=history,
@@ -381,24 +386,23 @@ class FullQAPipeline(BaseReasoning):
         }
 
         if use_inline_citation:
-            pipeline.answering_pipeline = AnswerWithInlineCitation(
-                **input_params
-            )
+            pipeline.answering_pipeline = AnswerWithInlineCitation(**input_params)
         else:
-            pipeline.answering_pipeline = AnswerWithContextPipeline(
-                **input_params
-            )
-
+            pipeline.answering_pipeline = AnswerWithContextPipeline(**input_params)
 
         # answer_pipeline.llm = llm
         # answer_pipeline.citation_pipeline = CitationPipeline(llm=llm)
         # answer_pipeline.create_mindmap_pipeline = CreateMindmapPipeline(llm=llm)
-        # answer_pipeline.n_last_interactions = settings[f"{prefix}.n_last_interactions"]
+        # answer_pipeline.n_last_interactions = settings[
+        #     f"{prefix}.n_last_interactions"
+        # ]
         # answer_pipeline.enable_citation = (
         #     settings[f"{prefix}.highlight_citation"] != "off"
         # )
         # answer_pipeline.enable_mindmap = settings[f"{prefix}.create_mindmap"]
-        # answer_pipeline.enable_citation_viz = settings[f"{prefix}.create_citation_viz"]
+        # answer_pipeline.enable_citation_viz = settings[
+        #     f"{prefix}.create_citation_viz"
+        # ]
         # answer_pipeline.use_multimodal = settings[f"{prefix}.use_multimodal"]
         # answer_pipeline.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
         # answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
@@ -529,6 +533,7 @@ class FullDecomposeQAPipeline(FullQAPipeline):
             yield from infos
 
             evidence_mode, evidence, images = self.evidence_pipeline(docs).content
+            assert self.answering_pipeline is not None
             answer = yield from self.answering_pipeline.stream(
                 question=message,
                 history=history,
@@ -579,6 +584,7 @@ class FullDecomposeQAPipeline(FullQAPipeline):
         yield from infos
 
         evidence_mode, evidence, images = self.evidence_pipeline(docs).content
+        assert self.answering_pipeline is not None
         answer = yield from self.answering_pipeline.stream(
             question=message,
             history=history,

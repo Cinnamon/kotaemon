@@ -1,7 +1,7 @@
 from typing import Any
 
-from ktem.db.models import Base
 from ktem.db.engine import engine
+from ktem.db.models import Base
 from sqlalchemy import JSON, String
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm import Mapped, mapped_column
@@ -13,9 +13,7 @@ class BaseMCPTable(Base):
     __abstract__ = True
 
     name: Mapped[str] = mapped_column(String, primary_key=True, unique=True)
-    config: Mapped[dict[str, Any]] = mapped_column(
-        JSON, default=dict
-    )
+    config: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
 
 class MCPTable(BaseMCPTable):

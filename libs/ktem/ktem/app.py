@@ -1,17 +1,17 @@
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import gradio as gr
 import pluggy
 from ktem import extension_protocol
 from ktem.assets import PDFJS_PREBUILT_DIR, KotaemonTheme
+from ktem.collections import CollectionManager
 from ktem.components import reasonings
 from ktem.exceptions import HookAlreadyDeclared, HookNotDeclared
-from ktem.collections import CollectionManager
+from ktem.reasoning.registry import get_reasoning_cls
 from ktem.settings import BaseSettingGroup, SettingGroup, SettingReasoningGroup
 from ktem.settings_config import app_settings as settings
-from ktem.reasoning.registry import get_reasoning_cls
 
 BASE_PATH = os.environ.get("GR_FILE_ROOT_PATH", "")
 
@@ -70,6 +70,10 @@ class BaseApp:
 
         self._callbacks: dict[str, list] = {}
         self._events: dict[str, list] = {}
+
+        # Set by App.ui() — declared here so type checkers see them on BaseApp
+        self.chat_page: Any = None
+        self.tabs: Any = None
 
         self.register_extensions()
         self.register_reasonings()

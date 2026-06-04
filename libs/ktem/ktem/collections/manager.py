@@ -1,13 +1,12 @@
 from typing import Optional, Type
 
-from ktem.db.models import engine
+from ktem.collections.registry import get_index_cls
+from ktem.db.models import Index, engine
+from ktem.settings_config import app_settings as settings
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from ktem.settings_config import app_settings as settings
-from ktem.collections.registry import get_index_cls
 
 from .base import BaseCollection
-from ktem.db.models import Index
 
 
 class CollectionManager:
@@ -172,7 +171,9 @@ class CollectionManager:
 
         if name:
             with Session(engine) as sess:
-                index = sess.scalars(select(Index).where(Index.name == name)).one_or_none()
+                index = sess.scalars(
+                    select(Index).where(Index.name == name)
+                ).one_or_none()
                 return index is not None
 
         return False
@@ -191,6 +192,8 @@ class CollectionManager:
         with Session(engine) as sess:
             index_defs = sess.scalars(select(Index)).all()
             for index_def in index_defs:
+                if index_def.id is None:
+                    continue
                 self.start_index(
                     id=index_def.id,
                     name=index_def.name,

@@ -166,10 +166,7 @@ class LCChatMixin:
         return getattr(self._obj, name)
 
     def dump(self, *args, **kwargs):
-        params = {
-            key: spec_value(value)
-            for key, value in self._kwargs.items()
-        }
+        params = {key: spec_value(value) for key, value in self._kwargs.items()}
         return {
             "__type__": f"{self.__module__}.{self.__class__.__qualname__}",
             **params,

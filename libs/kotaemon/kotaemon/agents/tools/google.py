@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-
 from typing import AnyStr, Optional, Type
 from urllib.error import HTTPError
 

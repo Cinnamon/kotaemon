@@ -1,11 +1,10 @@
 import base64
 from collections import defaultdict
+from dataclasses import dataclass, field
+from functools import cached_property
 from io import BytesIO
 from pathlib import Path
 from typing import List, Optional
-
-from dataclasses import dataclass, field
-from functools import cached_property
 
 from kotaemon.base import Document
 
@@ -24,7 +23,14 @@ class DoclingReader(BaseReader):
     max_figure_to_caption: int = 100
     figure_friendly_filetypes: list[str] = field(
         default_factory=lambda: [
-            ".pdf", ".jpeg", ".jpg", ".png", ".bmp", ".tiff", ".heif", ".tif",
+            ".pdf",
+            ".jpeg",
+            ".jpg",
+            ".png",
+            ".bmp",
+            ".tiff",
+            ".heif",
+            ".tif",
         ]
     )
 
@@ -38,9 +44,9 @@ class DoclingReader(BaseReader):
         return DocumentConverter()
 
     def run(
-        self, file_path: str | Path, extra_info: Optional[dict] = None, **kwargs
+        self, file: str | Path, extra_info: Optional[dict] = None, **kwargs
     ) -> List[Document]:
-        return self.load_data(file_path, extra_info, **kwargs)
+        return self.load_data(file, extra_info, **kwargs)
 
     def load_data(
         self, file_path: str | Path, extra_info: Optional[dict] = None, **kwargs

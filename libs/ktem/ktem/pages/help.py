@@ -4,9 +4,8 @@ from pathlib import Path
 import gradio as gr
 import requests
 from decouple import config
-from ktem.settings_config import app_settings as settings
-
 from ktem.app import BaseApp
+from ktem.settings_config import app_settings as settings
 
 KH_DEMO_MODE = settings.KH_DEMO_MODE
 HF_SPACE_URL = config("HF_SPACE_URL", default="")
@@ -37,7 +36,7 @@ class HelpPage:
     def __init__(
         self,
         app: BaseApp,
-        doc_dir: str = settings.KH_DOC_DIR,
+        doc_dir: str | Path = settings.KH_DOC_DIR,
         remote_content_url: str = "https://raw.githubusercontent.com/Cinnamon/kotaemon",
         app_version: str | None = settings.KH_APP_VERSION,
         changelogs_cache_dir: str

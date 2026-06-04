@@ -57,9 +57,7 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
     dimensions: Optional[int] = field(
         default=None,
         metadata={
-            "description": (
-                "Output embedding dimensions (text-embedding-3 and later)."
-            )
+            "description": ("Output embedding dimensions (text-embedding-3 and later).")
         },
     )
     context_length: Optional[int] = field(
@@ -148,9 +146,7 @@ class OpenAIEmbeddings(BaseOpenAIEmbeddings):
 
     model: str = field(
         metadata={
-            "description": (
-                "Model ID (see platform.openai.com/docs/models/overview)."
-            )
+            "description": ("Model ID (see platform.openai.com/docs/models/overview).")
         }
     )
     base_url: Optional[str] = field(
@@ -204,15 +200,9 @@ class OpenAIEmbeddings(BaseOpenAIEmbeddings):
 @dataclass(kw_only=True)
 class AzureOpenAIEmbeddings(BaseOpenAIEmbeddings):
     azure_endpoint: str = field(
-        metadata={
-            "description": (
-                "HTTPS endpoint for the Azure OpenAI model."
-            )
-        }
+        metadata={"description": ("HTTPS endpoint for the Azure OpenAI model.")}
     )
-    azure_deployment: str = field(
-        metadata={"description": "Azure deployment name"}
-    )
+    azure_deployment: str = field(metadata={"description": "Azure deployment name"})
     api_version: str = field(metadata={"description": "Azure model version"})
     azure_ad_token: Optional[str] = field(
         default=None, metadata={"description": "Azure AD token"}

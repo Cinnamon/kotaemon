@@ -16,9 +16,7 @@ class SuggestFollowupQuesPipeline:
         "Based on the chat history above, generate 3 to 5 follow-up questions. "
         "Respond in JSON with 'questions' key. Answer in {lang}."
     )
-    extra_prompt: str = (
-        'Example: {"questions": ["question 1", "question 2"]}'
-    )
+    extra_prompt: str = 'Example: {"questions": ["question 1", "question 2"]}'
     lang: str = "English"
 
     def run(self, chat_history: list[tuple[str, str]]) -> Document:
@@ -32,3 +30,6 @@ class SuggestFollowupQuesPipeline:
             messages.append(AIMessage(content=ai))
         messages.append(HumanMessage(content=prompt))
         return self.llm(messages)
+
+    def __call__(self, chat_history: list[tuple[str, str]]) -> Document:
+        return self.run(chat_history)

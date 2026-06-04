@@ -18,6 +18,7 @@ class CiteEvidence(BaseModel):
         ),
     )
 
+
 @dataclass(kw_only=True)
 class CitationPipeline:
     """Citation pipeline to extract cited evidences from source

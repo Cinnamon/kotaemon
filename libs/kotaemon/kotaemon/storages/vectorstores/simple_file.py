@@ -1,14 +1,19 @@
 """Simple file vector store index."""
 from pathlib import Path
-from typing import Any, Optional, Type
+from typing import Any, Dict, Optional, Type
 
 import fsspec
 from llama_index.core.vector_stores import SimpleVectorStore as LISimpleVectorStore
 from llama_index.core.vector_stores.simple import SimpleVectorStoreData
+from typing_extensions import Self
 
 from kotaemon.base import DocumentWithEmbedding
 
-from .base import LlamaIndexVectorStore
+from .base import BaseVectorStoreEnv, LlamaIndexVectorStore
+
+
+class SimpleFileVectorStoreEnv(BaseVectorStoreEnv):
+    SIMPLE_FILE_PATH: str = "files"
 
 
 class SimpleFileVectorStore(LlamaIndexVectorStore):
@@ -16,6 +21,14 @@ class SimpleFileVectorStore(LlamaIndexVectorStore):
 
     _li_class: Type[LISimpleVectorStore] = LISimpleVectorStore
     store_text: bool = False
+
+    @classmethod
+    def from_env(cls, overriding_envvars: Dict[str, Any] | None = None) -> Self:
+        envs = SimpleFileVectorStoreEnv.override_envs(overriding_envvars)
+        print(f"Loaded SimpleFile with envs={envs}")
+        return cls(
+            path=envs.SIMPLE_FILE_PATH, collection_name=envs.VECTORSTORE_COLLECTION_NAME
+        )
 
     def __init__(
         self,

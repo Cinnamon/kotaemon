@@ -59,6 +59,6 @@ class CreateMindmapPipeline:
         ]
         uml_text = self.llm(messages).text
         return Document(text=self.convert_uml_to_markdown(uml_text))
-    
+
     def __call__(self, question: str, context: str) -> Document:
         return self.run(question, context)

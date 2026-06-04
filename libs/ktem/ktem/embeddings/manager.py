@@ -5,11 +5,7 @@ from ktem.db.engine import engine
 from ktem.db.models import EmbeddingTable
 
 from kotaemon.embeddings.base import BaseEmbeddings
-from kotaemon.embeddings.factory import (
-    MP_VENDOR_CLS,
-    EmbeddingFactory,
-    EmbeddingVendor,
-)
+from kotaemon.embeddings.factory import MP_VENDOR_CLS, EmbeddingFactory, EmbeddingVendor
 
 
 class EmbeddingManager:
@@ -28,9 +24,9 @@ class EmbeddingManager:
 
         with EmbeddingCRUD(engine) as crud:
             for item in crud.list_all():
-                self._models[item.name] = EmbeddingFactory.get_cls(
-                    item.vendor
-                )(**item.spec)
+                self._models[item.name] = EmbeddingFactory.get_cls(item.vendor)(
+                    **item.spec
+                )
                 self._info[item.name] = item
                 if item.default:
                     self._default = item.name
@@ -109,15 +105,11 @@ class EmbeddingManager:
         """
         try:
             with EmbeddingCRUD(engine) as crud:
-                crud.create(
-                    name=name, vendor=vendor, spec=spec, default=default
-                )
+                crud.create(name=name, vendor=vendor, spec=spec, default=default)
         except ValueError:
             raise
         except Exception as e:
-            raise ValueError(
-                f"Failed to add embedding model '{name}': {e}"
-            ) from e
+            raise ValueError(f"Failed to add embedding model '{name}': {e}") from e
         self.load()
 
     def delete(self, name: str) -> None:
@@ -159,8 +151,7 @@ class EmbeddingManager:
         if new_name and new_name != name:
             if new_name in self._info:
                 raise ValueError(
-                    f"Model '{new_name}' already exists."
-                    " Use a unique name."
+                    f"Model '{new_name}' already exists." " Use a unique name."
                 )
             self.delete(name)
             self.add(new_name, vendor=vendor, spec=spec, default=default)
@@ -168,20 +159,16 @@ class EmbeddingManager:
 
         try:
             with EmbeddingCRUD(engine) as crud:
-                crud.update(
-                    name, vendor=vendor, spec=spec, default=default
-                )
+                crud.update(name, vendor=vendor, spec=spec, default=default)
         except ValueError:
             raise
         except Exception as e:
-            raise ValueError(
-                f"Failed to update embedding model '{name}': {e}"
-            ) from e
+            raise ValueError(f"Failed to update embedding model '{name}': {e}") from e
         self.load()
 
     def vendors(self) -> dict[EmbeddingVendor, type[BaseEmbeddings]]:
         """Return all registered vendor classes keyed by EmbeddingVendor."""
-        return {v: MP_VENDOR_CLS[v] for v in self._vendors}
+        return dict(MP_VENDOR_CLS)
 
 
 embedding_models_manager = EmbeddingManager()

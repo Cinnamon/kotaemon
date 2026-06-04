@@ -23,12 +23,6 @@ class BaseIssueReport(Base):
         Integer, primary_key=True, autoincrement=True
     )
     issues: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    chat: Mapped[Optional[dict[str, Any]]] = mapped_column(
-        JSON, nullable=True
-    )
-    settings: Mapped[Optional[dict[str, Any]]] = mapped_column(
-        JSON, nullable=True
-    )
-    user: Mapped[Optional[str]] = mapped_column(
-        String, nullable=True
-    )
+    chat: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    settings: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    user: Mapped[Optional[str]] = mapped_column(String, nullable=True)

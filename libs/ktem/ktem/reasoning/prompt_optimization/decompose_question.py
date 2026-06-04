@@ -21,9 +21,7 @@ class SubQuery(BaseModel):
 @dataclass(kw_only=True)
 class DecomposeQuestionPipeline(RewriteQuestionPipeline):
     llm: ChatLLM = field(
-        default_factory=lambda: llms.get(
-            "openai-gpt4-turbo", llms.get_default()
-        )
+        default_factory=lambda: llms.get("openai-gpt4-turbo", llms.get_default())
     )
     DECOMPOSE_SYSTEM_PROMPT_TEMPLATE: str = (
         "You are an expert at converting user complex questions into sub questions. "

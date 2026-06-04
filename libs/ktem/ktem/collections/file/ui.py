@@ -14,10 +14,10 @@ from gradio.data_classes import FileData
 from gradio.utils import NamedString
 from ktem.app import BasePage
 from ktem.db.engine import engine
+from ktem.settings_config import app_settings as flowsettings
 from ktem.utils.render import Render
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from ktem.settings_config import app_settings as flowsettings
 
 from ...utils.commands import WEB_SEARCH_COMMAND
 from ...utils.rate_limit import check_rate_limit
@@ -1173,7 +1173,7 @@ class FileIndexPage(BasePage):
             outputs=[self.group_files],
         )
 
-    def _may_extract_zip(self, files, zip_dir: str):
+    def _may_extract_zip(self, files, zip_dir: str | Path):
         """Handle zip files"""
         zip_files = [file for file in files if file.endswith(".zip")]
         remaining_files = [file for file in files if not file.endswith("zip")]

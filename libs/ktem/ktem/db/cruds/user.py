@@ -1,8 +1,7 @@
 from typing import Optional
 
-from sqlalchemy import select
-
 from ktem.db.models import User
+from sqlalchemy import select
 
 from .base import BaseCRUD
 
@@ -33,9 +32,7 @@ class UserCRUD(BaseCRUD):
             ValueError: if the username already exists.
         """
         if self.get_by_username(username) is not None:
-            raise ValueError(
-                f"Username '{username}' already exists"
-            )
+            raise ValueError(f"Username '{username}' already exists")
         kwargs: dict = dict(
             username=username,
             username_lower=username.lower(),
@@ -64,18 +61,14 @@ class UserCRUD(BaseCRUD):
         Args:
             username: the username to look up.
         """
-        stmt = select(User).where(
-            User.username_lower == username.lower()
-        )
+        stmt = select(User).where(User.username_lower == username.lower())
         return self.session.scalars(stmt).first()
 
     def list_all(self) -> list[User]:
         """Return all users."""
         return list(self.session.scalars(select(User)).all())
 
-    def username_taken(
-        self, username: str, exclude_id: Optional[str] = None
-    ) -> bool:
+    def username_taken(self, username: str, exclude_id: Optional[str] = None) -> bool:
         """Check whether *username* is already in use.
 
         Args:
@@ -86,9 +79,7 @@ class UserCRUD(BaseCRUD):
         Returns:
             True if the username is taken by another user.
         """
-        stmt = select(User).where(
-            User.username_lower == username.lower()
-        )
+        stmt = select(User).where(User.username_lower == username.lower())
         if exclude_id is not None:
             stmt = stmt.where(User.id != exclude_id)
         return self.session.scalars(stmt).first() is not None

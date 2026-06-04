@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-
 from typing import Any, AnyStr, Optional, Type, Union
 
 from pydantic import BaseModel, Field

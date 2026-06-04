@@ -1,6 +1,6 @@
 from .base import BaseDocumentStore
 from .elasticsearch import ElasticsearchDocumentStore
-from .factory import DocStoreFactory, DocStoreVendor, MP_VENDOR_CLS
+from .factory import MP_VENDOR_CLS, DocStoreFactory, DocStoreVendor
 from .in_memory import InMemoryDocumentStore
 from .lancedb import LanceDBDocumentStore
 from .simple_file import SimpleFileDocumentStore

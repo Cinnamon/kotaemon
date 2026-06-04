@@ -8,9 +8,9 @@ from .base import BaseReader
 
 class TxtReader(BaseReader):
     def run(
-        self, file_path: str | Path, extra_info: Optional[dict] = None, **kwargs
+        self, file: str | Path, extra_info: Optional[dict] = None, **kwargs
     ) -> list[Document]:
-        return self.load_data(Path(file_path), extra_info=extra_info, **kwargs)
+        return self.load_data(Path(file), extra_info=extra_info, **kwargs)
 
     def load_data(
         self, file_path: Path, extra_info: Optional[dict] = None, **kwargs

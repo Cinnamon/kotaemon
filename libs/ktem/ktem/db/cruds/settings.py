@@ -1,8 +1,7 @@
 from typing import Any
 
-from sqlalchemy import select
-
 from ktem.db.models import Settings
+from sqlalchemy import select
 
 from .base import BaseCRUD
 
@@ -19,9 +18,7 @@ class SettingsCRUD(BaseCRUD):
         stmt = select(Settings).where(Settings.user == user_id)
         return self.session.scalars(stmt).first()
 
-    def upsert(
-        self, user_id: str, setting: dict[str, Any]
-    ) -> Settings:
+    def upsert(self, user_id: str, setting: dict[str, Any]) -> Settings:
         """Create or replace the settings record for *user_id*.
 
         Args:

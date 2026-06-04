@@ -1,7 +1,7 @@
-from pathlib import Path
-
 from dataclasses import dataclass, field
 from functools import cached_property
+from pathlib import Path
+
 from kotaemon.base import Document
 from kotaemon.loaders.base import BaseReader
 

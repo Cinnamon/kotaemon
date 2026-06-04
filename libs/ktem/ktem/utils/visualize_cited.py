@@ -141,3 +141,6 @@ class CreateCitationVizPipeline:
         visualization_df = pd.concat([viz_base_df, viz_query_df], axis=0)
         fig = self._plot_embeddings(visualization_df)
         return fig
+
+    def __call__(self, context: list, question: str):
+        return self.run(context, question)

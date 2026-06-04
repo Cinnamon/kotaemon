@@ -107,10 +107,8 @@ class VectorRetrieval(BaseRetrieval):
         if top_k is None:
             top_k = self.top_k
         do_extend = kwargs.pop("do_extend", False)
-        thumbnail_count = kwargs.pop("thumbnail_count", 3)
-        top_k_first_round = (
-            top_k * self.first_round_top_k_mult if do_extend else top_k
-        )
+        kwargs.pop("thumbnail_count", 3)
+        top_k_first_round = top_k * self.first_round_top_k_mult if do_extend else top_k
         if self.doc_store is None:
             raise ValueError("doc_store is not provided.")
 
@@ -129,7 +127,11 @@ class VectorRetrieval(BaseRetrieval):
             ]
         elif self.retrieval_mode == "text":
             query = text.text if isinstance(text, Document) else text
-            docs = self.doc_store.query(query, top_k=top_k_first_round, doc_ids=scope) if scope else []
+            docs = (
+                self.doc_store.query(query, top_k=top_k_first_round, doc_ids=scope)
+                if scope
+                else []
+            )
             result = [RetrievedDocument(**doc.to_dict(), score=-1.0) for doc in docs]
         elif self.retrieval_mode == "hybrid":
             emb = self.embedding(text)[0].embedding

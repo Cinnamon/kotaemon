@@ -33,16 +33,12 @@ class BaseConversation(Base):
     name: Mapped[str] = mapped_column(
         String,
         default=lambda: "Untitled - {}".format(
-            datetime.datetime.now(get_localzone()).strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
+            datetime.datetime.now(get_localzone()).strftime("%Y-%m-%d %H:%M:%S")
         ),
     )
     user: Mapped[str] = mapped_column(String, default="")
     is_public: Mapped[bool] = mapped_column(Boolean, default=False)
-    data_source: Mapped[dict[str, Any]] = mapped_column(
-        JSON, default=dict
-    )
+    data_source: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     date_created: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.datetime.now(datetime.timezone.utc),

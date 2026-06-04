@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from functools import cached_property
-from typing import Any, Callable, Optional, Union
+from typing import Callable, Optional, Union
 
 from kotaemon.base import Runnable
 from kotaemon.base.schema import Document, IO_Type
+
 from .chats import ChatLLM
 from .completions import LLM
 from .prompts import BasePromptComponent
@@ -22,7 +21,13 @@ class SimpleLinearPipeline:
         self.llm = llm
         self.post_processor = post_processor
 
-    def run(self, *, llm_kwargs: Optional[dict] = None, post_processor_kwargs: Optional[dict] = None, **prompt_kwargs):
+    def run(
+        self,
+        *,
+        llm_kwargs: Optional[dict] = None,
+        post_processor_kwargs: Optional[dict] = None,
+        **prompt_kwargs,
+    ):
         llm_kwargs = llm_kwargs or {}
         post_processor_kwargs = post_processor_kwargs or {}
         prompt = self.prompt(**prompt_kwargs)

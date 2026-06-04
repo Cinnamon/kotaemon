@@ -1,9 +1,9 @@
 from typing import Any
 
+from ktem.db.models import RerankingTable
 from sqlalchemy import select, update
 
 from kotaemon.rerankings.factory import RerankingVendor
-from ktem.db.models import RerankingTable
 
 from .base import BaseCRUD
 
@@ -28,9 +28,7 @@ class RerankingCRUD(BaseCRUD):
             raise ValueError(f"Reranking model '{name}' already exists")
         if default:
             self.clear_defaults()
-        item = RerankingTable(
-            name=name, vendor=vendor, spec=spec, default=default
-        )
+        item = RerankingTable(name=name, vendor=vendor, spec=spec, default=default)
         self.session.add(item)
         self.commit()
         self.session.refresh(item)

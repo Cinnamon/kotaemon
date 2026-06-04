@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Literal, TypedDict
-from typing_extensions import NotRequired
 
-from ktem.embeddings.manager import embedding_models_manager
 from ktem.collections.file.types import IndexSettings
+from ktem.embeddings.manager import embedding_models_manager
+from typing_extensions import NotRequired
 
 from kotaemon.indices.indexing import BaseIndexing
 from kotaemon.indices.indexing.impl.rag import (
@@ -42,7 +42,7 @@ class IndexDocumentPipeline(_IndexDocumentPipeline):
     """
 
     @classmethod
-    def get_user_settings(cls) -> IndexingUserSettings:
+    def get_user_settings(cls) -> dict:
         return {
             "reader_mode": {
                 "name": "File loader",
@@ -51,8 +51,7 @@ class IndexDocumentPipeline(_IndexDocumentPipeline):
                     ("Default (open-source)", "default"),
                     ("Adobe API (figure+table extraction)", "adobe"),
                     (
-                        "Azure AI Document Intelligence"
-                        " (figure+table extraction)",
+                        "Azure AI Document Intelligence" " (figure+table extraction)",
                         "azure-di",
                     ),
                     ("Docling (figure+table extraction)", "docling"),
@@ -72,9 +71,7 @@ class IndexDocumentPipeline(_IndexDocumentPipeline):
         user_settings: IndexingUserSettings,
         index_settings: IndexSettings,
     ) -> BaseIndexing:
-        use_quick_index_mode = user_settings.get(
-            "quick_index_mode", False
-        )
+        use_quick_index_mode = user_settings.get("quick_index_mode", False)
         print("use_quick_index_mode", use_quick_index_mode)
         return cls(
             embedding=embedding_models_manager[

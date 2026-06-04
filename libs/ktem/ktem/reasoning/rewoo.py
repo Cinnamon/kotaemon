@@ -186,10 +186,15 @@ class RewriteQuestionPipeline:
         prompt = PromptTemplate(self.rewrite_template).populate(
             question=question, lang=self.lang
         )
-        return self.llm([
-            SystemMessage(content="You are a helpful assistant"),
-            HumanMessage(content=prompt),
-        ])
+        return self.llm(
+            [
+                SystemMessage(content="You are a helpful assistant"),
+                HumanMessage(content=prompt),
+            ]
+        )
+
+    def __call__(self, **kwargs) -> Document:
+        return self.run(**kwargs)
 
 
 def find_text(llm_output, context):
@@ -382,7 +387,7 @@ class RewooAgentPipeline(BaseReasoning):
     ) -> BaseReasoning:
         _id = cls.get_info()["id"]
         prefix = f"reasoning.options.{_id}"
-        pipeline = RewooAgentPipeline(retrievers=retrievers)
+        pipeline = RewooAgentPipeline(retrievers=retrievers or [])
 
         max_context_length_setting = settings.get("reasoning.max_context_length", None)
 

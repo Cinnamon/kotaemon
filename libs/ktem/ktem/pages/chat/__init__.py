@@ -1,15 +1,13 @@
-import asyncio
 import json
 import re
 from copy import deepcopy
-from typing import Optional
 
 import gradio as gr
 from decouple import config
 from ktem.app import BaseApp, BasePage
+from ktem.collections.file.ui import File
 from ktem.components import reasonings
 from ktem.db.models import Conversation, engine
-from ktem.collections.file.ui import File
 from ktem.reasoning.prompt_optimization.mindmap import MINDMAP_HTML_EXPORT_TEMPLATE
 from ktem.reasoning.prompt_optimization.suggest_conversation_name import (
     SuggestConvNamePipeline,
@@ -17,10 +15,10 @@ from ktem.reasoning.prompt_optimization.suggest_conversation_name import (
 from ktem.reasoning.prompt_optimization.suggest_followup_chat import (
     SuggestFollowupQuesPipeline,
 )
+from ktem.settings_config import app_settings as flowsettings
 from plotly.io import from_json
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from ktem.settings_config import app_settings as flowsettings
 
 from kotaemon.base import Document
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
@@ -62,6 +60,7 @@ if KH_WEB_SEARCH_BACKEND:
     target = _WEB_SEARCH_CLS.get(KH_WEB_SEARCH_BACKEND)
     if target:
         import importlib
+
         mod = importlib.import_module(target[0])
         WebSearch = getattr(mod, target[1])
     else:
@@ -219,16 +218,14 @@ function(_, __) {
 class ChatPage(BasePage):
     def __init__(self, app: BaseApp):
         self._app = app
-        self._indices_input = []
+        self._indices_input: list = []
 
         self.on_building_ui()
 
         self._preview_links = gr.State(value=None)
         self._reasoning_type = gr.State(value=None)
         self._conversation_renamed = gr.State(value=False)
-        self._use_suggestion = gr.State(
-            value=flowsettings.KH_FEATURE_CHAT_SUGGESTION
-        )
+        self._use_suggestion = gr.State(value=flowsettings.KH_FEATURE_CHAT_SUGGESTION)
         self._info_panel_expanded = gr.State(value=True)
         self._command_state = gr.State(value=None)
         self._user_api_key = gr.Text(value="", visible=False)
@@ -244,7 +241,9 @@ class ChatPage(BasePage):
             with gr.Column(scale=1, elem_id="conv-settings-panel") as self.conv_column:
                 self.chat_control = ConversationControl(self._app)
 
-                for index_id, index in enumerate(self._app.collection_manager.collections):
+                for index_id, index in enumerate(
+                    self._app.collection_manager.collections
+                ):
                     index.selector = None
                     index_ui = index.get_selector_component_ui()
                     if not index_ui:
@@ -1334,8 +1333,6 @@ class ChatPage(BasePage):
             has_selected_files=self._has_selected_files(user_id, *selecteds),
             default_question=DEFAULT_QUESTION,
         )
-
-        queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
 
         # construct the pipeline
         pipeline, reasoning_state = self.create_pipeline(

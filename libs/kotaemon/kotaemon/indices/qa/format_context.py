@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import html
+from dataclasses import dataclass
 from functools import partial
 
 import tiktoken
@@ -11,6 +11,7 @@ EVIDENCE_MODE_TEXT = 0
 EVIDENCE_MODE_TABLE = 1
 EVIDENCE_MODE_CHATBOT = 2
 EVIDENCE_MODE_FIGURE = 3
+
 
 @dataclass(kw_only=True)
 class PrepareEvidencePipeline:

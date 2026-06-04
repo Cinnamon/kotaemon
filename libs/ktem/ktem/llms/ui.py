@@ -3,9 +3,10 @@ from copy import deepcopy
 import gradio as gr
 import pandas as pd
 import yaml
-from kotaemon.llms.chats.factory import LLMFactory, LLMVendor
 from ktem.app import BaseApp, BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
+
+from kotaemon.llms.chats.factory import LLMFactory, LLMVendor
 
 from .manager import llms
 
@@ -132,20 +133,16 @@ class LLMManagement(BasePage):
         )
         self._app.app.load(
             lambda: gr.update(
-                choices=[
-                    vendor.value 
-                    for vendor 
-                    in LLMFactory.supported_vendors()
-                ]
+                choices=[vendor.value for vendor in LLMFactory.supported_vendors()]
             ),
             outputs=[self.llm_choices],
         )
 
     def on_llm_vendor_change(self, vendor: str):
-        vendor = LLMFactory.get_cls(LLMVendor(vendor))
+        vendor_cls = LLMFactory.get_cls(LLMVendor(vendor))
 
         required: dict = {}
-        desc = vendor.describe()
+        desc = vendor_cls.describe()
         for key, value in desc["params"].items():
             if value.get("required", False):
                 required[key] = None
@@ -254,7 +251,7 @@ class LLMManagement(BasePage):
         try:
             name = name.strip()
             spec = yaml.load(spec, Loader=YAMLNoDateSafeLoader)
-            
+
             llms.add(name, vendor=LLMVendor(choices), spec=spec, default=default)
             gr.Info(f"LLM '{name}' created successfully")
         except ValueError as e:
@@ -264,9 +261,7 @@ class LLMManagement(BasePage):
 
     def list_llms(self):
         """List the LLMs"""
-        items = [
-            item.ui for _, item in llms.info().items()
-        ]
+        items = [item.ui for _, item in llms.info().items()]
 
         if items:
             llm_list = pd.DataFrame.from_records(items)
@@ -344,9 +339,7 @@ class LLMManagement(BasePage):
 
             item = llms.info()[selected_llm_name]
             params = deepcopy(item.spec)
-            params.update(
-                yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
-            )
+            params.update(yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader))
             llm = LLMFactory.get_cls(item.vendor)(**params)
 
             if llm is None:

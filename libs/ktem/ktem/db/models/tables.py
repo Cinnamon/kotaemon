@@ -1,9 +1,9 @@
 from typing import Any, Optional
 
 from ktem.db.engine import engine
+from ktem.settings_config import app_settings as settings
 from sqlalchemy import JSON, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
-from ktem.settings_config import app_settings as settings
 
 from .base import Base
 from .conversation import BaseConversation

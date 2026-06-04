@@ -193,6 +193,7 @@ class ReactAgent(BaseAgent):
         for step_count in range(1, max_iterations + 1):
             prompt = self._compose_prompt(instruction)
             logging.info(f"Prompt: {prompt}")
+            assert self.llm is not None
             response = self.llm(
                 prompt, stop=["Observation:"]
             )  # could cause bugs if llm doesn't have `stop` as a parameter
@@ -272,6 +273,7 @@ class ReactAgent(BaseAgent):
             prompt = self._compose_prompt(instruction)
             logging.info(f"Prompt: {prompt}")
             print(f"Prompt: {prompt}")
+            assert self.llm is not None
             response = self.llm(
                 prompt, stop=["Observation:"]
             )  # TODO: could cause bugs if llm doesn't have `stop` as a parameter

@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
+
+from typing_extensions import Self
 
 from kotaemon.base import Document
 
@@ -12,6 +14,10 @@ class InMemoryDocumentStore(BaseDocumentStore):
 
     def __init__(self):
         self._store = {}
+
+    @classmethod
+    def from_env(cls, _overriding_envvars: Dict[str, Any] | None = None) -> Self:
+        return cls()
 
     def add(
         self,

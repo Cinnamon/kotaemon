@@ -1,17 +1,34 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from llama_index.core.schema import NodeRelationship, RelatedNodeInfo
 from llama_index.core.vector_stores.types import BasePydanticVectorStore
 from llama_index.core.vector_stores.types import VectorStore as LIVectorStore
 from llama_index.core.vector_stores.types import VectorStoreQuery
+from pydantic_settings import BaseSettings
+from typing_extensions import Self
 
 from kotaemon.base import DocumentWithEmbedding
 
 
+class BaseVectorStoreEnv(BaseSettings):
+    VECTORSTORE_COLLECTION_NAME: str = "vectorstore"
+
+    @classmethod
+    def override_envs(cls, overriding_envvars: Dict[str, Any] | None = None) -> Self:
+        settings = cls().model_dump()
+        settings.update(overriding_envvars or {})
+        return cls.model_validate(settings)
+
+
 class BaseVectorStore(ABC):
+    @classmethod
+    @abstractmethod
+    def from_env(cls, overriding_envvars: Dict[str, Any] | None = None) -> Self:
+        ...
+
     @abstractmethod
     def __init__(self, *args, **kwargs):
         ...

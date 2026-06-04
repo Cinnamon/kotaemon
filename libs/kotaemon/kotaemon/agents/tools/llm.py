@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-
 from typing import AnyStr, Optional, Type
 
 from pydantic import BaseModel, Field
@@ -31,6 +30,7 @@ class LLMTool(BaseTool):
         output = None
         try:
             if not self.dummy_mode:
+                assert self.llm is not None
                 response = self.llm(query)
             else:
                 response = None

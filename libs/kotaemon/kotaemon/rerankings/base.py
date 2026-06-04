@@ -21,6 +21,12 @@ class BaseReranking:
     ) -> list[Document]:
         return self.run(documents, query, *args, **kwargs)
 
+    def prepare_input(self, documents: list[str] | list[Document]) -> list[Document]:
+        """Coerce a list of strings to a list of Documents."""
+        return [
+            d if isinstance(d, Document) else Document(content=d) for d in documents
+        ]
+
     def run(
         self,
         documents: list[Document],

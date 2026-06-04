@@ -40,9 +40,7 @@ class LLMManager:
         """Check if model exists."""
         return key in self._models
 
-    def get(
-        self, key: str, default: Optional[ChatLLM] = None
-    ) -> Optional[ChatLLM]:
+    def get(self, key: str, default: Optional[ChatLLM] = None) -> Optional[ChatLLM]:
         """Get model by name with a fallback default."""
         return self._models.get(key, default)
 
@@ -95,17 +93,15 @@ class LLMManager:
         try:
             with LLMCRUD(engine) as crud:
                 crud.create(
-                    name=name, 
-                    vendor=vendor, 
-                    spec=spec, 
+                    name=name,
+                    vendor=vendor,
+                    spec=spec,
                     default=default,
                 )
         except ValueError:
             raise
         except Exception as e:
-            raise ValueError(
-                f"Failed to add LLM '{name}': {e}"
-            ) from e
+            raise ValueError(f"Failed to add LLM '{name}': {e}") from e
         self.load()
 
     def delete(self, name: str) -> None:
@@ -144,8 +140,7 @@ class LLMManager:
         if new_name and new_name != name:
             if new_name in self._info:
                 raise ValueError(
-                    f"Model '{new_name}' already exists."
-                    " Use a unique name."
+                    f"Model '{new_name}' already exists." " Use a unique name."
                 )
             self.delete(name)
             self.add(new_name, vendor=vendor, spec=spec, default=default)
@@ -153,15 +148,11 @@ class LLMManager:
 
         try:
             with LLMCRUD(engine) as crud:
-                crud.update(
-                    name, vendor=vendor, spec=spec, default=default
-                )
+                crud.update(name, vendor=vendor, spec=spec, default=default)
         except ValueError:
             raise
         except Exception as e:
-            raise ValueError(
-                f"Failed to update LLM '{name}': {e}"
-            ) from e
+            raise ValueError(f"Failed to update LLM '{name}': {e}") from e
         self.load()
 
 

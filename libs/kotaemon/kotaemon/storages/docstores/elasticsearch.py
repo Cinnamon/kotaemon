@@ -1,10 +1,18 @@
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
+
+from typing_extensions import Self
 
 from kotaemon.base import Document
 
-from .base import BaseDocumentStore
+from .base import BaseDocumentStore, BaseDocumentStoreEnv
 
 MAX_DOCS_TO_GET = 10**4
+
+
+class ElasticsearchEnv(BaseDocumentStoreEnv):
+    ELASTICSEARCH_URL: str = "http://localhost:9200"
+    ELASTICSEARCH_K1: float = 2.0
+    ELASTICSEARCH_B: float = 0.75
 
 
 class ElasticsearchDocumentStore(BaseDocumentStore):
@@ -59,6 +67,17 @@ class ElasticsearchDocumentStore(BaseDocumentStore):
             self.client.indices.create(
                 index=self.index_name, mappings=mappings, settings=settings
             )
+
+    @classmethod
+    def from_env(cls, overriding_envvars: Dict[str, Any] | None = None) -> Self:
+        envs = ElasticsearchEnv.override_envs(overriding_envvars)
+        print(f"Loaded Elasticsearch with envs={envs}")
+        return cls(
+            collection_name=envs.DOCSTORE_COLLECTION_NAME,
+            elasticsearch_url=envs.ELASTICSEARCH_URL,
+            k1=envs.ELASTICSEARCH_K1,
+            b=envs.ELASTICSEARCH_B,
+        )
 
     def add(
         self,

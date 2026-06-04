@@ -70,9 +70,7 @@ class FirstMatchRegexExtractor(RegexExtractor):
         for p in self.pattern:
             output = self.run_raw_static(p, text)
             if output:
-                output = [
-                    self.map_output(item, self.output_map) for item in output
-                ]
+                output = [self.map_output(item, self.output_map) for item in output]
                 return ExtractorOutput(
                     text=output[0],
                     matches=output,

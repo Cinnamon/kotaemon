@@ -5,10 +5,9 @@ from copy import deepcopy
 import gradio as gr
 from ktem.app import BasePage
 from ktem.db.models import Conversation, User, engine
+from ktem.settings_config import app_settings as flowsettings
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
-
-from ktem.settings_config import app_settings as flowsettings
 
 from ...utils.conversation import sync_retrieval_n_message
 from .chat_suggestion import ChatSuggestion
@@ -225,7 +224,7 @@ class ConversationControl(BasePage):
             # - can_see: can see their conversations & public files
             # - can_not_see: only see their conversations
             if can_see_public:
-                statement = (
+                conv_stmt = (
                     select(Conversation)
                     .where(
                         or_(
@@ -238,15 +237,15 @@ class ConversationControl(BasePage):
                     )  # type: ignore
                 )
             else:
-                statement = (
+                conv_stmt = (
                     select(Conversation)
                     .where(Conversation.user == user_id)
                     .order_by(Conversation.date_created.desc())  # type: ignore
                 )
 
-            results = session.scalars(statement).all()
-            for result in results:
-                options.append((result.name, result.id))
+            results = session.scalars(conv_stmt).all()
+            for conv in results:
+                options.append((conv.name, conv.id))
 
         return options
 
@@ -353,7 +352,7 @@ class ConversationControl(BasePage):
                 is_conv_public = False
 
         indices = []
-        for index in self._app.index_manager.indices:
+        for index in self._app.collection_manager.collections:
             # assume that the index has selector
             if index.selector is None:
                 continue

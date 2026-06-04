@@ -62,9 +62,7 @@ class LlamaCppChat(ChatLLM):
 
         errors = []
         if not self.model_path and (not self.repo_id or not self.filename):
-            errors.append(
-                "- `model_path` or `repo_id` and `filename` are required"
-            )
+            errors.append("- `model_path` or `repo_id` and `filename` are required")
         if not self.chat_format:
             errors.append("- `chat_format` is required")
         if errors:

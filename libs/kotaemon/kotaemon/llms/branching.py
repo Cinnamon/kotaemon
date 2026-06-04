@@ -2,8 +2,6 @@ from typing import List, Optional
 
 from kotaemon.base import Document, Runnable
 
-from .linear import GatedLinearPipeline
-
 
 class SimpleBranchingPipeline:
     def __init__(self, branches: List[Runnable] | None = None) -> None:

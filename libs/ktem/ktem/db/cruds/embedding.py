@@ -1,9 +1,9 @@
 from typing import Any
 
+from ktem.db.models import EmbeddingTable
 from sqlalchemy import select, update
 
 from kotaemon.embeddings.factory import EmbeddingVendor
-from ktem.db.models import EmbeddingTable
 
 from .base import BaseCRUD
 
@@ -13,9 +13,7 @@ class EmbeddingCRUD(BaseCRUD):
 
     def clear_defaults(self) -> None:
         """Set all embedding rows to non-default within the current tx."""
-        self.session.execute(
-            update(EmbeddingTable).values(default=False)
-        )
+        self.session.execute(update(EmbeddingTable).values(default=False))
 
     def create(
         self,
@@ -44,14 +42,10 @@ class EmbeddingCRUD(BaseCRUD):
         if not name:
             raise ValueError("Name must not be empty")
         if self.get(name) is not None:
-            raise ValueError(
-                f"Embedding model '{name}' already exists"
-            )
+            raise ValueError(f"Embedding model '{name}' already exists")
         if default:
             self.clear_defaults()
-        item = EmbeddingTable(
-            name=name, vendor=vendor, spec=spec, default=default
-        )
+        item = EmbeddingTable(name=name, vendor=vendor, spec=spec, default=default)
         self.session.add(item)
         self.commit()
         self.session.refresh(item)
@@ -67,9 +61,7 @@ class EmbeddingCRUD(BaseCRUD):
 
     def list_all(self) -> list[EmbeddingTable]:
         """Return all embedding model entries."""
-        return list(
-            self.session.scalars(select(EmbeddingTable)).all()
-        )
+        return list(self.session.scalars(select(EmbeddingTable)).all())
 
     def update(
         self,
@@ -97,9 +89,7 @@ class EmbeddingCRUD(BaseCRUD):
         """
         item = self.get(name)
         if item is None:
-            raise ValueError(
-                f"Embedding model '{name}' not found"
-            )
+            raise ValueError(f"Embedding model '{name}' not found")
         if default is True:
             self.clear_defaults()
         if vendor is not None:
@@ -123,8 +113,6 @@ class EmbeddingCRUD(BaseCRUD):
         """
         item = self.get(name)
         if item is None:
-            raise ValueError(
-                f"Embedding model '{name}' not found"
-            )
+            raise ValueError(f"Embedding model '{name}' not found")
         self.session.delete(item)
         self.commit()

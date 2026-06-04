@@ -55,7 +55,7 @@ class ReportIssue(BasePage):
         *selecteds,
     ):
         selecteds_ = {}
-        for index in self._app.index_manager.indices:
+        for index in self._app.collection_manager.collections:
             if index.selector is not None:
                 if isinstance(index.selector, int):
                     selecteds_[str(index.id)] = selecteds[index.selector]

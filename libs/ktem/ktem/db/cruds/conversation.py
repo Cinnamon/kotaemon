@@ -1,8 +1,7 @@
 from typing import Any
 
-from sqlalchemy import or_, select
-
 from ktem.db.models import Conversation
+from sqlalchemy import or_, select
 
 from .base import BaseCRUD
 
@@ -46,9 +45,7 @@ class ConversationCRUD(BaseCRUD):
         )
         return list(self.session.scalars(stmt).all())
 
-    def list_by_user_or_public(
-        self, user_id: str
-    ) -> list[Conversation]:
+    def list_by_user_or_public(self, user_id: str) -> list[Conversation]:
         """Return conversations owned by *user_id* plus all public ones.
 
         Public conversations appear first, then sorted by creation date.
@@ -92,9 +89,7 @@ class ConversationCRUD(BaseCRUD):
         self.session.refresh(item)
         return item
 
-    def update_data_source(
-        self, id: str, data_source: dict[str, Any]
-    ) -> Conversation:
+    def update_data_source(self, id: str, data_source: dict[str, Any]) -> Conversation:
         """Replace the data_source payload of a conversation.
 
         Args:

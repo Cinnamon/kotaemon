@@ -1,23 +1,22 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from typing import Literal, Optional, TypedDict
 
 from decouple import config
 from fastapi import Path
+from ktem.collections.file.types import IndexSettings
+from ktem.embeddings.manager import embedding_models_manager
+from ktem.llms.manager import llms
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase
-from kotaemon.storages import BaseDocumentStore, BaseVectorStore
-from ktem.embeddings.manager import embedding_models_manager
-from ktem.collections.file.types import IndexSettings
-from ktem.llms.manager import llms
-from ktem.rerankings.manager import reranking_models_manager
 
 from kotaemon.indices.rankings import LLMReranking, LLMTrulensScoring
 from kotaemon.indices.retriever.impl.rag import (
     DocumentRetrievalPipeline as _DocumentRetrievalPipeline,
 )
+from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +39,7 @@ class RetrievalUserSettings(TypedDict):
     use_reranking: bool
     use_llm_reranking: bool
 
+
 @dataclass(kw_only=True)
 class DocumentRetrievalPipeline(_DocumentRetrievalPipeline):
     """RAG retrieval pipeline wired to ktem managers.
@@ -48,7 +48,7 @@ class DocumentRetrievalPipeline(_DocumentRetrievalPipeline):
     """
 
     @classmethod
-    def get_user_settings(cls) -> RetrievalUserSettings:
+    def get_user_settings(cls) -> dict:
         try:
             reranking_llm = llms.get_default_name()
             reranking_llm_choices = list(llms.options().keys())
@@ -96,9 +96,7 @@ class DocumentRetrievalPipeline(_DocumentRetrievalPipeline):
             },
             "use_llm_reranking": {
                 "name": "Use LLM relevant scoring",
-                "value": not config(
-                    "USE_LOW_LLM_REQUESTS", default=False, cast=bool
-                ),
+                "value": not config("USE_LOW_LLM_REQUESTS", default=False, cast=bool),
                 "choices": [True, False],
                 "component": "checkbox",
             },
@@ -150,16 +148,15 @@ class DocumentRetrievalPipeline(_DocumentRetrievalPipeline):
         if not user_settings["use_reranking"]:
             retriever.rerankers = []  # type: ignore
 
+        reranking_llm_name: str = (
+            user_settings.get("reranking_llm") or llms.get_default_name()
+        )
         for reranker in retriever.rerankers:
             if isinstance(reranker, LLMReranking):
-                reranker.llm = llms.get(
-                    user_settings["reranking_llm"], llms.get_default()
-                )
+                reranker.llm = llms.get(reranking_llm_name, llms.get_default())
 
         if retriever.llm_scorer:
-            retriever.llm_scorer.llm = llms.get(
-                user_settings["reranking_llm"], llms.get_default()
-            )
+            retriever.llm_scorer.llm = llms.get(reranking_llm_name, llms.get_default())
 
         # retriever.set_run({".doc_ids": selected}, temp=False)
         return retriever

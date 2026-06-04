@@ -1,10 +1,27 @@
-from typing import Any, List, Optional, cast
+from typing import Any, Dict, List, Optional, cast
 
-from .base import LlamaIndexVectorStore
+from typing_extensions import Self
+
+from .base import BaseVectorStoreEnv, LlamaIndexVectorStore
+
+
+class QdrantEnv(BaseVectorStoreEnv):
+    QDRANT_URL: str = "http://localhost:6333"
+    QDRANT_API_KEY: Optional[str] = None
 
 
 class QdrantVectorStore(LlamaIndexVectorStore):
     _li_class = None
+
+    @classmethod
+    def from_env(cls, overriding_envvars: Dict[str, Any] | None = None) -> Self:
+        envs = QdrantEnv.override_envs(overriding_envvars)
+        print(f"Loaded Qdrant with envs={envs}")
+        return cls(
+            collection_name=envs.VECTORSTORE_COLLECTION_NAME,
+            url=envs.QDRANT_URL,
+            api_key=envs.QDRANT_API_KEY,
+        )
 
     def _get_li_class(self):
         try:

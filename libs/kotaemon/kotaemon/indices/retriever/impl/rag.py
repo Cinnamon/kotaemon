@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
 import logging
 import time
 import warnings
 from collections import defaultdict
+from dataclasses import dataclass
 from functools import cached_property
 from typing import Optional, Sequence
 
@@ -26,6 +26,7 @@ from kotaemon.indices.retriever.base import BaseRetriever
 from kotaemon.indices.vectorindex import VectorRetrieval
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass(kw_only=True)
 class DocumentRetrievalPipeline(BaseRetriever):
@@ -60,7 +61,9 @@ class DocumentRetrievalPipeline(BaseRetriever):
             rerankers=self.rerankers,
         )
 
-    def __call__(self, text: str, doc_ids: Optional[list[str]] = None, *args, **kwargs) -> list[RetrievedDocument]:
+    def __call__(
+        self, text: str, doc_ids: Optional[list[str]] = None, *args, **kwargs
+    ) -> list[RetrievedDocument]:
         return self.run(text, doc_ids, *args, **kwargs)
 
     def run(
@@ -138,9 +141,7 @@ class DocumentRetrievalPipeline(BaseRetriever):
                     "file_name not in metadata while page_label is in metadata:"
                     f" {doc.metadata}"
                 )
-            table_pages[doc.metadata["file_name"]].append(
-                doc.metadata["page_label"]
-            )
+            table_pages[doc.metadata["file_name"]].append(doc.metadata["page_label"])
 
         queries: list[dict] = [
             {"$and": [{"file_name": {"$eq": fn}}, {"page_label": {"$in": pls}}]}

@@ -1,11 +1,17 @@
 import json
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
+
+from typing_extensions import Self
 
 from kotaemon.base import Document
 
-from .base import BaseDocumentStore
+from .base import BaseDocumentStore, BaseDocumentStoreEnv
 
 MAX_DOCS_TO_GET = 10**4
+
+
+class LanceDBEnv(BaseDocumentStoreEnv):
+    LANCEDB_URI: str = "lancedb"
 
 
 class LanceDBDocumentStore(BaseDocumentStore):
@@ -22,6 +28,12 @@ class LanceDBDocumentStore(BaseDocumentStore):
         self.db_uri = path
         self.collection_name = collection_name
         self.db_connection = lancedb.connect(self.db_uri)  # type: ignore
+
+    @classmethod
+    def from_env(cls, overriding_envvars: Dict[str, Any] | None = None) -> Self:
+        envs = LanceDBEnv.override_envs(overriding_envvars)
+        print(f"Loaded LanceDB with envs={envs}")
+        return cls(path=envs.LANCEDB_URI, collection_name=envs.DOCSTORE_COLLECTION_NAME)
 
     def add(
         self,

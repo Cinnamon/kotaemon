@@ -5,6 +5,7 @@ import pandas as pd
 import yaml
 from ktem.app import BaseApp, BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
+
 from kotaemon.embeddings.factory import EmbeddingFactory, EmbeddingVendor
 
 from .manager import embedding_models_manager
@@ -134,19 +135,17 @@ class EmbeddingManagement(BasePage):
         self._app.app.load(
             lambda: gr.update(
                 choices=[
-                    vendor.value 
-                    for vendor 
-                    in EmbeddingFactory.supported_vendors()
+                    vendor.value for vendor in EmbeddingFactory.supported_vendors()
                 ]
             ),
             outputs=[self.emb_choices],
         )
 
     def on_emb_vendor_change(self, vendor: str):
-        vendor = EmbeddingFactory.get_cls(EmbeddingVendor(vendor))
+        vendor_cls = EmbeddingFactory.get_cls(EmbeddingVendor(vendor))
 
         required: dict = {}
-        desc = vendor.describe()
+        desc = vendor_cls.describe()
         for key, value in desc["params"].items():
             if value.get("required", False):
                 required[key] = value.get("default", None)
@@ -268,9 +267,7 @@ class EmbeddingManagement(BasePage):
 
     def list_embeddings(self):
         """List the Embedding models"""
-        items = [
-            item.ui for _, item in embedding_models_manager.info().items()
-        ]
+        items = [item.ui for _, item in embedding_models_manager.info().items()]
 
         if items:
             emb_list = pd.DataFrame.from_records(items)
@@ -347,9 +344,7 @@ class EmbeddingManagement(BasePage):
 
             item = embedding_models_manager.info()[selected_emb_name]
             params = deepcopy(item.spec)
-            params.update(
-                yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
-            )
+            params.update(yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader))
             emb = EmbeddingFactory.get_cls(item.vendor)(**params)
 
             if emb is None:

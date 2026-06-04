@@ -1,6 +1,7 @@
 from kotaemon.indices.indexing import BaseIndexing
-from .impl.rag import IndexDocumentPipeline, IndexingUserSettings
 from kotaemon.indices.indexing.impl.rag import IndexPipeline
+
+from .impl.rag import IndexDocumentPipeline, IndexingUserSettings
 
 __all__ = [
     "BaseIndexing",

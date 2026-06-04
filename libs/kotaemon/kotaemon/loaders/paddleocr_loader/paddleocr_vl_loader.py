@@ -1,7 +1,7 @@
-from pathlib import Path
-
 from dataclasses import dataclass, field
 from functools import cached_property
+from pathlib import Path
+
 from kotaemon.base import Document
 from kotaemon.loaders.base import BaseReader
 
@@ -24,7 +24,14 @@ class PaddleOCRVLReader(BaseReader):
 
     supported_file_types: list[str] = field(
         default_factory=lambda: [
-            ".pdf", ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp",
+            ".pdf",
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".bmp",
+            ".tiff",
+            ".tif",
+            ".webp",
         ]
     )
 

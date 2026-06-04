@@ -4,9 +4,9 @@ import gradio as gr
 import pandas as pd
 from ktem.app import BasePage
 from ktem.db.models import User, engine
+from ktem.settings_config import app_settings as flowsettings
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from ktem.settings_config import app_settings as flowsettings
 
 USERNAME_RULE = """**Username rule:**
 

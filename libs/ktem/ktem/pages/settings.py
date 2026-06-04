@@ -5,9 +5,9 @@ from ktem.app import BaseApp, BasePage
 from ktem.components import reasonings
 from ktem.db.models import Settings, User, engine
 from ktem.mcp.manager import MCP_TOOL_PREFIX, mcp_manager
+from ktem.settings_config import app_settings as flowsettings
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from ktem.settings_config import app_settings as flowsettings
 
 KH_SSO_ENABLED = flowsettings.KH_SSO_ENABLED
 
@@ -77,14 +77,14 @@ class SettingsPage(BasePage):
         self._settings_dict = self._default_settings.flatten()
         self._settings_keys = list(self._settings_dict.keys())
 
-        self._components = {}
-        self._reasoning_mode = {}
-        self._reasoning_tool_components = []
-        self._reasoning_tool_base_choices = []
+        self._components: dict = {}
+        self._reasoning_mode: dict = {}
+        self._reasoning_tool_components: list = []
+        self._reasoning_tool_base_choices: list = []
 
         # store llms and embeddings components
-        self._llms = []
-        self._embeddings = []
+        self._llms: list = []
+        self._embeddings: list = []
 
         # render application page if there are application settings
         self._render_app_tab = False
@@ -405,7 +405,7 @@ class SettingsPage(BasePage):
             updates.append(gr.update(choices=choices, value=value))
         return updates
 
-    def save_setting(self, user_id: int, *args):
+    def save_setting(self, user_id: str, *args):
         """Save the setting to disk and persist the setting to session state
 
         Args:

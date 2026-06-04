@@ -1,5 +1,4 @@
 import gradio as gr
-from decouple import config
 from ktem.app import BaseApp
 from ktem.pages.chat import ChatPage
 from ktem.pages.help import HelpPage
@@ -11,17 +10,10 @@ from ktem.settings_config import app_settings as flowsettings
 KH_DEMO_MODE = flowsettings.KH_DEMO_MODE
 KH_SSO_ENABLED = flowsettings.KH_SSO_ENABLED
 KH_ENABLE_FIRST_SETUP = flowsettings.KH_ENABLE_FIRST_SETUP
-KH_APP_DATA_EXISTS = flowsettings.KH_APP_DATA_EXISTS
-
-# override first setup setting
-if config("KH_FIRST_SETUP", default=False, cast=bool):
-    KH_APP_DATA_EXISTS = False
 
 
 def toggle_first_setup_visibility():
-    global KH_APP_DATA_EXISTS
-    is_first_setup = not KH_DEMO_MODE and not KH_APP_DATA_EXISTS
-    KH_APP_DATA_EXISTS = True
+    is_first_setup = not KH_DEMO_MODE and not flowsettings.KH_APP_DATA_DIR.exists()
     return gr.update(visible=is_first_setup), gr.update(visible=not is_first_setup)
 
 
@@ -143,7 +135,9 @@ class App(BaseApp):
                     ) + [gr.update(selected="login-tab")]
 
                 with Session(engine) as session:
-                    user = session.scalars(select(User).where(User.id == user_id)).first()
+                    user = session.scalars(
+                        select(User).where(User.id == user_id)
+                    ).first()
                     if user is None:
                         return list(
                             (

@@ -1,12 +1,34 @@
 from typing import Any, Dict, List, Optional, Type, cast
 
 from llama_index.vector_stores.chroma import ChromaVectorStore as LIChromaVectorStore
+from typing_extensions import Self
 
-from .base import LlamaIndexVectorStore
+from .base import BaseVectorStoreEnv, LlamaIndexVectorStore
+
+
+class ChromaEnv(BaseVectorStoreEnv):
+    CHROMA_PATH: str = "./chroma"
+    CHROMA_HOST: str = "localhost"
+    CHROMA_PORT: str = "8000"
+    CHROMA_SSL: bool = False
+    CHROMA_HEADERS: Optional[Dict[str, str]] = None
 
 
 class ChromaVectorStore(LlamaIndexVectorStore):
     _li_class: Type[LIChromaVectorStore] = LIChromaVectorStore
+
+    @classmethod
+    def from_env(cls, overriding_envvars: Dict[str, Any] | None = None) -> Self:
+        envs = ChromaEnv.override_envs(overriding_envvars)
+        print(f"Loaded Chroma with envs={envs}")
+        return cls(
+            path=envs.CHROMA_PATH,
+            collection_name=envs.VECTORSTORE_COLLECTION_NAME,
+            host=envs.CHROMA_HOST,
+            port=envs.CHROMA_PORT,
+            ssl=envs.CHROMA_SSL,
+            headers=envs.CHROMA_HEADERS,
+        )
 
     def __init__(
         self,

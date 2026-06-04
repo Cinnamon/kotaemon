@@ -14,9 +14,9 @@ JINA_URL = config("JINA_URL", default="https://r.jina.ai/")
 
 class WebReader(BaseReader):
     def run(
-        self, file_path: str | Path, extra_info: Optional[dict] = None, **kwargs
+        self, file: str | Path, extra_info: Optional[dict] = None, **kwargs
     ) -> list[Document]:
-        return self.load_data(Path(file_path), extra_info=extra_info, **kwargs)
+        return self.load_data(Path(file), extra_info=extra_info, **kwargs)
 
     def fetch_url(self, url: str):
         # setup the request

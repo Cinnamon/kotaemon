@@ -93,9 +93,7 @@ class BaseIndexing:
 
     @classmethod
     @abc.abstractmethod
-    def get_pipeline(
-        cls, user_settings: dict, index_settings: dict
-    ) -> "BaseIndexing":
+    def get_pipeline(cls, user_settings: dict, index_settings: dict) -> "BaseIndexing":
         ...
 
     def warning(self, msg: str) -> None:

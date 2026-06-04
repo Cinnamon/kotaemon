@@ -1,8 +1,8 @@
 import gradio as gr
 from ktem.app import BasePage
+from ktem.collections.ui import IndexManagement
 from ktem.db.models import User, engine
 from ktem.embeddings.ui import EmbeddingManagement
-from ktem.collections.ui import IndexManagement
 from ktem.llms.ui import LLMManagement
 from ktem.mcp.ui import MCPManagement
 from ktem.rerankings.ui import RerankingManagement

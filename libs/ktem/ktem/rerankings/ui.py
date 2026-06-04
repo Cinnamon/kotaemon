@@ -5,6 +5,7 @@ import pandas as pd
 import yaml
 from ktem.app import BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
+
 from kotaemon.base import Document
 from kotaemon.rerankings.factory import RerankingFactory, RerankingVendor
 
@@ -135,8 +136,7 @@ class RerankingManagement(BasePage):
         self._app.app.load(
             lambda: gr.update(
                 choices=[
-                    vendor.value
-                    for vendor in RerankingFactory.supported_vendors()
+                    vendor.value for vendor in RerankingFactory.supported_vendors()
                 ]
             ),
             outputs=[self.rerank_choices],
@@ -265,9 +265,7 @@ class RerankingManagement(BasePage):
 
     def list_rerankings(self):
         """List the Reranking models"""
-        items = [
-            item.ui for _, item in reranking_models_manager.info().items()
-        ]
+        items = [item.ui for _, item in reranking_models_manager.info().items()]
 
         if items:
             rerank_list = pd.DataFrame.from_records(items)
@@ -344,9 +342,7 @@ class RerankingManagement(BasePage):
 
             item = reranking_models_manager.info()[selected_rerank_name]
             params = deepcopy(item.spec)
-            params.update(
-                yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
-            )
+            params.update(yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader))
             rerank = RerankingFactory.get_cls(item.vendor)(**params)
 
             log_content += "- Sending a message ([`Hello`], `Hi`)<br>"

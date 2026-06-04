@@ -30,6 +30,7 @@ class BaseAgent:
                     status="failed",
                     error=str(e),
                 )
+
         return wrapper
 
     def add_tools(self, tools: list[BaseTool]) -> None:

@@ -24,8 +24,13 @@ class Thought:
         response = self.post_process(self.llm(prompt).text)
         return Document(response)
 
+    def __call__(self, **kwargs) -> Document:
+        return self.run(**kwargs)
+
     def __add__(self, next_thought: "Thought") -> "ManualSequentialChainOfThought":
-        return ManualSequentialChainOfThought(thoughts=[self, next_thought], llm=self.llm)
+        return ManualSequentialChainOfThought(
+            thoughts=[self, next_thought], llm=self.llm
+        )
 
 
 @dataclass(kw_only=True)

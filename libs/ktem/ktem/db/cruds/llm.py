@@ -1,9 +1,9 @@
 from typing import Any
 
+from ktem.db.models import LLMTable
 from sqlalchemy import select, update
 
 from kotaemon.llms.chats.factory import LLMVendor
-from ktem.db.models import LLMTable
 
 from .base import BaseCRUD
 
@@ -13,9 +13,7 @@ class LLMCRUD(BaseCRUD):
 
     def clear_defaults(self) -> None:
         """Set all LLM rows to non-default within the current tx."""
-        self.session.execute(
-            update(LLMTable).values(default=False)
-        )
+        self.session.execute(update(LLMTable).values(default=False))
 
     def create(
         self,
@@ -47,9 +45,7 @@ class LLMCRUD(BaseCRUD):
             raise ValueError(f"LLM '{name}' already exists")
         if default:
             self.clear_defaults()
-        item = LLMTable(
-            name=name, vendor=vendor, spec=spec, default=default
-        )
+        item = LLMTable(name=name, vendor=vendor, spec=spec, default=default)
         self.session.add(item)
         self.commit()
         self.session.refresh(item)

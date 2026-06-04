@@ -26,8 +26,7 @@ def describe_dataclass(cls: type) -> DataclassDescribe:
         "params": {
             field.name: {
                 "required": (
-                    field.default is MISSING
-                    and field.default_factory is MISSING
+                    field.default is MISSING and field.default_factory is MISSING
                 ),
                 "help": field.metadata.get("description", ""),
                 "type": repr(field.type),

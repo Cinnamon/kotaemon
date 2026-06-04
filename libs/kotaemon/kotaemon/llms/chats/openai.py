@@ -386,20 +386,15 @@ class StructuredOutputChatOpenAI(ChatOpenAI):
 
         return await client.beta.chat.completions.parse(**params)
 
+
 @dataclass(kw_only=True)
 class AzureChatOpenAI(BaseChatOpenAI):
     """OpenAI chat model provided by Microsoft Azure"""
 
     azure_endpoint: str = field(
-        metadata={
-            "description": (
-                "HTTPS endpoint for the Azure OpenAI model."
-            )
-        }
+        metadata={"description": ("HTTPS endpoint for the Azure OpenAI model.")}
     )
-    azure_deployment: str = field(
-        metadata={"description": "Azure deployment name"}
-    )
+    azure_deployment: str = field(metadata={"description": "Azure deployment name"})
     api_version: str = field(metadata={"description": "Azure model version"})
     azure_ad_token: Optional[str] = field(
         default=None, metadata={"description": "Azure AD token"}

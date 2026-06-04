@@ -1,22 +1,22 @@
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Optional, Type
 
-from ktem.components import filestorage_path, get_docstore, get_vectorstore
-from ktem.db.engine import engine
 from ktem.collections.base import BaseCollection
+from ktem.collections.registry import get_pipeline_cls
+from ktem.components import get_docstore, get_vectorstore
+from ktem.db.engine import engine
+from ktem.embeddings.manager import embedding_models_manager
+from ktem.settings_config import app_settings as flowsettings
 from sqlalchemy import JSON, Column, DateTime, Integer, String, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.mutable import MutableDict
-from ktem.settings_config import app_settings as flowsettings
-from ktem.collections.registry import get_pipeline_cls
 from tzlocal import get_localzone
-
-from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 from kotaemon.indices.indexing import BaseIndexing
 from kotaemon.indices.retriever import BaseRetriever
-from ktem.embeddings.manager import embedding_models_manager
+from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 
 def generate_uuid():
@@ -154,7 +154,7 @@ class FileIndex(BaseCollection):
 
         self._vs: BaseVectorStore = get_vectorstore(f"index_{self.id}")
         self._docstore: BaseDocumentStore = get_docstore(f"index_{self.id}")
-        self._fs_path = filestorage_path / f"index_{self.id}"
+        self._fs_path = Path(flowsettings.KH_FILESTORAGE_PATH) / f"index_{self.id}"
         self._resources = {
             "Source": Source,
             "Index": Index,
@@ -227,85 +227,15 @@ class FileIndex(BaseCollection):
             return
 
         if hasattr(flowsettings, "FILE_INDEX_RETRIEVER_PIPELINES"):
+            pipelines = flowsettings.FILE_INDEX_RETRIEVER_PIPELINES  # type: ignore
             self._retriever_pipeline_cls = [
-                get_pipeline_cls(each)
-                for each in flowsettings.FILE_INDEX_RETRIEVER_PIPELINES  # type: ignore[attr-defined]
+                get_pipeline_cls(each) for each in pipelines
             ]
             return
 
         from .retriever import DocumentRetrievalPipeline
 
         self._retriever_pipeline_cls = [DocumentRetrievalPipeline]
-
-    def _setup_file_selector_ui_cls(self):
-        """Retrieve the file selector UI for the file index
-
-        There can be multiple retriever classes.
-
-        The retriever classes will is retrieved from the following order. Stop at the
-        first order found:
-            - `FILE_INDEX_SELECTOR_UI` in self.config
-            - `FILE_INDEX_{id}_SELECTOR_UI` in the flowsettings
-            - `FILE_INDEX_SELECTOR_UI` in the flowsettings
-            - The default .ui.FileSelector
-        """
-        if "FILE_INDEX_SELECTOR_UI" in self.config:
-            self._selector_ui_cls = get_pipeline_cls(
-                self.config["FILE_INDEX_SELECTOR_UI"]
-            )
-            return
-
-        if hasattr(flowsettings, f"FILE_INDEX_{self.id}_SELECTOR_UI"):
-            self._selector_ui_cls = get_pipeline_cls(
-                getattr(flowsettings, f"FILE_INDEX_{self.id}_SELECTOR_UI"),
-                safe=False,
-            )
-            return
-
-        if hasattr(flowsettings, "FILE_INDEX_SELECTOR_UI"):
-            self._selector_ui_cls = get_pipeline_cls(
-                flowsettings.FILE_INDEX_SELECTOR_UI  # type: ignore[attr-defined]
-            )
-            return
-
-        from .ui import FileSelector
-
-        self._selector_ui_cls = FileSelector
-
-    def _setup_file_index_ui_cls(self):
-        """Retrieve the Index UI class
-
-        There can be multiple retriever classes.
-
-        The retriever classes will is retrieved from the following order. Stop at the
-        first order found:
-            - `FILE_INDEX_UI` in self.config
-            - `FILE_INDEX_{id}_UI` in the flowsettings
-            - `FILE_INDEX_UI` in the flowsettings
-            - The default .ui.FileIndexPage
-        """
-        if "FILE_INDEX_UI" in self.config:
-            self._index_ui_cls = get_pipeline_cls(
-                self.config["FILE_INDEX_UI"]
-            )
-            return
-
-        if hasattr(flowsettings, f"FILE_INDEX_{self.id}_UI"):
-            self._index_ui_cls = get_pipeline_cls(
-                getattr(flowsettings, f"FILE_INDEX_{self.id}_UI"),
-                safe=False,
-            )
-            return
-
-        if hasattr(flowsettings, "FILE_INDEX_UI"):
-            self._index_ui_cls = get_pipeline_cls(
-                flowsettings.FILE_INDEX_UI  # type: ignore[attr-defined]
-            )
-            return
-
-        from .ui import FileIndexPage
-
-        self._index_ui_cls = FileIndexPage
 
     def on_create(self):
         """Create the index for the first time
@@ -347,11 +277,13 @@ class FileIndex(BaseCollection):
 
     def on_start(self):
         """Setup the classes and hooks"""
+        from .ui import FileIndexPage, FileSelector
+
         self._setup_resources()
         self._setup_indexing_cls()
         self._setup_retriever_cls()
-        self._setup_file_index_ui_cls()
-        self._setup_file_selector_ui_cls()
+        self._selector_ui_cls = FileSelector
+        self._index_ui_cls = FileIndexPage
 
     def get_selector_component_ui(self):
         if self._selector_ui is None:
@@ -460,9 +392,13 @@ class FileIndex(BaseCollection):
         """
         params_input = {
             "embedding": embedding_models_manager[
-                self.config.get("embedding", embedding_models_manager.get_default_name())
+                self.config.get(
+                    "embedding", embedding_models_manager.get_default_name()
+                )
             ],
-            "run_embedding_in_thread": self.config.get("run_embedding_in_thread", False),
+            "run_embedding_in_thread": self.config.get(
+                "run_embedding_in_thread", False
+            ),
             "reader_mode": self.config.get("reader_mode", "default"),
             "Source": self._resources["Source"],
             "Index": self._resources["Index"],
@@ -511,8 +447,8 @@ class FileIndex(BaseCollection):
         retrievers = []
         for cls in self._retriever_pipeline_cls:
             obj = cls.get_pipeline(
-                stripped_settings, 
-                self.config, 
+                stripped_settings,
+                self.config,
                 self._resources["Source"],
                 self._resources["Index"],
                 self._vs,
@@ -520,7 +456,7 @@ class FileIndex(BaseCollection):
                 self._fs_path,
                 user_id,
                 engine,
-                selected=selected_ids
+                selected=selected_ids,
             )
             if obj is None:
                 continue

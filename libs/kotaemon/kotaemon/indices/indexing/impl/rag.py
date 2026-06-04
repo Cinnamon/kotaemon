@@ -1,25 +1,25 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
 import shutil
 import threading
 import time
 from copy import deepcopy
+from dataclasses import dataclass
 from functools import cached_property
 from hashlib import sha256
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Any, Generator, Optional
 
 import tiktoken
 from llama_index.core.readers.base import BaseReader
 from llama_index.core.readers.file.base import default_file_metadata_func
 from sqlalchemy import Engine, delete, select
-from sqlalchemy.orm import DeclarativeBase, Session
+from sqlalchemy.orm import Session
+
 from kotaemon.base import Document
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.indices.indexing.base import BaseIndexing
-from kotaemon.indices.vectorindex import VectorIndexing
 from kotaemon.indices.ingests.files import (
     KH_DEFAULT_FILE_EXTRACTORS,
     adobe_reader,
@@ -31,6 +31,7 @@ from kotaemon.indices.ingests.files import (
     web_reader,
 )
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
+from kotaemon.indices.vectorindex import VectorIndexing
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
 logger = logging.getLogger(__name__)
@@ -57,38 +58,7 @@ def configure_readers(
     _mhtml_reader = KH_DEFAULT_FILE_EXTRACTORS.get(".mhtml")
     if _mhtml_reader is not None and hasattr(_mhtml_reader, "cache_dir"):
         _mhtml_reader.cache_dir = markdown_output_dir
-
-
-def _load_reader(dotted: str) -> type:
-    from kotaemon.loaders import (
-        AdobeReader,
-        AzureAIDocumentIntelligenceLoader,
-        DoclingReader,
-        HtmlReader,
-        OCRReader,
-        TxtReader,
-        UnstructuredReader,
-        WebReader,
-    )
-
-    registry = {
-        "kotaemon.loaders.AdobeReader": AdobeReader,
-        "kotaemon.loaders.AzureAIDocumentIntelligenceLoader": (
-            AzureAIDocumentIntelligenceLoader
-        ),
-        "kotaemon.loaders.DoclingReader": DoclingReader,
-        "kotaemon.loaders.HtmlReader": HtmlReader,
-        "kotaemon.loaders.OCRReader": OCRReader,
-        "kotaemon.loaders.TxtReader": TxtReader,
-        "kotaemon.loaders.UnstructuredReader": UnstructuredReader,
-        "kotaemon.loaders.WebReader": WebReader,
-    }
-    if dotted not in registry:
-        raise ValueError(f"Unknown reader: {dotted!r}")
-    return registry[dotted]
-
-
-
+        
 
 _default_token_func = tiktoken.encoding_for_model("gpt-3.5-turbo").encode
 
@@ -101,8 +71,8 @@ class IndexPipeline:
     splitter: BaseSplitter | None
     chunk_batch_size: int = 200
 
-    Source: type[DeclarativeBase]
-    Index: type[DeclarativeBase]
+    Source: Any
+    Index: Any
     VS: BaseVectorStore
     DS: BaseDocumentStore
     FSPath: Path
@@ -123,9 +93,7 @@ class IndexPipeline:
             cache_dir=self.chunks_output_dir,
         )
 
-    def handle_docs(
-        self, docs, file_id, file_name
-    ) -> Generator[Document, None, int]:
+    def handle_docs(self, docs, file_id, file_name) -> Generator[Document, None, int]:
         s_time = time.time()
         text_docs, non_text_docs, thumbnail_docs = [], [], []
 
@@ -148,9 +116,7 @@ class IndexPipeline:
         for chunk in all_chunks:
             page_label = chunk.metadata.get("page_label")
             if page_label and page_label in page_label_to_thumbnail:
-                chunk.metadata["thumbnail_doc_id"] = (
-                    page_label_to_thumbnail[page_label]
-                )
+                chunk.metadata["thumbnail_doc_id"] = page_label_to_thumbnail[page_label]
 
         to_index_chunks = all_chunks + non_text_docs + thumbnail_docs
 
@@ -239,9 +205,7 @@ class IndexPipeline:
     def store_url(self, url: str) -> str:
         """Persist a URL record and return the generated file id."""
         file_hash = sha256(url.encode()).hexdigest()
-        source = self.Source(
-            name=url, path=file_hash, size=0, user=self.user_id
-        )
+        source = self.Source(name=url, path=file_hash, size=0, user=self.user_id)
         with Session(self.engine) as session:
             session.add(source)
             session.commit()
@@ -284,9 +248,7 @@ class IndexPipeline:
             token_func = self.get_token_func()
             if doc_ids and token_func:
                 docs = self.DS.get(doc_ids)
-                item.note["tokens"] = sum(
-                    len(token_func(doc.text)) for doc in docs
-                )
+                item.note["tokens"] = sum(len(token_func(doc.text)) for doc in docs)
             item.note["loader"] = self.loader.__class__.__name__
             session.add(item)
             session.commit()
@@ -299,9 +261,7 @@ class IndexPipeline:
     def delete_file(self, file_id: str) -> None:
         """Remove a file and all its indexed chunks."""
         with Session(self.engine) as session:
-            session.execute(
-                delete(self.Source).where(self.Source.id == file_id)
-            )
+            session.execute(delete(self.Source).where(self.Source.id == file_id))
             vs_ids, ds_ids = [], []
             for (each,) in session.execute(
                 select(self.Index).where(self.Index.source_id == file_id)
@@ -337,9 +297,7 @@ class IndexPipeline:
                         f"File {file_path.name} already indexed. Rerun with "
                         "reindex=True to force reindexing."
                     )
-                yield Document(
-                    f" => Removing old {file_path.name}", channel="debug"
-                )
+                yield Document(f" => Removing old {file_path.name}", channel="debug")
                 self.delete_file(file_id)
                 file_id = self.store_file(file_path)
             else:
@@ -398,13 +356,17 @@ class IndexDocumentPipeline(BaseIndexing):
             readers[".pdf"] = docling_reader
         elif self.reader_mode == "paddle-struct":
             readers.update(
-                {ext: paddle_struct_reader for ext in
-                 (".pdf", ".png", ".jpeg", ".jpg", ".tiff", ".tif")}
+                {
+                    ext: paddle_struct_reader
+                    for ext in (".pdf", ".png", ".jpeg", ".jpg", ".tiff", ".tif")
+                }
             )
         elif self.reader_mode == "paddle-vl":
             readers.update(
-                {ext: paddle_vl_reader for ext in
-                 (".pdf", ".png", ".jpeg", ".jpg", ".tiff", ".tif")}
+                {
+                    ext: paddle_vl_reader
+                    for ext in (".pdf", ".png", ".jpeg", ".jpg", ".tiff", ".tif")
+                }
             )
 
         # dev_readers, _, _ = dev_settings()
@@ -479,9 +441,7 @@ class IndexDocumentPipeline(BaseIndexing):
 
         n_files = len(file_paths)
         for idx, file_path in enumerate(file_paths):
-            file_name = (
-                file_path if self.is_url(file_path) else Path(file_path).name
-            )
+            file_name = file_path if self.is_url(file_path) else Path(file_path).name
             if not self.is_url(file_path):
                 file_path = Path(file_path)
 

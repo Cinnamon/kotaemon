@@ -1,5 +1,6 @@
-import requests
 from dataclasses import dataclass, field
+
+import requests
 
 from kotaemon.base import Document, DocumentWithEmbedding
 

@@ -84,10 +84,7 @@ class LCCompletionMixin:
     def dump(self, *args, **kwargs):
         from kotaemon.base.spec import spec_value
 
-        params = {
-            key: spec_value(value)
-            for key, value in self._kwargs.items()
-        }
+        params = {key: spec_value(value) for key, value in self._kwargs.items()}
         return {
             "__type__": f"{self.__module__}.{self.__class__.__qualname__}",
             **params,

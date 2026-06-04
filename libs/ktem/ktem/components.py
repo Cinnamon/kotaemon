@@ -2,7 +2,6 @@
 
 import logging
 from functools import cache
-from pathlib import Path
 from typing import Any, Optional
 
 from ktem.settings_config import app_settings as settings
@@ -14,22 +13,31 @@ from kotaemon.storages.vectorstores.factory import VectorStoreFactory
 logger = logging.getLogger(__name__)
 
 
-filestorage_path = Path(settings.KH_FILESTORAGE_PATH)
-filestorage_path.mkdir(parents=True, exist_ok=True)
+# filestorage_path = Path(settings.KH_FILESTORAGE_PATH)
+# filestorage_path.mkdir(parents=True, exist_ok=True)
 
 
 @cache
-def get_docstore(collection_name: str = "default") -> BaseDocumentStore:
+def get_docstore(collection_name: str | None = None) -> BaseDocumentStore:
     """Instantiate and return the configured docstore for *collection_name*."""
-    spec = {**settings.KH_DOCSTORE_SPEC, "collection_name": collection_name}
-    return DocStoreFactory.get_cls(settings.KH_DOCSTORE_VENDOR)(**spec)
+    overriding_envvars = {}
+    if collection_name:
+        overriding_envvars["DOCSTORE_COLLECTION_NAME"] = collection_name
+
+    return DocStoreFactory.get_cls(settings.KH_DOCSTORE_VENDOR).from_env(
+        overriding_envvars=overriding_envvars
+    )
 
 
 @cache
-def get_vectorstore(collection_name: str = "default") -> BaseVectorStore:
+def get_vectorstore(collection_name: str | None = None) -> BaseVectorStore:
     """Instantiate and return the configured vectorstore for *collection_name*."""
-    spec = {**settings.KH_VECTORSTORE_SPEC, "collection_name": collection_name}
-    return VectorStoreFactory.get_cls(settings.KH_VECTORSTORE_VENDOR)(**spec)
+    overriding_envvars = {}
+    if collection_name:
+        overriding_envvars["VECTORSTORE_COLLECTION_NAME"] = collection_name
+    return VectorStoreFactory.get_cls(settings.KH_VECTORSTORE_VENDOR).from_env(
+        overriding_envvars=overriding_envvars
+    )
 
 
 class ModelPool:

@@ -1,8 +1,8 @@
 from types import TracebackType
-from typing_extensions import Self
 
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
+from typing_extensions import Self
 
 
 class BaseCRUD:
@@ -23,8 +23,7 @@ class BaseCRUD:
     def session(self) -> Session:
         if self._session is None:
             raise RuntimeError(
-                "Session not initialised. "
-                "Use this CRUD as a context manager."
+                "Session not initialised. " "Use this CRUD as a context manager."
             )
         return self._session
 

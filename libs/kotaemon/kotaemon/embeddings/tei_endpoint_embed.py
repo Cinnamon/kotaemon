@@ -46,16 +46,16 @@ class TeiEndpointEmbeddings(BaseEmbeddings):
     ) -> list[DocumentWithEmbedding]:
         if not isinstance(text, list):
             text = [text]
-        text = self.prepare_input(text)
+        docs: list[Document] = self.prepare_input(text)
 
         outputs: list[DocumentWithEmbedding] = []
         batch_size = 6
-        num_batch = max(len(text) // batch_size, 1)
+        num_batch = max(len(docs) // batch_size, 1)
         for i in range(num_batch):
             if i == num_batch - 1:
-                mini_batch = text[batch_size * i :]
+                mini_batch = docs[batch_size * i :]
             else:
-                mini_batch = text[batch_size * i : batch_size * (i + 1)]
+                mini_batch = docs[batch_size * i : batch_size * (i + 1)]
             mini_batch = [x.content for x in mini_batch]
             embeddings = await self.client_(mini_batch)  # type: ignore
             outputs.extend(
@@ -71,16 +71,16 @@ class TeiEndpointEmbeddings(BaseEmbeddings):
     ) -> list[DocumentWithEmbedding]:
         if not isinstance(text, list):
             text = [text]
-        text = self.prepare_input(text)
+        docs: list[Document] = self.prepare_input(text)
 
         outputs: list[DocumentWithEmbedding] = []
         batch_size = 6
-        num_batch = max(len(text) // batch_size, 1)
+        num_batch = max(len(docs) // batch_size, 1)
         for i in range(num_batch):
             if i == num_batch - 1:
-                mini_batch = text[batch_size * i :]
+                mini_batch = docs[batch_size * i :]
             else:
-                mini_batch = text[batch_size * i : batch_size * (i + 1)]
+                mini_batch = docs[batch_size * i : batch_size * (i + 1)]
             mini_batch = [x.content for x in mini_batch]
             embeddings = session.post(
                 url=self.endpoint_url,

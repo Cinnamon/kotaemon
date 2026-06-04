@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Type
 
 from ktem.reasoning.base import BaseReasoning
 
@@ -17,9 +16,7 @@ class ReasoningKind(str, Enum):
 
 _LEGACY_PATH_MAP: dict[str, ReasoningKind] = {
     "ktem.reasoning.simple.FullQAPipeline": ReasoningKind.FULL_QA,
-    "ktem.reasoning.simple.FullDecomposeQAPipeline": (
-        ReasoningKind.FULL_DECOMPOSE_QA
-    ),
+    "ktem.reasoning.simple.FullDecomposeQAPipeline": (ReasoningKind.FULL_DECOMPOSE_QA),
     "ktem.reasoning.react.ReactAgentPipeline": ReasoningKind.REACT,
     "ktem.reasoning.rewoo.RewooAgentPipeline": ReasoningKind.REWOO,
 }
@@ -28,10 +25,7 @@ _LEGACY_PATH_MAP: dict[str, ReasoningKind] = {
 def _load_classes() -> dict[ReasoningKind, type[BaseReasoning]]:
     from ktem.reasoning.react import ReactAgentPipeline
     from ktem.reasoning.rewoo import RewooAgentPipeline
-    from ktem.reasoning.simple import (
-        FullDecomposeQAPipeline,
-        FullQAPipeline,
-    )
+    from ktem.reasoning.simple import FullDecomposeQAPipeline, FullQAPipeline
 
     return {
         ReasoningKind.FULL_QA: FullQAPipeline,

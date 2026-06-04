@@ -32,3 +32,6 @@ class RewriteQuestionPipeline:
             HumanMessage(content=prompt),
         ]
         return self.llm(messages)
+
+    def __call__(self, **kwargs) -> Document:
+        return self.run(**kwargs)

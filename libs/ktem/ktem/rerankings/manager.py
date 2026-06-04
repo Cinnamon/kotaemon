@@ -1,17 +1,11 @@
 from typing import Optional
 
-from ktem.settings_config import app_settings as flowsettings
-
 from ktem.db.cruds import RerankingCRUD
 from ktem.db.engine import engine
 from ktem.db.models import RerankingTable
 
 from kotaemon.rerankings.base import BaseReranking
-from kotaemon.rerankings.factory import (
-    MP_VENDOR_CLS,
-    RerankingFactory,
-    RerankingVendor,
-)
+from kotaemon.rerankings.factory import MP_VENDOR_CLS, RerankingFactory, RerankingVendor
 
 
 class RerankingManager:
@@ -30,9 +24,9 @@ class RerankingManager:
 
         with RerankingCRUD(engine) as crud:
             for item in crud.list_all():
-                self._models[item.name] = RerankingFactory.get_cls(
-                    item.vendor
-                )(**item.spec)
+                self._models[item.name] = RerankingFactory.get_cls(item.vendor)(
+                    **item.spec
+                )
                 self._info[item.name] = item
                 if item.default:
                     self._default = item.name
@@ -101,15 +95,11 @@ class RerankingManager:
         """Add a new model to the pool."""
         try:
             with RerankingCRUD(engine) as crud:
-                crud.create(
-                    name=name, vendor=vendor, spec=spec, default=default
-                )
+                crud.create(name=name, vendor=vendor, spec=spec, default=default)
         except ValueError:
             raise
         except Exception as e:
-            raise ValueError(
-                f"Failed to add reranking model '{name}': {e}"
-            ) from e
+            raise ValueError(f"Failed to add reranking model '{name}': {e}") from e
         self.load()
 
     def delete(self, name: str) -> None:
@@ -133,8 +123,7 @@ class RerankingManager:
         if new_name and new_name != name:
             if new_name in self._info:
                 raise ValueError(
-                    f"Model '{new_name}' already exists."
-                    " Use a unique name."
+                    f"Model '{new_name}' already exists." " Use a unique name."
                 )
             self.delete(name)
             self.add(new_name, vendor=vendor, spec=spec, default=default)
@@ -142,15 +131,11 @@ class RerankingManager:
 
         try:
             with RerankingCRUD(engine) as crud:
-                crud.update(
-                    name, vendor=vendor, spec=spec, default=default
-                )
+                crud.update(name, vendor=vendor, spec=spec, default=default)
         except ValueError:
             raise
         except Exception as e:
-            raise ValueError(
-                f"Failed to update reranking model '{name}': {e}"
-            ) from e
+            raise ValueError(f"Failed to update reranking model '{name}': {e}") from e
         self.load()
 
     def vendors(self) -> dict[RerankingVendor, type[BaseReranking]]:

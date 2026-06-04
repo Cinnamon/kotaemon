@@ -25,6 +25,4 @@ class BaseSettings(Base):
         default=lambda: uuid.uuid4().hex,
     )
     user: Mapped[str] = mapped_column(String, default="")
-    setting: Mapped[dict[str, Any]] = mapped_column(
-        JSON, default=dict
-    )
+    setting: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)

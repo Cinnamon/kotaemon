@@ -1,5 +1,4 @@
 from functools import cached_property
-from typing import Callable
 
 from kotaemon.base import Document
 
@@ -20,7 +19,9 @@ class BasePromptComponent:
     def run(self, **kwargs):
         self.__dict__.update(kwargs)
         prepared = {
-            k: str(getattr(self, k)() if callable(getattr(self, k)) else getattr(self, k))
+            k: str(
+                getattr(self, k)() if callable(getattr(self, k)) else getattr(self, k)
+            )
             for k in self.template__.placeholders
         }
         return Document(

@@ -167,10 +167,15 @@ class RewriteQuestionPipeline:
         prompt = PromptTemplate(self.rewrite_template).populate(
             question=question, lang=self.lang
         )
-        return self.llm([
-            SystemMessage(content="You are a helpful assistant"),
-            HumanMessage(content=prompt),
-        ])
+        return self.llm(
+            [
+                SystemMessage(content="You are a helpful assistant"),
+                HumanMessage(content=prompt),
+            ]
+        )
+
+    def __call__(self, **kwargs) -> Document:
+        return self.run(**kwargs)
 
 
 @dataclass(kw_only=True)
@@ -263,7 +268,7 @@ class ReactAgentPipeline(BaseReasoning):
 
         max_context_length_setting = settings.get("reasoning.max_context_length", None)
 
-        pipeline = ReactAgentPipeline(retrievers=retrievers)
+        pipeline = ReactAgentPipeline(retrievers=retrievers or [])
         pipeline.agent.llm = llm
         pipeline.agent.max_iterations = settings[f"{prefix}.max_iterations"]
 

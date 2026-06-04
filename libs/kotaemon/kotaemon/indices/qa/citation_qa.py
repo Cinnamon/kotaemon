@@ -1,7 +1,7 @@
-from dataclasses import dataclass, field
 import threading
 from collections import defaultdict
-from typing import Generator
+from dataclasses import dataclass, field
+from typing import Any, Generator
 
 import numpy as np
 from decouple import config
@@ -86,7 +86,7 @@ class AnswerWithContextPipeline:
     citation_pipeline: CitationPipeline
     vlm_endpoint: str = field(default="")
     use_multimodal: bool = field(default=True)
-    create_mindmap_pipeline: object | None = field(default=None)
+    create_mindmap_pipeline: Any | None = field(default=None)
 
     qa_template: str = field(default=DEFAULT_QA_TEXT_PROMPT)
     qa_table_template: str = field(default=DEFAULT_QA_TABLE_PROMPT)
@@ -94,7 +94,7 @@ class AnswerWithContextPipeline:
     qa_figure_template: str = field(default=DEFAULT_QA_FIGURE_PROMPT)
 
     enable_citation: bool = field(default=False)
-    enable_mindmap: bool = field(default=False) 
+    enable_mindmap: bool = field(default=False)
     enable_citation_viz: bool = field(default=False)
 
     system_prompt: str = field(default="")

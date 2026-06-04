@@ -7,10 +7,11 @@ from ktem.app import BaseApp, BasePage
 from ktem.embeddings.manager import embedding_models_manager as embeddings
 from ktem.llms.manager import llms
 from ktem.rerankings.manager import reranking_models_manager as rerankers
-from kotaemon.llms.chats.factory import LLMVendor
-from kotaemon.embeddings.factory import EmbeddingVendor
-from kotaemon.rerankings.factory import RerankingVendor
 from ktem.settings_config import app_settings as flowsettings
+
+from kotaemon.embeddings.factory import EmbeddingVendor
+from kotaemon.llms.chats.factory import LLMVendor
+from kotaemon.rerankings.factory import RerankingVendor
 
 KH_OLLAMA_URL = flowsettings.KH_OLLAMA_URL
 DEFAULT_OLLAMA_URL = KH_OLLAMA_URL.replace("v1", "api")
@@ -345,6 +346,7 @@ class SetupPage(BasePage):
         log_content += "- Sending a message `Hi`<br>"
         yield log_content
         try:
+            assert llm is not None
             llm_output = llm("Hi")
         except Exception as e:
             log_content += (

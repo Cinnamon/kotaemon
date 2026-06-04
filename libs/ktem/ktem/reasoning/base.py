@@ -51,3 +51,6 @@ class BaseReasoning:
     def run(self, message: str, conv_id: str, history: list, **kwargs):  # type: ignore
         """Execute the reasoning pipeline"""
         raise NotImplementedError
+
+    def report_output(self, doc: Optional[object]) -> None:  # type: ignore
+        """Report intermediate output from the pipeline."""

@@ -25,15 +25,11 @@ class FewshotRewriteQuestionPipeline(RewriteQuestionPipeline):
     embedding: BaseEmbeddings = field(repr=False)
     vector_store: BaseVectorStore = field(repr=False)
     doc_store: BaseDocumentStore = field(repr=False)
-    k: int = field(
-        default_factory=lambda: flowsettings.N_PROMPT_OPT_EXAMPLES
-    )
+    k: int = field(default_factory=lambda: flowsettings.N_PROMPT_OPT_EXAMPLES)
 
     def add_documents(self, examples, batch_size: int = 50):
         documents = [
-            Document(
-                text=ex["input"], id_=str(uuid.uuid4()), metadata=ex
-            )
+            Document(text=ex["input"], id_=str(uuid.uuid4()), metadata=ex)
             for ex in examples
         ]
         for i in range(0, len(documents), batch_size):
@@ -79,9 +75,7 @@ class FewshotRewriteQuestionPipeline(RewriteQuestionPipeline):
             messages.append(AIMessage(content=example.metadata["output"]))
         messages.append(
             HumanMessage(
-                content=self.rewrite_template.format(
-                    question=question, lang=self.lang
-                )
+                content=self.rewrite_template.format(question=question, lang=self.lang)
             )
         )
         return self.llm(messages)
