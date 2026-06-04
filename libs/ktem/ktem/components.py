@@ -6,9 +6,10 @@ from pathlib import Path
 from typing import Any, Optional
 
 from ktem.settings_config import app_settings as settings
-from theflow.utils.modules import deserialize
 
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
+from kotaemon.storages.docstores.factory import DocStoreFactory
+from kotaemon.storages.vectorstores.factory import VectorStoreFactory
 
 logger = logging.getLogger(__name__)
 
@@ -19,20 +20,16 @@ filestorage_path.mkdir(parents=True, exist_ok=True)
 
 @cache
 def get_docstore(collection_name: str = "default") -> BaseDocumentStore:
-    from copy import deepcopy
-
-    ds_conf = deepcopy(settings.KH_DOCSTORE)
-    ds_conf["collection_name"] = collection_name
-    return deserialize(ds_conf, safe=False)
+    """Instantiate and return the configured docstore for *collection_name*."""
+    spec = {**settings.KH_DOCSTORE_SPEC, "collection_name": collection_name}
+    return DocStoreFactory.get_cls(settings.KH_DOCSTORE_VENDOR)(**spec)
 
 
 @cache
 def get_vectorstore(collection_name: str = "default") -> BaseVectorStore:
-    from copy import deepcopy
-
-    vs_conf = deepcopy(settings.KH_VECTORSTORE)
-    vs_conf["collection_name"] = collection_name
-    return deserialize(vs_conf, safe=False)
+    """Instantiate and return the configured vectorstore for *collection_name*."""
+    spec = {**settings.KH_VECTORSTORE_SPEC, "collection_name": collection_name}
+    return VectorStoreFactory.get_cls(settings.KH_VECTORSTORE_VENDOR)(**spec)
 
 
 class ModelPool:
@@ -48,7 +45,8 @@ class ModelPool:
         self._default: list[str] = []
 
         for name, model in conf.items():
-            self._models[name] = deserialize(model["spec"], safe=False)
+            # TODO: replace with vendor-factory pattern once ModelPool
+            # is used with non-empty conf (mirrors LLM/embedding managers).
             if model.get("default", False):
                 self._default.append(name)
 

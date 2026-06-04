@@ -59,10 +59,3 @@ class SimpleFileDocumentStore(InMemoryDocumentStore):
         super().drop()
         self._save_path.unlink(missing_ok=True)
 
-    def __persist_flow__(self):
-        from theflow.utils.modules import serialize
-
-        return {
-            "path": serialize(self._path),
-            "collection_name": self._collection_name,
-        }

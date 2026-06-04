@@ -26,6 +26,9 @@ from typing_extensions import Self
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from kotaemon.storages.docstores.factory import DocStoreVendor
+from kotaemon.storages.vectorstores.factory import VectorStoreVendor
+
 OPENAI_DEFAULT = "<YOUR_OPENAI_KEY>"
 THEFLOW_DIR = ".theflow"
 SUPPORTED_FILE_TYPES = (
@@ -173,10 +176,13 @@ class KotaemonSettings(
     KH_DATABASE: str = ""
     KH_FILESTORAGE_PATH: str = ""
 
-    # Storage back-ends (still use __type__ for now; vendor
-    # registry migration handles these separately).
-    KH_DOCSTORE: dict[str, Any] = Field(default_factory=dict)
-    KH_VECTORSTORE: dict[str, Any] = Field(default_factory=dict)
+    # Storage back-ends — vendor selects the class; spec holds
+    # constructor kwargs (path, etc.).  collection_name is injected
+    # at call time by get_docstore() / get_vectorstore().
+    KH_DOCSTORE_VENDOR: DocStoreVendor = DocStoreVendor.LANCEDB
+    KH_DOCSTORE_SPEC: dict[str, Any] = Field(default_factory=dict)
+    KH_VECTORSTORE_VENDOR: VectorStoreVendor = VectorStoreVendor.CHROMA
+    KH_VECTORSTORE_SPEC: dict[str, Any] = Field(default_factory=dict)
 
     # Model pools — populated by :meth:`_build_*` helpers.
     KH_LLMS: dict[str, dict[str, Any]] = Field(default_factory=dict)
@@ -261,19 +267,13 @@ class KotaemonSettings(
         )
         object.__setattr__(
             self,
-            "KH_DOCSTORE",
-            {
-                "__type__": "kotaemon.storages.LanceDBDocumentStore",
-                "path": str(user_data_dir / "docstore"),
-            },
+            "KH_DOCSTORE_SPEC",
+            {"path": str(user_data_dir / "docstore")},
         )
         object.__setattr__(
             self,
-            "KH_VECTORSTORE",
-            {
-                "__type__": "kotaemon.storages.ChromaVectorStore",
-                "path": str(user_data_dir / "vectorstore"),
-            },
+            "KH_VECTORSTORE_SPEC",
+            {"path": str(user_data_dir / "vectorstore")},
         )
         object.__setattr__(
             self,

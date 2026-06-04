@@ -1,4 +1,3 @@
-from .component import BaseComponent, Node, Param, lazy
 from .contracts import Runnable, Serializable
 from .describe import DataclassDescribe, DataclassParamDesc, describe_dataclass
 from .schema import (
@@ -15,7 +14,6 @@ from .schema import (
 )
 
 __all__ = [
-    "BaseComponent",
     "Document",
     "DocumentWithEmbedding",
     "BaseMessage",
@@ -26,9 +24,6 @@ __all__ = [
     "LLMInterface",
     "StructuredOutputLLMInterface",
     "ExtractorOutput",
-    "Param",
-    "Node",
-    "lazy",
     "Runnable",
     "Serializable",
     "describe_dataclass",

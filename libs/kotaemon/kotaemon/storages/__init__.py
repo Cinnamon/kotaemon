@@ -1,5 +1,7 @@
 from .docstores import (
     BaseDocumentStore,
+    DocStoreFactory,
+    DocStoreVendor,
     ElasticsearchDocumentStore,
     InMemoryDocumentStore,
     LanceDBDocumentStore,
@@ -13,6 +15,8 @@ from .vectorstores import (
     MilvusVectorStore,
     QdrantVectorStore,
     SimpleFileVectorStore,
+    VectorStoreFactory,
+    VectorStoreVendor,
 )
 
 __all__ = [
@@ -22,6 +26,8 @@ __all__ = [
     "ElasticsearchDocumentStore",
     "SimpleFileDocumentStore",
     "LanceDBDocumentStore",
+    "DocStoreVendor",
+    "DocStoreFactory",
     # Vector stores
     "BaseVectorStore",
     "ChromaVectorStore",
@@ -30,4 +36,6 @@ __all__ = [
     "LanceDBVectorStore",
     "MilvusVectorStore",
     "QdrantVectorStore",
+    "VectorStoreVendor",
+    "VectorStoreFactory",
 ]

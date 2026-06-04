@@ -1,5 +1,3 @@
-"""Serialization helpers replacing theflow.utils.modules.serialize."""
-
 from __future__ import annotations
 
 from typing import Any
