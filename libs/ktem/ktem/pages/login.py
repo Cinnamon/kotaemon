@@ -1,10 +1,8 @@
-import hashlib
-
 import gradio as gr
-from ktem.app import BasePage
-from ktem.db.models import User, engine
+from ktem.app import BaseApp, BasePage
+from ktem.db.cruds import UserCRUD
+from ktem.db.engine import engine
 from ktem.pages.resources.user import create_user
-from sqlmodel import Session, select
 
 fetch_creds = """
 function() {
@@ -27,7 +25,7 @@ class LoginPage(BasePage):
 
     public_events = ["onSignIn"]
 
-    def __init__(self, app):
+    def __init__(self, app: BaseApp):
         self._app = app
         self.on_building_ui()
 
@@ -96,37 +94,27 @@ class LoginPage(BasePage):
 
         if user:
             user_id = user["sub"]
-            with Session(engine) as session:
-                stmt = select(User).where(
-                    User.id == user_id,
-                )
-                result = session.exec(stmt).all()
+            with UserCRUD(engine) as crud:
+                if crud.get(user_id) is not None:
+                    print("Existing user:", user)
+                    return user_id, "", ""
 
-            if result:
-                print("Existing user:", user)
-                return user_id, "", ""
-            else:
-                print("Creating new user:", user)
-                create_user(
-                    usn=user["email"],
-                    pwd="",
-                    user_id=user_id,
-                    is_admin=False,
-                )
-                return user_id, "", ""
-        else:
-            if not usn or not pwd:
-                return None, usn, pwd
+            print("Creating new user:", user)
+            create_user(
+                usn=user["email"],
+                pwd="",
+                user_id=user_id,
+                is_admin=False,
+            )
+            return user_id, "", ""
 
-            hashed_password = hashlib.sha256(pwd.encode()).hexdigest()
-            with Session(engine) as session:
-                stmt = select(User).where(
-                    User.username_lower == usn.lower().strip(),
-                    User.password == hashed_password,
-                )
-                result = session.exec(stmt).all()
-                if result:
-                    return result[0].id, "", ""
+        if not usn or not pwd:
+            return None, usn, pwd
 
-                gr.Warning("Invalid username or password")
-                return None, usn, pwd
+        with UserCRUD(engine) as crud:
+            result = crud.authenticate(usn, pwd)
+            if result is not None:
+                return result.id, "", ""
+
+        gr.Warning("Invalid username or password")
+        return None, usn, pwd

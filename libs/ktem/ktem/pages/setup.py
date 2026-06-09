@@ -3,13 +3,17 @@ import json
 import gradio as gr
 import requests
 from decouple import config
-from ktem.app import BasePage
+from ktem.app import BaseApp, BasePage
 from ktem.embeddings.manager import embedding_models_manager as embeddings
 from ktem.llms.manager import llms
 from ktem.rerankings.manager import reranking_models_manager as rerankers
-from theflow.settings import settings as flowsettings
+from ktem.settings_config import app_settings as flowsettings
 
-KH_OLLAMA_URL = getattr(flowsettings, "KH_OLLAMA_URL", "http://localhost:11434/v1/")
+from kotaemon.embeddings.factory import EmbeddingVendor
+from kotaemon.llms.chats.factory import LLMVendor
+from kotaemon.rerankings.factory import RerankingVendor
+
+KH_OLLAMA_URL = flowsettings.KH_OLLAMA_URL
 DEFAULT_OLLAMA_URL = KH_OLLAMA_URL.replace("v1", "api")
 if DEFAULT_OLLAMA_URL.endswith("/"):
     DEFAULT_OLLAMA_URL = DEFAULT_OLLAMA_URL[:-1]
@@ -50,7 +54,7 @@ class SetupPage(BasePage):
 
     public_events = ["onFirstSetupComplete"]
 
-    def __init__(self, app):
+    def __init__(self, app: BaseApp):
         self._app = app
         self.on_building_ui()
 
@@ -205,8 +209,8 @@ class SetupPage(BasePage):
             if cohere_api_key:
                 llms.update(
                     name="cohere",
+                    vendor=LLMVendor("LCCohereChat"),
                     spec={
-                        "__type__": "kotaemon.llms.chats.LCCohereChat",
                         "model_name": "command-r-plus-08-2024",
                         "api_key": cohere_api_key,
                     },
@@ -214,8 +218,8 @@ class SetupPage(BasePage):
                 )
                 embeddings.update(
                     name="cohere",
+                    vendor=EmbeddingVendor("LCCohereEmbeddings"),
                     spec={
-                        "__type__": "kotaemon.embeddings.LCCohereEmbeddings",
                         "model": "embed-multilingual-v3.0",
                         "cohere_api_key": cohere_api_key,
                         "user_agent": "default",
@@ -224,8 +228,8 @@ class SetupPage(BasePage):
                 )
                 rerankers.update(
                     name="cohere",
+                    vendor=RerankingVendor("CohereReranking"),
                     spec={
-                        "__type__": "kotaemon.rerankings.CohereReranking",
                         "model_name": "rerank-v4.0-fast",
                         "cohere_api_key": cohere_api_key,
                     },
@@ -235,8 +239,8 @@ class SetupPage(BasePage):
             if openai_api_key:
                 llms.update(
                     name="openai",
+                    vendor=LLMVendor("ChatOpenAI"),
                     spec={
-                        "__type__": "kotaemon.llms.ChatOpenAI",
                         "base_url": "https://api.openai.com/v1",
                         "model": "gpt-4o",
                         "api_key": openai_api_key,
@@ -246,8 +250,8 @@ class SetupPage(BasePage):
                 )
                 embeddings.update(
                     name="openai",
+                    vendor=EmbeddingVendor("OpenAIEmbeddings"),
                     spec={
-                        "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
                         "base_url": "https://api.openai.com/v1",
                         "model": "text-embedding-3-large",
                         "api_key": openai_api_key,
@@ -260,8 +264,8 @@ class SetupPage(BasePage):
             if google_api_key:
                 llms.update(
                     name="google",
+                    vendor=LLMVendor("LCGeminiChat"),
                     spec={
-                        "__type__": "kotaemon.llms.chats.LCGeminiChat",
                         "model_name": "gemini-1.5-flash",
                         "api_key": google_api_key,
                     },
@@ -269,8 +273,8 @@ class SetupPage(BasePage):
                 )
                 embeddings.update(
                     name="google",
+                    vendor=EmbeddingVendor("LCGoogleEmbeddings"),
                     spec={
-                        "__type__": "kotaemon.embeddings.LCGoogleEmbeddings",
                         "model": "models/text-embedding-004",
                         "google_api_key": google_api_key,
                     },
@@ -279,8 +283,8 @@ class SetupPage(BasePage):
         elif radio_model_value == "ollama":
             llms.update(
                 name="ollama",
+                vendor=LLMVendor("ChatOpenAI"),
                 spec={
-                    "__type__": "kotaemon.llms.ChatOpenAI",
                     "base_url": KH_OLLAMA_URL,
                     "model": ollama_model_name,
                     "api_key": "ollama",
@@ -289,8 +293,8 @@ class SetupPage(BasePage):
             )
             embeddings.update(
                 name="ollama",
+                vendor=EmbeddingVendor("OpenAIEmbeddings"),
                 spec={
-                    "__type__": "kotaemon.embeddings.OpenAIEmbeddings",
                     "base_url": KH_OLLAMA_URL,
                     "model": ollama_emb_model_name,
                     "api_key": "ollama",
@@ -342,6 +346,7 @@ class SetupPage(BasePage):
         log_content += "- Sending a message `Hi`<br>"
         yield log_content
         try:
+            assert llm is not None
             llm_output = llm("Hi")
         except Exception as e:
             log_content += (

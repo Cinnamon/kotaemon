@@ -1,5 +1,6 @@
 import html
 import logging
+from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from typing import AnyStr, Generator, Optional, Type
 
@@ -19,7 +20,8 @@ from kotaemon.agents import (
     WikipediaTool,
 )
 from kotaemon.agents.tools.mcp import create_tools_from_config
-from kotaemon.base import BaseComponent, Document, HumanMessage, Node, SystemMessage
+from kotaemon.base import Document, HumanMessage, SystemMessage
+from kotaemon.indices.retriever.base import BaseRetriever
 from kotaemon.llms import ChatLLM, PromptTemplate
 
 from ..utils import SUPPORTED_LANGUAGE_MAP
@@ -68,6 +70,7 @@ class DocSearchArgs(BaseModel):
     query: str = Field(..., description="a search query as input to the doc search")
 
 
+@dataclass(kw_only=True)
 class DocSearchTool(BaseTool):
     name: str = "docsearch"
     description: str = (
@@ -79,7 +82,7 @@ class DocSearchTool(BaseTool):
         "formulate the search query as specific as possible."
     )
     args_schema: Optional[Type[BaseModel]] = DocSearchArgs
-    retrievers: list[BaseComponent] = []
+    retrievers: list[BaseRetriever] = field(default_factory=list)
 
     def _run_tool(self, query: AnyStr) -> AnyStr:
         docs = []
@@ -173,28 +176,25 @@ DEFAULT_REWRITE_PROMPT = (
 )
 
 
-class RewriteQuestionPipeline(BaseComponent):
-    """Rewrite user question
-
-    Args:
-        llm: the language model to rewrite question
-        rewrite_template: the prompt template for llm to paraphrase a text input
-        lang: the language of the answer. Currently support English and Japanese
-    """
-
-    llm: ChatLLM = Node(default_callback=lambda _: llms.get_default())
+@dataclass(kw_only=True)
+class RewriteQuestionPipeline:
+    llm: ChatLLM = field(default_factory=lambda: llms.get_default())
     rewrite_template: str = DEFAULT_REWRITE_PROMPT
-
     lang: str = "English"
 
     def run(self, question: str) -> Document:  # type: ignore
-        prompt_template = PromptTemplate(self.rewrite_template)
-        prompt = prompt_template.populate(question=question, lang=self.lang)
-        messages = [
-            SystemMessage(content="You are a helpful assistant"),
-            HumanMessage(content=prompt),
-        ]
-        return self.llm(messages)
+        prompt = PromptTemplate(self.rewrite_template).populate(
+            question=question, lang=self.lang
+        )
+        return self.llm(
+            [
+                SystemMessage(content="You are a helpful assistant"),
+                HumanMessage(content=prompt),
+            ]
+        )
+
+    def __call__(self, **kwargs) -> Document:
+        return self.run(**kwargs)
 
 
 def find_text(llm_output, context):
@@ -208,15 +208,13 @@ def find_text(llm_output, context):
     return matches
 
 
+@dataclass(kw_only=True)
 class RewooAgentPipeline(BaseReasoning):
-    """Question answering pipeline using ReWOO Agent."""
-
-    class Config:
-        allow_extra = True
-
-    retrievers: list[BaseComponent]
-    agent: RewooAgent = RewooAgent.withx()
-    rewrite_pipeline: RewriteQuestionPipeline = RewriteQuestionPipeline.withx()
+    retrievers: list[BaseRetriever] = field(default_factory=list)
+    agent: RewooAgent = field(default_factory=RewooAgent)
+    rewrite_pipeline: RewriteQuestionPipeline = field(
+        default_factory=RewriteQuestionPipeline
+    )
     use_rewrite: bool = False
     enable_citation: bool = False
 
@@ -389,7 +387,7 @@ class RewooAgentPipeline(BaseReasoning):
     ) -> BaseReasoning:
         _id = cls.get_info()["id"]
         prefix = f"reasoning.options.{_id}"
-        pipeline = RewooAgentPipeline(retrievers=retrievers)
+        pipeline = RewooAgentPipeline(retrievers=retrievers or [])
 
         max_context_length_setting = settings.get("reasoning.max_context_length", None)
 

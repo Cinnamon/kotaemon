@@ -1,17 +1,17 @@
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import gradio as gr
 import pluggy
 from ktem import extension_protocol
 from ktem.assets import PDFJS_PREBUILT_DIR, KotaemonTheme
+from ktem.collections import CollectionManager
 from ktem.components import reasonings
 from ktem.exceptions import HookAlreadyDeclared, HookNotDeclared
-from ktem.index import IndexManager
+from ktem.reasoning.registry import get_reasoning_cls
 from ktem.settings import BaseSettingGroup, SettingGroup, SettingReasoningGroup
-from theflow.settings import settings
-from theflow.utils.modules import import_dotted_string
+from ktem.settings_config import app_settings as settings
 
 BASE_PATH = os.environ.get("GR_FILE_ROOT_PATH", "")
 
@@ -38,10 +38,10 @@ class BaseApp:
     public_events: list[str] = []
 
     def __init__(self):
-        self.dev_mode = getattr(settings, "KH_MODE", "") == "dev"
-        self.app_name = getattr(settings, "KH_APP_NAME", "Kotaemon")
-        self.app_version = getattr(settings, "KH_APP_VERSION", "")
-        self.f_user_management = getattr(settings, "KH_FEATURE_USER_MANAGEMENT", False)
+        self.dev_mode = settings.KH_MODE == "dev"
+        self.app_name = settings.KH_APP_NAME
+        self.app_version = settings.KH_APP_VERSION or ""
+        self.f_user_management = settings.KH_FEATURE_USER_MANAGEMENT
         self._theme = KotaemonTheme()
 
         dir_assets = Path(__file__).parent / "assets"
@@ -71,6 +71,10 @@ class BaseApp:
         self._callbacks: dict[str, list] = {}
         self._events: dict[str, list] = {}
 
+        # Set by App.ui() — declared here so type checkers see them on BaseApp
+        self.chat_page: Any = None
+        self.tabs: Any = None
+
         self.register_extensions()
         self.register_reasonings()
         self.initialize_indices()
@@ -83,10 +87,10 @@ class BaseApp:
 
     def initialize_indices(self):
         """Create the index manager, start indices, and register to app settings"""
-        self.index_manager = IndexManager(self)
-        self.index_manager.on_application_startup()
+        self.collection_manager = CollectionManager(self)
+        self.collection_manager.on_application_startup()
 
-        for index in self.index_manager.indices:
+        for index in self.collection_manager.collections:
             options = index.get_user_settings()
             self.default_settings.index.options[index.id] = BaseSettingGroup(
                 settings=options
@@ -94,14 +98,14 @@ class BaseApp:
 
     def register_reasonings(self):
         """Register the reasoning components from app settings"""
-        if getattr(settings, "KH_REASONINGS", None) is None:
+        if not settings.KH_REASONINGS:
             return
 
         for value in settings.KH_REASONINGS:
-            reasoning_cls = import_dotted_string(value, safe=False)
+            reasoning_cls = get_reasoning_cls(value)
             rid = reasoning_cls.get_info()["id"]
             reasonings[rid] = reasoning_cls
-            options = reasoning_cls().get_user_settings()
+            options = reasoning_cls.get_user_settings()
             self.default_settings.reasoning.options[rid] = BaseSettingGroup(
                 settings=options
             )
@@ -255,7 +259,7 @@ class BasePage:
 
     public_events: list[str] = []
 
-    def __init__(self, app):
+    def __init__(self, app: BaseApp):
         self._app = app
 
     def on_building_ui(self):

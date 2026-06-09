@@ -1,5 +1,6 @@
 import logging
 import re
+from dataclasses import dataclass, field
 from functools import partial
 from typing import Optional
 
@@ -8,41 +9,29 @@ import tiktoken
 from kotaemon.agents.base import BaseAgent, BaseLLM
 from kotaemon.agents.io import AgentAction, AgentFinish, AgentOutput, AgentType
 from kotaemon.agents.tools import BaseTool
-from kotaemon.base import Document, Param
+from kotaemon.base import Document
 from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import PromptTemplate
 
 FINAL_ANSWER_ACTION = "Final Answer:"
 
 
+@dataclass(kw_only=True)
 class ReactAgent(BaseAgent):
-    """
-    Sequential ReactAgent class inherited from BaseAgent.
-    Implementing ReAct agent paradigm https://arxiv.org/pdf/2210.03629.pdf
-    """
-
     name: str = "ReactAgent"
     agent_type: AgentType = AgentType.react
     description: str = "ReactAgent for answering multi-step reasoning questions"
-    llm: BaseLLM
+    llm: BaseLLM | None = None
     prompt_template: Optional[PromptTemplate] = None
     output_lang: str = "English"
-    plugins: list[BaseTool] = Param(
-        default_callback=lambda _: [], help="List of tools to be used in the agent. "
-    )
-    examples: dict[str, str | list[str]] = Param(
-        default_callback=lambda _: {}, help="Examples to be used in the agent. "
-    )
-    intermediate_steps: list[tuple[AgentAction | AgentFinish, str]] = Param(
-        default_callback=lambda _: [],
-        help="List of AgentAction and observation (tool) output",
+    plugins: list[BaseTool] = field(default_factory=list)
+    examples: dict[str, str | list[str]] = field(default_factory=dict)
+    intermediate_steps: list[tuple[AgentAction | AgentFinish, str]] = field(
+        default_factory=list
     )
     max_iterations: int = 5
     strict_decode: bool = False
-    max_context_length: int = Param(
-        default=3000,
-        help="Max context length for each tool output.",
-    )
+    max_context_length: int = 3000
     trim_func: TokenSplitter | None = None
 
     def _compose_plugin_description(self) -> str:
@@ -204,6 +193,7 @@ class ReactAgent(BaseAgent):
         for step_count in range(1, max_iterations + 1):
             prompt = self._compose_prompt(instruction)
             logging.info(f"Prompt: {prompt}")
+            assert self.llm is not None
             response = self.llm(
                 prompt, stop=["Observation:"]
             )  # could cause bugs if llm doesn't have `stop` as a parameter
@@ -283,6 +273,7 @@ class ReactAgent(BaseAgent):
             prompt = self._compose_prompt(instruction)
             logging.info(f"Prompt: {prompt}")
             print(f"Prompt: {prompt}")
+            assert self.llm is not None
             response = self.llm(
                 prompt, stop=["Observation:"]
             )  # TODO: could cause bugs if llm doesn't have `stop` as a parameter

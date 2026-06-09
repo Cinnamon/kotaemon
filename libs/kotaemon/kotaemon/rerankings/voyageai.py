@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import importlib
+from dataclasses import dataclass, field
 
 from decouple import config
 
-from kotaemon.base import Document, Param
+from kotaemon.base import Document
 
 from .base import BaseReranking
 
@@ -18,37 +19,28 @@ def _import_voyageai():
     return vo
 
 
+@dataclass(kw_only=True)
 class VoyageAIReranking(BaseReranking):
     """VoyageAI Reranking model"""
 
-    model_name: str = Param(
-        "rerank-2",
-        help=(
-            "ID of the model to use. You can go to [Supported Models]"
-            "(https://docs.voyageai.com/docs/reranker) to see the supported models"
-        ),
-        required=True,
+    model_name: str = field(
+        default="rerank-2",
+        metadata={"description": "Rerank model ID"},
     )
-    api_key: str = Param(
-        config("VOYAGE_API_KEY", ""),
-        help="VoyageAI API key",
-        required=True,
+    api_key: str = field(
+        default_factory=lambda: config("VOYAGE_API_KEY", ""),
+        metadata={"description": "VoyageAI API key"},
     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __post_init__(self) -> None:
         if not self.api_key:
-            raise ValueError("API key must be provided for VoyageAIEmbeddings.")
-
+            raise ValueError("API key must be provided for VoyageAIReranking.")
         self._client = _import_voyageai().Client(api_key=self.api_key)
         self._aclient = _import_voyageai().AsyncClient(api_key=self.api_key)
 
     def run(self, documents: list[Document], query: str) -> list[Document]:
-        """Use VoyageAI Reranker model to re-order documents
-        with their relevance score"""
         compressed_docs: list[Document] = []
-
-        if not documents:  # to avoid empty api call
+        if not documents:
             return compressed_docs
 
         _docs = [d.content for d in documents]

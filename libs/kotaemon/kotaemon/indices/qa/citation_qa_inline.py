@@ -1,7 +1,7 @@
 import re
 import threading
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Generator
 
 import numpy as np
@@ -83,10 +83,11 @@ class InlineEvidence:
     idx: int | None = None
 
 
+@dataclass(kw_only=True)
 class AnswerWithInlineCitation(AnswerWithContextPipeline):
     """Answer the question based on the evidence with inline citation"""
 
-    qa_citation_template: str = DEFAULT_QA_CITATION_PROMPT
+    qa_citation_template: str = field(default=DEFAULT_QA_CITATION_PROMPT)
 
     def get_prompt(self, question, evidence, evidence_mode: int):
         """Prepare the prompt and other information for LLM"""
@@ -214,13 +215,16 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
 
         def mindmap_call():
             nonlocal mindmap
-            mindmap = self.create_mindmap_pipeline(context=evidence, question=question)
+            if self.create_mindmap_pipeline is not None:
+                mindmap = self.create_mindmap_pipeline(
+                    context=evidence, question=question
+                )
 
         mindmap_thread = None
 
         # execute function call in thread
         if evidence:
-            if self.enable_mindmap:
+            if self.enable_mindmap and self.create_mindmap_pipeline is not None:
                 mindmap_thread = threading.Thread(target=mindmap_call)
                 mindmap_thread.start()
 

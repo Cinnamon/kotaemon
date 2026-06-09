@@ -1,15 +1,14 @@
-import asyncio
 import json
 import re
 from copy import deepcopy
-from typing import Optional
 
 import gradio as gr
 from decouple import config
-from ktem.app import BasePage
+from ktem.app import BaseApp, BasePage
+from ktem.collections.file.ui import File
 from ktem.components import reasonings
-from ktem.db.models import Conversation, engine
-from ktem.index.file.ui import File
+from ktem.db.cruds import ConversationCRUD
+from ktem.db.engine import engine
 from ktem.reasoning.prompt_optimization.mindmap import MINDMAP_HTML_EXPORT_TEMPLATE
 from ktem.reasoning.prompt_optimization.suggest_conversation_name import (
     SuggestConvNamePipeline,
@@ -17,10 +16,8 @@ from ktem.reasoning.prompt_optimization.suggest_conversation_name import (
 from ktem.reasoning.prompt_optimization.suggest_followup_chat import (
     SuggestFollowupQuesPipeline,
 )
+from ktem.settings_config import app_settings as flowsettings
 from plotly.io import from_json
-from sqlmodel import Session, select
-from theflow.settings import settings as flowsettings
-from theflow.utils.modules import import_dotted_string
 
 from kotaemon.base import Document
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
@@ -44,15 +41,17 @@ from .demo_hint import HintPage
 from .paper_list import PaperListPage
 from .report import ReportIssue
 
-KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
-KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
-KH_WEB_SEARCH_BACKEND = getattr(flowsettings, "KH_WEB_SEARCH_BACKEND", None)
+KH_DEMO_MODE = flowsettings.KH_DEMO_MODE
+KH_SSO_ENABLED = flowsettings.KH_SSO_ENABLED
+KH_WEB_SEARCH_BACKEND = flowsettings.KH_WEB_SEARCH_BACKEND
 WebSearch = None
 if KH_WEB_SEARCH_BACKEND:
     try:
-        WebSearch = import_dotted_string(KH_WEB_SEARCH_BACKEND, safe=False)
-    except (ImportError, AttributeError) as e:
-        print(f"Error importing {KH_WEB_SEARCH_BACKEND}: {e}")
+        from kotaemon.indices.websearch import WebSearchFactory
+
+        WebSearch = WebSearchFactory.get_cls(KH_WEB_SEARCH_BACKEND)
+    except ValueError:
+        print(f"Unknown web search backend: {KH_WEB_SEARCH_BACKEND}")
 
 REASONING_LIMITS = 2 if KH_DEMO_MODE else 10
 DEFAULT_SETTING = "(default)"
@@ -204,18 +203,16 @@ function(_, __) {
 
 
 class ChatPage(BasePage):
-    def __init__(self, app):
+    def __init__(self, app: BaseApp):
         self._app = app
-        self._indices_input = []
+        self._indices_input: list = []
 
         self.on_building_ui()
 
         self._preview_links = gr.State(value=None)
         self._reasoning_type = gr.State(value=None)
         self._conversation_renamed = gr.State(value=False)
-        self._use_suggestion = gr.State(
-            value=getattr(flowsettings, "KH_FEATURE_CHAT_SUGGESTION", False)
-        )
+        self._use_suggestion = gr.State(value=flowsettings.KH_FEATURE_CHAT_SUGGESTION)
         self._info_panel_expanded = gr.State(value=True)
         self._command_state = gr.State(value=None)
         self._user_api_key = gr.Text(value="", visible=False)
@@ -231,7 +228,9 @@ class ChatPage(BasePage):
             with gr.Column(scale=1, elem_id="conv-settings-panel") as self.conv_column:
                 self.chat_control = ConversationControl(self._app)
 
-                for index_id, index in enumerate(self._app.index_manager.indices):
+                for index_id, index in enumerate(
+                    self._app.collection_manager.collections
+                ):
                     index.selector = None
                     index_ui = index.get_selector_component_ui()
                     if not index_ui:
@@ -276,7 +275,7 @@ class ChatPage(BasePage):
 
                 self.chat_suggestion = ChatSuggestion(self._app)
 
-                if len(self._app.index_manager.indices) > 0:
+                if len(self._app.collection_manager.collections) > 0:
                     quick_upload_label = (
                         "Quick Upload" if not KH_DEMO_MODE else "Or input new paper URL"
                     )
@@ -966,12 +965,12 @@ class ChatPage(BasePage):
         if not conv_id:
             if not KH_DEMO_MODE:
                 id_, update = self.chat_control.new_conv(user_id)
-                with Session(engine) as session:
-                    statement = select(Conversation).where(Conversation.id == id_)
-                    name = session.exec(statement).one().name
-                    new_conv_id = id_
-                    conv_update = update
-                    new_conv_name = name
+                with ConversationCRUD(engine) as crud:
+                    conv = crud.get(id_)
+                    name = conv.name if conv is not None else ""
+                new_conv_id = id_
+                conv_update = update
+                new_conv_name = name
             else:
                 new_conv_id, new_conv_name, conv_update = None, None, gr.update()
         else:
@@ -1013,19 +1012,15 @@ class ChatPage(BasePage):
             gr.Warning("No conversation selected")
             return
 
-        with Session(engine) as session:
-            statement = select(Conversation).where(Conversation.id == convo_id)
+        with ConversationCRUD(engine) as crud:
+            result = crud.get(convo_id)
+            if result is None:
+                gr.Warning("Conversation not found")
+                return
 
-            result = session.exec(statement).one()
             name = result.name
-
             if result.is_public != is_public:
-                # Only trigger updating when user
-                # select different value from the current
-                result.is_public = is_public
-                session.add(result)
-                session.commit()
-
+                crud.update_public(convo_id, is_public=is_public)
                 gr.Info(
                     f"Conversation: {name} is {'public' if is_public else 'private'}."
                 )
@@ -1117,7 +1112,7 @@ class ChatPage(BasePage):
         state["app"]["regen"] = False
 
         selecteds_ = {}
-        for index in self._app.index_manager.indices:
+        for index in self._app.collection_manager.collections:
             if index.selector is None:
                 continue
             if isinstance(index.selector, int):
@@ -1125,25 +1120,27 @@ class ChatPage(BasePage):
             else:
                 selecteds_[str(index.id)] = [selecteds[i] for i in index.selector]
 
-        with Session(engine) as session:
-            statement = select(Conversation).where(Conversation.id == convo_id)
-            result = session.exec(statement).one()
+        with ConversationCRUD(engine) as crud:
+            result = crud.get(convo_id)
+            if result is None:
+                gr.Warning("Conversation not found")
+                return retrival_history, plot_history
 
             data_source = result.data_source
             old_selecteds = data_source.get("selected", {})
             is_owner = result.user == user_id
 
-            # Write down to db
-            result.data_source = {
-                "selected": selecteds_ if is_owner else old_selecteds,
-                "messages": messages,
-                "retrieval_messages": retrival_history,
-                "plot_history": plot_history,
-                "state": state,
-                "likes": deepcopy(data_source.get("likes", [])),
-            }
-            session.add(result)
-            session.commit()
+            crud.update_data_source(
+                convo_id,
+                {
+                    "selected": selecteds_ if is_owner else old_selecteds,
+                    "messages": messages,
+                    "retrieval_messages": retrival_history,
+                    "plot_history": plot_history,
+                    "state": state,
+                    "likes": deepcopy(data_source.get("likes", [])),
+                },
+            )
 
         return retrival_history, plot_history
 
@@ -1154,18 +1151,16 @@ class ChatPage(BasePage):
         return reasoning_type
 
     def is_liked(self, convo_id, liked: gr.LikeData):
-        with Session(engine) as session:
-            statement = select(Conversation).where(Conversation.id == convo_id)
-            result = session.exec(statement).one()
+        with ConversationCRUD(engine) as crud:
+            result = crud.get(convo_id)
+            if result is None:
+                return
 
             data_source = deepcopy(result.data_source)
             likes = data_source.get("likes", [])
             likes.append([liked.index, liked.value, liked.liked])
             data_source["likes"] = likes
-
-            result.data_source = data_source
-            session.add(result)
-            session.commit()
+            crud.update_data_source(convo_id, data_source)
 
     def message_selected(self, retrieval_history, plot_history, msg: gr.SelectData):
         index = msg.index[0]
@@ -1255,7 +1250,7 @@ class ChatPage(BasePage):
             web_search = WebSearch()
             retrievers.append(web_search)
         else:
-            for index in self._app.index_manager.indices:
+            for index in self._app.collection_manager.collections:
                 index_selected = []
                 if isinstance(index.selector, int):
                     index_selected = selecteds[index.selector]
@@ -1279,7 +1274,7 @@ class ChatPage(BasePage):
 
     def _has_selected_files(self, user_id: int, *selecteds) -> bool:
         """Return True if any index file selector has documents selected."""
-        for index in self._app.index_manager.indices:
+        for index in self._app.collection_manager.collections:
             if index.selector is None:
                 continue
             index_ui = getattr(self, f"_index_{index.id}", None)
@@ -1322,8 +1317,6 @@ class ChatPage(BasePage):
             default_question=DEFAULT_QUESTION,
         )
 
-        queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
-
         # construct the pipeline
         pipeline, reasoning_state = self.create_pipeline(
             settings,
@@ -1338,7 +1331,7 @@ class ChatPage(BasePage):
             *selecteds,
         )
         print("Reasoning state", reasoning_state)
-        pipeline.set_output_queue(queue)
+        # pipeline.set_output_queue(queue)
 
         text, refs, plot, plot_gr = "", "", None, gr.update(visible=False)
         msg_placeholder = getattr(

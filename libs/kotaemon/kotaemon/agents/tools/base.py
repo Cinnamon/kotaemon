@@ -1,9 +1,10 @@
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
 
 from langchain.agents import Tool as LCTool
 from pydantic import BaseModel
 
-from kotaemon.base import BaseComponent
+from kotaemon.base import Runnable
 
 
 class ToolException(Exception):
@@ -16,7 +17,8 @@ class ToolException(Exception):
     """
 
 
-class BaseTool(BaseComponent):
+@dataclass(kw_only=True)
+class BaseTool:
     name: str
     """The unique name of the tool that clearly communicates its purpose."""
     description: str
@@ -120,15 +122,11 @@ class BaseTool(BaseComponent):
         return new_tool
 
 
+@dataclass(kw_only=True)
 class ComponentTool(BaseTool):
-    """Wrapper around other BaseComponent to use it as a tool
+    """Wrapper around a Runnable pipeline used as a tool."""
 
-    Args:
-        component: BaseComponent-based component to wrap
-        postprocessor: Optional postprocessor for the component output
-    """
-
-    component: BaseComponent
+    component: Runnable
     postprocessor: Optional[Callable] = None
 
     def _run_tool(self, *args: Any, **kwargs: Any) -> Any:

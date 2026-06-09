@@ -49,6 +49,19 @@ PATTERN_INTEGER: re.Pattern = re.compile(r"([+-]?[1-9][0-9]*|0)")
 MAX_CONTEXT_LEN = 7500
 
 
+def _default_trim_func() -> TokenSplitter:
+    return TokenSplitter(
+        chunk_size=MAX_CONTEXT_LEN,
+        chunk_overlap=0,
+        separator=" ",
+        tokenizer=partial(
+            tiktoken.encoding_for_model("gpt-3.5-turbo").encode,
+            allowed_special=set(),
+            disallowed_special="all",
+        ),
+    )
+
+
 def validate_rating(rating) -> int:
     """Validate a rating is between 0 and 10."""
 
@@ -99,16 +112,7 @@ class LLMTrulensScoring(LLMReranking):
     user_prompt_template: PromptTemplate = USER_PROMPT_TEMPLATE
     concurrent: bool = True
     normalize: float = 10
-    trim_func: TokenSplitter = TokenSplitter.withx(
-        chunk_size=MAX_CONTEXT_LEN,
-        chunk_overlap=0,
-        separator=" ",
-        tokenizer=partial(
-            tiktoken.encoding_for_model("gpt-3.5-turbo").encode,
-            allowed_special=set(),
-            disallowed_special="all",
-        ),
-    )
+    trim_func: TokenSplitter = _default_trim_func()
 
     def run(
         self,

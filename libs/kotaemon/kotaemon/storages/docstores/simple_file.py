@@ -1,9 +1,16 @@
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
+
+from typing_extensions import Self
 
 from kotaemon.base import Document
 
+from .base import BaseDocumentStoreEnv
 from .in_memory import InMemoryDocumentStore
+
+
+class SimpleFileDocumentStoreEnv(BaseDocumentStoreEnv):
+    SIMPLE_FILE_PATH: str = "files"
 
 
 class SimpleFileDocumentStore(InMemoryDocumentStore):
@@ -18,6 +25,14 @@ class SimpleFileDocumentStore(InMemoryDocumentStore):
         self._save_path = Path(path) / f"{collection_name}.json"
         if self._save_path.is_file():
             self.load(self._save_path)
+
+    @classmethod
+    def from_env(cls, overriding_envvars: Dict[str, Any] | None = None) -> Self:
+        envs = SimpleFileDocumentStoreEnv.override_envs(overriding_envvars)
+        print(f"Loaded SimpleFile with envs={envs}")
+        return cls(
+            path=envs.SIMPLE_FILE_PATH, collection_name=envs.DOCSTORE_COLLECTION_NAME
+        )
 
     def get(self, ids: Union[List[str], str]) -> List[Document]:
         """Get document by id"""
@@ -58,11 +73,3 @@ class SimpleFileDocumentStore(InMemoryDocumentStore):
         """Drop the document store"""
         super().drop()
         self._save_path.unlink(missing_ok=True)
-
-    def __persist_flow__(self):
-        from theflow.utils.modules import serialize
-
-        return {
-            "path": serialize(self._path),
-            "collection_name": self._collection_name,
-        }

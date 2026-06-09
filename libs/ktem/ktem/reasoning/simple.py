@@ -1,28 +1,31 @@
 import logging
 import threading
+from dataclasses import dataclass, field
 from textwrap import dedent
 from typing import Generator
 
 from decouple import config
 from ktem.embeddings.manager import embedding_models_manager as embeddings
 from ktem.llms.manager import llms
+from ktem.reasoning.citation_display import prepare_citations
 from ktem.reasoning.prompt_optimization import (
     DecomposeQuestionPipeline,
     RewriteQuestionPipeline,
 )
+from ktem.reasoning.prompt_optimization.mindmap import CreateMindmapPipeline
+from ktem.settings_config import app_settings as flowsettings
 from ktem.utils.render import Render
 from ktem.utils.visualize_cited import CreateCitationVizPipeline
 from plotly.io import to_json
 
 from kotaemon.base import (
     AIMessage,
-    BaseComponent,
     Document,
     HumanMessage,
-    Node,
     RetrievedDocument,
     SystemMessage,
 )
+from kotaemon.indices.qa.citation import CitationPipeline
 from kotaemon.indices.qa.citation_qa import (
     CONTEXT_RELEVANT_WARNING_SCORE,
     DEFAULT_QA_TEXT_PROMPT,
@@ -31,6 +34,7 @@ from kotaemon.indices.qa.citation_qa import (
 from kotaemon.indices.qa.citation_qa_inline import AnswerWithInlineCitation
 from kotaemon.indices.qa.format_context import PrepareEvidencePipeline
 from kotaemon.indices.qa.utils import replace_think_tag_with_details
+from kotaemon.indices.retriever.base import BaseRetriever
 from kotaemon.llms import ChatLLM
 
 from ..utils import SUPPORTED_LANGUAGE_MAP
@@ -39,10 +43,10 @@ from .base import BaseReasoning
 logger = logging.getLogger(__name__)
 
 
-class AddQueryContextPipeline(BaseComponent):
-
+@dataclass(kw_only=True)
+class AddQueryContextPipeline:
+    llm: ChatLLM = field(default_factory=lambda: llms.get_default())
     n_last_interactions: int = 5
-    llm: ChatLLM = Node(default_callback=lambda _: llms.get_default())
 
     def run(self, question: str, history: list) -> Document:
         messages = [
@@ -83,6 +87,7 @@ class AddQueryContextPipeline(BaseComponent):
         return Document(content=resp)
 
 
+@dataclass(kw_only=True)
 class FullQAPipeline(BaseReasoning):
     """Question answering pipeline. Handle from question to answer"""
 
@@ -93,17 +98,21 @@ class FullQAPipeline(BaseReasoning):
     trigger_context: int = 150
     use_rewrite: bool = False
 
-    retrievers: list[BaseComponent]
+    retrievers: list[BaseRetriever]
 
-    evidence_pipeline: PrepareEvidencePipeline = PrepareEvidencePipeline.withx()
-    answering_pipeline: AnswerWithContextPipeline
+    answering_pipeline: AnswerWithContextPipeline | None = None
+    evidence_pipeline: PrepareEvidencePipeline = field(
+        default_factory=PrepareEvidencePipeline
+    )
     rewrite_pipeline: RewriteQuestionPipeline | None = None
-    create_citation_viz_pipeline: CreateCitationVizPipeline = Node(
-        default_callback=lambda _: CreateCitationVizPipeline(
+    create_citation_viz_pipeline: CreateCitationVizPipeline = field(
+        default_factory=lambda: CreateCitationVizPipeline(
             embedding=embeddings.get_default()
         )
     )
-    add_query_context: AddQueryContextPipeline = AddQueryContextPipeline.withx()
+    add_query_context: AddQueryContextPipeline = field(
+        default_factory=AddQueryContextPipeline
+    )
 
     def retrieve(
         self, message: str, history: list
@@ -128,8 +137,8 @@ class FullQAPipeline(BaseReasoning):
         plot_docs = []
 
         for idx, retriever in enumerate(self.retrievers):
-            retriever_node = self._prepare_child(retriever, f"retriever_{idx}")
-            retriever_docs = retriever_node(text=query)
+            # retriever_node = self._prepare_child(retriever, f"retriever_{idx}")
+            retriever_docs = retriever(text=query)
 
             retriever_docs_text = []
             retriever_docs_plot = []
@@ -222,8 +231,8 @@ class FullQAPipeline(BaseReasoning):
 
     def show_citations_and_addons(self, answer, docs, question):
         # show the evidence
-        with_citation, without_citation = self.answering_pipeline.prepare_citations(
-            answer, docs
+        with_citation, without_citation = prepare_citations(
+            self.answering_pipeline, answer, docs
         )
         mindmap_output = self.prepare_mindmap(answer)
         citation_plot_output = self.prepare_citation_viz(answer, question, docs)
@@ -305,6 +314,7 @@ class FullQAPipeline(BaseReasoning):
         else:
             scoring_thread = None
 
+        assert self.answering_pipeline is not None
         answer = yield from self.answering_pipeline.stream(
             question=message,
             history=history,
@@ -360,25 +370,46 @@ class FullQAPipeline(BaseReasoning):
         # answering pipeline configuration
         use_inline_citation = settings[f"{prefix}.highlight_citation"] == "inline"
 
-        if use_inline_citation:
-            answer_pipeline = pipeline.answering_pipeline = AnswerWithInlineCitation()
-        else:
-            answer_pipeline = pipeline.answering_pipeline = AnswerWithContextPipeline()
+        input_params = {
+            "llm": llm,
+            "citation_pipeline": CitationPipeline(llm=llm),
+            "create_mindmap_pipeline": CreateMindmapPipeline(llm=llm),
+            "n_last_interactions": settings[f"{prefix}.n_last_interactions"],
+            "enable_citation": settings[f"{prefix}.highlight_citation"] != "off",
+            "enable_mindmap": settings[f"{prefix}.create_mindmap"],
+            "enable_citation_viz": settings[f"{prefix}.create_citation_viz"],
+            "use_multimodal": settings[f"{prefix}.use_multimodal"],
+            "vlm_endpoint": flowsettings.KH_VLM_ENDPOINT,
+            "system_prompt": settings[f"{prefix}.system_prompt"],
+            "qa_template": settings[f"{prefix}.qa_prompt"],
+            "lang": SUPPORTED_LANGUAGE_MAP.get(settings["reasoning.lang"], "English"),
+        }
 
-        answer_pipeline.llm = llm
-        answer_pipeline.citation_pipeline.llm = llm
-        answer_pipeline.n_last_interactions = settings[f"{prefix}.n_last_interactions"]
-        answer_pipeline.enable_citation = (
-            settings[f"{prefix}.highlight_citation"] != "off"
-        )
-        answer_pipeline.enable_mindmap = settings[f"{prefix}.create_mindmap"]
-        answer_pipeline.enable_citation_viz = settings[f"{prefix}.create_citation_viz"]
-        answer_pipeline.use_multimodal = settings[f"{prefix}.use_multimodal"]
-        answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
-        answer_pipeline.qa_template = settings[f"{prefix}.qa_prompt"]
-        answer_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
-            settings["reasoning.lang"], "English"
-        )
+        if use_inline_citation:
+            pipeline.answering_pipeline = AnswerWithInlineCitation(**input_params)
+        else:
+            pipeline.answering_pipeline = AnswerWithContextPipeline(**input_params)
+
+        # answer_pipeline.llm = llm
+        # answer_pipeline.citation_pipeline = CitationPipeline(llm=llm)
+        # answer_pipeline.create_mindmap_pipeline = CreateMindmapPipeline(llm=llm)
+        # answer_pipeline.n_last_interactions = settings[
+        #     f"{prefix}.n_last_interactions"
+        # ]
+        # answer_pipeline.enable_citation = (
+        #     settings[f"{prefix}.highlight_citation"] != "off"
+        # )
+        # answer_pipeline.enable_mindmap = settings[f"{prefix}.create_mindmap"]
+        # answer_pipeline.enable_citation_viz = settings[
+        #     f"{prefix}.create_citation_viz"
+        # ]
+        # answer_pipeline.use_multimodal = settings[f"{prefix}.use_multimodal"]
+        # answer_pipeline.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
+        # answer_pipeline.system_prompt = settings[f"{prefix}.system_prompt"]
+        # answer_pipeline.qa_template = settings[f"{prefix}.qa_prompt"]
+        # answer_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
+        #     settings["reasoning.lang"], "English"
+        # )
 
         pipeline.add_query_context.llm = llm
         pipeline.add_query_context.n_last_interactions = settings[
@@ -502,6 +533,7 @@ class FullDecomposeQAPipeline(FullQAPipeline):
             yield from infos
 
             evidence_mode, evidence, images = self.evidence_pipeline(docs).content
+            assert self.answering_pipeline is not None
             answer = yield from self.answering_pipeline.stream(
                 question=message,
                 history=history,
@@ -552,6 +584,7 @@ class FullDecomposeQAPipeline(FullQAPipeline):
         yield from infos
 
         evidence_mode, evidence, images = self.evidence_pipeline(docs).content
+        assert self.answering_pipeline is not None
         answer = yield from self.answering_pipeline.stream(
             question=message,
             history=history,
@@ -563,8 +596,8 @@ class FullDecomposeQAPipeline(FullQAPipeline):
         )
 
         # show the evidence
-        with_citation, without_citation = self.answering_pipeline.prepare_citations(
-            answer, docs
+        with_citation, without_citation = prepare_citations(
+            self.answering_pipeline, answer, docs
         )
         if not with_citation and not without_citation:
             yield Document(channel="info", content="<h5><b>No evidence found.</b></h5>")

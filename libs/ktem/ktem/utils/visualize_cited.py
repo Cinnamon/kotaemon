@@ -6,6 +6,7 @@ Refs:
 1. [RAGxplorer](https://github.com/gabrielchua/RAGxplorer)
 2. [RAGVizExpander](https://github.com/KKenny0/RAGVizExpander)
 """
+from dataclasses import dataclass
 from typing import List, Tuple
 
 import numpy as np
@@ -13,7 +14,6 @@ import pandas as pd
 import plotly.graph_objs as go
 import umap
 
-from kotaemon.base import BaseComponent
 from kotaemon.embeddings import BaseEmbeddings
 
 VISUALIZATION_SETTINGS = {
@@ -24,7 +24,8 @@ VISUALIZATION_SETTINGS = {
 }
 
 
-class CreateCitationVizPipeline(BaseComponent):
+@dataclass
+class CreateCitationVizPipeline:
     """Creating PlotData for visualizing query results"""
 
     embedding: BaseEmbeddings
@@ -140,3 +141,6 @@ class CreateCitationVizPipeline(BaseComponent):
         visualization_df = pd.concat([viz_base_df, viz_query_df], axis=0)
         fig = self._plot_embeddings(visualization_df)
         return fig
+
+    def __call__(self, context: list, question: str):
+        return self.run(context, question)

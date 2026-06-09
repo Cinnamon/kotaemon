@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import AnyStr, Optional, Type
 
 from pydantic import BaseModel, Field
@@ -12,6 +13,7 @@ class LLMArgs(BaseModel):
     query: str = Field(..., description="a search question or prompt")
 
 
+@dataclass(kw_only=True)
 class LLMTool(BaseTool):
     name: str = "llm"
     description: str = (
@@ -20,7 +22,7 @@ class LLMTool(BaseTool):
         "are confident in solving the problem "
         "yourself. Input can be any instruction."
     )
-    llm: BaseLLM
+    llm: BaseLLM | None = None
     args_schema: Optional[Type[BaseModel]] = LLMArgs
     dummy_mode: bool = True
 
@@ -28,6 +30,7 @@ class LLMTool(BaseTool):
         output = None
         try:
             if not self.dummy_mode:
+                assert self.llm is not None
                 response = self.llm(query)
             else:
                 response = None

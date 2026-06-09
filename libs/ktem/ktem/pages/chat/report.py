@@ -2,8 +2,8 @@ from typing import Optional
 
 import gradio as gr
 from ktem.app import BasePage
-from ktem.db.models import IssueReport, engine
-from sqlmodel import Session
+from ktem.db.cruds import IssueReportCRUD
+from ktem.db.engine import engine
 
 
 class ReportIssue(BasePage):
@@ -55,7 +55,7 @@ class ReportIssue(BasePage):
         *selecteds,
     ):
         selecteds_ = {}
-        for index in self._app.index_manager.indices:
+        for index in self._app.collection_manager.collections:
             if index.selector is not None:
                 if isinstance(index.selector, int):
                     selecteds_[str(index.id)] = selecteds[index.selector]
@@ -64,8 +64,8 @@ class ReportIssue(BasePage):
                 else:
                     print(f"Unknown selector type: {index.selector}")
 
-        with Session(engine) as session:
-            issue = IssueReport(
+        with IssueReportCRUD(engine) as crud:
+            crud.create(
                 issues={
                     "correctness": correctness,
                     "issues": issues,
@@ -79,8 +79,6 @@ class ReportIssue(BasePage):
                     "selecteds": selecteds_,
                 },
                 settings=settings,
-                user=user_id,
+                user=str(user_id) if user_id is not None else None,
             )
-            session.add(issue)
-            session.commit()
         gr.Info("Thank you for your feedback")

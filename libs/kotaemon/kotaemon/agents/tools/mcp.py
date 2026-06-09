@@ -13,6 +13,7 @@ import asyncio
 import json
 import logging
 import shlex
+from dataclasses import dataclass, field
 from typing import Any, Optional, Type
 
 from pydantic import BaseModel, Field, create_model
@@ -279,6 +280,7 @@ def format_tool_list(
 # ---------------------------------------------------------------------------
 
 
+@dataclass(kw_only=True)
 class MCPTool(BaseTool):
     """A kotaemon BaseTool wrapper around a single MCP server tool.
 
@@ -305,8 +307,8 @@ class MCPTool(BaseTool):
     # MCP server connection details
     server_transport: str = "stdio"
     server_command: str = ""
-    server_args: list[str] = []
-    server_env: dict[str, str] = {}
+    server_args: list[str] = field(default_factory=list)
+    server_env: dict[str, str] = field(default_factory=dict)
 
     # The original MCP tool name (on the server)
     mcp_tool_name: str = ""

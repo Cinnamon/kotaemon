@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import AnyStr, Optional, Type
 from urllib.error import HTTPError
 
@@ -11,6 +12,7 @@ class GoogleSearchArgs(BaseModel):
     query: str = Field(..., description="a search query")
 
 
+@dataclass(kw_only=True)
 class GoogleSearchTool(BaseTool):
     name: str = "google_search"
     description: str = (
@@ -42,9 +44,10 @@ class GoogleSearchTool(BaseTool):
         return output
 
 
+@dataclass(kw_only=True)
 class SerpTool(BaseTool):
-    name = "google_search"
-    description = (
+    name: str = "google_search"
+    description: str = (
         "Worker that searches results from Google. Useful when you need to find short "
         "and succinct answers about a specific topic. Input should be a search query."
     )

@@ -1,14 +1,13 @@
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, AsyncGenerator, Iterator, Optional, Type
 
 from pydantic import BaseModel
-from theflow.utils.modules import import_dotted_string
 
 from kotaemon.base import (
     AIMessage,
     BaseMessage,
     HumanMessage,
     LLMInterface,
-    Param,
     StructuredOutputLLMInterface,
 )
 
@@ -20,6 +19,7 @@ if TYPE_CHECKING:
     )
 
 
+@dataclass(kw_only=True)
 class BaseChatOpenAI(ChatLLM):
     """Base interface for OpenAI chat model, using the openai library
 
@@ -33,104 +33,61 @@ class BaseChatOpenAI(ChatLLM):
     _dependencies = ["openai"]
     _capabilities = ["chat", "text"]  # consider as mixin
 
-    api_key: str = Param(help="API key", required=True)
-    timeout: Optional[float] = Param(None, help="Timeout for the API request")
-    max_retries: Optional[int] = Param(
-        None, help="Maximum number of retries for the API request"
+    api_key: str = field(metadata={"description": "API key"})
+    timeout: Optional[float] = field(
+        default=None, metadata={"description": "Timeout for the API request"}
+    )
+    max_retries: Optional[int] = field(
+        default=None,
+        metadata={"description": "Maximum number of retries for the API request"},
+    )
+    temperature: Optional[float] = field(
+        default=None,
+        metadata={
+            "description": (
+                "Number between 0 and 2 that controls the randomness of the "
+                "generated tokens."
+            )
+        },
+    )
+    max_tokens: Optional[int] = field(
+        default=None,
+        metadata={"description": "Maximum number of tokens to generate."},
+    )
+    n: int = field(
+        default=1,
+        metadata={"description": "Number of completions to generate."},
+    )
+    stop: Optional[str | list[str]] = field(
+        default=None, metadata={"description": "Stop sequence."}
+    )
+    frequency_penalty: Optional[float] = field(
+        default=None, metadata={"description": "Frequency penalty."}
+    )
+    presence_penalty: Optional[float] = field(
+        default=None, metadata={"description": "Presence penalty."}
+    )
+    tool_choice: Optional[str] = field(
+        default=None, metadata={"description": "Tool choice for the completion."}
+    )
+    tools: Optional[list[str]] = field(
+        default=None, metadata={"description": "Tools for the completion."}
+    )
+    logprobs: Optional[bool] = field(
+        default=None, metadata={"description": "Include log probabilities."}
+    )
+    logit_bias: Optional[dict] = field(
+        default=None, metadata={"description": "Logit bias dictionary."}
+    )
+    top_logprobs: Optional[int] = field(
+        default=None, metadata={"description": "Number of top logprobs to return."}
+    )
+    top_p: Optional[float] = field(
+        default=None, metadata={"description": "Nucleus sampling mass."}
     )
 
-    temperature: Optional[float] = Param(
-        None,
-        help=(
-            "Number between 0 and 2 that controls the randomness of the generated "
-            "tokens. Lower values make the model more deterministic, while higher "
-            "values make the model more random."
-        ),
-    )
-    max_tokens: Optional[int] = Param(
-        None,
-        help=(
-            "Maximum number of tokens to generate. The total length of input tokens "
-            "and generated tokens is limited by the model's context length."
-        ),
-    )
-    n: int = Param(
-        1,
-        help=(
-            "Number of completions to generate. The API will generate n completion "
-            "for each prompt."
-        ),
-    )
-    stop: Optional[str | list[str]] = Param(
-        None,
-        help=(
-            "Stop sequence. If a stop sequence is detected, generation will stop "
-            "at that point. If not specified, generation will continue until the "
-            "maximum token length is reached."
-        ),
-    )
-    frequency_penalty: Optional[float] = Param(
-        None,
-        help=(
-            "Number between -2.0 and 2.0. Positive values penalize new tokens "
-            "based on their existing frequency in the text so far, decrearsing the "
-            "model's likelihood of repeating the same text."
-        ),
-    )
-    presence_penalty: Optional[float] = Param(
-        None,
-        help=(
-            "Number between -2.0 and 2.0. Positive values penalize new tokens "
-            "based on their existing presence in the text so far, decrearsing the "
-            "model's likelihood of repeating the same text."
-        ),
-    )
-    tool_choice: Optional[str] = Param(
-        None,
-        help=(
-            "Choice of tool to use for the completion. Available choices are: "
-            "auto, default."
-        ),
-    )
-    tools: Optional[list[str]] = Param(
-        None,
-        help="List of tools to use for the completion.",
-    )
-    logprobs: Optional[bool] = Param(
-        None,
-        help=(
-            "Include log probabilities on the logprobs most likely tokens, "
-            "as well as the chosen token."
-        ),
-    )
-    logit_bias: Optional[dict] = Param(
-        None,
-        help=(
-            "Dictionary of logit bias values to add to the logits of the tokens "
-            "in the vocabulary."
-        ),
-    )
-    top_logprobs: Optional[int] = Param(
-        None,
-        help=(
-            "An integer between 0 and 5 specifying the number of most likely tokens "
-            "to return at each token position, each with an associated log "
-            "probability. `logprobs` must also be set to `true` if this parameter "
-            "is used."
-        ),
-    )
-    top_p: Optional[float] = Param(
-        None,
-        help=(
-            "An alternative to sampling with temperature, called nucleus sampling, "
-            "where the model considers the results of the token with top_p "
-            "probability mass. So 0.1 means that only the tokens comprising the "
-            "top 10% probability mass are considered."
-        ),
-    )
-
-    @Param.auto(depends_on=["max_retries"])
-    def max_retries_(self):
+    @property
+    def max_retries_(self) -> int:
         if self.max_retries is None:
             from openai._constants import DEFAULT_MAX_RETRIES
 
@@ -275,12 +232,21 @@ class BaseChatOpenAI(ChatLLM):
                 yield LLMInterface(content=chunk.choices[0].delta.content)
 
 
+@dataclass(kw_only=True)
 class ChatOpenAI(BaseChatOpenAI):
     """OpenAI chat model"""
 
-    base_url: Optional[str] = Param(None, help="OpenAI base URL")
-    organization: Optional[str] = Param(None, help="OpenAI organization")
-    model: str = Param(help="OpenAI model", required=True)
+    model: str = field(
+        metadata={
+            "description": "OpenAI model ID (see platform.openai.com/docs/models)."
+        }
+    )
+    base_url: Optional[str] = field(
+        default=None, metadata={"description": "OpenAI base URL"}
+    )
+    organization: Optional[str] = field(
+        default=None, metadata={"description": "OpenAI organization"}
+    )
 
     def prepare_client(self, async_version: bool = False):
         """Get the OpenAI client
@@ -338,11 +304,12 @@ class ChatOpenAI(BaseChatOpenAI):
         return await client.chat.completions.create(**params)
 
 
+@dataclass(kw_only=True)
 class StructuredOutputChatOpenAI(ChatOpenAI):
     """OpenAI chat model that returns structured output"""
 
-    response_schema: Type[BaseModel] = Param(
-        help="class that subclasses pydantics BaseModel", required=True
+    response_schema: Type[BaseModel] = field(
+        metadata={"description": "Pydantic model class for structured output."}
     )
 
     def prepare_output(self, resp: dict) -> StructuredOutputLLMInterface:
@@ -420,26 +387,18 @@ class StructuredOutputChatOpenAI(ChatOpenAI):
         return await client.beta.chat.completions.parse(**params)
 
 
+@dataclass(kw_only=True)
 class AzureChatOpenAI(BaseChatOpenAI):
     """OpenAI chat model provided by Microsoft Azure"""
 
-    azure_endpoint: str = Param(
-        help=(
-            "HTTPS endpoint for the Azure OpenAI model. The azure_endpoint, "
-            "azure_deployment, and api_version parameters are used to construct "
-            "the full URL for the Azure OpenAI model."
-        ),
-        required=True,
+    azure_endpoint: str = field(
+        metadata={"description": ("HTTPS endpoint for the Azure OpenAI model.")}
     )
-    azure_deployment: str = Param(help="Azure deployment name", required=True)
-    api_version: str = Param(help="Azure model version", required=True)
-    azure_ad_token: Optional[str] = Param(None, help="Azure AD token")
-    azure_ad_token_provider: Optional[str] = Param(None, help="Azure AD token provider")
-
-    @Param.auto(depends_on=["azure_ad_token_provider"])
-    def azure_ad_token_provider_(self):
-        if isinstance(self.azure_ad_token_provider, str):
-            return import_dotted_string(self.azure_ad_token_provider, safe=False)
+    azure_deployment: str = field(metadata={"description": "Azure deployment name"})
+    api_version: str = field(metadata={"description": "Azure model version"})
+    azure_ad_token: Optional[str] = field(
+        default=None, metadata={"description": "Azure AD token"}
+    )
 
     def prepare_client(self, async_version: bool = False):
         """Get the OpenAI client
@@ -452,7 +411,6 @@ class AzureChatOpenAI(BaseChatOpenAI):
             "api_version": self.api_version,
             "api_key": self.api_key,
             "azure_ad_token": self.azure_ad_token,
-            "azure_ad_token_provider": self.azure_ad_token_provider_,
             "timeout": self.timeout,
             "max_retries": self.max_retries_,
         }

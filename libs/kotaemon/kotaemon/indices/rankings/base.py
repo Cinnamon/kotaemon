@@ -1,13 +1,3 @@
-from __future__ import annotations
+from kotaemon.rerankings.base import BaseReranking
 
-from abc import abstractmethod
-
-from kotaemon.base import BaseComponent, Document
-
-
-class BaseReranking(BaseComponent):
-    @abstractmethod
-    def run(self, documents: list[Document], query: str) -> list[Document]:
-        """Main method to transform list of documents
-        (re-ranking, filtering, etc)"""
-        ...
+__all__ = ["BaseReranking"]

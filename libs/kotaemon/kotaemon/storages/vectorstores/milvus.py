@@ -1,13 +1,30 @@
 import os
-from typing import Any, Optional, cast
+from typing import Any, Dict, Optional, cast
+
+from typing_extensions import Self
 
 from kotaemon.base import DocumentWithEmbedding
 
-from .base import LlamaIndexVectorStore
+from .base import BaseVectorStoreEnv, LlamaIndexVectorStore
+
+
+class MilvusEnv(BaseVectorStoreEnv):
+    MILVUS_URI: str = "./milvus.db"
+    MILVUS_TOKEN: Optional[str] = None
 
 
 class MilvusVectorStore(LlamaIndexVectorStore):
     _li_class = None
+
+    @classmethod
+    def from_env(cls, overriding_envvars: Dict[str, Any] | None = None) -> Self:
+        envs = MilvusEnv.override_envs(overriding_envvars)
+        print(f"Loaded Milvus with envs={envs}")
+        return cls(
+            uri=envs.MILVUS_URI,
+            collection_name=envs.VECTORSTORE_COLLECTION_NAME,
+            token=envs.MILVUS_TOKEN,
+        )
 
     def _get_li_class(self):
         try:

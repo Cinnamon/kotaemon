@@ -1,14 +1,13 @@
-import hashlib
-
 import gradio as gr
-from ktem.app import BasePage
+from ktem.app import BaseApp, BasePage
 from ktem.components import reasonings
-from ktem.db.models import Settings, User, engine
+from ktem.db.cruds import SettingsCRUD, UserCRUD
+from ktem.db.cruds.user import hash_password
+from ktem.db.engine import engine
 from ktem.mcp.manager import MCP_TOOL_PREFIX, mcp_manager
-from sqlmodel import Session, select
-from theflow.settings import settings as flowsettings
+from ktem.settings_config import app_settings as flowsettings
 
-KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
+KH_SSO_ENABLED = flowsettings.KH_SSO_ENABLED
 
 
 signout_js = """
@@ -66,7 +65,7 @@ class SettingsPage(BasePage):
 
     public_events = ["onSignOut"]
 
-    def __init__(self, app):
+    def __init__(self, app: BaseApp):
         """Initiate the page and render the UI"""
         self._app = app
 
@@ -76,14 +75,14 @@ class SettingsPage(BasePage):
         self._settings_dict = self._default_settings.flatten()
         self._settings_keys = list(self._settings_dict.keys())
 
-        self._components = {}
-        self._reasoning_mode = {}
-        self._reasoning_tool_components = []
-        self._reasoning_tool_base_choices = []
+        self._components: dict = {}
+        self._reasoning_mode: dict = {}
+        self._reasoning_tool_components: list = []
+        self._reasoning_tool_base_choices: list = []
 
         # store llms and embeddings components
-        self._llms = []
-        self._embeddings = []
+        self._llms: list = []
+        self._embeddings: list = []
 
         # render application page if there are application settings
         self._render_app_tab = False
@@ -170,11 +169,10 @@ class SettingsPage(BasePage):
             def get_name(user_id):
                 name = "Current user: "
                 if user_id:
-                    with Session(engine) as session:
-                        statement = select(User).where(User.id == user_id)
-                        result = session.exec(statement).all()
-                        if result:
-                            return name + result[0].username
+                    with UserCRUD(engine) as crud:
+                        user = crud.get(user_id)
+                        if user is not None:
+                            return name + user.username
                 return name + "___"
 
             self._app.subscribe_event(
@@ -273,18 +271,13 @@ class SettingsPage(BasePage):
             gr.Warning(errors)
             return password, password_confirm
 
-        with Session(engine) as session:
-            statement = select(User).where(User.id == user_id)
-            result = session.exec(statement).all()
-            if result:
-                user = result[0]
-                hashed_password = hashlib.sha256(password.encode()).hexdigest()
-                user.password = hashed_password
-                session.add(user)
-                session.commit()
-                gr.Info("Password changed")
-            else:
+        with UserCRUD(engine) as crud:
+            try:
+                crud.update(user_id, password=hash_password(password))
+            except ValueError:
                 gr.Warning("User not found")
+            else:
+                gr.Info("Password changed")
 
         return "", ""
 
@@ -305,7 +298,7 @@ class SettingsPage(BasePage):
         #         obj = render_setting_item(si, si.value)
         #         self._components[f"index.{n}"] = obj
 
-        id2name = {k: v.name for k, v in self._app.index_manager.info().items()}
+        id2name = {k: v.name for k, v in self._app.collection_manager.info().items()}
         with gr.Tab("Retrieval settings", visible=self._render_index_tab):
             for pn, sig in self._default_settings.index.options.items():
                 name = id2name.get(pn, f"<id {pn}>")
@@ -378,11 +371,10 @@ class SettingsPage(BasePage):
 
     def load_setting(self, user_id=None):
         settings = self._settings_dict
-        with Session(engine) as session:
-            statement = select(Settings).where(Settings.user == user_id)
-            result = session.exec(statement).all()
-            if result:
-                settings = result[0].setting
+        with SettingsCRUD(engine) as crud:
+            item = crud.get_by_user(user_id) if user_id else None
+            if item is not None:
+                settings = item.setting
 
         output = [settings]
         output += tuple(settings[name] for name in self.component_names())
@@ -404,7 +396,7 @@ class SettingsPage(BasePage):
             updates.append(gr.update(choices=choices, value=value))
         return updates
 
-    def save_setting(self, user_id: int, *args):
+    def save_setting(self, user_id: str, *args):
         """Save the setting to disk and persist the setting to session state
 
         Args:
@@ -416,16 +408,8 @@ class SettingsPage(BasePage):
             gr.Warning("Need to login before saving settings")
             return setting
 
-        with Session(engine) as session:
-            statement = select(Settings).where(Settings.user == user_id)
-            try:
-                user_setting = session.exec(statement).one()
-            except Exception:
-                user_setting = Settings()
-                user_setting.user = user_id
-            user_setting.setting = setting
-            session.add(user_setting)
-            session.commit()
+        with SettingsCRUD(engine) as crud:
+            crud.upsert(user_id, setting)
 
         gr.Info("Setting saved")
         return setting

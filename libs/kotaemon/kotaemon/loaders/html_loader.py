@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Optional
 
 from llama_index.core.readers.base import BaseReader
-from theflow.settings import settings as flowsettings
 
 from kotaemon.base import Document
 
@@ -79,9 +78,7 @@ class MhtmlReader(BaseReader):
 
     def __init__(
         self,
-        cache_dir: Optional[str] = getattr(
-            flowsettings, "KH_MARKDOWN_OUTPUT_DIR", None
-        ),
+        cache_dir: Optional[str] = None,
         open_encoding: Optional[str] = None,
         bs_kwargs: Optional[dict] = None,
         get_text_separator: str = "",

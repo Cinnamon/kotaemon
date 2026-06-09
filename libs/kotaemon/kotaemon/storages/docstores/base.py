@@ -1,11 +1,29 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
+
+from pydantic_settings import BaseSettings
+from typing_extensions import Self
 
 from kotaemon.base import Document
 
 
+class BaseDocumentStoreEnv(BaseSettings):
+    DOCSTORE_COLLECTION_NAME: str = "docstore"
+
+    @classmethod
+    def override_envs(cls, overriding_envvars: Dict[str, Any] | None = None) -> Self:
+        settings = cls().model_dump()
+        settings.update(overriding_envvars or {})
+        return cls.model_validate(settings)
+
+
 class BaseDocumentStore(ABC):
     """A document store is in charged of storing and managing documents"""
+
+    @classmethod
+    @abstractmethod
+    def from_env(cls, overriding_envvars: Dict[str, Any] | None = None) -> Self:
+        ...
 
     @abstractmethod
     def __init__(self, *args, **kwargs):

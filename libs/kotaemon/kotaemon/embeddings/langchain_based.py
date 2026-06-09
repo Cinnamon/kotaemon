@@ -1,115 +1,80 @@
-from typing import Optional
+from __future__ import annotations
 
-from kotaemon.base import DocumentWithEmbedding, Param
+from dataclasses import dataclass, field
+from functools import cached_property
+from typing import Any
+
+from kotaemon.base import Document, DocumentWithEmbedding
 
 from .base import BaseEmbeddings
 
 
-class LCEmbeddingMixin:
-    def _get_lc_class(self):
+@dataclass(kw_only=True)
+class BaseLCEmbeddings(BaseEmbeddings):
+    """Base wrapper for LangChain embedding models."""
+
+    def _get_lc_class(self) -> type:
         raise NotImplementedError(
-            "Please return the relevant Langchain class in in _get_lc_class"
+            "Subclasses must implement _get_lc_class with the LangChain class."
         )
 
-    def __init__(self, **params):
-        self._lc_class = self._get_lc_class()
-        self._obj = self._lc_class(**params)
-        self._kwargs: dict = params
+    def _lc_kwargs(self) -> dict[str, Any]:
+        raise NotImplementedError(
+            "Subclasses must implement _lc_kwargs mapping fields to LangChain."
+        )
 
-        super().__init__()
+    @cached_property
+    def _lc_obj(self) -> Any:
+        return self._get_lc_class()(**self._lc_kwargs())
 
-    def run(self, text):
+    def invoke(
+        self,
+        text: str | list[str] | Document | list[Document],
+        *args,
+        **kwargs,
+    ) -> list[DocumentWithEmbedding]:
         input_docs = self.prepare_input(text)
         input_ = [doc.text for doc in input_docs]
-
-        embeddings = self._obj.embed_documents(input_)
-
+        embeddings = self._lc_obj.embed_documents(input_)
         return [
             DocumentWithEmbedding(content=doc, embedding=each_embedding)
             for doc, each_embedding in zip(input_docs, embeddings)
         ]
 
-    def __repr__(self):
-        kwargs = []
-        for key, value_obj in self._kwargs.items():
-            value = repr(value_obj)
-            kwargs.append(f"{key}={value}")
-        kwargs_repr = ", ".join(kwargs)
-        return f"{self.__class__.__name__}({kwargs_repr})"
-
-    def __str__(self):
-        kwargs = []
-        for key, value_obj in self._kwargs.items():
-            value = str(value_obj)
-            if len(value) > 20:
-                value = f"{value[:15]}..."
-            kwargs.append(f"{key}={value}")
-        kwargs_repr = ", ".join(kwargs)
-        return f"{self.__class__.__name__}({kwargs_repr})"
-
-    def __setattr__(self, name, value):
-        if name == "_lc_class":
-            return super().__setattr__(name, value)
-
-        if name in self._lc_class.__fields__:
-            self._kwargs[name] = value
-            self._obj = self._lc_class(**self._kwargs)
-        else:
-            super().__setattr__(name, value)
-
-    def __getattr__(self, name):
-        if name in self._kwargs:
-            return self._kwargs[name]
-        return getattr(self._obj, name)
-
-    def dump(self, *args, **kwargs):
-        from theflow.utils.modules import serialize
-
-        params = {key: serialize(value) for key, value in self._kwargs.items()}
-        return {
-            "__type__": f"{self.__module__}.{self.__class__.__qualname__}",
-            **params,
-        }
-
-    def specs(self, path: str):
-        path = path.strip(".")
-        if "." in path:
-            raise ValueError("path should not contain '.'")
-
-        if path in self._lc_class.__fields__:
-            return {
-                "__type__": "theflow.base.ParamAttr",
-                "refresh_on_set": True,
-                "strict_type": True,
-            }
-
-        raise ValueError(f"Invalid param {path}")
-
-
-class LCOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
-    """Wrapper around Langchain's OpenAI embedding, focusing on key parameters"""
-
-    def __init__(
+    def run(
         self,
-        model: str = "text-embedding-ada-002",
-        openai_api_version: Optional[str] = None,
-        openai_api_base: Optional[str] = None,
-        openai_api_type: Optional[str] = None,
-        openai_api_key: Optional[str] = None,
-        request_timeout: Optional[float] = None,
-        **params,
-    ):
-        super().__init__(
-            model=model,
-            openai_api_version=openai_api_version,
-            openai_api_base=openai_api_base,
-            openai_api_type=openai_api_type,
-            openai_api_key=openai_api_key,
-            request_timeout=request_timeout,
-            **params,
-        )
+        text: str | list[str] | Document | list[Document],
+        *args,
+        **kwargs,
+    ) -> list[DocumentWithEmbedding]:
+        return self.invoke(text, *args, **kwargs)
 
-    def _get_lc_class(self):
+
+@dataclass(kw_only=True)
+class LCOpenAIEmbeddings(BaseLCEmbeddings):
+    """Wrapper around LangChain's OpenAI embedding model."""
+
+    model: str = field(
+        default="text-embedding-ada-002",
+        metadata={"description": "Model name."},
+    )
+    openai_api_version: str | None = field(
+        default=None, metadata={"description": "OpenAI API version."}
+    )
+    openai_api_base: str | None = field(
+        default=None, metadata={"description": "OpenAI API base URL."}
+    )
+    openai_api_type: str | None = field(
+        default=None, metadata={"description": "OpenAI API type."}
+    )
+    openai_api_key: str | None = field(
+        default=None, metadata={"description": "OpenAI API key."}
+    )
+    request_timeout: float | None = field(
+        default=None, metadata={"description": "Request timeout in seconds."}
+    )
+
+    def _get_lc_class(self) -> type:
         try:
             from langchain_openai import OpenAIEmbeddings
         except ImportError:
@@ -117,29 +82,38 @@ class LCOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
 
         return OpenAIEmbeddings
 
+    def _lc_kwargs(self) -> dict[str, Any]:
+        return {
+            "model": self.model,
+            "openai_api_version": self.openai_api_version,
+            "openai_api_base": self.openai_api_base,
+            "openai_api_type": self.openai_api_type,
+            "openai_api_key": self.openai_api_key,
+            "request_timeout": self.request_timeout,
+        }
 
-class LCAzureOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
-    """Wrapper around Langchain's AzureOpenAI embedding, focusing on key parameters"""
 
-    def __init__(
-        self,
-        azure_endpoint: Optional[str] = None,
-        deployment: Optional[str] = None,
-        openai_api_key: Optional[str] = None,
-        api_version: Optional[str] = None,
-        request_timeout: Optional[float] = None,
-        **params,
-    ):
-        super().__init__(
-            azure_endpoint=azure_endpoint,
-            deployment=deployment,
-            api_version=api_version,
-            openai_api_key=openai_api_key,
-            request_timeout=request_timeout,
-            **params,
-        )
+@dataclass(kw_only=True)
+class LCAzureOpenAIEmbeddings(BaseLCEmbeddings):
+    """Wrapper around LangChain's Azure OpenAI embedding model."""
 
-    def _get_lc_class(self):
+    azure_endpoint: str | None = field(
+        default=None, metadata={"description": "Azure OpenAI endpoint URL."}
+    )
+    deployment: str | None = field(
+        default=None, metadata={"description": "Azure deployment name."}
+    )
+    openai_api_key: str | None = field(
+        default=None, metadata={"description": "Azure OpenAI API key."}
+    )
+    api_version: str | None = field(
+        default=None, metadata={"description": "Azure API version."}
+    )
+    request_timeout: float | None = field(
+        default=None, metadata={"description": "Request timeout in seconds."}
+    )
+
+    def _get_lc_class(self) -> type:
         try:
             from langchain_openai import AzureOpenAIEmbeddings
         except ImportError:
@@ -147,41 +121,38 @@ class LCAzureOpenAIEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
 
         return AzureOpenAIEmbeddings
 
+    def _lc_kwargs(self) -> dict[str, Any]:
+        return {
+            "azure_endpoint": self.azure_endpoint,
+            "deployment": self.deployment,
+            "api_version": self.api_version,
+            "openai_api_key": self.openai_api_key,
+            "request_timeout": self.request_timeout,
+        }
 
-class LCCohereEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
-    """Wrapper around Langchain's Cohere embedding, focusing on key parameters"""
 
-    cohere_api_key: str = Param(
-        help="API key (https://dashboard.cohere.com/api-keys)",
-        default=None,
-        required=True,
+@dataclass(kw_only=True)
+class LCCohereEmbeddings(BaseLCEmbeddings):
+    """Wrapper around LangChain's Cohere embedding model."""
+
+    model: str = field(
+        default="embed-english-v2.0",
+        metadata={"description": "Model name."},
     )
-    model: str = Param(
-        help="Model name to use (https://docs.cohere.com/docs/models)",
-        default=None,
-        required=True,
+    cohere_api_key: str | None = field(
+        default=None, metadata={"description": "Cohere API key."}
     )
-    user_agent: str = Param(
-        help="User agent (leave default)", default="default", required=True
+    truncate: str | None = field(
+        default=None, metadata={"description": "Truncation mode."}
+    )
+    request_timeout: float | None = field(
+        default=None, metadata={"description": "Request timeout in seconds."}
+    )
+    user_agent: str | None = field(
+        default=None, metadata={"description": "HTTP user agent string."}
     )
 
-    def __init__(
-        self,
-        model: str = "embed-english-v2.0",
-        cohere_api_key: Optional[str] = None,
-        truncate: Optional[str] = None,
-        request_timeout: Optional[float] = None,
-        **params,
-    ):
-        super().__init__(
-            model=model,
-            cohere_api_key=cohere_api_key,
-            truncate=truncate,
-            request_timeout=request_timeout,
-            **params,
-        )
-
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> type:
         try:
             from langchain_cohere import CohereEmbeddings
         except ImportError:
@@ -189,30 +160,26 @@ class LCCohereEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
 
         return CohereEmbeddings
 
+    def _lc_kwargs(self) -> dict[str, Any]:
+        return {
+            "model": self.model,
+            "cohere_api_key": self.cohere_api_key,
+            "truncate": self.truncate,
+            "request_timeout": self.request_timeout,
+            "user_agent": self.user_agent,
+        }
 
-class LCHuggingFaceEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
-    """Wrapper around Langchain's HuggingFace embedding, focusing on key parameters"""
 
-    model_name: str = Param(
-        help=(
-            "Model name to use (https://huggingface.co/models?"
-            "pipeline_tag=sentence-similarity&sort=trending)"
-        ),
-        default=None,
-        required=True,
+@dataclass(kw_only=True)
+class LCHuggingFaceEmbeddings(BaseLCEmbeddings):
+    """Wrapper around LangChain's HuggingFace BGE embedding model."""
+
+    model_name: str = field(
+        default="sentence-transformers/all-mpnet-base-v2",
+        metadata={"description": "HuggingFace model name."},
     )
 
-    def __init__(
-        self,
-        model_name: str = "sentence-transformers/all-mpnet-base-v2",
-        **params,
-    ):
-        super().__init__(
-            model_name=model_name,
-            **params,
-        )
-
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> type:
         try:
             from langchain_community.embeddings import HuggingFaceBgeEmbeddings
         except ImportError:
@@ -220,74 +187,66 @@ class LCHuggingFaceEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
 
         return HuggingFaceBgeEmbeddings
 
+    def _lc_kwargs(self) -> dict[str, Any]:
+        return {"model_name": self.model_name}
 
-class LCGoogleEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
-    """Wrapper around Langchain's Google GenAI embedding, focusing on key parameters"""
 
-    google_api_key: str = Param(
-        help="API key (https://aistudio.google.com/app/apikey)",
-        default=None,
-        required=True,
-    )
-    model: str = Param(
-        help="Model name to use (https://ai.google.dev/gemini-api/docs/models/gemini#text-embedding-and-embedding)",  # noqa
+@dataclass(kw_only=True)
+class LCGoogleEmbeddings(BaseLCEmbeddings):
+    """Wrapper around LangChain's Google GenAI embedding model."""
+
+    model: str = field(
         default="models/text-embedding-004",
-        required=True,
+        metadata={"description": "Model name."},
+    )
+    google_api_key: str | None = field(
+        default=None, metadata={"description": "Google API key."}
     )
 
-    def __init__(
-        self,
-        model: str = "models/text-embedding-004",
-        google_api_key: Optional[str] = None,
-        **params,
-    ):
-        super().__init__(
-            model=model,
-            google_api_key=google_api_key,
-            **params,
-        )
-
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> type:
         try:
             from langchain_google_genai import GoogleGenerativeAIEmbeddings
-        except ImportError:
-            raise ImportError("Please install langchain-google-genai")
+        except ImportError as e:
+            raise ImportError("Please install langchain-google-genai") from e
 
         return GoogleGenerativeAIEmbeddings
 
+    def _lc_kwargs(self) -> dict[str, Any]:
+        return {
+            "model": self.model,
+            "google_api_key": self.google_api_key,
+        }
 
-class LCMistralEmbeddings(LCEmbeddingMixin, BaseEmbeddings):
-    """Wrapper around LangChain's MistralAI embedding, focusing on key parameters"""
 
-    api_key: str = Param(
-        help="API key (https://console.mistral.ai/api-keys)",
-        default=None,
-        required=True,
-    )
-    model: str = Param(
-        help="Model name to use ('mistral-embed')",
+@dataclass(kw_only=True)
+class LCMistralEmbeddings(BaseLCEmbeddings):
+    """Wrapper around LangChain's Mistral AI embedding model."""
+
+    model: str = field(
         default="mistral-embed",
-        required=True,
+        metadata={"description": "Model name."},
+    )
+    api_key: str | None = field(
+        default=None, metadata={"description": "Mistral API key."}
     )
 
-    def __init__(
-        self,
-        model: str = "mistral-embed",
-        api_key: Optional[str] = None,
-        **params,
-    ):
-        super().__init__(
-            model=model,
-            api_key=api_key,
-            **params,
-        )
-
-    def _get_lc_class(self):
+    def _get_lc_class(self) -> type:
         try:
             from langchain_mistralai import MistralAIEmbeddings
-        except ImportError:
+        except ImportError as e:
             raise ImportError(
                 "Please install langchain_mistralai: "
                 "`pip install -U langchain_mistralai`"
-            )
+            ) from e
+
         return MistralAIEmbeddings
+
+    def _lc_kwargs(self) -> dict[str, Any]:
+        return {
+            "model": self.model,
+            "api_key": self.api_key,
+        }
+
+
+# Backward-compatible alias for code that imported the old mixin name.
+LCEmbeddingMixin = BaseLCEmbeddings

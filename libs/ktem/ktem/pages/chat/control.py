@@ -4,10 +4,9 @@ from copy import deepcopy
 
 import gradio as gr
 from ktem.app import BasePage
-from ktem.db.models import Conversation, User, engine
-from sqlmodel import Session, or_, select
-
-import flowsettings
+from ktem.db.cruds import ConversationCRUD, UserCRUD
+from ktem.db.engine import engine
+from ktem.settings_config import app_settings as flowsettings
 
 from ...utils.conversation import sync_retrieval_n_message
 from .chat_suggestion import ChatSuggestion
@@ -15,8 +14,8 @@ from .common import STATE
 
 logger = logging.getLogger(__name__)
 
-KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
-KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
+KH_DEMO_MODE = flowsettings.KH_DEMO_MODE
+KH_SSO_ENABLED = flowsettings.KH_SSO_ENABLED
 ASSETS_DIR = "assets/icons"
 if not os.path.isdir(ASSETS_DIR):
     ASSETS_DIR = "libs/ktem/ktem/assets/icons"
@@ -204,10 +203,8 @@ class ConversationControl(BasePage):
         # In case user are admin. They can also watch the
         # public conversations
         can_see_public: bool = False
-        with Session(engine) as session:
-            statement = select(User).where(User.id == user_id)
-            result = session.exec(statement).one_or_none()
-
+        with UserCRUD(engine) as crud:
+            result = crud.get(user_id)
             if result is not None:
                 if flowsettings.KH_USER_CAN_SEE_PUBLIC:
                     can_see_public = (
@@ -218,35 +215,13 @@ class ConversationControl(BasePage):
 
         print(f"User-id: {user_id}, can see public conversations: {can_see_public}")
 
-        options = []
-        with Session(engine) as session:
-            # Define condition based on admin-role:
-            # - can_see: can see their conversations & public files
-            # - can_not_see: only see their conversations
+        with ConversationCRUD(engine) as crud:
             if can_see_public:
-                statement = (
-                    select(Conversation)
-                    .where(
-                        or_(
-                            Conversation.user == user_id,
-                            Conversation.is_public,
-                        )
-                    )
-                    .order_by(
-                        Conversation.is_public.desc(), Conversation.date_created.desc()
-                    )  # type: ignore
-                )
+                convs = crud.list_by_user_or_public(user_id)
             else:
-                statement = (
-                    select(Conversation)
-                    .where(Conversation.user == user_id)
-                    .order_by(Conversation.date_created.desc())  # type: ignore
-                )
+                convs = crud.list_by_user(user_id)
 
-            results = session.exec(statement).all()
-            for result in results:
-                options.append((result.name, result.id))
-
+        options = [(conv.name, conv.id) for conv in convs]
         return options
 
     def reload_conv(self, user_id):
@@ -261,11 +236,8 @@ class ConversationControl(BasePage):
         if user_id is None:
             gr.Warning("Please sign in first (Settings → User Settings)")
             return None, gr.update()
-        with Session(engine) as session:
-            new_conv = Conversation(user=user_id)
-            session.add(new_conv)
-            session.commit()
-
+        with ConversationCRUD(engine) as crud:
+            new_conv = crud.create(user_id)
             id_ = new_conv.id
 
         history = self.load_chat_history(user_id)
@@ -282,12 +254,8 @@ class ConversationControl(BasePage):
             gr.Warning("Please sign in first (Settings → User Settings)")
             return None, gr.update()
 
-        with Session(engine) as session:
-            statement = select(Conversation).where(Conversation.id == conversation_id)
-            result = session.exec(statement).one()
-
-            session.delete(result)
-            session.commit()
+        with ConversationCRUD(engine) as crud:
+            crud.delete(conversation_id)
 
         history = self.load_chat_history(user_id)
         if history:
@@ -300,10 +268,11 @@ class ConversationControl(BasePage):
         """Select the conversation"""
         default_chat_suggestions = [[each] for each in ChatSuggestion.CHAT_SAMPLES]
 
-        with Session(engine) as session:
-            statement = select(Conversation).where(Conversation.id == conversation_id)
+        with ConversationCRUD(engine) as crud:
             try:
-                result = session.exec(statement).one()
+                result = crud.get(conversation_id)
+                if result is None:
+                    raise ValueError(f"Conversation '{conversation_id}' not found")
                 id_ = result.id
                 name = result.name
                 is_conv_public = result.is_public
@@ -325,8 +294,6 @@ class ConversationControl(BasePage):
                 )
                 plot_history: list[dict] = result.data_source.get("plot_history", [])
 
-                # On initialization
-                # Ensure len of retrieval and messages are equal
                 retrieval_history = sync_retrieval_n_message(chats, retrieval_history)
 
                 info_panel = (
@@ -352,7 +319,7 @@ class ConversationControl(BasePage):
                 is_conv_public = False
 
         indices = []
-        for index in self._app.index_manager.indices:
+        for index in self._app.collection_manager.collections:
             # assume that the index has selector
             if index.selector is None:
                 continue
@@ -394,12 +361,8 @@ class ConversationControl(BasePage):
                 gr.update(visible=False),
             )
 
-        with Session(engine) as session:
-            statement = select(Conversation).where(Conversation.id == conversation_id)
-            result = session.exec(statement).one()
-            result.name = new_name
-            session.add(result)
-            session.commit()
+        with ConversationCRUD(engine) as crud:
+            crud.update_name(conversation_id, new_name)
 
         history = self.load_chat_history(user_id)
         gr.Info("Conversation renamed.")
@@ -424,18 +387,17 @@ class ConversationControl(BasePage):
             gr.Warning("No conversation selected.")
             return gr.update(), ""
 
-        with Session(engine) as session:
-            statement = select(Conversation).where(Conversation.id == conversation_id)
-            result = session.exec(statement).one()
+        with ConversationCRUD(engine) as crud:
+            result = crud.get(conversation_id)
+            if result is None:
+                gr.Warning("Conversation not found")
+                return gr.update(), ""
 
             data_source = deepcopy(result.data_source)
             data_source["chat_suggestions"] = [
                 [x] for x in new_suggestions.iloc[:, 0].tolist()
             ]
-
-            result.data_source = data_source
-            session.add(result)
-            session.commit()
+            crud.update_data_source(conversation_id, data_source)
 
         gr.Info("Chat suggestions updated.")
 

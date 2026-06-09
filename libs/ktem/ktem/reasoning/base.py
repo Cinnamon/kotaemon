@@ -1,9 +1,9 @@
+from dataclasses import dataclass
 from typing import Optional
 
-from kotaemon.base import BaseComponent
 
-
-class BaseReasoning(BaseComponent):
+@dataclass(kw_only=True)
+class BaseReasoning:
     """The reasoning pipeline that handles each of the user chat messages
 
     This reasoning pipeline has access to:
@@ -37,7 +37,7 @@ class BaseReasoning(BaseComponent):
         cls,
         user_settings: dict,
         state: dict,
-        retrievers: Optional[list["BaseComponent"]] = None,
+        retrievers: Optional[list] = None,
     ) -> "BaseReasoning":
         """Get the reasoning pipeline for the app to execute
 
@@ -51,3 +51,6 @@ class BaseReasoning(BaseComponent):
     def run(self, message: str, conv_id: str, history: list, **kwargs):  # type: ignore
         """Execute the reasoning pipeline"""
         raise NotImplementedError
+
+    def report_output(self, doc: Optional[object]) -> None:  # type: ignore
+        """Report intermediate output from the pipeline."""

@@ -88,4 +88,4 @@ def test_llamacpp_model():
 
     # test initialization
     model = LlamaCpp(model_path=str(weight_path), vocab_only=True)
-    assert isinstance(model._obj, model._get_lc_class())
+    assert isinstance(model._lc_obj, model._get_lc_class())

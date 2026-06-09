@@ -1,5 +1,6 @@
 from .base import BaseVectorStore
 from .chroma import ChromaVectorStore
+from .factory import MP_VENDOR_CLS, VectorStoreFactory, VectorStoreVendor
 from .in_memory import InMemoryVectorStore
 from .lancedb import LanceDBVectorStore
 from .milvus import MilvusVectorStore
@@ -14,4 +15,7 @@ __all__ = [
     "LanceDBVectorStore",
     "MilvusVectorStore",
     "QdrantVectorStore",
+    "VectorStoreVendor",
+    "VectorStoreFactory",
+    "MP_VENDOR_CLS",
 ]

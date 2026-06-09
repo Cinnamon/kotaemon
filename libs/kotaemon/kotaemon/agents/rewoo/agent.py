@@ -1,7 +1,8 @@
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
-from functools import partial
+from dataclasses import dataclass, field
+from functools import cached_property, partial
 from typing import Any
 
 import tiktoken
@@ -10,7 +11,7 @@ from kotaemon.agents.base import BaseAgent
 from kotaemon.agents.io import AgentOutput, AgentType, BaseScratchPad
 from kotaemon.agents.tools import BaseTool
 from kotaemon.agents.utils import get_plugin_response_content
-from kotaemon.base import Document, Node, Param
+from kotaemon.base import Document
 from kotaemon.indices.qa.citation import CitationPipeline
 from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import BaseLLM, PromptTemplate
@@ -19,33 +20,21 @@ from .planner import Planner
 from .solver import Solver
 
 
+@dataclass(kw_only=True)
 class RewooAgent(BaseAgent):
-    """Distributive RewooAgent class inherited from BaseAgent.
-    Implementing ReWOO paradigm https://arxiv.org/pdf/2305.18323.pdf"""
-
     name: str = "RewooAgent"
     agent_type: AgentType = AgentType.rewoo
     description: str = "RewooAgent for answering multi-step reasoning questions"
     output_lang: str = "English"
-    planner_llm: BaseLLM
-    solver_llm: BaseLLM
-    prompt_template: dict[str, PromptTemplate] = Param(
-        default_callback=lambda _: {},
-        help="A dict to supply different prompt to the agent.",
-    )
-    plugins: list[BaseTool] = Param(
-        default_callback=lambda _: [], help="A list of plugins to be used in the model."
-    )
-    examples: dict[str, str | list[str]] = Param(
-        default_callback=lambda _: {}, help="Examples to be used in the agent."
-    )
-    max_context_length: int = Param(
-        default=3000,
-        help="Max context length for each tool output.",
-    )
+    planner_llm: BaseLLM | None = None
+    solver_llm: BaseLLM | None = None
+    prompt_template: dict[str, PromptTemplate] = field(default_factory=dict)
+    plugins: list[BaseTool] = field(default_factory=list)
+    examples: dict[str, str | list[str]] = field(default_factory=dict)
+    max_context_length: int = 3000
     trim_func: TokenSplitter | None = None
 
-    @Node.auto(depends_on=["planner_llm", "plugins", "prompt_template", "examples"])
+    @cached_property
     def planner(self):
         return Planner(
             model=self.planner_llm,
@@ -54,7 +43,7 @@ class RewooAgent(BaseAgent):
             examples=self.examples.get("Planner", None),
         )
 
-    @Node.auto(depends_on=["solver_llm", "prompt_template", "examples"])
+    @cached_property
     def solver(self):
         return Solver(
             model=self.solver_llm,
@@ -273,7 +262,7 @@ class RewooAgent(BaseAgent):
         total_token = 0
 
         # Plan
-        planner_output = self.planner(instruction)
+        planner_output = self.planner.run(instruction)
         planner_text_output = planner_output.text
         plan_to_es, plans = self._parse_plan_map(planner_text_output)
         planner_evidences, evidence_level = self._parse_planner_evidences(
@@ -291,7 +280,7 @@ class RewooAgent(BaseAgent):
                 worker_log += f"{e}: {worker_evidences[e]}\n"
 
         # Solve
-        solver_output = self.solver(instruction, worker_log)
+        solver_output = self.solver.run(instruction, worker_log)
         solver_output_text = solver_output.text
         if use_citation:
             citation_pipeline = CitationPipeline(llm=self.solver_llm)
@@ -318,7 +307,7 @@ class RewooAgent(BaseAgent):
         total_token = 0
 
         # Plan
-        planner_output = self.planner(instruction)
+        planner_output = self.planner.run(instruction)
         planner_text_output = planner_output.text
         plan_to_es, plans = self._parse_plan_map(planner_text_output)
         planner_evidences, evidence_level = self._parse_planner_evidences(

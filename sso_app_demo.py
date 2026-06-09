@@ -5,13 +5,13 @@ from authlib.integrations.starlette_client import OAuth, OAuthError
 from decouple import config
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
+from ktem.settings_config import app_settings as flowsettings
 from starlette.config import Config
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import RedirectResponse
-from theflow.settings import settings as flowsettings
 
-KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
-KH_APP_DATA_DIR = getattr(flowsettings, "KH_APP_DATA_DIR", ".")
+KH_DEMO_MODE = flowsettings.KH_DEMO_MODE
+KH_APP_DATA_DIR = flowsettings.KH_APP_DATA_DIR
 GRADIO_TEMP_DIR = os.getenv("GRADIO_TEMP_DIR", None)
 # override GRADIO_TEMP_DIR if it's not set
 if GRADIO_TEMP_DIR is None:

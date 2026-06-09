@@ -6,10 +6,8 @@ All tool building/discovery logic lives in kotaemon.agents.tools.mcp.
 
 import logging
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-
-from .db import MCPTable, engine
+from ktem.db.cruds import MCPCRUD
+from ktem.db.engine import engine
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +24,8 @@ class MCPManager:
     def load(self):
         """Reload configurations from the database."""
         self._info = {}
-        with Session(engine) as session:
-            stmt = select(MCPTable)
-            items = session.execute(stmt)
-            for (item,) in items:
+        with MCPCRUD(engine) as crud:
+            for item in crud.list_all():
                 self._info[item.name] = {
                     "name": item.name,
                     "config": item.config,
@@ -45,39 +41,23 @@ class MCPManager:
 
     def add(self, name: str, config: dict):
         """Add a new MCP server configuration."""
-        name = name.strip()
-        if not name:
-            raise ValueError("Name must not be empty")
-
-        with Session(engine) as session:
-            item = MCPTable(name=name, config=config)
-            session.add(item)
-            session.commit()
-
+        with MCPCRUD(engine) as crud:
+            crud.create(name=name, config=config)
         self.load()
 
     def update(self, name: str, config: dict):
         """Update an existing MCP server configuration."""
-        if not name:
-            raise ValueError("Name must not be empty")
-
-        with Session(engine) as session:
-            item = session.query(MCPTable).filter_by(name=name).first()
-            if not item:
-                raise ValueError(f"MCP server '{name}' not found")
-            item.config = config  # type: ignore[assignment]
-            session.commit()
-
+        with MCPCRUD(engine) as crud:
+            crud.update(name, config)
         self.load()
 
     def delete(self, name: str):
         """Delete an MCP server configuration."""
-        with Session(engine) as session:
-            item = session.query(MCPTable).filter_by(name=name).first()
-            if item:
-                session.delete(item)
-                session.commit()
-
+        with MCPCRUD(engine) as crud:
+            try:
+                crud.delete(name)
+            except ValueError:
+                pass
         self.load()
 
     def list_registered_mcp_servers(self) -> list[str]:

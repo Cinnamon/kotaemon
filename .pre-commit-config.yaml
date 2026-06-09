@@ -30,11 +30,10 @@ repos:
     hooks:
       - id: flake8
         args: ["--max-line-length", "88", "--extend-ignore", "E203"]
-  - repo: https://github.com/myint/autoflake
-    rev: v1.4
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.3.1
     hooks:
       - id: autoflake
-        additional_dependencies: [setuptools]
         args:
           [
             "--in-place",

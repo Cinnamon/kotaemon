@@ -2,8 +2,10 @@ from .base import BaseEmbeddings
 from .endpoint_based import EndpointEmbeddings
 from .fastembed import FastEmbedEmbeddings
 from .langchain_based import (
+    BaseLCEmbeddings,
     LCAzureOpenAIEmbeddings,
     LCCohereEmbeddings,
+    LCEmbeddingMixin,
     LCGoogleEmbeddings,
     LCHuggingFaceEmbeddings,
     LCMistralEmbeddings,
@@ -17,6 +19,8 @@ __all__ = [
     "BaseEmbeddings",
     "EndpointEmbeddings",
     "TeiEndpointEmbeddings",
+    "BaseLCEmbeddings",
+    "LCEmbeddingMixin",
     "LCOpenAIEmbeddings",
     "LCAzureOpenAIEmbeddings",
     "LCCohereEmbeddings",

@@ -1,27 +1,19 @@
 import gradio as gr
-from decouple import config
 from ktem.app import BaseApp
 from ktem.pages.chat import ChatPage
 from ktem.pages.help import HelpPage
 from ktem.pages.resources import ResourcesTab
 from ktem.pages.settings import SettingsPage
 from ktem.pages.setup import SetupPage
-from theflow.settings import settings as flowsettings
+from ktem.settings_config import app_settings as flowsettings
 
-KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
-KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
-KH_ENABLE_FIRST_SETUP = getattr(flowsettings, "KH_ENABLE_FIRST_SETUP", False)
-KH_APP_DATA_EXISTS = getattr(flowsettings, "KH_APP_DATA_EXISTS", True)
-
-# override first setup setting
-if config("KH_FIRST_SETUP", default=False, cast=bool):
-    KH_APP_DATA_EXISTS = False
+KH_DEMO_MODE = flowsettings.KH_DEMO_MODE
+KH_SSO_ENABLED = flowsettings.KH_SSO_ENABLED
+KH_ENABLE_FIRST_SETUP = flowsettings.KH_ENABLE_FIRST_SETUP
 
 
 def toggle_first_setup_visibility():
-    global KH_APP_DATA_EXISTS
-    is_first_setup = not KH_DEMO_MODE and not KH_APP_DATA_EXISTS
-    KH_APP_DATA_EXISTS = True
+    is_first_setup = not KH_DEMO_MODE and not flowsettings.KH_APP_DATA_DIR.exists()
     return gr.update(visible=is_first_setup), gr.update(visible=not is_first_setup)
 
 
@@ -60,8 +52,8 @@ class App(BaseApp):
             ) as self._tabs["chat-tab"]:
                 self.chat_page = ChatPage(self)
 
-            if len(self.index_manager.indices) == 1:
-                for index in self.index_manager.indices:
+            if len(self.collection_manager.collections) == 1:
+                for index in self.collection_manager.collections:
                     with gr.Tab(
                         f"{index.name}",
                         elem_id="indices-tab",
@@ -75,7 +67,7 @@ class App(BaseApp):
                     ) as self._tabs[f"{index.id}-tab"]:
                         page = index.get_index_page_ui()
                         setattr(self, f"_index_{index.id}", page)
-            elif len(self.index_manager.indices) > 1:
+            elif len(self.collection_manager.collections) > 1:
                 with gr.Tab(
                     "Files",
                     elem_id="indices-tab",
@@ -83,7 +75,7 @@ class App(BaseApp):
                     id="indices-tab",
                     visible=not self.f_user_management and not KH_DEMO_MODE,
                 ) as self._tabs["indices-tab"]:
-                    for index in self.index_manager.indices:
+                    for index in self.collection_manager.collections:
                         with gr.Tab(
                             index.name,
                             elem_id=f"{index.id}-tab",
@@ -126,9 +118,8 @@ class App(BaseApp):
 
     def on_subscribe_public_events(self):
         if self.f_user_management:
+            from ktem.db.cruds import UserCRUD
             from ktem.db.engine import engine
-            from ktem.db.models import User
-            from sqlmodel import Session, select
 
             def toggle_login_visibility(user_id):
                 if not user_id:
@@ -141,8 +132,8 @@ class App(BaseApp):
                         for k in self._tabs.keys()
                     ) + [gr.update(selected="login-tab")]
 
-                with Session(engine) as session:
-                    user = session.exec(select(User).where(User.id == user_id)).first()
+                with UserCRUD(engine) as crud:
+                    user = crud.get(user_id)
                     if user is None:
                         return list(
                             (

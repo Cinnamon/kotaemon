@@ -1,9 +1,10 @@
 """Simple vector store index."""
-from typing import Any, Optional, Type
+from typing import Any, Dict, Optional, Type
 
 import fsspec
 from llama_index.core.vector_stores import SimpleVectorStore as LISimpleVectorStore
 from llama_index.core.vector_stores.simple import SimpleVectorStoreData
+from typing_extensions import Self
 
 from .base import LlamaIndexVectorStore
 
@@ -27,6 +28,10 @@ class InMemoryVectorStore(LlamaIndexVectorStore):
             fs=fs,
             **kwargs,
         )
+
+    @classmethod
+    def from_env(cls, _overriding_envvars: Dict[str, Any] | None = None) -> Self:
+        return cls()
 
     def save(
         self,

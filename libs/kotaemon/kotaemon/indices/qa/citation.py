@@ -1,8 +1,8 @@
+from dataclasses import dataclass
 from typing import List
 
 from pydantic import BaseModel, Field
 
-from kotaemon.base import BaseComponent
 from kotaemon.base.schema import HumanMessage, SystemMessage
 from kotaemon.llms import BaseLLM
 
@@ -19,11 +19,15 @@ class CiteEvidence(BaseModel):
     )
 
 
-class CitationPipeline(BaseComponent):
+@dataclass(kw_only=True)
+class CitationPipeline:
     """Citation pipeline to extract cited evidences from source
     (based on input question)"""
 
     llm: BaseLLM
+
+    def __call__(self, context: str, question: str):
+        return self.run(context, question)
 
     def run(self, context: str, question: str):
         return self.invoke(context, question)
@@ -68,7 +72,7 @@ class CitationPipeline(BaseComponent):
         messages, llm_kwargs = self.prepare_llm(context, question)
         try:
             print("CitationPipeline: invoking LLM")
-            llm_output = self.get_from_path("llm").invoke(messages, **llm_kwargs)
+            llm_output = self.llm.invoke(messages, **llm_kwargs)
             print("CitationPipeline: finish invoking LLM")
             if not llm_output.additional_kwargs.get("tool_calls"):
                 return None

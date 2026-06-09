@@ -1,10 +1,11 @@
-from typing import Any, List, Type, cast
+from typing import Any, Dict, List, Type, cast
 
 from llama_index.core.vector_stores.types import MetadataFilters
 from llama_index.vector_stores.lancedb import LanceDBVectorStore as LILanceDBVectorStore
 from llama_index.vector_stores.lancedb import base as base_lancedb
+from typing_extensions import Self
 
-from .base import LlamaIndexVectorStore
+from .base import BaseVectorStoreEnv, LlamaIndexVectorStore
 
 # custom monkey patch for LanceDB
 original_to_lance_filter = base_lancedb._to_lance_filter
@@ -27,8 +28,20 @@ LILanceDBVectorStore._table_exists = lambda _: False
 base_lancedb._to_lance_filter = custom_to_lance_filter
 
 
+class LanceDBEnv(BaseVectorStoreEnv):
+    LANCEDB_URI: str = "lancedb"
+
+
 class LanceDBVectorStore(LlamaIndexVectorStore):
     _li_class: Type[LILanceDBVectorStore] = LILanceDBVectorStore
+
+    @classmethod
+    def from_env(cls, overriding_envvars: Dict[str, Any] | None = None) -> Self:
+        envs = LanceDBEnv.override_envs(overriding_envvars)
+        print(f"Loaded LanceDB with envs={envs}")
+        return cls(
+            path=envs.LANCEDB_URI, collection_name=envs.VECTORSTORE_COLLECTION_NAME
+        )
 
     def __init__(
         self,

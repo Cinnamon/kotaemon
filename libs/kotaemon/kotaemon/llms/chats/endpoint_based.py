@@ -1,3 +1,5 @@
+from dataclasses import dataclass, field
+
 import requests
 
 from kotaemon.base import (
@@ -5,38 +7,23 @@ from kotaemon.base import (
     BaseMessage,
     HumanMessage,
     LLMInterface,
-    Param,
     SystemMessage,
 )
 
 from .base import ChatLLM
 
 
+@dataclass(kw_only=True)
 class EndpointChatLLM(ChatLLM):
-    """
-    A ChatLLM that uses an endpoint to generate responses. This expects an OpenAI API
-    compatible endpoint.
+    """ChatLLM that uses an OpenAI API compatible HTTP endpoint."""
 
-    Attributes:
-        endpoint_url (str): The url of a OpenAI API compatible endpoint.
-    """
-
-    endpoint_url: str = Param(
-        help="URL of the OpenAI API compatible endpoint", required=True
+    endpoint_url: str = field(
+        metadata={"description": "OpenAI API compatible endpoint URL"},
     )
 
     def run(
         self, messages: str | BaseMessage | list[BaseMessage], **kwargs
     ) -> LLMInterface:
-        """
-        Generate response from messages
-        Args:
-            messages (str | BaseMessage | list[BaseMessage]): history of messages to
-                generate response from
-            **kwargs: additional arguments to pass to the OpenAI API
-        Returns:
-            LLMInterface: generated response
-        """
         if isinstance(messages, str):
             input_ = [HumanMessage(content=messages)]
         elif isinstance(messages, BaseMessage):
@@ -47,10 +34,9 @@ class EndpointChatLLM(ChatLLM):
         def decide_role(message: BaseMessage):
             if isinstance(message, SystemMessage):
                 return "system"
-            elif isinstance(message, AIMessage):
+            if isinstance(message, AIMessage):
                 return "assistant"
-            else:
-                return "user"
+            return "user"
 
         request_json = {
             "messages": [{"content": m.text, "role": decide_role(m)} for m in input_]
@@ -79,7 +65,6 @@ class EndpointChatLLM(ChatLLM):
     def invoke(
         self, messages: str | BaseMessage | list[BaseMessage], **kwargs
     ) -> LLMInterface:
-        """Same as run"""
         return self.run(messages, **kwargs)
 
     async def ainvoke(

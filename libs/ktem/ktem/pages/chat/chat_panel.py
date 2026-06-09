@@ -1,14 +1,13 @@
 import gradio as gr
 from ktem.app import BasePage
-from theflow.settings import settings as flowsettings
+from ktem.settings_config import app_settings as flowsettings
 
-KH_DEMO_MODE = getattr(flowsettings, "KH_DEMO_MODE", False)
+KH_DEMO_MODE = flowsettings.KH_DEMO_MODE
 
 if not KH_DEMO_MODE:
     PLACEHOLDER_TEXT = (
         "This is the beginning of a new conversation.\n"
-        "Start by uploading a file or a web URL. "
-        "Visit Files tab for more options (e.g: GraphRAG)."
+        "Start by uploading a file or a web URL."
     )
 else:
     PLACEHOLDER_TEXT = (

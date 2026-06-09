@@ -2,38 +2,42 @@
 
 import logging
 from functools import cache
-from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
-from theflow.settings import settings
-from theflow.utils.modules import deserialize
+from ktem.settings_config import app_settings as settings
 
-from kotaemon.base import BaseComponent
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
+from kotaemon.storages.docstores.factory import DocStoreFactory
+from kotaemon.storages.vectorstores.factory import VectorStoreFactory
 
 logger = logging.getLogger(__name__)
 
 
-filestorage_path = Path(settings.KH_FILESTORAGE_PATH)
-filestorage_path.mkdir(parents=True, exist_ok=True)
+# filestorage_path = Path(settings.KH_FILESTORAGE_PATH)
+# filestorage_path.mkdir(parents=True, exist_ok=True)
 
 
 @cache
-def get_docstore(collection_name: str = "default") -> BaseDocumentStore:
-    from copy import deepcopy
+def get_docstore(collection_name: str | None = None) -> BaseDocumentStore:
+    """Instantiate and return the configured docstore for *collection_name*."""
+    overriding_envvars = {}
+    if collection_name:
+        overriding_envvars["DOCSTORE_COLLECTION_NAME"] = collection_name
 
-    ds_conf = deepcopy(settings.KH_DOCSTORE)
-    ds_conf["collection_name"] = collection_name
-    return deserialize(ds_conf, safe=False)
+    return DocStoreFactory.get_cls(settings.KH_DOCSTORE_VENDOR).from_env(
+        overriding_envvars=overriding_envvars
+    )
 
 
 @cache
-def get_vectorstore(collection_name: str = "default") -> BaseVectorStore:
-    from copy import deepcopy
-
-    vs_conf = deepcopy(settings.KH_VECTORSTORE)
-    vs_conf["collection_name"] = collection_name
-    return deserialize(vs_conf, safe=False)
+def get_vectorstore(collection_name: str | None = None) -> BaseVectorStore:
+    """Instantiate and return the configured vectorstore for *collection_name*."""
+    overriding_envvars = {}
+    if collection_name:
+        overriding_envvars["VECTORSTORE_COLLECTION_NAME"] = collection_name
+    return VectorStoreFactory.get_cls(settings.KH_VECTORSTORE_VENDOR).from_env(
+        overriding_envvars=overriding_envvars
+    )
 
 
 class ModelPool:
@@ -43,13 +47,14 @@ class ModelPool:
         self._category = category
         self._conf = conf
 
-        self._models: dict[str, BaseComponent] = {}
+        self._models: dict[str, Any] = {}
         self._accuracy: list[str] = []
         self._cost: list[str] = []
         self._default: list[str] = []
 
         for name, model in conf.items():
-            self._models[name] = deserialize(model["spec"], safe=False)
+            # TODO: replace with vendor-factory pattern once ModelPool
+            # is used with non-empty conf (mirrors LLM/embedding managers).
             if model.get("default", False):
                 self._default.append(name)
 
@@ -58,11 +63,11 @@ class ModelPool:
         )
         self._cost = list(sorted(conf, key=lambda x: conf[x].get("cost", float("inf"))))
 
-    def __getitem__(self, key: str) -> BaseComponent:
+    def __getitem__(self, key: str) -> Any:
         """Get model by name"""
         return self._models[key]
 
-    def __setitem__(self, key: str, value: BaseComponent):
+    def __setitem__(self, key: str, value: Any):
         """Set model by name"""
         self._models[key] = value
 
@@ -74,9 +79,7 @@ class ModelPool:
         """Check if model exists"""
         return key in self._models
 
-    def get(
-        self, key: str, default: Optional[BaseComponent] = None
-    ) -> Optional[BaseComponent]:
+    def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:
         """Get model by name with default value"""
         return self._models.get(key, default)
 
@@ -124,19 +127,12 @@ class ModelPool:
 
         return self.get_random_name()
 
-    def get_random(self) -> BaseComponent:
+    def get_random(self) -> Any:
         """Get random model"""
         return self._models[self.get_random_name()]
 
-    def get_default(self) -> BaseComponent:
-        """Get default model
-
-        In case there is no default model, choose random model from pool. In
-        case there are multiple default models, choose random from them.
-
-        Returns:
-            BaseComponent: model
-        """
+    def get_default(self) -> Any:
+        """Get default model."""
         return self._models[self.get_default_name()]
 
     def get_highest_accuracy_name(self) -> str:
@@ -149,12 +145,8 @@ class ModelPool:
             raise ValueError("No models in pool")
         return self._accuracy[-1]
 
-    def get_highest_accuracy(self) -> BaseComponent:
-        """Get model with highest accuracy
-
-        Returns:
-            BaseComponent: model
-        """
+    def get_highest_accuracy(self) -> Any:
+        """Get model with highest accuracy."""
         if not self._conf:
             raise ValueError("No models in pool")
 
@@ -170,12 +162,8 @@ class ModelPool:
             raise ValueError("No models in pool")
         return self._cost[0]
 
-    def get_lowest_cost(self) -> BaseComponent:
-        """Get model with lowest cost
-
-        Returns:
-            BaseComponent: model
-        """
+    def get_lowest_cost(self) -> Any:
+        """Get model with lowest cost."""
         if not self._conf:
             raise ValueError("No models in pool")
 
