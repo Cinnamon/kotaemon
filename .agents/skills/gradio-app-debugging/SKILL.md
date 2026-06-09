@@ -1,5 +1,5 @@
 ---
-name: debugging-gradio-app
+name: gradio-app-debugging
 description: >-
   Debug Kotaemon Gradio app by running python app.py, fixing Traceback errors
   from terminal logs, and iterating with the user on basic UI smoke tests.

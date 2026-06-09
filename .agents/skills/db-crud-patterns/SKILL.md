@@ -14,7 +14,7 @@ Reference implementations:
 - `ktem/db/models/embedding.py` + `ktem/db/cruds/embedding.py` + `ktem/embeddings/manager.py`
 - `ktem/rerankings/manager.py` — same load pattern
 
-Pair with: [creating-pluggable-modules](../creating-pluggable-modules/SKILL.md)
+Pair with: [pluggable-modules-creating](../pluggable-modules-creating/SKILL.md)
 for the kotaemon-side factory/registry.
 
 ## Core principle — separate type from data

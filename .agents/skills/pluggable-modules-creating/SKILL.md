@@ -1,5 +1,5 @@
 ---
-name: creating-pluggable-modules
+name: pluggable-modules-creating
 description: Guides creation of new pluggable kotaemon modules (LLM, embedding, reranking, vector store) using dataclass implementations, vendor enums, and factory registries. Use when adding a new provider class, creating factory.py, refactoring away from theflow Param/Node/BaseComponent, or mirroring the llms/embeddings module layout.
 ---
 
