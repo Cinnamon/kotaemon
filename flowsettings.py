@@ -246,6 +246,7 @@ if LITELLM_API_KEY:
                 "LITELLM_EMBEDDING_MODEL", default="text-embedding-3-small"
             ),
             "api_key": LITELLM_API_KEY,
+            "api_base": config("LITELLM_API_BASE", default="") or None,
         },
         "default": False,
     }

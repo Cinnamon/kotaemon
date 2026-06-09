@@ -149,7 +149,7 @@ class ChatLiteLLM(ChatLLM):
         choices = resp_dict.get("choices") or []
 
         return LLMInterface(
-            content=choices[0]["message"]["content"] or "" if choices else "",
+            content=(choices[0]["message"]["content"] or "") if choices else "",
             candidates=[(c["message"]["content"] or "") for c in choices],
             completion_tokens=usage.get("completion_tokens", 0),
             prompt_tokens=usage.get("prompt_tokens", 0),
