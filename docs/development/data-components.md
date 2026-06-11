@@ -32,3 +32,10 @@ The data & data structure components include:
 
 - ChromaVectorStore
 - InMemoryVectorStore
+
+### Document serialization
+
+`Document.model_dump()` now accepts a `serialize` flag. When `serialize=True`,
+NumPy arrays such as embeddings are converted to Python lists for safe external
+serialization. Omitting the flag preserves the raw arrays, which is useful for
+internal operations like copying models.

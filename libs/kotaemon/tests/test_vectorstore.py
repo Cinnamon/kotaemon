@@ -1,6 +1,7 @@
 import json
 import os
 
+import numpy as np
 import pytest
 
 from kotaemon.base import DocumentWithEmbedding
@@ -14,13 +15,17 @@ from kotaemon.storages import (
 
 
 class TestChromaVectorStore:
-    def test_add(self, tmp_path):
+    @pytest.mark.parametrize("as_array", [False, True])
+    def test_add(self, tmp_path, as_array):
         """Test that the DB add correctly"""
         db = ChromaVectorStore(path=str(tmp_path))
 
         embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
         metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
         ids = ["1", "2"]
+
+        if as_array:
+            embeddings = np.array(embeddings)
 
         assert db._collection.count() == 0, "Expected empty collection"
         output = db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
@@ -55,7 +60,8 @@ class TestChromaVectorStore:
         db.delete(ids=["c"])
         assert db._collection.count() == 0, "Expected 0 remaining entry"
 
-    def test_query(self, tmp_path):
+    @pytest.mark.parametrize("as_array", [False, True])
+    def test_query(self, tmp_path, as_array):
         db = ChromaVectorStore(path=str(tmp_path))
 
         embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]]
@@ -64,11 +70,19 @@ class TestChromaVectorStore:
 
         db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
 
-        _, sim, out_ids = db.query(embedding=[0.1, 0.2, 0.3], top_k=1)
+        query_embedding = [0.1, 0.2, 0.3]
+        if as_array:
+            query_embedding = np.array(query_embedding)
+
+        _, sim, out_ids = db.query(embedding=query_embedding, top_k=1)
         assert sim[0] - 1.0 < 1e-6
         assert out_ids == ["a"]
 
-        _, _, out_ids = db.query(embedding=[0.42, 0.52, 0.53], top_k=1)
+        query_embedding = [0.42, 0.52, 0.53]
+        if as_array:
+            query_embedding = np.array(query_embedding)
+
+        _, _, out_ids = db.query(embedding=query_embedding, top_k=1)
         assert out_ids == ["b"]
 
     def test_save_load_delete(self, tmp_path):
@@ -94,13 +108,17 @@ class TestChromaVectorStore:
 
 
 class TestInMemoryVectorStore:
-    def test_add(self):
+    @pytest.mark.parametrize("as_array", [False, True])
+    def test_add(self, as_array):
         """Test that add func adds correctly."""
 
         embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
         metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
         ids = ["1", "2"]
         db = InMemoryVectorStore()
+
+        if as_array:
+            embeddings = np.array(embeddings)
 
         output = db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
         assert output == ids, "Excepted output to be the same as ids"
@@ -132,13 +150,16 @@ class TestInMemoryVectorStore:
 
 
 class TestSimpleFileVectorStore:
-    def test_add_delete(self, tmp_path):
+    @pytest.mark.parametrize("as_array", [False, True])
+    def test_add_delete(self, tmp_path, as_array):
         """Test that delete func deletes correctly."""
         embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]]
         metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}, {"a": 5, "b": 6}]
         ids = ["1", "2", "3"]
         collection_name = "test_save_load_delete"
         db = SimpleFileVectorStore(path=tmp_path, collection_name=collection_name)
+        if as_array:
+            embeddings = np.array(embeddings)
         db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
         db.delete(["3"])
         with open(tmp_path / collection_name) as f:
@@ -160,7 +181,8 @@ class TestSimpleFileVectorStore:
 
 
 class TestMilvusVectorStore:
-    def test_add(self, tmp_path):
+    @pytest.mark.parametrize("as_array", [False, True])
+    def test_add(self, tmp_path, as_array):
         """Test that the DB add correctly"""
         db = MilvusVectorStore(
             path=str(tmp_path),
@@ -170,6 +192,9 @@ class TestMilvusVectorStore:
         embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
         metadatas = [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
         ids = ["1", "2"]
+
+        if as_array:
+            embeddings = np.array(embeddings)
 
         assert db.count() == 0, "Expected empty collection"
         output = db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
@@ -210,10 +235,9 @@ class TestMilvusVectorStore:
         db.delete(ids=["c"])
         assert db.count() == 0, "Expected 0 remaining entry"
 
-    def test_query(self, tmp_path):
+    @pytest.mark.parametrize("as_array", [False, True])
+    def test_query(self, tmp_path, as_array):
         db = MilvusVectorStore(path=str(tmp_path), overwrite=True)
-        import numpy as np
-
         embeddings = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]])
         norms = np.linalg.norm(embeddings, axis=1)
         normalized_embeddings = (embeddings / norms[:, np.newaxis]).tolist()
@@ -223,7 +247,11 @@ class TestMilvusVectorStore:
 
         db.add(embeddings=normalized_embeddings, metadatas=metadatas, ids=ids)
 
-        _, sim, out_ids = db.query(embedding=normalized_embeddings[0], top_k=1)
+        query_embedding = normalized_embeddings[0]
+        if as_array:
+            query_embedding = np.array(query_embedding)
+
+        _, sim, out_ids = db.query(embedding=query_embedding, top_k=1)
         assert sim[0] - 1.0 < 1e-6
         assert out_ids == ["a"]
 
@@ -232,6 +260,9 @@ class TestMilvusVectorStore:
             normalized_embeddings[1][1] + 0.02,
             normalized_embeddings[1][2] + 0.02,
         ]
+        if as_array:
+            query_embedding = np.array(query_embedding)
+
         _, _, out_ids = db.query(embedding=query_embedding, top_k=1)
         assert out_ids == ["b"]
 
@@ -254,7 +285,8 @@ class TestMilvusVectorStore:
 
 
 class TestQdrantVectorStore:
-    def test_add(self):
+    @pytest.mark.parametrize("as_array", [False, True])
+    def test_add(self, as_array):
         from qdrant_client import QdrantClient
 
         db = QdrantVectorStore(collection_name="test", client=QdrantClient(":memory:"))
@@ -265,6 +297,9 @@ class TestQdrantVectorStore:
             "0f0611b3-2d9c-4818-ab69-1f1c4cf66693",
             "90aba5d3-f4f8-47c6-bad9-5ea457442e07",
         ]
+
+        if as_array:
+            embeddings = np.array(embeddings)
 
         output = db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
         assert output == ids, "Expected output to be the same as ids"
@@ -311,7 +346,8 @@ class TestQdrantVectorStore:
         db.delete(ids=["6bed07c3-d284-47a3-a711-c3f9186755b8"])
         assert db.count() == 0, "Expected 0 remaining entry"
 
-    def test_query(self, tmp_path):
+    @pytest.mark.parametrize("as_array", [False, True])
+    def test_query(self, tmp_path, as_array):
         from qdrant_client import QdrantClient
 
         db = QdrantVectorStore(collection_name="test", client=QdrantClient(":memory:"))
@@ -326,11 +362,19 @@ class TestQdrantVectorStore:
 
         db.add(embeddings=embeddings, metadatas=metadatas, ids=ids)
 
-        _, sim, out_ids = db.query(embedding=[0.1, 0.2, 0.3], top_k=1)
+        query_embedding = [0.1, 0.2, 0.3]
+        if as_array:
+            query_embedding = np.array(query_embedding)
+
+        _, sim, out_ids = db.query(embedding=query_embedding, top_k=1)
         assert sim[0] - 1.0 < 1e-6
         assert out_ids == ["0f0611b3-2d9c-4818-ab69-1f1c4cf66693"]
 
-        _, _, out_ids = db.query(embedding=[0.4, 0.5, 0.6], top_k=1)
+        query_embedding = [0.4, 0.5, 0.6]
+        if as_array:
+            query_embedding = np.array(query_embedding)
+
+        _, _, out_ids = db.query(embedding=query_embedding, top_k=1)
         assert out_ids == ["90aba5d3-f4f8-47c6-bad9-5ea457442e07"]
 
     def test_save_load_delete(self, tmp_path):

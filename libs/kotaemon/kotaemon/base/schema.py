@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal, Optional, TypeVar
 
+import numpy as np
 from langchain.schema.messages import AIMessage as LCAIMessage
 from langchain.schema.messages import HumanMessage as LCHumanMessage
 from langchain.schema.messages import SystemMessage as LCSystemMessage
 from llama_index.core.bridge.pydantic import Field
 from llama_index.core.schema import Document as BaseDocument
+from pydantic import ConfigDict
 
 if TYPE_CHECKING:
     from haystack.schema import Document as HaystackDocument
@@ -36,6 +38,8 @@ class Document(BaseDocument):
             - debug: show in debug panel
     """
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     content: Any = None
     source: Optional[str] = None
     channel: Optional[Literal["chat", "info", "index", "debug", "plot"]] = None
@@ -45,15 +49,31 @@ class Document(BaseDocument):
             if kwargs.get("text", None) is not None:
                 kwargs["content"] = kwargs["text"]
             elif kwargs.get("embedding", None) is not None:
-                kwargs["content"] = kwargs["embedding"]
+                emb = kwargs["embedding"]
+                if isinstance(emb, np.ndarray):
+                    emb = emb.tolist()
+                kwargs["embedding"] = emb
+                kwargs["content"] = emb
                 # default text indicating this document only contains embedding
                 kwargs["text"] = "<EMBEDDING>"
         elif isinstance(content, Document):
             # TODO: simplify the Document class
-            temp_ = content.dict()
-            temp_.update(kwargs)
-            kwargs = temp_
+            if hasattr(content, "model_copy"):
+                obj = content.model_copy(update=kwargs)
+            else:
+                obj = content.copy(update=kwargs)
+            data = obj.__dict__.copy()
+            emb = content.embedding
+            if isinstance(emb, np.ndarray):
+                data["embedding"] = emb.tolist()
+                super().__init__(*args, **data)
+                object.__setattr__(self, "embedding", emb)
+            else:
+                super().__init__(*args, **data)
+            return
         else:
+            if isinstance(content, np.ndarray):
+                content = content.tolist()
             kwargs["content"] = content
             if content:
                 kwargs["text"] = str(content)
@@ -83,16 +103,30 @@ class Document(BaseDocument):
     def __str__(self):
         return str(self.content)
 
+    def model_dump(self, *, serialize: bool = False, **kwargs):
+        data = super().model_dump(**kwargs)
+        if serialize:
+
+            def _convert(obj):
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                if isinstance(obj, dict):
+                    return {k: _convert(v) for k, v in obj.items()}
+                if isinstance(obj, list):
+                    return [_convert(v) for v in obj]
+                return obj
+
+            data = _convert(data)
+        return data
+
 
 class DocumentWithEmbedding(Document):
-    """Subclass of Document which must contains embedding
+    """Document subclass that enforces an embedding field."""
 
-    Use this if you want to enforce component's IOs to must contain embedding.
-    """
-
-    def __init__(self, embedding: list[float], *args, **kwargs):
+    def __init__(self, embedding: list[float] | np.ndarray, *args, **kwargs):
         kwargs["embedding"] = embedding
         super().__init__(*args, **kwargs)
+        object.__setattr__(self, "embedding", embedding)
 
 
 class BaseMessage(Document):
@@ -103,19 +137,83 @@ class BaseMessage(Document):
         raise NotImplementedError
 
 
-class SystemMessage(BaseMessage, LCSystemMessage):
-    def to_openai_format(self) -> "ChatCompletionMessageParam":
-        return {"role": "system", "content": self.content}
+if TYPE_CHECKING:
 
+    class SystemMessage(BaseMessage, LCSystemMessage):
+        def to_openai_format(self) -> "ChatCompletionMessageParam":
+            ...
 
-class AIMessage(BaseMessage, LCAIMessage):
-    def to_openai_format(self) -> "ChatCompletionMessageParam":
-        return {"role": "assistant", "content": self.content}
+    class AIMessage(BaseMessage, LCAIMessage):
+        def to_openai_format(self) -> "ChatCompletionMessageParam":
+            ...
 
+    class HumanMessage(BaseMessage, LCHumanMessage):
+        def to_openai_format(self) -> "ChatCompletionMessageParam":
+            ...
 
-class HumanMessage(BaseMessage, LCHumanMessage):
-    def to_openai_format(self) -> "ChatCompletionMessageParam":
-        return {"role": "user", "content": self.content}
+else:
+    try:
+        SystemMessage = type(
+            "SystemMessage",
+            (BaseMessage, LCSystemMessage),
+            {
+                "to_openai_format": lambda self: {
+                    "role": "system",
+                    "content": self.content,
+                }
+            },
+        )  # type: ignore[misc, valid-type]
+        AIMessage = type(
+            "AIMessage",
+            (BaseMessage, LCAIMessage),
+            {
+                "to_openai_format": lambda self: {
+                    "role": "assistant",
+                    "content": self.content,
+                }
+            },
+        )  # type: ignore[misc, valid-type]
+        HumanMessage = type(
+            "HumanMessage",
+            (BaseMessage, LCHumanMessage),
+            {
+                "to_openai_format": lambda self: {
+                    "role": "user",
+                    "content": self.content,
+                }
+            },
+        )  # type: ignore[misc, valid-type]
+    except TypeError:
+        SystemMessage = type(
+            "SystemMessage",
+            (BaseMessage,),
+            {
+                "to_openai_format": lambda self: {
+                    "role": "system",
+                    "content": self.content,
+                }
+            },
+        )  # type: ignore[misc, valid-type]
+        AIMessage = type(
+            "AIMessage",
+            (BaseMessage,),
+            {
+                "to_openai_format": lambda self: {
+                    "role": "assistant",
+                    "content": self.content,
+                }
+            },
+        )  # type: ignore[misc, valid-type]
+        HumanMessage = type(
+            "HumanMessage",
+            (BaseMessage,),
+            {
+                "to_openai_format": lambda self: {
+                    "role": "user",
+                    "content": self.content,
+                }
+            },
+        )  # type: ignore[misc, valid-type]
 
 
 class RetrievedDocument(Document):
@@ -132,14 +230,14 @@ class RetrievedDocument(Document):
     retrieval_metadata: dict = Field(default={})
 
 
-class LLMInterface(AIMessage):
+class LLMInterface(AIMessage):  # type: ignore[misc, valid-type]
     candidates: list[str] = Field(default_factory=list)
     completion_tokens: int = -1
     total_tokens: int = -1
     prompt_tokens: int = -1
     total_cost: float = 0
     logits: list[list[float]] = Field(default_factory=list)
-    messages: list[AIMessage] = Field(default_factory=list)
+    messages: list[AIMessage] = Field(default_factory=list)  # type: ignore[valid-type]
     logprobs: list[float] = []
 
 
