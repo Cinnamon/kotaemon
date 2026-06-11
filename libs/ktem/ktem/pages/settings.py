@@ -385,7 +385,7 @@ class SettingsPage(BasePage):
                 settings = result[0].setting
 
         output = [settings]
-        output += tuple(settings[name] for name in self.component_names())
+        output += tuple(settings.get(name) for name in self.component_names())
         return output
 
     def refresh_reasoning_tool_choices(self, *current_values):
