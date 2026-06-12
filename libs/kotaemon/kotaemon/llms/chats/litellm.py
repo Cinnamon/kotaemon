@@ -165,7 +165,12 @@ class ChatLiteLLM(ChatLLM):
         *args,
         **kwargs,
     ) -> LLMInterface:
-        import litellm
+        try:
+            import litellm
+        except ImportError:
+            raise ImportError(
+                "Please install litellm: `pip install -U litellm`"
+            )
 
         input_messages = self.prepare_message(messages)
         params = self.prepare_params(**kwargs)
@@ -178,7 +183,12 @@ class ChatLiteLLM(ChatLLM):
         *args,
         **kwargs,
     ) -> LLMInterface:
-        import litellm
+        try:
+            import litellm
+        except ImportError:
+            raise ImportError(
+                "Please install litellm: `pip install -U litellm`"
+            )
 
         input_messages = self.prepare_message(messages)
         params = self.prepare_params(**kwargs)
@@ -191,7 +201,12 @@ class ChatLiteLLM(ChatLLM):
         *args,
         **kwargs,
     ) -> Iterator[LLMInterface]:
-        import litellm
+        try:
+            import litellm
+        except ImportError:
+            raise ImportError(
+                "Please install litellm: `pip install -U litellm`"
+            )
 
         input_messages = self.prepare_message(messages)
         params = self.prepare_params(**kwargs)
@@ -212,7 +227,12 @@ class ChatLiteLLM(ChatLLM):
         *args,
         **kwargs,
     ) -> AsyncGenerator[LLMInterface, None]:
-        import litellm
+        try:
+            import litellm
+        except ImportError:
+            raise ImportError(
+                "Please install litellm: `pip install -U litellm`"
+            )
 
         input_messages = self.prepare_message(messages)
         params = self.prepare_params(**kwargs)

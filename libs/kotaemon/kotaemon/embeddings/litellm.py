@@ -72,7 +72,12 @@ class LiteLLMEmbeddings(BaseEmbeddings):
         *args,
         **kwargs,
     ) -> list[DocumentWithEmbedding]:
-        import litellm
+        try:
+            import litellm
+        except ImportError:
+            raise ImportError(
+                "Please install litellm: `pip install -U litellm`"
+            )
 
         input_docs = self.prepare_input(text)
         texts = [doc.text if doc.text else " " for doc in input_docs]
@@ -93,7 +98,12 @@ class LiteLLMEmbeddings(BaseEmbeddings):
         *args,
         **kwargs,
     ) -> list[DocumentWithEmbedding]:
-        import litellm
+        try:
+            import litellm
+        except ImportError:
+            raise ImportError(
+                "Please install litellm: `pip install -U litellm`"
+            )
 
         input_docs = self.prepare_input(text)
         texts = [doc.text if doc.text else " " for doc in input_docs]
