@@ -441,7 +441,10 @@ class LightRAGRetrieverPipeline(BaseFileIndexRetriever):
                 .first()
             )
             graph_id = graph_id[0] if graph_id else None
-            assert graph_id, f"GraphRAG index not found for file_id: {file_id}"
+
+        if not graph_id:
+            logging.warning(f"GraphRAG index not found for file_id: {file_id}")
+            return None, None
 
         _, input_path = prepare_graph_index_path(graph_id)
         input_path.mkdir(parents=True, exist_ok=True)
@@ -508,6 +511,8 @@ class LightRAGRetrieverPipeline(BaseFileIndexRetriever):
             return []
 
         graphrag_func, query_params = self._build_graph_search()
+        if graphrag_func is None:
+            return []
 
         # only local mode support graph visualization
         if query_params.mode == "local":
