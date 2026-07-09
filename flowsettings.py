@@ -228,6 +228,29 @@ if config("LOCAL_MODEL", default=""):
         "default": False,
     }
 
+LITELLM_API_KEY = config("LITELLM_API_KEY", default="")
+if LITELLM_API_KEY:
+    KH_LLMS["litellm"] = {
+        "spec": {
+            "__type__": "kotaemon.llms.ChatLiteLLM",
+            "model": config("LITELLM_MODEL", default="gpt-4o-mini"),
+            "api_key": LITELLM_API_KEY,
+            "api_base": config("LITELLM_API_BASE", default="") or None,
+        },
+        "default": False,
+    }
+    KH_EMBEDDINGS["litellm"] = {
+        "spec": {
+            "__type__": "kotaemon.embeddings.LiteLLMEmbeddings",
+            "model": config(
+                "LITELLM_EMBEDDING_MODEL", default="text-embedding-3-small"
+            ),
+            "api_key": LITELLM_API_KEY,
+            "api_base": config("LITELLM_API_BASE", default="") or None,
+        },
+        "default": False,
+    }
+
 # additional LLM configurations
 KH_LLMS["claude"] = {
     "spec": {

@@ -9,6 +9,7 @@ from .langchain_based import (
     LCGeminiChat,
     LCOllamaChat,
 )
+from .litellm import ChatLiteLLM
 from .llamacpp import LlamaCppChat
 from .openai import AzureChatOpenAI, ChatOpenAI, StructuredOutputChatOpenAI
 
@@ -16,6 +17,7 @@ __all__ = [
     "ChatOpenAI",
     "AzureChatOpenAI",
     "ChatLLM",
+    "ChatLiteLLM",
     "EndpointChatLLM",
     "ChatOpenAI",
     "StructuredOutputChatOpenAI",

@@ -9,6 +9,7 @@ from .langchain_based import (
     LCMistralEmbeddings,
     LCOpenAIEmbeddings,
 )
+from .litellm import LiteLLMEmbeddings
 from .openai import AzureOpenAIEmbeddings, OpenAIEmbeddings
 from .tei_endpoint_embed import TeiEndpointEmbeddings
 from .voyageai import VoyageAIEmbeddings
@@ -26,5 +27,6 @@ __all__ = [
     "OpenAIEmbeddings",
     "AzureOpenAIEmbeddings",
     "FastEmbedEmbeddings",
+    "LiteLLMEmbeddings",
     "VoyageAIEmbeddings",
 ]

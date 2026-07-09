@@ -60,6 +60,7 @@ class EmbeddingManager:
             LCGoogleEmbeddings,
             LCHuggingFaceEmbeddings,
             LCMistralEmbeddings,
+            LiteLLMEmbeddings,
             OpenAIEmbeddings,
             TeiEndpointEmbeddings,
             VoyageAIEmbeddings,
@@ -68,6 +69,7 @@ class EmbeddingManager:
         self._vendors = [
             AzureOpenAIEmbeddings,
             OpenAIEmbeddings,
+            LiteLLMEmbeddings,
             FastEmbedEmbeddings,
             LCCohereEmbeddings,
             LCHuggingFaceEmbeddings,
