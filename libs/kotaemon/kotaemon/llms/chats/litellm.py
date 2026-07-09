@@ -41,13 +41,18 @@ class ChatLiteLLM(ChatLLM):
 
     model: str = Param(
         help=(
-            "LiteLLM model identifier. Format varies by provider, e.g. "
-            "'gpt-4o', 'anthropic/claude-3-sonnet', 'gemini/gemini-pro'. "
+            "LiteLLM model identifier. Must include the provider prefix, "
+            "e.g. 'openai/gpt-4o', 'anthropic/claude-3-sonnet', "
+            "'gemini/gemini-pro', 'azure/my-deployment', "
+            "'bedrock/anthropic.claude-3-sonnet'. "
             "See https://docs.litellm.ai/docs/providers"
         ),
         required=True,
     )
-    api_key: Optional[str] = Param(None, help="API key for the underlying provider")
+    api_key: str = Param(
+        help="API key for the underlying provider",
+        required=True,
+    )
     api_base: Optional[str] = Param(
         None,
         help="Custom API base URL (e.g. for a LiteLLM proxy gateway)",
@@ -118,6 +123,7 @@ class ChatLiteLLM(ChatLLM):
     def prepare_params(self, **kwargs) -> dict:
         params_: dict = {
             "model": self.model,
+            "api_key": self.api_key,
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
             "top_p": self.top_p,
@@ -130,8 +136,6 @@ class ChatLiteLLM(ChatLLM):
             # Users can opt out by passing ``drop_params=False`` via kwargs.
             "drop_params": True,
         }
-        if self.api_key:
-            params_["api_key"] = self.api_key
         if self.api_base:
             params_["api_base"] = self.api_base
         if self.timeout is not None:

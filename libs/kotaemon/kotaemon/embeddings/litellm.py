@@ -31,14 +31,18 @@ class LiteLLMEmbeddings(BaseEmbeddings):
 
     model: str = Param(
         help=(
-            "LiteLLM embedding model identifier. Format varies by "
-            "provider, e.g. 'text-embedding-3-small', "
-            "'cohere/embed-english-v3.0'. "
+            "LiteLLM embedding model identifier. Must include the provider "
+            "prefix, e.g. 'openai/text-embedding-3-small', "
+            "'cohere/embed-english-v3.0', 'azure/my-embedding-deployment', "
+            "'bedrock/amazon.titan-embed-text-v1'. "
             "See https://docs.litellm.ai/docs/embedding/supported_embedding"
         ),
         required=True,
     )
-    api_key: Optional[str] = Param(None, help="API key for the underlying provider")
+    api_key: str = Param(
+        help="API key for the underlying provider",
+        required=True,
+    )
     api_base: Optional[str] = Param(
         None,
         help="Custom API base URL (e.g. for a LiteLLM proxy gateway)",
@@ -56,9 +60,11 @@ class LiteLLMEmbeddings(BaseEmbeddings):
         # provider doesn't support (e.g. ``dimensions`` on non-OpenAI providers)
         # instead of raising. Users can opt out via ``drop_params=False`` in
         # kwargs.
-        params: dict = {"model": self.model, "drop_params": True}
-        if self.api_key:
-            params["api_key"] = self.api_key
+        params: dict = {
+            "model": self.model,
+            "api_key": self.api_key,
+            "drop_params": True,
+        }
         if self.api_base:
             params["api_base"] = self.api_base
         if self.dimensions is not None:
