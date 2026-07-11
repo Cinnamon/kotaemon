@@ -97,6 +97,7 @@ KH_DOCSTORE = {
 }
 KH_VECTORSTORE = {
     # "__type__": "kotaemon.storages.LanceDBVectorStore",
+    # "__type__": "kotaemon.storages.LodeDBVectorStore",  # pip install lodedb
     "__type__": "kotaemon.storages.ChromaVectorStore",
     # "__type__": "kotaemon.storages.MilvusVectorStore",
     # "__type__": "kotaemon.storages.QdrantVectorStore",
