@@ -149,7 +149,7 @@ class RerankingManagement(BasePage):
             if value.get("required", False):
                 required[key] = value.get("default", None)
 
-            return yaml.dump(required), format_description(vendor)
+        return yaml.dump(required), format_description(vendor)
 
     def on_register_events(self):
         self.rerank_choices.select(

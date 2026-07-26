@@ -353,10 +353,11 @@ SETTINGS_REASONING = {
     },
 }
 
-USE_GLOBAL_GRAPHRAG = config("USE_GLOBAL_GRAPHRAG", default=True, cast=bool)
-USE_NANO_GRAPHRAG = config("USE_NANO_GRAPHRAG", default=False, cast=bool)
-USE_LIGHTRAG = config("USE_LIGHTRAG", default=True, cast=bool)
-USE_MS_GRAPHRAG = config("USE_MS_GRAPHRAG", default=True, cast=bool)
+_to_bool = lambda v: str(v).strip().lower() in ("true", "1", "yes") if v else False
+USE_GLOBAL_GRAPHRAG = config("USE_GLOBAL_GRAPHRAG", default=True, cast=_to_bool)
+USE_NANO_GRAPHRAG = config("USE_NANO_GRAPHRAG", default=False, cast=_to_bool)
+USE_LIGHTRAG = config("USE_LIGHTRAG", default=True, cast=_to_bool)
+USE_MS_GRAPHRAG = config("USE_MS_GRAPHRAG", default=True, cast=_to_bool)
 
 GRAPHRAG_INDEX_TYPES = []
 
