@@ -1,14 +1,47 @@
 """PaddleOCR result adapter for converting raw output to Documents."""
 
 import base64
-import re
 from dataclasses import dataclass, field
 from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+from bs4 import BeautifulSoup, Comment, Doctype
+
 from kotaemon.base import Document
 from kotaemon.loaders.azureai_document_intelligence_loader import crop_image
+
+ALLOWED_TABLE_TAGS: set[str] = {
+    "br",
+    "caption",
+    "col",
+    "colgroup",
+    "table",
+    "tbody",
+    "td",
+    "tfoot",
+    "th",
+    "thead",
+    "tr",
+}
+
+ALLOWED_TABLE_ATTRIBUTES: dict[str, set[str]] = {
+    "col": {"span"},
+    "td": {"colspan", "rowspan"},
+    "th": {"colspan", "rowspan", "scope"},
+}
+
+DROP_CONTENT_TAGS: set[str] = {
+    "embed",
+    "iframe",
+    "math",
+    "noscript",
+    "object",
+    "script",
+    "style",
+    "svg",
+    "template",
+}
 
 TEXT_LABELS: set[str] = {
     "text",
@@ -214,11 +247,27 @@ class PaddleOCRResult:
         return text_docs, tables, figures
 
     def _clean_table_html(self, html_content: str) -> str:
-        """Clean HTML table content for better readability."""
-        html_content = re.sub(
-            r"<html><body>(.*?)</body></html>",
-            r"\1",
-            html_content,
-            flags=re.DOTALL,
-        )
-        return html_content.strip()
+        """Keep safe table structure while removing unsafe HTML."""
+        soup = BeautifulSoup(html_content, "html.parser")
+
+        for tag in soup.find_all(tuple(DROP_CONTENT_TAGS)):
+            tag.decompose()
+
+        for tag in soup.find_all(True):
+            if tag.name not in ALLOWED_TABLE_TAGS:
+                tag.unwrap()
+                continue
+
+            allowed_attributes = ALLOWED_TABLE_ATTRIBUTES.get(tag.name, set())
+            tag.attrs = {
+                name: value
+                for name, value in tag.attrs.items()
+                if name in allowed_attributes
+            }
+
+        for node in soup.find_all(string=lambda value: isinstance(value, Comment)):
+            node.extract()
+        for node in soup.find_all(string=lambda value: isinstance(value, Doctype)):
+            node.extract()
+
+        return soup.decode_contents().strip()
