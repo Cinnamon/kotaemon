@@ -37,6 +37,29 @@ def test_clean_table_html_strips_wrapper() -> None:
     assert out.strip() == "<table>x</table>"
 
 
+def test_clean_table_html_sanitizes_unsafe_content() -> None:
+    """_clean_table_html preserves table structure without unsafe HTML."""
+    raw = [_make_page_result({"page_index": 0, "parsing_res_list": []})]
+    result = PaddleOCRResult(
+        raw_result=raw, file_path=Path("/tmp/doc.pdf"), extra_info={}
+    )
+
+    out = result._clean_table_html(
+        '<table onclick="alert(1)"><tr><td colspan="2" onmouseover="alert(1)">'
+        '<script>alert("script")</script><img src="x" onerror="alert(1)">'
+        'Safe <a href="javascript:alert(1)">link</a></td></tr></table>'
+    )
+
+    assert '<td colspan="2">' in out
+    assert "Safe link" in out
+    assert "script" not in out
+    assert "img" not in out
+    assert "onclick" not in out
+    assert "onmouseover" not in out
+    assert "onerror" not in out
+    assert "javascript:" not in out
+
+
 def test_file_name_property() -> None:
     """file_name returns the path name."""
     raw = [_make_page_result({"page_index": 0, "parsing_res_list": []})]
@@ -84,6 +107,41 @@ def test_to_documents_text_and_table() -> None:
     assert "A" in table_docs[0].text
     assert table_docs[0].metadata["table_origin"]
     assert table_docs[0].metadata["page_label"] == 1
+
+
+def test_to_documents_sanitizes_table_html_before_storage() -> None:
+    """Table text and table_origin contain the same sanitized HTML."""
+    raw = [
+        _make_page_result(
+            {
+                "page_index": 0,
+                "parsing_res_list": [
+                    {
+                        "block_label": "table",
+                        "block_content": (
+                            '<table><tr><th rowspan="2" style="color:red">A</th>'
+                            '<td><iframe src="https://example.com"></iframe>'
+                            '<span onmouseenter="alert(1)">B</span></td></tr></table>'
+                        ),
+                    },
+                ],
+            }
+        )
+    ]
+    result = PaddleOCRResult(
+        raw_result=raw,
+        file_path=Path("doc.pdf"),
+        extra_info={},
+    )
+
+    table_doc = result.to_documents()[0]
+
+    assert table_doc.text == table_doc.metadata["table_origin"]
+    assert '<th rowspan="2">A</th>' in table_doc.text
+    assert "<td>B</td>" in table_doc.text
+    assert "style" not in table_doc.text
+    assert "iframe" not in table_doc.text
+    assert "onmouseenter" not in table_doc.text
 
 
 def test_to_documents_skips_empty_content() -> None:
