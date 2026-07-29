@@ -3,7 +3,7 @@
 ![type:video](https://github.com/Cinnamon/kotaemon/assets/25688648/815ecf68-3a02-4914-a0dd-3f8ec7e75cd9)
 
 This page is intended for **end users** who want to use the `kotaemon` tool for Question
-Answering on local documents. If you are a **developer** who wants contribute to the project, please visit the [development](development/index.md) page.
+Answering on local documents. If you are a **developer** who wants to contribute to the project, please visit the [development](development/index.md) page.
 
 ## Installation (Online HuggingFace Space) - easy (10 mins)
 
