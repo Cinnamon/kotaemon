@@ -406,12 +406,6 @@ tags
 [._]*.un~
 
 ### VisualStudioCode ###
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/*.code-snippets
 
 # Local History for Visual Studio Code
 .history/
@@ -466,7 +460,6 @@ logs/
 .env
 
 S.gpg-agent*
-.vscode/settings.json
 examples/example1/assets
 storage/*
 
@@ -477,3 +470,6 @@ doc_env/
 # application data
 ktem_app_data/
 gradio_tmp/
+temp_auto_push.bat
+temp_interactive_push.bat
+branch_structure.json
