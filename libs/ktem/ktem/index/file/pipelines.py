@@ -76,7 +76,11 @@ def dev_settings():
     return file_extractors, chunk_size, chunk_overlap
 
 
-_default_token_func = tiktoken.encoding_for_model("gpt-3.5-turbo").encode
+_default_tokenizer = tiktoken.encoding_for_model("gpt-3.5-turbo")
+
+
+def _default_token_func(text: str) -> list[int]:
+    return _default_tokenizer.encode(text, disallowed_special=())
 
 
 class DocumentRetrievalPipeline(BaseFileIndexRetriever):
