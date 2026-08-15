@@ -159,6 +159,16 @@ def test_fastembed_embeddings():
     assert_embedding_result(output)
 
 
+def _mock_voyage_tokenize(texts, *args, **kwargs):
+    """Return a fake token list per text so token-aware batching stays offline.
+
+    The real ``voyageai.Client.tokenize`` downloads a tokenizer from the
+    HuggingFace hub, which is unavailable (and undefined for unreleased models)
+    in CI, so it must be patched out in unit tests.
+    """
+    return [[0] for _ in texts]
+
+
 voyage_output_mock = Mock()
 voyage_output_mock.embeddings = [[1.0, 2.1, 3.2]]
 
@@ -168,18 +178,20 @@ voyage_4_output_mock.embeddings = [[0.1] * 1024]
 
 
 @skip_when_voyageai_not_installed
+@patch("voyageai.Client.tokenize", side_effect=_mock_voyage_tokenize)
 @patch("voyageai.Client.embed", return_value=voyage_output_mock)
 @patch("voyageai.AsyncClient.embed", return_value=voyage_output_mock)
-def test_voyageai_embeddings(sync_call, async_call):
+def test_voyageai_embeddings(sync_call, async_call, tokenize_call):
     model = VoyageAIEmbeddings(api_key="test")
     output = model("Hello, world!")
     assert all(isinstance(doc, DocumentWithEmbedding) for doc in output)
 
 
 @skip_when_voyageai_not_installed
+@patch("voyageai.Client.tokenize", side_effect=_mock_voyage_tokenize)
 @patch("voyageai.Client.embed", return_value=voyage_4_output_mock)
 @patch("voyageai.AsyncClient.embed", return_value=voyage_4_output_mock)
-def test_voyageai_embeddings_voyage_4(mock_async, mock_sync):
+def test_voyageai_embeddings_voyage_4(mock_async, mock_sync, mock_tokenize):
     """Test voyage-4 model - balanced quality and throughput."""
     model = VoyageAIEmbeddings(api_key="test", model="voyage-4")
     output = model("Hello, world!")
@@ -188,9 +200,10 @@ def test_voyageai_embeddings_voyage_4(mock_async, mock_sync):
 
 
 @skip_when_voyageai_not_installed
+@patch("voyageai.Client.tokenize", side_effect=_mock_voyage_tokenize)
 @patch("voyageai.Client.embed", return_value=voyage_4_output_mock)
 @patch("voyageai.AsyncClient.embed", return_value=voyage_4_output_mock)
-def test_voyageai_embeddings_voyage_4_lite(mock_async, mock_sync):
+def test_voyageai_embeddings_voyage_4_lite(mock_async, mock_sync, mock_tokenize):
     """Test voyage-4-lite model - optimized for latency and cost."""
     model = VoyageAIEmbeddings(api_key="test", model="voyage-4-lite")
     output = model("Hello, world!")
@@ -199,9 +212,10 @@ def test_voyageai_embeddings_voyage_4_lite(mock_async, mock_sync):
 
 
 @skip_when_voyageai_not_installed
+@patch("voyageai.Client.tokenize", side_effect=_mock_voyage_tokenize)
 @patch("voyageai.Client.embed", return_value=voyage_4_output_mock)
 @patch("voyageai.AsyncClient.embed", return_value=voyage_4_output_mock)
-def test_voyageai_embeddings_voyage_4_large(mock_async, mock_sync):
+def test_voyageai_embeddings_voyage_4_large(mock_async, mock_sync, mock_tokenize):
     """Test voyage-4-large model - best quality for demanding tasks."""
     model = VoyageAIEmbeddings(api_key="test", model="voyage-4-large")
     output = model("Hello, world!")
@@ -215,9 +229,10 @@ voyage_4_batch_mock.embeddings = [[0.1] * 1024, [0.2] * 1024]
 
 
 @skip_when_voyageai_not_installed
+@patch("voyageai.Client.tokenize", side_effect=_mock_voyage_tokenize)
 @patch("voyageai.Client.embed", return_value=voyage_4_batch_mock)
 @patch("voyageai.AsyncClient.embed", return_value=voyage_4_batch_mock)
-def test_voyageai_embeddings_voyage_4_batch(mock_async, mock_sync):
+def test_voyageai_embeddings_voyage_4_batch(mock_async, mock_sync, mock_tokenize):
     """Test voyage-4 family with batch input."""
     model = VoyageAIEmbeddings(api_key="test", model="voyage-4")
     output = model(["Hello, world!", "Goodbye, world!"])
