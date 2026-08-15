@@ -17,12 +17,26 @@ class AutoReader(BaseReader):
     """General auto reader for a variety of files. (based on llama-hub)"""
 
     def __init__(self, reader_type: Union[str, Type["LIBaseReader"]]) -> None:
-        """Init reader using string identifier or class name from llama-hub"""
+        """Init reader using string identifier or class name from llama-hub.
+
+        When a string is given, first attempts a direct import from
+        ``llama_index.readers.file`` (works in uv/pip-less venvs where the
+        package is already installed). Falls back to the deprecated
+        ``download_loader`` only if the direct import fails.
+        """
+        import importlib
 
         if isinstance(reader_type, str):
-            from llama_index.core import download_loader
+            # Try direct import first — avoids pip-install side-effect of
+            # download_loader, which fails in venvs without pip (e.g. uv).
+            try:
+                module = importlib.import_module("llama_index.readers.file")
+                reader_cls = getattr(module, reader_type)
+                self._reader = reader_cls()
+            except (ImportError, AttributeError):
+                from llama_index.core import download_loader
 
-            self._reader = download_loader(reader_type)()
+                self._reader = download_loader(reader_type)()
         else:
             self._reader = reader_type()
         super().__init__()

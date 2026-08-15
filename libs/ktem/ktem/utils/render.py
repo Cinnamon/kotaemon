@@ -96,6 +96,7 @@ class Render:
             return html_content
 
         if not highlight_text:
+            phrase = "false"
             try:
                 lang = detect(text.replace("\n", " "))["lang"]
                 if lang not in ["ja", "cn"]:
@@ -104,8 +105,6 @@ class Render:
                     ]
                     highlight_text = highlight_words[0]
                     phrase = "true"
-                else:
-                    phrase = "false"
 
                 highlight_text = (
                     text.replace("\n", "").replace('"', "").replace("'", "")

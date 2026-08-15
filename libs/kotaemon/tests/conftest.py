@@ -15,6 +15,44 @@ def mock_google_search(monkeypatch):
     monkeypatch.setattr(googlesearch, "search", result)
 
 
+@pytest.fixture(scope="function")
+def mock_wikipedia(monkeypatch):
+    """Avoid live Wikipedia/MediaWiki calls in unit tests."""
+
+    class _FakePage:
+        content = "Cinnamon AI is an enterprise AI company."
+        url = "https://en.wikipedia.org/wiki/Cinnamon"
+
+    def _page(_title: str) -> _FakePage:
+        return _FakePage()
+
+    def _search(_query: str) -> list[str]:
+        return ["Cinnamon"]
+
+    monkeypatch.setattr("wikipedia.page", _page)
+    monkeypatch.setattr("wikipedia.search", _search)
+
+
+@pytest.fixture(scope="function")
+def mock_langchain_search_tools(monkeypatch):
+    """Stub LangChain community search tools used in agent tests."""
+
+    def _wikipedia_run(_query: str) -> str:
+        return "Cinnamon AI is an enterprise AI company."
+
+    def _duckduckgo_run(_query: str) -> str:
+        return "Cinnamon AI is an enterprise AI company."
+
+    monkeypatch.setattr(
+        "langchain_community.tools.wikipedia.tool.WikipediaQueryRun._run",
+        lambda self, query: _wikipedia_run(query),
+    )
+    monkeypatch.setattr(
+        "langchain_community.tools.ddg_search.tool.DuckDuckGoSearchRun._run",
+        lambda self, query: _duckduckgo_run(query),
+    )
+
+
 def if_haystack_not_installed():
     try:
         import haystack  # noqa: F401
@@ -79,6 +117,16 @@ def if_voyageai_not_installed():
         return False
 
 
+def if_paddleocr_not_installed():
+    try:
+        import paddle  # noqa: F401
+        import paddleocr  # noqa: F401
+    except ImportError:
+        return True
+    else:
+        return False
+
+
 skip_when_haystack_not_installed = pytest.mark.skipif(
     if_haystack_not_installed(), reason="Haystack is not installed"
 )
@@ -109,4 +157,8 @@ skip_llama_cpp_not_installed = pytest.mark.skipif(
 
 skip_when_voyageai_not_installed = pytest.mark.skipif(
     if_voyageai_not_installed(), reason="voyageai is not installed"
+)
+
+skip_when_paddleocr_not_installed = pytest.mark.skipif(
+    if_paddleocr_not_installed(), reason="paddle/paddleocr is not installed"
 )

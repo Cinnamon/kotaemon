@@ -26,7 +26,13 @@ from kotaemon.base import Document
 from kotaemon.indices.ingests.files import KH_DEFAULT_FILE_EXTRACTORS
 from kotaemon.indices.qa.utils import strip_think_tag
 
-from ...utils import SUPPORTED_LANGUAGE_MAP, get_file_names_regex, get_urls
+from ...utils import (
+    SUPPORTED_LANGUAGE_MAP,
+    format_mentions_for_display,
+    get_mentions_regex,
+    get_urls,
+    prepare_llm_query,
+)
 from ...utils.commands import WEB_SEARCH_COMMAND
 from ...utils.hf_papers import get_recommended_papers
 from ...utils.rate_limit import check_rate_limit
@@ -456,7 +462,7 @@ class ChatPage(BasePage):
                     self.chat_control.conversation_id,
                     self.chat_panel.chatbot,
                     self._app.settings_state,
-                    self._reasoning_type,
+                    self.reasoning_type,
                     self.model_type,
                     self.use_mindmap,
                     self.citation,
@@ -890,6 +896,7 @@ class ChatPage(BasePage):
             raise ValueError("Input is empty")
 
         chat_input_text = chat_input.get("text", "")
+        display_chat_input_text = format_mentions_for_display(chat_input_text)
         file_ids = []
         used_command = None
 
@@ -898,32 +905,39 @@ class ChatPage(BasePage):
         }
 
         # get all file names with pattern @"filename" in input_str
-        file_names, chat_input_text = get_file_names_regex(chat_input_text)
+        mentions, chat_input_text = get_mentions_regex(chat_input_text)
 
         # check if web search command is in file_names
-        if WEB_SEARCH_COMMAND in file_names:
+        if WEB_SEARCH_COMMAND in mentions:
             used_command = WEB_SEARCH_COMMAND
+
+        # get all file names in input_str
+        file_names = [
+            mention for mention in mentions if mention not in (WEB_SEARCH_COMMAND,)
+        ]
+        if file_names:
+            indexed_file_ids = [
+                first_selector_choices_map.get(file_name) for file_name in file_names
+            ]
+            file_ids.extend(
+                [file_id for file_id in indexed_file_ids if file_id is not None]
+            )
 
         # get all urls in input_str
         urls, chat_input_text = get_urls(chat_input_text)
-
         if urls and self.first_indexing_url_fn:
             print("Detected URLs", urls)
-            file_ids = self.first_indexing_url_fn(
+            indexed_url_ids = self.first_indexing_url_fn(
                 "\n".join(urls),
                 True,
                 settings,
                 user_id,
                 request=None,
             )
-        elif file_names:
-            for file_name in file_names:
-                file_id = first_selector_choices_map.get(file_name)
-                if file_id:
-                    file_ids.append(file_id)
+            file_ids.extend(indexed_url_ids)
 
-        # add new file ids to the first selector choices
-        first_selector_choices.extend(zip(urls, file_ids))
+            # Add new file ids to the first selector choices for display
+            first_selector_choices.extend(zip(urls, indexed_url_ids))
 
         # if file_ids is not empty and chat_input_text is empty
         # set the input to summary
@@ -944,7 +958,7 @@ class ChatPage(BasePage):
 
         # check if regen mode is active
         if chat_input_text:
-            chat_history = chat_history + [(chat_input_text, None)]
+            chat_history = chat_history + [(display_chat_input_text, None)]
         else:
             if not chat_history:
                 raise gr.Error("Empty chat")
@@ -1263,6 +1277,22 @@ class ChatPage(BasePage):
 
         return pipeline, reasoning_state
 
+    def _has_selected_files(self, user_id: int, *selecteds) -> bool:
+        """Return True if any index file selector has documents selected."""
+        for index in self._app.index_manager.indices:
+            if index.selector is None:
+                continue
+            index_ui = getattr(self, f"_index_{index.id}", None)
+            if index_ui is None or not hasattr(index_ui, "get_selected_ids"):
+                continue
+            if isinstance(index.selector, int):
+                components = (selecteds[index.selector],)
+            else:
+                components = tuple(selecteds[i] for i in index.selector)
+            if index_ui.get_selected_ids(components):
+                return True
+        return False
+
     def chat_fn(
         self,
         conversation_id,
@@ -1279,12 +1309,18 @@ class ChatPage(BasePage):
         *selecteds,
     ):
         """Chat function"""
-        chat_input, chat_output = chat_history[-1]
+        display_input, chat_output = chat_history[-1]
         chat_history = chat_history[:-1]
 
         # if chat_input is empty, assume regen mode
         if chat_output:
             chat_state["app"]["regen"] = True
+
+        llm_query = prepare_llm_query(
+            display_input,
+            has_selected_files=self._has_selected_files(user_id, *selecteds),
+            default_question=DEFAULT_QUESTION,
+        )
 
         queue: asyncio.Queue[Optional[dict]] = asyncio.Queue()
 
@@ -1310,7 +1346,7 @@ class ChatPage(BasePage):
         )
         print(msg_placeholder)
         yield (
-            chat_history + [(chat_input, text or msg_placeholder)],
+            chat_history + [(display_input, text or msg_placeholder)],
             refs,
             plot_gr,
             plot,
@@ -1318,7 +1354,11 @@ class ChatPage(BasePage):
         )
 
         try:
-            for response in pipeline.stream(chat_input, conversation_id, chat_history):
+            for response in pipeline.stream(
+                llm_query,
+                conversation_id,
+                chat_history,
+            ):
 
                 if not isinstance(response, Document):
                     continue
@@ -1345,7 +1385,7 @@ class ChatPage(BasePage):
                 chat_state[pipeline.get_info()["id"]] = reasoning_state["pipeline"]
 
                 yield (
-                    chat_history + [(chat_input, text or msg_placeholder)],
+                    chat_history + [(display_input, text or msg_placeholder)],
                     refs,
                     plot_gr,
                     plot,
@@ -1360,7 +1400,7 @@ class ChatPage(BasePage):
             )
             print(f"Generate nothing: {empty_msg}")
             yield (
-                chat_history + [(chat_input, text or empty_msg)],
+                chat_history + [(display_input, text or empty_msg)],
                 refs,
                 plot_gr,
                 plot,

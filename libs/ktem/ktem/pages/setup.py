@@ -226,7 +226,7 @@ class SetupPage(BasePage):
                     name="cohere",
                     spec={
                         "__type__": "kotaemon.rerankings.CohereReranking",
-                        "model_name": "rerank-multilingual-v2.0",
+                        "model_name": "rerank-v4.0-fast",
                         "cohere_api_key": cohere_api_key,
                     },
                     default=True,

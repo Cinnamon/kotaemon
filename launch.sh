@@ -11,13 +11,13 @@ fi
 if [ "$KH_DEMO_MODE" = "true" ]; then
     echo "KH_DEMO_MODE is true. Launching in demo mode..."
     # Command to launch in demo mode
-    GR_FILE_ROOT_PATH="/app" KH_FEATURE_USER_MANAGEMENT=false USE_LIGHTRAG=false uvicorn sso_app_demo:app --host "$GRADIO_SERVER_NAME" --port "$GRADIO_SERVER_PORT"
+    GR_FILE_ROOT_PATH="/app" KH_FEATURE_USER_MANAGEMENT=false USE_LIGHTRAG=false .venv/bin/uvicorn sso_app_demo:app --host "$GRADIO_SERVER_NAME" --port "$GRADIO_SERVER_PORT"
 else
     if [ "$KH_SSO_ENABLED" = "true" ]; then
         echo "KH_SSO_ENABLED is true. Launching in SSO mode..."
-        GR_FILE_ROOT_PATH="/app" KH_SSO_ENABLED=true uvicorn sso_app:app --host "$GRADIO_SERVER_NAME" --port "$GRADIO_SERVER_PORT"
+        GR_FILE_ROOT_PATH="/app" KH_SSO_ENABLED=true .venv/bin/uvicorn sso_app:app --host "$GRADIO_SERVER_NAME" --port "$GRADIO_SERVER_PORT"
     else
         ollama serve &
-        python app.py
+        .venv/bin/python app.py
     fi
 fi

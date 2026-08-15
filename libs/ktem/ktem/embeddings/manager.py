@@ -184,10 +184,20 @@ class EmbeddingManager:
 
         self.load()
 
-    def update(self, name: str, spec: dict, default: bool):
-        """Update a model in the pool"""
+    def update(self, name: str, spec: dict, default: bool, new_name: str = ""):
+        """Update a model in the pool, optionally renaming it."""
         if not name:
             raise ValueError("Name must not be empty")
+
+        # If update name
+        if new_name and new_name != name:
+            if new_name in self._info:
+                raise ValueError(
+                    f"Model '{new_name}' already exists. Use a unique name."
+                )
+            self.delete(name)
+            self.add(new_name, spec=spec, default=default)
+            return
 
         try:
             with Session(engine) as sess:

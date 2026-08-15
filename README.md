@@ -100,7 +100,7 @@ documents and developers who want to build their own RAG pipeline.
 
    - To use the `full` version.
 
-     ```bash
+     ```shell
      docker run \
      -e GRADIO_SERVER_NAME=0.0.0.0 \
      -e GRADIO_SERVER_PORT=7860 \
@@ -111,21 +111,21 @@ documents and developers who want to build their own RAG pipeline.
 
    - To use the `full` version with bundled **Ollama** for _local / private RAG_.
 
-     ```bash
+     ```shell
      # change image name to
      docker run <...> ghcr.io/cinnamon/kotaemon:main-ollama
      ```
 
    - To use the `lite` version.
 
-   ```bash
+   ```shell
     # change image name to
     docker run <...> ghcr.io/cinnamon/kotaemon:main-lite
    ```
 
 2. We currently support and test two platforms: `linux/amd64` and `linux/arm64` (for newer Mac). You can specify the platform by passing `--platform` in the `docker run` command. For example:
 
-   ```bash
+   ```shell
    # To run docker with platform linux/arm64
    docker run \
    -e GRADIO_SERVER_NAME=0.0.0.0 \
@@ -142,30 +142,41 @@ documents and developers who want to build their own RAG pipeline.
 
 ### Without Docker
 
-1. Clone and install required packages on a fresh python environment.
+1. Clone the repository:
 
    ```shell
-   # optional (setup env)
-   conda create -n kotaemon python=3.10
-   conda activate kotaemon
-
-   # clone this repo
    git clone https://github.com/Cinnamon/kotaemon
    cd kotaemon
-
-   pip install -e "libs/kotaemon[all]"
-   pip install -e "libs/ktem"
    ```
 
-2. Create a `.env` file in the root of this project. Use `.env.example` as a template
+2. Setup the environment:
+
+- **Option 1: Using [uv](https://docs.astral.sh/uv/getting-started/installation/) (recommended)**
+
+  ```shell
+  uv sync --python 3.10
+  source .venv/bin/activate
+  ```
+
+- **Option 2: Using conda**
+
+  ```shell
+  conda create -n kotaemon python=3.10
+  conda activate kotaemon
+
+  pip install -e "libs/kotaemon[all]"
+  pip install -e "libs/ktem"
+  ```
+
+3. Create a `.env` file in the root of this project. Use `.env.example` as a template.
 
    The `.env` file is there to serve use cases where users want to pre-config the models before starting up the app (e.g. deploy the app on HF hub). The file will only be used to populate the db once upon the first run, it will no longer be used in consequent runs.
 
-3. (Optional) To enable in-browser `PDF_JS` viewer, download [PDF_JS_DIST](https://github.com/mozilla/pdf.js/releases/download/v4.0.379/pdfjs-4.0.379-dist.zip) then extract it to `libs/ktem/ktem/assets/prebuilt`
+4. (Optional) To enable in-browser `PDF_JS` viewer, download [PDF_JS_DIST](https://github.com/mozilla/pdf.js/releases/download/v4.0.379/pdfjs-4.0.379-dist.zip) then extract it to `libs/ktem/ktem/assets/prebuilt`.
 
-<img src="https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/pdf-viewer-setup.png" alt="pdf-setup" width="300">
+   <img src="https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/pdf-viewer-setup.png" alt="pdf-setup" width="300">
 
-4. Start the web server:
+5. Start the web server:
 
    ```shell
    python app.py
@@ -176,7 +187,7 @@ documents and developers who want to build their own RAG pipeline.
 
    ![Chat tab](https://raw.githubusercontent.com/Cinnamon/kotaemon/main/docs/images/chat-tab.png)
 
-5. Check the `Resources` tab and `LLMs and Embeddings` and ensure that your `api_key` value is set correctly from your `.env` file. If it is not set, you can set it there.
+6. Check the `Resources` tab and `LLMs and Embeddings` and ensure that your `api_key` value is set correctly from your `.env` file. If it is not set, you can set it there.
 
 ### Setup GraphRAG
 
@@ -233,8 +244,8 @@ These options are available:
 
 - [Azure Document Intelligence (API)](https://azure.microsoft.com/en-us/products/ai-services/ai-document-intelligence)
 - [Adobe PDF Extract (API)](https://developer.adobe.com/document-services/docs/overview/pdf-extract-api/)
-- [Docling (local, open-source)](https://github.com/DS4SD/docling)
-  - To use Docling, first install required dependencies: `pip install docling`
+- [Docling (local, open-source)](https://github.com/DS4SD/docling) – see [integrations/docling.md](./docs/integrations/docling.md) for Kotaemon-specific setup.
+- [PaddleOCR (local, open-source)](https://github.com/PADDLEPADDLE/PADDLEOCR) – see [integrations/paddle_ocr.md](./docs/integrations/paddle_ocr.md) for Kotaemon-specific setup.
 
 Select corresponding loaders in `Settings -> Retrieval Settings -> File loader`
 
@@ -306,7 +317,7 @@ This file provides another way to configure your models and credentials.
   - **Azure OpenAI**
 
     For OpenAI models via Azure platform, you need to provide your Azure endpoint and API
-    key. Your might also need to provide your developments' name for the chat model and the
+    key. You might also need to provide your developments' name for the chat model and the
     embedding model depending on how you set up Azure development.
 
     ```shell

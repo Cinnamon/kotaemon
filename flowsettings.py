@@ -310,7 +310,7 @@ KH_EMBEDDINGS["mistral"] = {
 KH_RERANKINGS["cohere"] = {
     "spec": {
         "__type__": "kotaemon.rerankings.CohereReranking",
-        "model_name": "rerank-multilingual-v2.0",
+        "model_name": "rerank-v4.0-fast",
         "cohere_api_key": config("COHERE_API_KEY", default=""),
     },
     "default": True,

@@ -22,7 +22,7 @@ def test_google_tool(mock_google_search):
     assert output
 
 
-def test_wikipedia_tool():
+def test_wikipedia_tool(mock_wikipedia):
     tool = WikipediaTool()
     assert tool.name
     assert tool.description
