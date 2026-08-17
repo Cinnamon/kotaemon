@@ -18,7 +18,10 @@ class LCEmbeddingMixin:
 
         super().__init__()
 
-    def run(self, text):
+    def run(self, text, *args, **kwargs):
+        # ``input_type`` (and other retrieval hints) may be forwarded by the
+        # retriever; LangChain embeddings don't distinguish query/document here,
+        # so extra kwargs are accepted and ignored.
         input_docs = self.prepare_input(text)
         input_ = [doc.text for doc in input_docs]
 

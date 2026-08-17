@@ -197,6 +197,16 @@ def test_voyageai_embeddings(embed_call, tokenize_call):
 
 @skip_when_voyageai_not_installed
 @patch("voyageai.Client.tokenize", side_effect=_voyage_tokenize_side_effect)
+@patch("voyageai.Client.embed", side_effect=_voyage_embed_side_effect)
+def test_voyageai_embeddings_query_input_type(embed_call, tokenize_call):
+    model = VoyageAIEmbeddings(api_key="test", model="voyage-3.5")
+    model("what is voyage?", input_type="query")
+    # the retrieval path forwards input_type="query" to the regular embed API
+    assert embed_call.call_args.kwargs["input_type"] == "query"
+
+
+@skip_when_voyageai_not_installed
+@patch("voyageai.Client.tokenize", side_effect=_voyage_tokenize_side_effect)
 @patch(
     "voyageai.Client.contextualized_embed",
     side_effect=_voyage_context_side_effect,

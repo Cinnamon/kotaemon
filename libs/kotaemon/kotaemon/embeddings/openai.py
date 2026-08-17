@@ -87,6 +87,9 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
     def invoke(
         self, text: str | list[str] | Document | list[Document], *args, **kwargs
     ) -> list[DocumentWithEmbedding]:
+        # ``input_type`` is a Voyage-style retrieval hint the OpenAI API does not
+        # accept; drop it so a retriever passing it doesn't break the request.
+        kwargs.pop("input_type", None)
         input_doc = self.prepare_input(text)
         client = self.prepare_client(async_version=False)
 
@@ -127,6 +130,8 @@ class BaseOpenAIEmbeddings(BaseEmbeddings):
     async def ainvoke(
         self, text: str | list[str] | Document | list[Document], *args, **kwargs
     ) -> list[DocumentWithEmbedding]:
+        # See invoke(): the OpenAI API does not accept a retrieval ``input_type``.
+        kwargs.pop("input_type", None)
         input_ = self.prepare_input(text)
         client = self.prepare_client(async_version=True)
         resp = await self.openai_response(

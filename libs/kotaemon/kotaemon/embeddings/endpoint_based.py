@@ -16,7 +16,7 @@ class EndpointEmbeddings(BaseEmbeddings):
     endpoint_url: str
 
     def run(
-        self, text: str | list[str] | Document | list[Document]
+        self, text: str | list[str] | Document | list[Document], *args, **kwargs
     ) -> list[DocumentWithEmbedding]:
         """
         Generate embeddings from text Args:

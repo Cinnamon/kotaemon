@@ -75,6 +75,13 @@ class VoyageAIEmbeddings(BaseEmbeddings):
     therefore exactly one embedding. Cross-input contextualization is
     intentionally not used, because generic ``embed_many`` callers pass
     unrelated texts.
+
+    Note on ``input_type``: Voyage models are asymmetric. Indexing embeds with
+    ``input_type="document"`` and the retriever embeds queries with
+    ``input_type="query"``, so the two get different prompt prefixes. This
+    matches Voyage's retrieval recommendation but differs from the earlier
+    symmetric behavior (no ``input_type``): an existing index built with the old
+    behavior should be rebuilt to stay consistent with the query vectors.
     """
 
     api_key: str = Param(None, help="Voyage API key", required=False)
@@ -121,13 +128,15 @@ class VoyageAIEmbeddings(BaseEmbeddings):
         its own rather than being dropped.
         """
         max_tokens = self._token_limit()
+        # Tokenize the whole input once instead of once per text: tokenize is a
+        # local call, so a single batched call avoids per-item overhead.
+        token_counts = [len(t) for t in self._client.tokenize(texts, model=self.model)]
         index = 0
         while index < len(texts):
             batch: list[str] = []
             batch_tokens = 0
             while index < len(texts) and len(batch) < MAX_BATCH_SIZE:
-                tokens = self._client.tokenize([texts[index]], model=self.model)
-                n_tokens = len(tokens[0])
+                n_tokens = token_counts[index]
                 # Close the batch once adding this text would overflow the token
                 # budget, unless the batch is empty (oversized text goes alone).
                 if batch_tokens + n_tokens > max_tokens and batch:
@@ -152,7 +161,10 @@ class VoyageAIEmbeddings(BaseEmbeddings):
             if enable_auto_chunking:
                 params["chunk_size"] = self.chunk_size
             response = self._client.contextualized_embed(**params)
-            # Each input resolves to exactly one chunk -> one embedding.
+            # Each input resolves to exactly one chunk -> one embedding. An input
+            # longer than ``chunk_size`` would be auto-chunked into several
+            # embeddings; only the first is kept, matching the pre-chunked RAG
+            # contract documented on the class.
             embeddings.extend(result.embeddings[0] for result in response.results)
         return embeddings
 
