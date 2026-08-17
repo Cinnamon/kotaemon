@@ -22,10 +22,11 @@ class VoyageAIReranking(BaseReranking):
     """VoyageAI Reranking model"""
 
     model_name: str = Param(
-        "rerank-2",
+        "rerank-2.5",
         help=(
             "ID of the model to use. You can go to [Supported Models]"
-            "(https://docs.voyageai.com/docs/reranker) to see the supported models"
+            "(https://docs.voyageai.com/docs/reranker) to see the supported models."
+            " Current models include `rerank-2.5` and `rerank-2.5-lite`."
         ),
         required=True,
     )

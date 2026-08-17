@@ -7,7 +7,12 @@ from typing import Optional, Sequence, cast
 
 from theflow.settings import settings as flowsettings
 
-from kotaemon.base import BaseComponent, Document, RetrievedDocument
+from kotaemon.base import (
+    BaseComponent,
+    Document,
+    DocumentWithEmbedding,
+    RetrievedDocument,
+)
 from kotaemon.embeddings import BaseEmbeddings
 from kotaemon.storages import BaseDocumentStore, BaseVectorStore
 
@@ -131,6 +136,16 @@ class VectorRetrieval(BaseRetrieval):
             documents = documents[:top_k]
         return documents
 
+    def _embed_query(self, text: str | Document) -> list[DocumentWithEmbedding]:
+        """Embed a retrieval query.
+
+        Asymmetric models (e.g. Voyage AI) embed a query differently from a
+        document, so the query is tagged with ``input_type="query"``. Backends
+        that don't distinguish the two accept the kwarg and ignore it, so this
+        is safe for every embedding.
+        """
+        return self.embedding(text, input_type="query")
+
     def run(
         self, text: str | Document, top_k: Optional[int] = None, **kwargs
     ) -> list[RetrievedDocument]:
@@ -166,7 +181,7 @@ class VectorRetrieval(BaseRetrieval):
         emb: list[float]
 
         if self.retrieval_mode == "vector":
-            emb = self.embedding(text)[0].embedding
+            emb = self._embed_query(text)[0].embedding
             _, scores, ids = self.vector_store.query(
                 embedding=emb, top_k=top_k_first_round, doc_ids=scope, **kwargs
             )
@@ -185,7 +200,7 @@ class VectorRetrieval(BaseRetrieval):
             result = [RetrievedDocument(**doc.to_dict(), score=-1.0) for doc in docs]
         elif self.retrieval_mode == "hybrid":
             # similarity search section
-            emb = self.embedding(text)[0].embedding
+            emb = self._embed_query(text)[0].embedding
             vs_docs: list[RetrievedDocument] = []
             vs_ids: list[str] = []
             vs_scores: list[float] = []

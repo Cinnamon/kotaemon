@@ -5,8 +5,9 @@ from unittest.mock import patch
 
 from openai.types.create_embedding_response import CreateEmbeddingResponse
 
-from kotaemon.base import Document
+from kotaemon.base import Document, DocumentWithEmbedding
 from kotaemon.embeddings import AzureOpenAIEmbeddings
+from kotaemon.embeddings.base import BaseEmbeddings
 from kotaemon.indices import VectorIndexing, VectorRetrieval
 from kotaemon.storages import ChromaVectorStore, InMemoryDocumentStore
 
@@ -65,3 +66,47 @@ def test_retrieving(tmp_path):
 
     assert len(output) == 1, "Expect 1 results"
     assert output == output1, "Expect identical results"
+
+
+_recorded_calls: list[dict] = []
+
+
+class _RecordingEmbedding(BaseEmbeddings):
+    """Fixed 2-d embedding that records the kwargs of every call."""
+
+    def run(self, text, *args, **kwargs):
+        _recorded_calls.append(kwargs)
+        docs = self.prepare_input(text)
+        return [
+            DocumentWithEmbedding(content=d.content, embedding=[0.1, 0.2]) for d in docs
+        ]
+
+
+def test_retrieval_forwards_query_input_type(tmp_path):
+    """The retriever tags the query with input_type="query" end to end.
+
+    Driven through the real pipeline (not a direct method call) so the theflow
+    node proxy is exercised the way the application uses it.
+    """
+    _recorded_calls.clear()
+    db = ChromaVectorStore(path=str(tmp_path))
+    doc_store = InMemoryDocumentStore()
+    embedding = _RecordingEmbedding()
+
+    index_pipeline = VectorIndexing(
+        vector_store=db, embedding=embedding, doc_store=doc_store
+    )
+    retrieval_pipeline = VectorRetrieval(
+        vector_store=db,
+        doc_store=doc_store,
+        embedding=embedding,
+        retrieval_mode="vector",
+    )
+
+    index_pipeline(text=Document(text="Hello world"))
+    # indexing embeds documents: no query hint is sent
+    assert _recorded_calls[0].get("input_type") != "query"
+
+    retrieval_pipeline(text="Hello world")
+    # the retrieval query is embedded with input_type="query"
+    assert _recorded_calls[-1].get("input_type") == "query"

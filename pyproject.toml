@@ -32,6 +32,17 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+[tool.uv]
+# voyageai>=0.4.0 (needed for the contextualized-chunk embedding API) declares
+# langchain-text-splitters>=0.3.8, which would drag langchain-core to 0.3+ and
+# cascade a langchain major bump across the app. voyageai only uses
+# RecursiveCharacterTextSplitter (present since 0.2.x) for its optional local
+# chunk_fn, which the server-side auto-chunking path never invokes, so pin the
+# splitter to the 0.2 line already used here and leave the langchain stack alone.
+override-dependencies = [
+    "langchain-text-splitters>=0.2.0,<0.3",
+]
+
 [tool.uv.sources]
 kotaemon = { workspace = true }
 ktem = { workspace = true }
