@@ -15,7 +15,7 @@ class LCChatMixin:
 
     def _get_lc_class(self):
         raise NotImplementedError(
-            "Please return the relevant Langchain class in in _get_lc_class"
+            "Please return the relevant Langchain class in _get_lc_class"
         )
 
     def _get_tool_call_kwargs(self):

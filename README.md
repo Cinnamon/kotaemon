@@ -369,7 +369,7 @@ This file provides another way to configure your models and credentials.
 #### Custom Reasoning Pipeline
 
 1. Check the default pipeline implementation in [here](libs/ktem/ktem/reasoning/simple.py). You can make quick adjustment to how the default QA pipeline work.
-2. Add new `.py` implementation in `libs/ktem/ktem/reasoning/` and later include it in `flowssettings` to enable it on the UI.
+2. Add new `.py` implementation in `libs/ktem/ktem/reasoning/` and later include it in `flowsettings` to enable it on the UI.
 
 #### Custom Indexing Pipeline
 

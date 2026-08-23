@@ -71,7 +71,7 @@ class LIReaderMixin(BaseComponent):
 
     def _get_wrapped_class(self) -> Type["LIBaseReader"]:
         raise NotImplementedError(
-            "Please return the relevant llama-index class in in _get_wrapped_class"
+            "Please return the relevant llama-index class in _get_wrapped_class"
         )
 
     def __init__(self, *args, **kwargs):

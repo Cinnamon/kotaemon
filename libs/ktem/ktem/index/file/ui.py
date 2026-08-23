@@ -1272,7 +1272,7 @@ class FileIndexPage(BasePage):
         n_successes = len([_ for _ in results if _])
         if n_successes:
             gr.Info(f"Successfully index {n_successes} files")
-        n_errors = len([_ for _ in errors if _])
+        n_errors = len([_ for _ in index_errors if _])
         if n_errors:
             gr.Warning(f"Have errors for {n_errors} files")
 

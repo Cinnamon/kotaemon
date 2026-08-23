@@ -358,7 +358,7 @@ class LLMManagement(BasePage):
             llm = deserialize(info["spec"], safe=False)
 
             if llm is None:
-                raise Exception(f"Can not found model: {selected_llm_name}")
+                raise Exception(f"Cannot find model: {selected_llm_name}")
 
             log_content += "- Sending a message `Hi`<br>"
             yield log_content

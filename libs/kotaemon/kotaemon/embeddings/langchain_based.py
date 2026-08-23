@@ -8,7 +8,7 @@ from .base import BaseEmbeddings
 class LCEmbeddingMixin:
     def _get_lc_class(self):
         raise NotImplementedError(
-            "Please return the relevant Langchain class in in _get_lc_class"
+            "Please return the relevant Langchain class in _get_lc_class"
         )
 
     def __init__(self, **params):

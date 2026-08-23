@@ -357,7 +357,7 @@ class RerankingManagement(BasePage):
             rerank = deserialize(info["spec"], safe=False)
 
             if rerank is None:
-                raise Exception(f"Can not found model: {selected_rerank_name}")
+                raise Exception(f"Cannot find model: {selected_rerank_name}")
 
             log_content += "- Sending a message ([`Hello`], `Hi`)<br>"
             yield log_content
@@ -369,7 +369,7 @@ class RerankingManagement(BasePage):
             )
             yield log_content
 
-            gr.Info(f"Embedding {selected_rerank_name} connect successfully")
+            gr.Info(f"Reranking model {selected_rerank_name} connect successfully")
         except Exception as e:
             print(e)
             log_content += (
