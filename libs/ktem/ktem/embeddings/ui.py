@@ -358,7 +358,7 @@ class EmbeddingManagement(BasePage):
             emb = deserialize(info["spec"], safe=False)
 
             if emb is None:
-                raise Exception(f"Can not found model: {selected_emb_name}")
+                raise Exception(f"Cannot find model: {selected_emb_name}")
 
             log_content += "- Sending a message `Hi`<br>"
             yield log_content

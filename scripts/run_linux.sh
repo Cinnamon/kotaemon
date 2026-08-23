@@ -24,8 +24,8 @@ function install_miniconda() {
     # if miniconda has not been installed, download and install it
     if ! "${conda_root}/bin/conda" --version &>/dev/null; then
         if [ ! -d "$install_dir/miniconda_installer.sh" ]; then
-            echo "Downloading Miniconda from $miniconda_url"
             local miniconda_url="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-${sys_arch}.sh"
+            echo "Downloading Miniconda from $miniconda_url"
 
             mkdir -p "$install_dir"
             curl -Lk "$miniconda_url" >"$install_dir/miniconda_installer.sh"

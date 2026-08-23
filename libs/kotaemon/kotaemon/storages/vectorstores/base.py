@@ -79,7 +79,7 @@ class LlamaIndexVectorStore(BaseVectorStore):
 
     def _get_li_class(self):
         raise NotImplementedError(
-            "Please return the relevant LlamaIndex class in in _get_li_class"
+            "Please return the relevant LlamaIndex class in _get_li_class"
         )
 
     def __init__(self, *args, **kwargs):
