@@ -44,7 +44,7 @@ more complicated logic in the `run` method.
 `BaseComponent` like above._**
 
 For more detail on this topic, please refer to [Creating a
-Component](/create-a-component/)
+Component](../../development/create-a-component.md)
 
 ## Run signatures
 
