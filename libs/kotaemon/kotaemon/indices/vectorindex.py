@@ -224,10 +224,11 @@ class VectorRetrieval(BaseRetrieval):
             vs_query_thread.join()
             ds_query_thread.join()
 
+            vs_id_set = set(vs_ids)
             result = [
                 RetrievedDocument(**doc.to_dict(), score=-1.0)
                 for doc in ds_docs
-                if doc not in vs_ids
+                if doc.doc_id not in vs_id_set
             ]
             result += [
                 RetrievedDocument(**doc.to_dict(), score=score)
