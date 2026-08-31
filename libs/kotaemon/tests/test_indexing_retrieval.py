@@ -1,17 +1,45 @@
 import json
 from pathlib import Path
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from openai.types.create_embedding_response import CreateEmbeddingResponse
 
-from kotaemon.base import Document
-from kotaemon.embeddings import AzureOpenAIEmbeddings
+from kotaemon.base import Document, DocumentWithEmbedding
+from kotaemon.embeddings import AzureOpenAIEmbeddings, BaseEmbeddings
 from kotaemon.indices import VectorIndexing, VectorRetrieval
 from kotaemon.storages import ChromaVectorStore, InMemoryDocumentStore
 
 with open(Path(__file__).parent / "resources" / "embedding_openai.json") as f:
     openai_embedding = CreateEmbeddingResponse.model_validate(json.load(f))
+
+
+class _FakeEmbeddings(BaseEmbeddings):
+    def invoke(self, text, *args, **kwargs):
+        return [DocumentWithEmbedding(embedding=[1.0])]
+
+
+def _run_hybrid_retrieval(text_ids, vector_ids, vector_scores):
+    docs = {
+        doc_id: Document(text=f"text {doc_id}", id_=doc_id)
+        for doc_id in set(text_ids + vector_ids)
+    }
+
+    vector_store = Mock()
+    vector_store.query.return_value = ([], vector_scores, vector_ids)
+
+    doc_store = Mock()
+    doc_store.query.return_value = [docs[doc_id] for doc_id in text_ids]
+    doc_store.get.side_effect = lambda ids: [docs[doc_id] for doc_id in ids]
+
+    pipeline = VectorRetrieval(
+        vector_store=vector_store,
+        doc_store=doc_store,
+        embedding=_FakeEmbeddings(),
+        retrieval_mode="hybrid",
+        rerankers=[],
+    )
+    return pipeline(text="query", top_k=10, scope=list(docs))
 
 
 @patch(
@@ -65,3 +93,21 @@ def test_retrieving(tmp_path):
 
     assert len(output) == 1, "Expect 1 results"
     assert output == output1, "Expect identical results"
+
+
+def test_hybrid_retrieval_deduplicates_overlapping_documents():
+    output = _run_hybrid_retrieval(
+        text_ids=["A", "B"], vector_ids=["A", "C"], vector_scores=[0.91, 0.73]
+    )
+
+    assert [doc.doc_id for doc in output] == ["B", "A", "C"]
+    assert len({doc.doc_id for doc in output}) == len(output)
+    assert next(doc for doc in output if doc.doc_id == "A").score == 0.91
+
+
+def test_hybrid_retrieval_keeps_disjoint_documents():
+    output = _run_hybrid_retrieval(
+        text_ids=["A", "B"], vector_ids=["C", "D"], vector_scores=[0.82, 0.64]
+    )
+
+    assert [doc.doc_id for doc in output] == ["A", "B", "C", "D"]
