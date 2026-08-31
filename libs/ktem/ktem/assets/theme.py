@@ -161,6 +161,7 @@ class Kotaemon(Soft):
         font: fonts.Font
         | str
         | Iterable[fonts.Font | str] = (
+            "-apple-system", "BlinkMacSystemFont",
             fonts.GoogleFont("Quicksand"),
             "ui-sans-serif",
             "sans-serif",
