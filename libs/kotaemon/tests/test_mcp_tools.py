@@ -163,7 +163,8 @@ def test_make_tool_creates_mcp_tool_with_schema() -> None:
 
     assert isinstance(tool, MCPTool)
     assert tool.name == "fetch"
-    assert tool.description == "Fetch a URL"
+    assert tool.description.startswith("Fetch a URL\n")
+    assert '"required": ["url"]' in tool.description
     assert tool.server_transport == "stdio"
     assert tool.server_command == "uvx"
     assert tool.server_args == ["mcp-server-fetch"]

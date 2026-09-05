@@ -155,3 +155,48 @@ Now navigate back to the `Chat` tab. The chat tab is divided into 3 regions:
 
 Generally, the score quality is `LLM relevant score` > `Reranking score` > `Vectorscore`.
 By default, overall relevance score is taken directly from LLM relevant score. Evidences are sorted based on their overall relevance score and whether they have citation or not.
+
+## 4. Add web search with Parallel MCP (optional)
+
+ReAct and ReWOO can use [Parallel Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp)
+to search the public web and fetch page text without a Parallel account or API key.
+Free access is rate limited. This setup uses Kotaemon's existing stdio support and
+the [mcp-remote bridge](https://github.com/geelen/mcp-remote) to connect to Parallel's
+Streamable HTTP endpoint.
+
+Install Node.js with `npx` on the machine running Kotaemon, including inside the
+container if you use Docker. The first connection downloads `mcp-remote`. Your
+Kotaemon environment also needs the optional `mcp` package, included in the `adv`
+and `all` extras.
+
+1. Open **Resources > MCP Servers > Add** and paste this configuration:
+
+   ```json
+   {
+     "mcpServers": {
+       "parallel-search": {
+         "command": "npx",
+         "args": ["-y", "mcp-remote", "https://search.parallel.ai/mcp"],
+         "enabled_tools": ["web_search", "web_fetch"]
+       }
+     }
+   }
+   ```
+
+2. Click **Add MCP Servers**. Wait for the available tools to show `web_search`
+   and `web_fetch`. A saved configuration alone does not confirm a connection.
+3. In **Settings > Reasoning settings**, choose **ReAct Agent** or **ReWOO Agent** and add
+   **[MCP] parallel-search** to its **Tools for knowledge retrieval** selection. Keep any existing tools
+   you still want, then click **Save & Close**. These pipelines must be included
+   in your installation's `KH_REASONINGS` configuration.
+4. Use that reasoning mode in chat and ask it to search the public web. The agent
+   can call these tools during its work. Queries, requested URLs, and any context
+   the agent includes in tool arguments are sent to Parallel, even when your
+   language model runs locally. Avoid including private document content in
+   requests you want to keep local.
+
+To allow search without page fetching, open the server under **View**, change
+`enabled_tools` to `["web_search"]`, and click **Save**. To stop using Parallel,
+remove **[MCP] parallel-search** from the selected tools for each reasoning mode
+where you enabled it. You can also delete the server under **Resources > MCP Servers**.
+Adding this example does not change the default reasoning mode or search tools.
