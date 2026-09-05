@@ -55,3 +55,74 @@ def test_run_validates_before_dispatch(text):
         with pytest.raises(ValidationError):
             tool.run(text)
     run.assert_not_called()
+
+
+@pytest.mark.parametrize("as_json", [False, True])
+@pytest.mark.parametrize("queries", [["MCP setup"], None])
+@pytest.mark.parametrize("required", [False, True])
+def test_run_nullable_array(as_json, queries, required):
+    tool = make_tool(
+        {
+            "urls": {"type": "array"},
+            "search_queries": {
+                "anyOf": [{"type": "array"}, {"type": "null"}],
+                "default": None,
+            },
+        },
+        ["urls", "search_queries"] if required else ["urls"],
+    )
+    arguments = {"urls": ["https://example.com"], "search_queries": queries}
+    with patch.object(MCPTool, "_run_tool", return_value="page") as run:
+        assert tool.run(json.dumps(arguments) if as_json else arguments) == "page"
+    run.assert_called_once_with(**arguments)
+
+
+def test_nullable_array_still_rejects_string():
+    tool = make_tool(
+        {"queries": {"anyOf": [{"type": "array"}, {"type": "null"}]}},
+        [],
+    )
+    with patch.object(MCPTool, "_run_tool") as run:
+        with pytest.raises(ValidationError):
+            tool.run({"queries": "not an array"})
+    run.assert_not_called()
+
+
+@pytest.mark.parametrize("required", [False, True])
+def test_nullable_array_presence(required):
+    tool = make_tool(
+        {"queries": {"anyOf": [{"type": "array"}, {"type": "null"}]}},
+        ["queries"] if required else [],
+    )
+    with patch.object(MCPTool, "_run_tool", return_value="result") as run:
+        if required:
+            with pytest.raises(ValidationError):
+                tool.run({})
+            run.assert_not_called()
+        else:
+            assert tool.run({}) == "result"
+            run.assert_called_once_with()
+
+
+def test_discovered_tool_description_includes_input_contract():
+    from types import SimpleNamespace
+
+    from kotaemon.agents.tools.mcp import _make_tool
+
+    schema = {
+        "type": "object",
+        "properties": {
+            "objective": {"type": "string", "description": "Information to find"},
+            "queries": {"type": "array", "items": {"type": "string"}},
+        },
+        "required": ["objective", "queries"],
+    }
+    tool = _make_tool(
+        {"transport": "stdio", "command": "example"},
+        SimpleNamespace(
+            name="search", description="Search the web", inputSchema=schema
+        ),
+    )
+    assert tool.description.startswith("Search the web")
+    assert "JSON object" in tool.description
+    assert json.dumps(schema) in tool.description

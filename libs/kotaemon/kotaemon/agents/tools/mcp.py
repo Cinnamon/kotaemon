@@ -46,12 +46,17 @@ def build_args_model(tool_name: str, input_schema: dict) -> Type[BaseModel]:
     required = set(input_schema.get("required", []))
     fields: dict[str, Any] = {}
     for prop_name, prop_info in properties.items():
-        python_type = _json_schema_type_to_python(prop_info.get("type", "string"))
+        # MCP schemas can express a nullable field as anyOf: [type, null].
+        variants = prop_info.get("anyOf", [])
+        non_null = [v for v in variants if v.get("type") != "null"]
+        nullable = len(non_null) == 1 and len(non_null) < len(variants)
+        type_schema = non_null[0] if nullable else prop_info
+        python_type = _json_schema_type_to_python(type_schema.get("type", "string"))
         description = prop_info.get("description", "")
-        if prop_name in required:
+        if prop_name in required and not nullable:
             fields[prop_name] = (python_type, Field(..., description=description))
         else:
-            default = prop_info.get("default", None)
+            default = ... if prop_name in required else prop_info.get("default", None)
             fields[prop_name] = (
                 Optional[python_type],
                 Field(default=default, description=description),
@@ -106,9 +111,16 @@ def _make_tool(parsed: dict, tool_info: Any) -> "MCPTool":
         build_args_model(tool_info.name, input_schema) if input_schema else None
     )
 
+    description = tool_info.description or f"MCP tool: {tool_info.name}"
+    if input_schema:
+        # Text-based agents see descriptions, not args_schema.
+        description += "\nInput must be a JSON object with this schema: " + json.dumps(
+            input_schema
+        )
+
     return MCPTool(
         name=tool_info.name,
-        description=tool_info.description or f"MCP tool: {tool_info.name}",
+        description=description,
         args_schema=args_model,
         server_transport=parsed["transport"],
         server_command=parsed["command"],
