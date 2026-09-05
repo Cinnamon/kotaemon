@@ -311,6 +311,19 @@ class MCPTool(BaseTool):
     # The original MCP tool name (on the server)
     mcp_tool_name: str = ""
 
+    def _parse_input(self, tool_input: str | dict) -> str | dict:
+        # ReAct and ReWOO pass text, including JSON objects for structured tools.
+        # Decode before BaseTool validates required fields and array arguments.
+        if isinstance(tool_input, str):
+            try:
+                parsed = json.loads(tool_input)
+            except json.JSONDecodeError:
+                pass
+            else:
+                if isinstance(parsed, dict):
+                    tool_input = parsed
+        return super()._parse_input(tool_input)
+
     def _run_tool(self, *args: Any, **kwargs: Any) -> str:
         """Invoke the MCP tool by establishing a session."""
         return _run_async(self._arun_tool(*args, **kwargs))
