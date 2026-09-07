@@ -277,6 +277,14 @@ KH_VECTORSTORE=(ChromaDB | LanceDB | InMemory | Milvus | Qdrant)
 # Enable / disable multimodal QA
 KH_REASONINGS_USE_MULTIMODAL=True
 
+# setup the backend for the @WebSearch chat command
+# (Tavily and Jina need an API key; Keenable works without one)
+KH_WEB_SEARCH_BACKEND=(
+    "kotaemon.indices.retrievers.tavily_web_search.WebSearch"
+    | "kotaemon.indices.retrievers.jina_web_search.WebSearch"
+    | "kotaemon.indices.retrievers.keenable_web_search.WebSearch"
+)
+
 # Setup your new reasoning pipeline or modify existing one.
 KH_REASONINGS = [
     "ktem.reasoning.simple.FullQAPipeline",

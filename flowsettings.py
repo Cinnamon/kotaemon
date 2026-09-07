@@ -87,6 +87,8 @@ KH_FILESTORAGE_PATH = str(KH_USER_DATA_DIR / "files")
 KH_WEB_SEARCH_BACKEND = (
     "kotaemon.indices.retrievers.tavily_web_search.WebSearch"
     # "kotaemon.indices.retrievers.jina_web_search.WebSearch"
+    # works without an API key; KEENABLE_API_KEY only lifts the rate limits
+    # "kotaemon.indices.retrievers.keenable_web_search.WebSearch"
 )
 
 KH_DOCSTORE = {
