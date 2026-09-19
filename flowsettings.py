@@ -173,7 +173,7 @@ if OPENAI_API_KEY:
     }
 
 VOYAGE_API_KEY = config("VOYAGE_API_KEY", default="")
-if VOYAGE_API_KEY:
+if VOYAGE_API_KEY and not VOYAGE_API_KEY.startswith("<"):
     KH_EMBEDDINGS["voyageai"] = {
         "spec": {
             "__type__": "kotaemon.embeddings.VoyageAIEmbeddings",
