@@ -265,7 +265,11 @@ class LCAnthropicChat(LCChatMixin, ChatLLM):  # type: ignore
         self,
         api_key: str | None = None,
         model_name: str | None = None,
-        temperature: float = 0.7,
+        # None (the langchain_anthropic default) omits temperature from the payload:
+        # current Claude models reject any sampling parameter with HTTP 400, while
+        # older ones treat an absent value as their own default. Pass an explicit
+        # value to override it on a model that still accepts it.
+        temperature: float | None = None,
         **params,
     ):
         super().__init__(

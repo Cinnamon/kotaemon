@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from kotaemon.base.schema import AIMessage, HumanMessage, LLMInterface, SystemMessage
-from kotaemon.llms import AzureChatOpenAI, LlamaCppChat
+from kotaemon.llms import AzureChatOpenAI, LCAnthropicChat, LlamaCppChat
 
 try:
     pass
@@ -92,3 +92,30 @@ def test_llamacpp_chat():
     with pytest.raises(ValueError):
         model = LlamaCppChat(model_path=str(dir_path), vocab_only=True)
         model.client_object
+
+
+def test_anthropic_chat_does_not_send_temperature_by_default():
+    """Current Claude models reject `temperature` with HTTP 400.
+
+    Sonnet 5 / Opus 4.7+ removed the sampling parameters outright, so a default
+    config must not put `temperature` on the wire; older models keep accepting it
+    because absence means the provider default (langchain_anthropic itself
+    defaults to None and strips it from the payload).
+    """
+    model = LCAnthropicChat(api_key="dummy", model_name="claude-sonnet-5")
+
+    payload = model._obj._get_request_payload([{"role": "user", "content": "hi"}])
+
+    assert "temperature" not in payload
+    assert set(payload) >= {"messages", "model"}
+
+
+def test_anthropic_chat_forwards_explicit_temperature():
+    """An explicitly requested temperature still reaches the provider."""
+    model = LCAnthropicChat(
+        api_key="dummy", model_name="claude-sonnet-4-6", temperature=0.3
+    )
+
+    payload = model._obj._get_request_payload([{"role": "user", "content": "hi"}])
+
+    assert payload["temperature"] == 0.3
