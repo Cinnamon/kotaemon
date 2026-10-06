@@ -10,6 +10,9 @@ from .base import BaseDocumentStore
 class InMemoryDocumentStore(BaseDocumentStore):
     """Simple memory document store that store document in a dictionary"""
 
+    # This backend stores and fetches documents but has no lexical index.
+    supports_lexical_search = False
+
     def __init__(self):
         self._store = {}
 

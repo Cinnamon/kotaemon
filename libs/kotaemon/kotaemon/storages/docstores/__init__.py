@@ -3,6 +3,7 @@ from .elasticsearch import ElasticsearchDocumentStore
 from .in_memory import InMemoryDocumentStore
 from .lancedb import LanceDBDocumentStore
 from .simple_file import SimpleFileDocumentStore
+from .sqlite_fts import SQLiteFTSDocumentStore
 
 __all__ = [
     "BaseDocumentStore",
@@ -10,4 +11,5 @@ __all__ = [
     "ElasticsearchDocumentStore",
     "SimpleFileDocumentStore",
     "LanceDBDocumentStore",
+    "SQLiteFTSDocumentStore",
 ]

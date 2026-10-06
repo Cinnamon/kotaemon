@@ -1,0 +1,291 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "stage": "request",
+      "original_query": "张三实习期间做了什么工作？"
+    },
+    {
+      "stage": "explicit_filters",
+      "path": null,
+      "source_types": null,
+      "metadata_filters": {}
+    },
+    {
+      "stage": "plan",
+      "plan": {
+        "query": "张三实习期间做了什么工作？",
+        "semantic_query": "张三实习期间做了什么工作？",
+        "source_types": [
+          "markdown"
+        ],
+        "virtual_paths": [
+          "/people/zhang-san.md"
+        ],
+        "metadata_filters": {
+          "person": "张三"
+        },
+        "confidence": 1.0,
+        "reason": "one unambiguous exact metadata reference",
+        "source_ids": [
+          "source-zhang"
+        ]
+      }
+    },
+    {
+      "stage": "source_scope",
+      "visible_ids": [
+        "source-legacy",
+        "source-li",
+        "source-wang",
+        "source-zhang"
+      ],
+      "mandatory_ids": [
+        "source-legacy",
+        "source-li",
+        "source-wang",
+        "source-zhang"
+      ],
+      "planned_ids": [
+        "source-zhang"
+      ]
+    },
+    {
+      "stage": "chunk_scope",
+      "visible_ids": [
+        "chunk-legacy-api",
+        "chunk-legacy-token",
+        "chunk-li-frontend",
+        "chunk-li-wang-question",
+        "chunk-li-zhang-question",
+        "chunk-wang-automation",
+        "chunk-wang-li-question",
+        "chunk-wang-team-tech",
+        "chunk-zhang-api",
+        "chunk-zhang-li-question",
+        "chunk-zhang-rag"
+      ],
+      "mandatory_ids": [
+        "chunk-legacy-api",
+        "chunk-legacy-token",
+        "chunk-li-frontend",
+        "chunk-li-wang-question",
+        "chunk-li-zhang-question",
+        "chunk-wang-automation",
+        "chunk-wang-li-question",
+        "chunk-wang-team-tech",
+        "chunk-zhang-api",
+        "chunk-zhang-li-question",
+        "chunk-zhang-rag"
+      ],
+      "planned_ids": [
+        "chunk-zhang-api",
+        "chunk-zhang-li-question",
+        "chunk-zhang-rag"
+      ]
+    },
+    {
+      "stage": "retrieval_query",
+      "semantic_query": "张三实习期间做了什么工作？"
+    },
+    {
+      "stage": "recall_attempt",
+      "attempt": 1,
+      "scope_ids": [
+        "chunk-zhang-api",
+        "chunk-zhang-li-question",
+        "chunk-zhang-rag"
+      ],
+      "vector_status": "available",
+      "lexical_status": "not_used",
+      "vector_candidates": [
+        {
+          "id": "chunk-zhang-rag",
+          "score": 0.30151134457776363,
+          "score_available": true
+        },
+        {
+          "id": "chunk-zhang-api",
+          "score": 0.07106690545187015,
+          "score_available": true
+        }
+      ],
+      "lexical_candidates": [],
+      "backend_errors": {}
+    },
+    {
+      "stage": "merged",
+      "ids": [
+        "chunk-zhang-rag",
+        "chunk-zhang-api"
+      ]
+    },
+    {
+      "stage": "diversity",
+      "excluded": [],
+      "selected_ids": [
+        "chunk-zhang-rag",
+        "chunk-zhang-api"
+      ]
+    },
+    {
+      "stage": "final",
+      "ids": [
+        "chunk-zhang-rag",
+        "chunk-zhang-api"
+      ]
+    },
+    {
+      "stage": "context",
+      "chunk_ids": [
+        "chunk-zhang-rag",
+        "chunk-zhang-api"
+      ],
+      "token_budget": 4096,
+      "tokens_used": 319
+    }
+  ],
+  "original_query": "张三实习期间做了什么工作？",
+  "explicit_filters": {
+    "path": null,
+    "source_types": null,
+    "metadata_filters": {}
+  },
+  "plan": {
+    "query": "张三实习期间做了什么工作？",
+    "semantic_query": "张三实习期间做了什么工作？",
+    "source_types": [
+      "markdown"
+    ],
+    "virtual_paths": [
+      "/people/zhang-san.md"
+    ],
+    "metadata_filters": {
+      "person": "张三"
+    },
+    "confidence": 1.0,
+    "reason": "one unambiguous exact metadata reference",
+    "source_ids": [
+      "source-zhang"
+    ]
+  },
+  "source_scope": {
+    "visible_ids": [
+      "source-legacy",
+      "source-li",
+      "source-wang",
+      "source-zhang"
+    ],
+    "mandatory_ids": [
+      "source-legacy",
+      "source-li",
+      "source-wang",
+      "source-zhang"
+    ],
+    "planned_ids": [
+      "source-zhang"
+    ]
+  },
+  "chunk_scope": {
+    "visible_ids": [
+      "chunk-legacy-api",
+      "chunk-legacy-token",
+      "chunk-li-frontend",
+      "chunk-li-wang-question",
+      "chunk-li-zhang-question",
+      "chunk-wang-automation",
+      "chunk-wang-li-question",
+      "chunk-wang-team-tech",
+      "chunk-zhang-api",
+      "chunk-zhang-li-question",
+      "chunk-zhang-rag"
+    ],
+    "mandatory_ids": [
+      "chunk-legacy-api",
+      "chunk-legacy-token",
+      "chunk-li-frontend",
+      "chunk-li-wang-question",
+      "chunk-li-zhang-question",
+      "chunk-wang-automation",
+      "chunk-wang-li-question",
+      "chunk-wang-team-tech",
+      "chunk-zhang-api",
+      "chunk-zhang-li-question",
+      "chunk-zhang-rag"
+    ],
+    "planned_ids": [
+      "chunk-zhang-api",
+      "chunk-zhang-li-question",
+      "chunk-zhang-rag"
+    ]
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "scope_ids": [
+        "chunk-zhang-api",
+        "chunk-zhang-li-question",
+        "chunk-zhang-rag"
+      ],
+      "vector_status": "available",
+      "lexical_status": "not_used",
+      "vector_candidates": [
+        {
+          "id": "chunk-zhang-rag",
+          "score": 0.30151134457776363,
+          "score_available": true
+        },
+        {
+          "id": "chunk-zhang-api",
+          "score": 0.07106690545187015,
+          "score_available": true
+        }
+      ],
+      "lexical_candidates": [],
+      "backend_errors": {}
+    }
+  ],
+  "scope_status": "scoped",
+  "scope_ids": [
+    "chunk-zhang-api",
+    "chunk-zhang-li-question",
+    "chunk-zhang-rag"
+  ],
+  "candidate_k": 2,
+  "lexical_status": "not_used",
+  "lexical_result_count": 0,
+  "scope_fallback": false,
+  "merged_ids": [
+    "chunk-zhang-rag",
+    "chunk-zhang-api"
+  ],
+  "diversity_selected_ids": [
+    "chunk-zhang-rag",
+    "chunk-zhang-api"
+  ],
+  "diversity": {
+    "excluded": [],
+    "selected_ids": [
+      "chunk-zhang-rag",
+      "chunk-zhang-api"
+    ]
+  },
+  "final_chunk_ids": [
+    "chunk-zhang-rag",
+    "chunk-zhang-api"
+  ],
+  "context_chunk_ids": [
+    "chunk-zhang-rag",
+    "chunk-zhang-api"
+  ],
+  "context_tokens": 319,
+  "context_token_budget": 4096,
+  "context": {
+    "chunk_ids": [
+      "chunk-zhang-rag",
+      "chunk-zhang-api"
+    ],
+    "token_budget": 4096,
+    "tokens_used": 319
+  }
+}

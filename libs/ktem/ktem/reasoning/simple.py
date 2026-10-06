@@ -23,6 +23,13 @@ from kotaemon.base import (
     RetrievedDocument,
     SystemMessage,
 )
+from kotaemon.indices.knowledge.retrieval.context_budget import (
+    GenerationBudget,
+    pack_evidence,
+    serialize_chat_messages,
+)
+from kotaemon.indices.knowledge.retrieval.expansion import EvidenceBundle
+from kotaemon.indices.knowledge.retrieval.trace import trace_event, trace_scoped
 from kotaemon.indices.qa.citation_qa import (
     CONTEXT_RELEVANT_WARNING_SCORE,
     DEFAULT_QA_TEXT_PROMPT,
@@ -33,6 +40,11 @@ from kotaemon.indices.qa.format_context import PrepareEvidencePipeline
 from kotaemon.indices.qa.utils import replace_think_tag_with_details
 from kotaemon.llms import ChatLLM
 
+from ..local_qa_conversation import (
+    DEFAULT_HISTORY_TOKEN_LIMIT,
+    DEFAULT_MAX_TURNS,
+    user_turns_from_history,
+)
 from ..utils import SUPPORTED_LANGUAGE_MAP
 from .base import BaseReasoning
 
@@ -97,6 +109,8 @@ class FullQAPipeline(BaseReasoning):
 
     evidence_pipeline: PrepareEvidencePipeline = PrepareEvidencePipeline.withx()
     answering_pipeline: AnswerWithContextPipeline
+    output_reserve: int = 2048
+    format_reserve: int = 256
     rewrite_pipeline: RewriteQuestionPipeline | None = None
     create_citation_viz_pipeline: CreateCitationVizPipeline = Node(
         default_callback=lambda _: CreateCitationVizPipeline(
@@ -106,7 +120,11 @@ class FullQAPipeline(BaseReasoning):
     add_query_context: AddQueryContextPipeline = AddQueryContextPipeline.withx()
 
     def retrieve(
-        self, message: str, history: list
+        self,
+        message: str,
+        history: list,
+        trace=None,
+        trace_context: dict | None = None,
     ) -> tuple[list[RetrievedDocument], list[Document]]:
         """Retrieve the documents based on the message"""
         # if len(message) < self.trigger_context:
@@ -124,12 +142,53 @@ class FullQAPipeline(BaseReasoning):
             # like "Hello", "I need help"...
             query = message
 
+        query_context = dict(trace_context or {})
+        trace_event(
+            trace,
+            "qa_query",
+            original_query=message,
+            **query_context,
+        )
+
         docs, doc_ids = [], []
         plot_docs = []
 
         for idx, retriever in enumerate(self.retrievers):
             retriever_node = self._prepare_child(retriever, f"retriever_{idx}")
-            retriever_docs = retriever_node(text=query)
+            retriever_name = type(retriever).__name__
+            retriever_trace = trace_scoped(
+                trace,
+                retriever_index=idx,
+                retriever_name=retriever_name,
+                **query_context,
+            )
+            retriever_kwargs = {"text": query}
+            if getattr(retriever, "v3_enabled", False) and getattr(
+                retriever, "query_enrichment", False
+            ):
+                counter_factory = getattr(self.evidence_pipeline, "_counter", None)
+                count_tokens = (
+                    counter_factory()
+                    if callable(counter_factory)
+                    else lambda text: len(text.encode("utf-8"))
+                )
+                retriever_kwargs["user_history"] = user_turns_from_history(
+                    history,
+                    max_turns=DEFAULT_MAX_TURNS,
+                    token_limit=DEFAULT_HISTORY_TOKEN_LIMIT,
+                    count_tokens=count_tokens,
+                )
+            if trace is not None:
+                retriever_kwargs["trace"] = retriever_trace
+            retriever_docs = retriever_node(**retriever_kwargs)
+            trace_event(
+                trace,
+                "qa_retriever",
+                retriever_index=idx,
+                retriever_name=retriever_name,
+                ids=[doc.doc_id for doc in retriever_docs],
+                **query_context,
+            )
 
             retriever_docs_text = []
             retriever_docs_plot = []
@@ -162,6 +221,60 @@ class FullQAPipeline(BaseReasoning):
         ]
 
         return docs, info
+
+    def _pack_authorized_v3_evidence(self, docs, trace, *, question, history):
+        """Pack expansion-enabled product evidence before answer generation."""
+        seeds = tuple(
+            document
+            for document in docs
+            if (document.metadata or {}).get("knowledge_evidence_role") != "expansion"
+        )
+        expansions = tuple(
+            document
+            for document in docs
+            if (document.metadata or {}).get("knowledge_evidence_role") == "expansion"
+        )
+        budget = GenerationBudget(
+            model_context=self.evidence_pipeline._budget(),
+            output_reserve=self.output_reserve,
+            format_reserve=self.format_reserve,
+        )
+
+        def render_request(documents):
+            evidence_mode, evidence, images = self.evidence_pipeline(
+                list(documents)
+            ).content
+            messages, _prompt, _evidence = (
+                self.answering_pipeline.prepare_generation_messages(
+                    question,
+                    evidence,
+                    evidence_mode,
+                    images=images,
+                    history=history,
+                )
+            )
+            return serialize_chat_messages(
+                [message.to_openai_format() for message in messages]
+            )
+
+        packed = pack_evidence(
+            EvidenceBundle(seeds=seeds, expansions=expansions, decisions=()),
+            budget=budget,
+            count_tokens=self.evidence_pipeline._counter(),
+            base_prompt="",
+            render_context=render_request,
+            render_budgeted_request=lambda serialized_messages: serialized_messages,
+        )
+        trace_event(
+            trace,
+            "product_context_packing",
+            status=packed.status,
+            chunk_ids=[document.doc_id for document in packed.documents],
+            token_budget=packed.available_tokens,
+            tokens_used=packed.token_count,
+            omitted_ids=list(packed.omitted_ids),
+        )
+        return list(packed.documents), packed
 
     def prepare_mindmap(self, answer) -> Document | None:
         mindmap = answer.metadata["mindmap"]
@@ -288,11 +401,67 @@ class FullQAPipeline(BaseReasoning):
 
         print(f"Retrievers {self.retrievers}")
         # should populate the context
-        docs, infos = self.retrieve(message, history)
+        trace = kwargs.get("trace")
+        docs, infos = self.retrieve(
+            message,
+            history,
+            trace=trace,
+            trace_context={"query_kind": "main"},
+        )
+        expansion_enabled = any(
+            getattr(retriever, "v3_enabled", False)
+            and getattr(retriever, "evidence_expansion", False)
+            for retriever in self.retrievers
+        )
+        packed_status = None
+        if expansion_enabled:
+            docs, packed_context = self._pack_authorized_v3_evidence(
+                docs, trace, question=message, history=history
+            )
+            packed_status = packed_context.status
+            infos = [
+                Document(
+                    channel="info",
+                    content=Render.collapsible_with_header(doc, open_collapsible=True),
+                )
+                for doc in docs
+                if (doc.metadata or {}).get("type", "") != "plot"
+            ]
         print(f"Got {len(docs)} retrieved documents")
         yield from infos
 
-        evidence_mode, evidence, images = self.evidence_pipeline(docs).content
+        if packed_status == "insufficient_evidence":
+            message = "Insufficient evidence fits within the configured context budget."
+            trace_event(
+                trace,
+                "generation_skipped",
+                reason="insufficient_evidence",
+            )
+            answer = Document(channel="chat", content=message)
+            yield answer
+            return answer
+
+        evidence_trace = trace_scoped(trace, query_kind="main")
+        evidence_kwargs = {"trace": evidence_trace} if trace is not None else {}
+        if expansion_enabled:
+            context_trace = {}
+            evidence_mode, evidence, images = self.evidence_pipeline(
+                docs, trace=context_trace
+            ).content
+            context_ids = context_trace.get("context_chunk_ids", [])
+            included_ids = set(context_ids)
+            docs = [document for document in docs if document.doc_id in included_ids]
+            trace_event(
+                trace,
+                "context",
+                chunk_ids=context_ids,
+                token_budget=context_trace.get("context_token_budget"),
+                tokens_used=context_trace.get("context_tokens"),
+            )
+        else:
+            evidence_mode, evidence, images = self.evidence_pipeline(
+                docs, **evidence_kwargs
+            ).content
 
         def generate_relevant_scores():
             nonlocal docs
@@ -496,12 +665,24 @@ class FullDecomposeQAPipeline(FullQAPipeline):
                 f"<br>{message}<br><b>Answer</b><br>",
             )
             # should populate the context
-            docs, infos = self.retrieve(message, history)
+            trace = kwargs.get("trace")
+            docs, infos = self.retrieve(
+                message,
+                history,
+                trace=trace,
+                trace_context={"query_kind": "subquestion", "subquestion_index": idx},
+            )
             print(f"Got {len(docs)} retrieved documents")
 
             yield from infos
 
-            evidence_mode, evidence, images = self.evidence_pipeline(docs).content
+            evidence_trace = trace_scoped(
+                trace, query_kind="subquestion", subquestion_index=idx
+            )
+            evidence_kwargs = {"trace": evidence_trace} if trace is not None else {}
+            evidence_mode, evidence, images = self.evidence_pipeline(
+                docs, **evidence_kwargs
+            ).content
             answer = yield from self.answering_pipeline.stream(
                 question=message,
                 history=history,
@@ -547,11 +728,21 @@ class FullDecomposeQAPipeline(FullQAPipeline):
         )
 
         # should populate the context
-        docs, infos = self.retrieve(message, history)
+        trace = kwargs.get("trace")
+        docs, infos = self.retrieve(
+            message,
+            history,
+            trace=trace,
+            trace_context={"query_kind": "main"},
+        )
         print(f"Got {len(docs)} retrieved documents")
         yield from infos
 
-        evidence_mode, evidence, images = self.evidence_pipeline(docs).content
+        evidence_trace = trace_scoped(trace, query_kind="main")
+        evidence_kwargs = {"trace": evidence_trace} if trace is not None else {}
+        evidence_mode, evidence, images = self.evidence_pipeline(
+            docs, **evidence_kwargs
+        ).content
         answer = yield from self.answering_pipeline.stream(
             question=message,
             history=history,

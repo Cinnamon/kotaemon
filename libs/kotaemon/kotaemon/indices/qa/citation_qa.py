@@ -140,6 +140,44 @@ class AnswerWithContextPipeline(BaseComponent):
 
         return prompt, evidence
 
+    def prepare_generation_messages(
+        self,
+        question: str,
+        evidence: str,
+        evidence_mode: int = 0,
+        *,
+        images: list[str] | None = None,
+        history: list | None = None,
+    ):
+        """Build the exact role/content messages passed to the generation model."""
+        images = images or []
+        history = history or []
+        if evidence:
+            prompt, evidence = self.get_prompt(question, evidence, evidence_mode)
+        else:
+            prompt = question
+
+        messages = []
+        if self.system_prompt:
+            messages.append(SystemMessage(content=self.system_prompt))
+        for human, ai in history[-self.n_last_interactions :]:
+            messages.append(HumanMessage(content=human))
+            messages.append(AIMessage(content=ai))
+
+        if self.use_multimodal and evidence_mode == EVIDENCE_MODE_FIGURE:
+            messages.append(
+                HumanMessage(
+                    content=[{"type": "text", "text": prompt}]
+                    + [
+                        {"type": "image_url", "image_url": {"url": image}}
+                        for image in images[:MAX_IMAGES]
+                    ],
+                )
+            )
+        else:
+            messages.append(HumanMessage(content=prompt))
+        return messages, prompt, evidence
+
     def run(
         self, question: str, evidence: str, evidence_mode: int = 0, **kwargs
     ) -> Document:
@@ -197,11 +235,13 @@ class AnswerWithContextPipeline(BaseComponent):
     ) -> Generator[Document, None, Document]:
         history = kwargs.get("history", [])
         print(f"Got {len(images)} images")
-        # check if evidence exists, use QA prompt
-        if evidence:
-            prompt, evidence = self.get_prompt(question, evidence, evidence_mode)
-        else:
-            prompt = question
+        messages, _prompt, evidence = self.prepare_generation_messages(
+            question,
+            evidence,
+            evidence_mode,
+            images=images,
+            history=history,
+        )
 
         # retrieve the citation
         citation = None
@@ -230,34 +270,6 @@ class AnswerWithContextPipeline(BaseComponent):
 
         output = ""
         logprobs = []
-
-        messages = []
-        if self.system_prompt:
-            messages.append(SystemMessage(content=self.system_prompt))
-
-        for human, ai in history[-self.n_last_interactions :]:
-            messages.append(HumanMessage(content=human))
-            messages.append(AIMessage(content=ai))
-
-        if self.use_multimodal and evidence_mode == EVIDENCE_MODE_FIGURE:
-            # create image message:
-            messages.append(
-                HumanMessage(
-                    content=[
-                        {"type": "text", "text": prompt},
-                    ]
-                    + [
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": image},
-                        }
-                        for image in images[:MAX_IMAGES]
-                    ],
-                )
-            )
-        else:
-            # append main prompt
-            messages.append(HumanMessage(content=prompt))
 
         try:
             # try streaming first

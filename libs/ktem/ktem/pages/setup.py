@@ -5,6 +5,7 @@ import requests
 from decouple import config
 from ktem.app import BasePage
 from ktem.embeddings.manager import embedding_models_manager as embeddings
+from ktem.local_qa_defaults import DEFAULT_LOCAL_MODEL
 from ktem.llms.manager import llms
 from ktem.rerankings.manager import reranking_models_manager as rerankers
 from theflow.settings import settings as flowsettings
@@ -119,7 +120,7 @@ class SetupPage(BasePage):
             )
             self.ollama_model_name = gr.Textbox(
                 label="LLM model name",
-                value=config("LOCAL_MODEL", default="qwen2.5:7b"),
+                value=config("LOCAL_MODEL", default=DEFAULT_LOCAL_MODEL),
             )
             self.ollama_emb_model_name = gr.Textbox(
                 label="Embedding model name",

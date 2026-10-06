@@ -26,6 +26,8 @@ from kotaemon.loaders import (
     UnstructuredReader,
     WebReader,
 )
+from kotaemon.loaders.excel_loader import ExcelRowReader
+from kotaemon.loaders.pptx_loader import PptxReader
 
 web_reader = WebReader()
 unstructured = UnstructuredReader()
@@ -36,9 +38,9 @@ azure_reader = AzureAIDocumentIntelligenceLoader(
     cache_dir=getattr(flowsettings, "KH_MARKDOWN_OUTPUT_DIR", None),
 )
 docling_reader = DoclingReader()
-adobe_reader.vlm_endpoint = (
-    azure_reader.vlm_endpoint
-) = docling_reader.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
+adobe_reader.vlm_endpoint = azure_reader.vlm_endpoint = docling_reader.vlm_endpoint = (
+    getattr(flowsettings, "KH_VLM_ENDPOINT", "")
+)
 
 paddle_device = str(config("PADDLE_DEVICE", default="gpu"))
 paddle_struct_reader = PPStructureV3Reader(device=paddle_device)
@@ -46,10 +48,12 @@ paddle_vl_reader = PaddleOCRVLReader(device=paddle_device)
 
 
 KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
-    ".xlsx": PandasExcelReader(),
+    ".xlsx": ExcelRowReader(fallback_reader=PandasExcelReader()),
     ".docx": unstructured,
-    ".pptx": unstructured,
-    ".xls": unstructured,
+    ".pptx": PptxReader(),
+    ".ppt": PptxReader(),
+    ".xls": ExcelRowReader(fallback_reader=unstructured),
+    ".csv": ExcelRowReader(fallback_reader=TxtReader()),
     ".doc": unstructured,
     ".html": HtmlReader(),
     ".mhtml": MhtmlReader(),
@@ -61,6 +65,24 @@ KH_DEFAULT_FILE_EXTRACTORS: dict[str, BaseReader] = {
     ".pdf": PDFThumbnailReader(),
     ".txt": TxtReader(),
     ".md": TxtReader(),
+    ".faq": TxtReader(),
+    **{
+        extension: TxtReader()
+        for extension in (
+            ".py",
+            ".js",
+            ".jsx",
+            ".ts",
+            ".tsx",
+            ".java",
+            ".go",
+            ".rs",
+            ".c",
+            ".h",
+            ".cpp",
+            ".hpp",
+        )
+    },
 }
 
 
@@ -89,7 +111,7 @@ class DocumentIngestor(BaseComponent):
         chunk_size=1024,
         chunk_overlap=256,
         separator="\n\n",
-        backup_separators=["\n", ".", " ", "\u200B"],
+        backup_separators=["\n", ".", " ", "\u200b"],
     )
     override_file_extractors: dict[str, Type[BaseReader]] = {}
 

@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "id": "source-zhang",
+      "source_type": "markdown",
+      "virtual_path": "/people/zhang-san.md",
+      "document_name": "zhang-san.md",
+      "entity": {"person": "张三", "team": "rag"},
+      "chunks": [
+        {
+          "id": "chunk-zhang-rag",
+          "text": "张三在实习期间加入 RAG 团队，负责构建检索 API。",
+          "metadata": {"section": "RAG internship", "page_label": "1"}
+        },
+        {
+          "id": "chunk-zhang-api",
+          "text": "张三参与设计知识库 REST API，并维护向量召回服务。",
+          "metadata": {"section": "API work", "page_label": "2"}
+        },
+        {
+          "id": "chunk-zhang-li-question",
+          "text": "常见问题：李四负责哪个前端模块？本页只介绍 RAG 接口，请查看李四的岗位记录。",
+          "metadata": {"section": "Related questions", "page_label": "3"}
+        }
+      ]
+    },
+    {
+      "id": "source-li",
+      "source_type": "markdown",
+      "virtual_path": "/people/li-si.md",
+      "document_name": "li-si.md",
+      "entity": {"person": "李四", "team": "frontend"},
+      "chunks": [
+        {
+          "id": "chunk-li-frontend",
+          "text": "李四负责前端模块，主要开发 React 界面、组件状态和页面样式。",
+          "metadata": {"section": "Frontend work", "page_label": "1"}
+        },
+        {
+          "id": "chunk-li-zhang-question",
+          "text": "常见问题：张三在哪实习，负责什么工作？本页只记录实习申请入口，没有张三的履历信息。",
+          "metadata": {"section": "Related questions", "page_label": "2"}
+        },
+        {
+          "id": "chunk-li-wang-question",
+          "text": "常见问题：王五做了什么自动化？本页记录的是前端页面工作流。",
+          "metadata": {"section": "Related questions", "page_label": "3"}
+        }
+      ]
+    },
+    {
+      "id": "source-wang",
+      "source_type": "markdown",
+      "virtual_path": "/people/wang-wu.md",
+      "document_name": "wang-wu.md",
+      "entity": {"person": "王五", "team": "automation"},
+      "chunks": [
+        {
+          "id": "chunk-wang-automation",
+          "text": "王五负责自动化构建与部署，维护 CI 流程和回归测试脚本。",
+          "metadata": {"section": "Automation", "page_label": "1"}
+        },
+        {
+          "id": "chunk-wang-team-tech",
+          "text": "团队项目使用 RAG 检索、React 前端和 CI 自动化。",
+          "metadata": {"section": "Team stack", "page_label": "2"}
+        },
+        {
+          "id": "chunk-wang-li-question",
+          "text": "常见问题：李四负责哪个前端模块？本页只说明 CI 部署与自动化测试。",
+          "metadata": {"section": "Related questions", "page_label": "3"}
+        }
+      ]
+    },
+    {
+      "id": "source-legacy",
+      "legacy": true,
+      "document_name": "legacy-api.md",
+      "chunks": [
+        {
+          "id": "chunk-legacy-api",
+          "text": "旧版接口通过 POST /v1/query 提交 question 字段与知识库 ID。",
+          "metadata": {"section": "Legacy API", "page_label": "1"}
+        },
+        {
+          "id": "chunk-legacy-token",
+          "text": "旧版服务要求先创建 API Token，再按接口文档指定的路径发起调用。",
+          "metadata": {"section": "Legacy setup", "page_label": "2"}
+        }
+      ]
+    }
+  ]
+}

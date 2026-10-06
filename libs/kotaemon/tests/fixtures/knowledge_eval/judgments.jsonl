@@ -1,0 +1,5 @@
+{"schema_version":1,"id":"zhang-internship","query":"张三实习期间做了什么工作？","judgment_level":"chunk","relevant_ids":["chunk-zhang-rag","chunk-zhang-api"],"disallowed_source_ids":["source-li","source-wang"],"case_kind":"named"}
+{"schema_version":1,"id":"li-frontend","query":"李四负责哪个前端模块？","judgment_level":"chunk","relevant_ids":["chunk-li-frontend"],"disallowed_source_ids":["source-zhang","source-wang"],"path":"/people/li-si.md","source_types":["markdown"],"filters":{"team":"frontend"},"case_kind":"named"}
+{"schema_version":1,"id":"wang-automation","query":"王五做了什么自动化？","judgment_level":"chunk","relevant_ids":["chunk-wang-automation"],"disallowed_source_ids":["source-zhang","source-li"],"case_kind":"named"}
+{"schema_version":1,"id":"ambiguous-team","query":"团队用了什么技术？","judgment_level":"chunk","relevant_ids":["chunk-zhang-rag","chunk-li-frontend","chunk-wang-team-tech"],"disallowed_source_ids":null,"case_kind":"ambiguous"}
+{"schema_version":1,"id":"legacy-source","query":"旧版接口如何调用？","judgment_level":"chunk","relevant_ids":["chunk-legacy-api"],"disallowed_source_ids":null,"case_kind":"legacy"}

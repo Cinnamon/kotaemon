@@ -483,6 +483,7 @@ class FileIndex(BaseIndex):
             obj.DS = self._docstore
             obj.FSPath = self._fs_path
             obj.user_id = user_id
+            obj.private = self.config.get("private", False)
             retrievers.append(obj)
 
         return retrievers

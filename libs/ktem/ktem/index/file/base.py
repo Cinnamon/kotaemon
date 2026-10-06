@@ -12,6 +12,7 @@ class BaseFileIndexRetriever(BaseComponent):
     DS = Param(help="The DocStore")
     FSPath = Param(help="The file storage path")
     user_id = Param(help="The user id")
+    private = Param(False, help="Whether the file index is private")
 
     @classmethod
     def get_user_settings(cls) -> dict:

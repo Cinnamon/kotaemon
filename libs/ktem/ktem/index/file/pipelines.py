@@ -21,12 +21,6 @@ from ktem.llms.manager import llms
 from ktem.rerankings.manager import reranking_models_manager
 from llama_index.core.readers.base import BaseReader
 from llama_index.core.readers.file.base import default_file_metadata_func
-from llama_index.core.vector_stores import (
-    FilterCondition,
-    FilterOperator,
-    MetadataFilter,
-    MetadataFilters,
-)
 from llama_index.core.vector_stores.types import VectorStoreQueryMode
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -46,12 +40,30 @@ from kotaemon.indices.ingests.files import (
     unstructured,
     web_reader,
 )
+from kotaemon.indices.knowledge.chunking.identity import (
+    source_version_for_path,
+    stamp_chunk_identity,
+)
+from kotaemon.indices.knowledge.chunking.registry import get_chunk_strategy
+from kotaemon.indices.knowledge.metadata import normalize_knowledge_metadata
+from kotaemon.indices.knowledge.planning.query_enrichment import QueryEnricher
+from kotaemon.indices.knowledge.retrieval.contracts import RetrievalPolicy
+from kotaemon.indices.knowledge.retrieval.expansion import (
+    ChunkResolver,
+    ExpansionPolicy,
+    expand_evidence,
+)
+from kotaemon.indices.knowledge.retrieval.trace import trace_event, trace_scoped
 from kotaemon.indices.rankings import BaseReranking, LLMReranking, LLMTrulensScoring
 from kotaemon.indices.splitters import BaseSplitter, TokenSplitter
 
 from .base import BaseFileIndexIndexing, BaseFileIndexRetriever
+from .knowledge_service import create_file_knowledge_service
 
 logger = logging.getLogger(__name__)
+_INDEXING_IDENTITY_METADATA_KEYS = frozenset(
+    {"file_id", "document_id", "collection_name", "source_version"}
+)
 
 
 @lru_cache
@@ -101,6 +113,12 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
     mmr: bool = False
     top_k: int = 5
     retrieval_mode: str = "hybrid"
+    v3_enabled: bool = False
+    candidate_k: int = 20
+    max_fused_candidates: int = 40
+    query_enrichment: bool = False
+    evidence_expansion: bool = False
+    query_enricher: Optional[QueryEnricher] = None
 
     @Node.auto(depends_on=["embedding", "VS", "DS"])
     def vector_retrieval(self) -> VectorRetrieval:
@@ -125,59 +143,142 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             text: the text to retrieve similar documents
             doc_ids: list of document ids to constraint the retrieval
         """
-        # flatten doc_ids in case of group of doc_ids are passed
-        if doc_ids:
+        # Flatten file-group IDs before passing the explicit UI selection to the
+        # knowledge service.
+        if doc_ids is not None:
             flatten_doc_ids = []
             for doc_id in doc_ids:
                 if doc_id is None:
                     raise ValueError("No document is selected")
 
                 if doc_id.startswith("["):
-                    flatten_doc_ids.extend(json.loads(doc_id))
+                    group_ids = json.loads(doc_id)
+                    if not isinstance(group_ids, list):
+                        raise ValueError("File group selection must contain a list")
+                    flatten_doc_ids.extend(group_ids)
                 else:
                     flatten_doc_ids.append(doc_id)
             doc_ids = flatten_doc_ids
 
         print("searching in doc_ids", doc_ids)
+        trace = kwargs.get("trace")
         if not doc_ids:
             logger.info(f"Skip retrieval because of no selected files: {self}")
+            trace_event(trace, "no_search", reason="empty_ui_selection")
+            trace_event(trace, "final_ui", ids=[])
             return []
 
-        retrieval_kwargs: dict = {}
-        with Session(engine) as session:
-            stmt = select(self.Index).where(
-                self.Index.relation_type == "document",
-                self.Index.source_id.in_(doc_ids),
-            )
-            results = session.execute(stmt)
-            chunk_ids = [r[0].target_id for r in results.all()]
+        vector_retrieval = self.vector_retrieval
 
-        # do first round top_k extension
-        retrieval_kwargs["do_extend"] = True
-        retrieval_kwargs["scope"] = chunk_ids
-        retrieval_kwargs["filters"] = MetadataFilters(
-            filters=[
-                MetadataFilter(
-                    key="file_id",
-                    value=doc_ids,
-                    operator=FilterOperator.IN,
-                )
-            ],
-            condition=FilterCondition.OR,
+        def run_vector_retrieval(**retrieval_kwargs):
+            # Keep the file UI's expanded first pass and optional MMR setting
+            # while routing Agent/service search through the existing retriever.
+            retrieval_kwargs["do_extend"] = True
+            if self.mmr:
+                retrieval_kwargs["mode"] = VectorStoreQueryMode.MMR
+                retrieval_kwargs["mmr_threshold"] = 0.5
+            return vector_retrieval(**retrieval_kwargs)
+
+        service = create_file_knowledge_service(
+            Source=self.Source,
+            Index=self.Index,
+            vector_retrieval=run_vector_retrieval,
+            docstore=self.DS,
+            private=self.private,
+            user_id=self.user_id,
         )
+        chunk_ids = service.chunk_ids_for_sources(doc_ids)
 
-        if self.mmr:
-            # TODO: double check that llama-index MMR works correctly
-            retrieval_kwargs["mode"] = VectorStoreQueryMode.MMR
-            retrieval_kwargs["mmr_threshold"] = 0.5
-
-        # rerank
+        # Preserve the caller's exact source allowlist at the service boundary.
         s_time = time.time()
-        print(f"retrieval_kwargs: {retrieval_kwargs.keys()}")
-        docs = self.vector_retrieval(text=text, top_k=self.top_k, **retrieval_kwargs)
+        search_kwargs = {
+            "top_k": self.top_k,
+            "allowed_source_ids": doc_ids,
+            "trace": trace,
+        }
+        if self.v3_enabled:
+            retrieval_policy = RetrievalPolicy(
+                enabled=True,
+                candidate_k=self.candidate_k,
+                max_fused_candidates=self.max_fused_candidates,
+            )
+            trace_event(
+                trace,
+                "product_retrieval_config",
+                v3_enabled=True,
+                candidate_k=self.candidate_k,
+                max_fused_candidates=self.max_fused_candidates,
+                chunk_seed_k=self.top_k,
+                query_enrichment=self.query_enrichment,
+                evidence_expansion=self.evidence_expansion,
+            )
+            search_kwargs["retrieval_policy"] = retrieval_policy
+            for key in ("path", "source_types", "filters"):
+                if kwargs.get(key) is not None:
+                    search_kwargs[key] = kwargs[key]
+            if self.query_enrichment:
+                enricher = self.query_enricher or QueryEnricher(
+                    max_variants=retrieval_policy.max_variants
+                )
+                search_kwargs["enriched_query"] = enricher.enrich(
+                    text, kwargs.get("user_history", ())
+                )
+        docs = service.search(text, **search_kwargs)
+
+        if self.v3_enabled and self.evidence_expansion and docs:
+            allowed_chunk_ids = service.authorized_chunk_ids(
+                path=kwargs.get("path"),
+                source_types=kwargs.get("source_types"),
+                filters=kwargs.get("filters"),
+                allowed_source_ids=doc_ids,
+            )
+            scorer = next(
+                (
+                    reranker
+                    for reranker in self.rerankers
+                    if callable(getattr(reranker, "score_pairs", None))
+                ),
+                None,
+            )
+            bundle = expand_evidence(
+                docs,
+                query=text,
+                resolver=ChunkResolver(
+                    docstore=service.docstore, catalog=service.catalog
+                ),
+                allowed_chunk_ids=allowed_chunk_ids,
+                scorer=scorer,
+                policy=ExpansionPolicy(),
+            )
+            seeds = list(bundle.seeds)
+            expansions = list(bundle.expansions)
+            for document in seeds:
+                document.metadata = {
+                    **dict(document.metadata or {}),
+                    "knowledge_evidence_role": "seed",
+                }
+            for document in expansions:
+                document.metadata = {
+                    **dict(document.metadata or {}),
+                    "knowledge_evidence_role": "expansion",
+                }
+            docs = seeds + expansions
+            trace_event(
+                trace,
+                "evidence_expansion",
+                decisions=list(bundle.decisions),
+                seed_ids=[document.doc_id for document in seeds],
+                expanded_ids=[document.doc_id for document in expansions],
+                authorized_chunk_count=len(allowed_chunk_ids),
+            )
         print("retrieval step took", time.time() - s_time)
 
         if not self.get_extra_table:
+            trace_event(
+                trace,
+                "final_ui",
+                ids=[doc.doc_id for doc in docs],
+            )
             return docs
 
         # retrieve extra nodes relate to table
@@ -199,17 +300,24 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
         ]
         if queries:
             try:
-                extra_docs = self.vector_retrieval(
+                extra_trace = trace_scoped(trace, query_kind="extra_table")
+                extra_kwargs = dict(
                     text="",
                     top_k=50,
+                    scope=chunk_ids,
+                    fallback_scope=chunk_ids,
                     where=queries[0] if len(queries) == 1 else {"$or": queries},
                 )
+                if trace is not None:
+                    extra_kwargs["trace"] = extra_trace
+                extra_docs = self.vector_retrieval(**extra_kwargs)
                 for doc in extra_docs:
-                    if doc.doc_id not in retrieved_id:
+                    if doc.doc_id in chunk_ids and doc.doc_id not in retrieved_id:
                         docs.append(doc)
             except Exception:
                 print("Error retrieving additional tables")
 
+        trace_event(trace, "final_ui", ids=[doc.doc_id for doc in docs])
         return docs
 
     def generate_relevant_scores(
@@ -235,6 +343,31 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
             reranking_llm_choices = []
 
         return {
+            "v3_enabled": {
+                "name": "Enable v3 retrieval",
+                "value": False,
+                "component": "checkbox",
+            },
+            "candidate_k": {
+                "name": "V3 candidates per route",
+                "value": 20,
+                "component": "number",
+            },
+            "max_fused_candidates": {
+                "name": "V3 maximum fused candidates",
+                "value": 40,
+                "component": "number",
+            },
+            "query_enrichment": {
+                "name": "Enable query enrichment",
+                "value": False,
+                "component": "checkbox",
+            },
+            "evidence_expansion": {
+                "name": "Enable authorized evidence expansion",
+                "value": False,
+                "component": "checkbox",
+            },
             "reranking_llm": {
                 "name": "LLM for relevant scoring",
                 "value": reranking_llm,
@@ -299,6 +432,11 @@ class DocumentRetrievalPipeline(BaseFileIndexRetriever):
                 )
             ],
             retrieval_mode=user_settings["retrieval_mode"],
+            v3_enabled=user_settings.get("v3_enabled", False),
+            candidate_k=user_settings.get("candidate_k", 20),
+            max_fused_candidates=user_settings.get("max_fused_candidates", 40),
+            query_enrichment=user_settings.get("query_enrichment", False),
+            evidence_expansion=user_settings.get("evidence_expansion", False),
             llm_scorer=(LLMTrulensScoring() if use_llm_reranking else None),
             rerankers=[
                 reranking_models_manager[
@@ -351,6 +489,36 @@ class IndexPipeline(BaseComponent):
             vector_store=self.VS, doc_store=self.DS, embedding=self.embedding
         )
 
+    def _split_and_normalize_text_docs(self, documents):
+        output = []
+        for parser_unit_ordinal, document in enumerate(documents):
+            document.metadata = normalize_knowledge_metadata(document)
+            document.metadata["_parser_unit_ordinal"] = parser_unit_ordinal
+            if self.splitter:
+                strategy = get_chunk_strategy(
+                    document.metadata["source_type"], self.splitter
+                )
+                chunks = strategy.split(document)
+            else:
+                chunks = [document]
+            source_version = document.metadata.get("source_version")
+            if source_version:
+                chunks = stamp_chunk_identity(
+                    document, chunks, source_version=source_version
+                )
+            else:
+                for chunk in chunks:
+                    chunk.metadata = normalize_knowledge_metadata(chunk)
+                    for key in (
+                        "_parser_unit_ordinal",
+                        "_semantic_unit_group_id",
+                        "source_unit_text",
+                    ):
+                        chunk.metadata.pop(key, None)
+            document.metadata.pop("_parser_unit_ordinal", None)
+            output.extend(chunks)
+        return output
+
     def handle_docs(self, docs, file_id, file_name) -> Generator[Document, None, int]:
         s_time = time.time()
         text_docs = []
@@ -371,10 +539,9 @@ class IndexPipeline(BaseComponent):
             doc.metadata["page_label"]: doc.doc_id for doc in thumbnail_docs
         }
 
-        if self.splitter:
-            all_chunks = self.splitter(text_docs)
-        else:
-            all_chunks = text_docs
+        all_chunks = self._split_and_normalize_text_docs(text_docs)
+        for document in non_text_docs + thumbnail_docs:
+            document.metadata = normalize_knowledge_metadata(document)
 
         # add the thumbnails doc_id to the chunks
         for chunk in all_chunks:
@@ -521,8 +688,7 @@ class IndexPipeline(BaseComponent):
         Returns:
             the file id
         """
-        with file_path.open("rb") as fi:
-            file_hash = sha256(fi.read()).hexdigest()
+        file_hash = source_version_for_path(file_path)
 
         shutil.copy(file_path, self.FSPath / file_hash)
         source = self.Source(
@@ -538,7 +704,31 @@ class IndexPipeline(BaseComponent):
 
         return file_id
 
-    def finish(self, file_id: str, file_path: str | Path) -> str:
+    def _source_version(self, file_id: str, file_path: str | Path) -> str | None:
+        """Return an upload-byte hash; URL locators do not identify content bytes."""
+        if not isinstance(file_path, Path):
+            return None
+        path_column = getattr(self.Source, "path", None)
+        stored_path = None
+        if path_column is not None:
+            with Session(engine) as session:
+                stmt = select(path_column).where(self.Source.id == file_id)
+                stored_path = session.execute(stmt).scalar_one_or_none()
+        if isinstance(stored_path, str) and len(stored_path) == 64:
+            try:
+                int(stored_path, 16)
+                return stored_path.lower()
+            except ValueError:
+                pass
+        return source_version_for_path(file_path)
+
+    def finish(
+        self,
+        file_id: str,
+        file_path: str | Path,
+        knowledge_metadata: dict | None = None,
+        source_version: str | None = None,
+    ) -> str:
         """Finish the indexing"""
         with Session(engine) as session:
             stmt = select(self.Source).where(self.Source.id == file_id)
@@ -547,6 +737,7 @@ class IndexPipeline(BaseComponent):
                 return file_id
 
             item = result[0]
+            note = dict(item.note or {})
 
             # populate the number of tokens
             doc_ids_stmt = select(self.Index.target_id).where(
@@ -557,10 +748,40 @@ class IndexPipeline(BaseComponent):
             token_func = self.get_token_func()
             if doc_ids and token_func:
                 docs = self.DS.get(doc_ids)
-                item.note["tokens"] = sum([len(token_func(doc.text)) for doc in docs])
+                note["tokens"] = sum([len(token_func(doc.text)) for doc in docs])
 
             # populate the note
-            item.note["loader"] = self.get_from_path("loader").__class__.__name__
+            note["loader"] = self.get_from_path("loader").__class__.__name__
+            file_name = file_path.name if isinstance(file_path, Path) else file_path
+            resolved_source_version = (
+                source_version
+                if source_version is not None
+                else self._source_version(file_id, file_path)
+            )
+            normalized_metadata = {
+                "file_id": file_id,
+                "file_name": file_name,
+                **(knowledge_metadata or {}),
+            }
+            normalized_metadata.pop("source_version", None)
+            if resolved_source_version is not None:
+                normalized_metadata["source_version"] = resolved_source_version
+            normalized = normalize_knowledge_metadata(
+                Document(text="", metadata=normalized_metadata)
+            )
+            knowledge = dict(note.get("knowledge") or {})
+            knowledge.pop("source_version", None)
+            knowledge_keys = [
+                "source_type",
+                "virtual_path",
+                "document_name",
+                "entity",
+            ]
+            if resolved_source_version is not None:
+                knowledge_keys.append("source_version")
+            knowledge.update({key: normalized[key] for key in knowledge_keys})
+            note["knowledge"] = knowledge
+            item.note = note
 
             session.add(item)
             session.commit()
@@ -602,8 +823,21 @@ class IndexPipeline(BaseComponent):
         raise NotImplementedError
 
     def stream(
-        self, file_path: str | Path, reindex: bool, **kwargs
+        self,
+        file_path: str | Path,
+        reindex: bool = False,
+        knowledge_metadata: dict | None = None,
+        **kwargs,
     ) -> Generator[Document, None, tuple[str, list[Document]]]:
+        reserved_metadata = _INDEXING_IDENTITY_METADATA_KEYS.intersection(
+            knowledge_metadata or {}
+        )
+        if reserved_metadata:
+            raise ValueError(
+                "knowledge_metadata cannot override indexing-owned identity fields: "
+                + ", ".join(sorted(reserved_metadata))
+            )
+
         # check if the file is already indexed
         if isinstance(file_path, Path):
             file_path = file_path.resolve()
@@ -644,13 +878,28 @@ class IndexPipeline(BaseComponent):
 
         extra_info["file_id"] = file_id
         extra_info["collection_name"] = self.collection_name
+        extra_info.update(knowledge_metadata or {})
+        source_version = self._source_version(file_id, file_path)
+        if source_version is not None:
+            extra_info["source_version"] = source_version
 
         yield Document(f" => Converting {file_name} to text", channel="debug")
         docs = self.loader.load_data(file_path, extra_info=extra_info)
+        for document in docs:
+            document.metadata = dict(document.metadata or {})
+            if source_version is None:
+                document.metadata.pop("source_version", None)
+            else:
+                document.metadata["source_version"] = source_version
         yield Document(f" => Converted {file_name} to text", channel="debug")
         yield from self.handle_docs(docs, file_id, file_name)
 
-        self.finish(file_id, file_path)
+        self.finish(
+            file_id,
+            file_path,
+            knowledge_metadata=knowledge_metadata,
+            source_version=source_version,
+        )
 
         yield Document(f" => Finished indexing {file_name}", channel="debug")
         return file_id, docs
@@ -787,7 +1036,7 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
                 chunk_size=chunk_size or 1024,
                 chunk_overlap=chunk_overlap or 256,
                 separator="\n\n",
-                backup_separators=["\n", ".", "\u200B"],
+                backup_separators=["\n", ".", "\u200b"],
             ),
             run_embedding_in_thread=self.run_embedding_in_thread,
             Source=self.Source,
@@ -816,12 +1065,18 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
         if not isinstance(file_paths, list):
             file_paths = [file_paths]
 
+        metadata_by_path = kwargs.pop("knowledge_metadata_by_path", {}) or {}
+
         file_ids: list[str | None] = []
         errors: list[str | None] = []
         all_docs = []
 
         n_files = len(file_paths)
         for idx, file_path in enumerate(file_paths):
+            original_path = file_path
+            knowledge_metadata = metadata_by_path.get(original_path)
+            if knowledge_metadata is None:
+                knowledge_metadata = metadata_by_path.get(str(original_path))
             if self.is_url(file_path):
                 file_name = file_path
             else:
@@ -836,7 +1091,10 @@ class IndexDocumentPipeline(BaseFileIndexIndexing):
             try:
                 pipeline = self.route(file_path)
                 file_id, docs = yield from pipeline.stream(
-                    file_path, reindex=reindex, **kwargs
+                    file_path,
+                    reindex=reindex,
+                    knowledge_metadata=knowledge_metadata,
+                    **kwargs,
                 )
                 all_docs.extend(docs)
                 file_ids.append(file_id)

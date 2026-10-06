@@ -6,10 +6,10 @@ from typing import Generator
 
 import numpy as np
 
-from kotaemon.base import AIMessage, Document, HumanMessage, SystemMessage
+from kotaemon.base import Document
 from kotaemon.llms import PromptTemplate
 
-from .citation_qa import CITATION_TIMEOUT, MAX_IMAGES, AnswerWithContextPipeline
+from .citation_qa import CITATION_TIMEOUT, AnswerWithContextPipeline
 from .format_context import EVIDENCE_MODE_FIGURE
 from .utils import find_start_end_phrase
 
@@ -200,11 +200,13 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
     ) -> Generator[Document, None, Document]:
         history = kwargs.get("history", [])
         print(f"Got {len(images)} images")
-        # check if evidence exists, use QA prompt
-        if evidence:
-            prompt, evidence = self.get_prompt(question, evidence, evidence_mode)
-        else:
-            prompt = question
+        messages, _prompt, evidence = self.prepare_generation_messages(
+            question,
+            evidence,
+            evidence_mode,
+            images=images,
+            history=history,
+        )
 
         output = ""
         logprobs = []
@@ -223,34 +225,6 @@ class AnswerWithInlineCitation(AnswerWithContextPipeline):
             if self.enable_mindmap:
                 mindmap_thread = threading.Thread(target=mindmap_call)
                 mindmap_thread.start()
-
-        messages = []
-        if self.system_prompt:
-            messages.append(SystemMessage(content=self.system_prompt))
-
-        for human, ai in history[-self.n_last_interactions :]:
-            messages.append(HumanMessage(content=human))
-            messages.append(AIMessage(content=ai))
-
-        if self.use_multimodal and evidence_mode == EVIDENCE_MODE_FIGURE:
-            # create image message:
-            messages.append(
-                HumanMessage(
-                    content=[
-                        {"type": "text", "text": prompt},
-                    ]
-                    + [
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": image},
-                        }
-                        for image in images[:MAX_IMAGES]
-                    ],
-                )
-            )
-        else:
-            # append main prompt
-            messages.append(HumanMessage(content=prompt))
 
         final_answer = ""
 

@@ -477,3 +477,6 @@ doc_env/
 # application data
 ktem_app_data/
 gradio_tmp/
+
+# Local knowledge-evaluation corpus (may contain private source documents)
+/libs/kotaemon/tests/fixtures/knowledge_eval/local/
