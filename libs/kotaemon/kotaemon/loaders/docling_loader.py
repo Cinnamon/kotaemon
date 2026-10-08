@@ -41,14 +41,77 @@ class DoclingReader(BaseReader):
         ),
     )
 
+    artifacts_path: Optional[str | Path] = Param(
+        None,
+        help="Path to pre-downloaded Docling model artifacts.",
+    )
+
+    ocr_engine: Optional[str] = Param(
+        None,
+        help=(
+            "Docling OCR engine. Supported values are easyocr, tesseract, "
+            "tesseract_cli, and ocrmac."
+        ),
+    )
+
+    ocr_languages: Optional[list[str]] = Param(
+        None,
+        help="Language codes passed to the configured Docling OCR engine.",
+    )
+
     @Param.auto(cache=True)
     def converter_(self):
         try:
-            from docling.document_converter import DocumentConverter
+            from docling.datamodel.base_models import InputFormat
+            from docling.datamodel.pipeline_options import (
+                EasyOcrOptions,
+                OcrMacOptions,
+                PdfPipelineOptions,
+                TesseractCliOcrOptions,
+                TesseractOcrOptions,
+            )
+            from docling.document_converter import DocumentConverter, PdfFormatOption
         except ImportError:
             raise ImportError("Please install docling: 'pip install docling'")
 
-        return DocumentConverter()
+        if not (
+            self.artifacts_path or self.ocr_engine or self.ocr_languages is not None
+        ):
+            return DocumentConverter()
+
+        pipeline_options = PdfPipelineOptions(
+            artifacts_path=(
+                Path(self.artifacts_path) if self.artifacts_path is not None else None
+            )
+        )
+
+        if self.ocr_engine or self.ocr_languages is not None:
+            ocr_engines = {
+                "easyocr": EasyOcrOptions,
+                "tesseract": TesseractOcrOptions,
+                "tesseract_cli": TesseractCliOcrOptions,
+                "ocrmac": OcrMacOptions,
+            }
+            engine_name = self.ocr_engine or "easyocr"
+            try:
+                engine = ocr_engines[engine_name]
+            except KeyError as exc:
+                supported = ", ".join(ocr_engines)
+                raise ValueError(
+                    f"Unsupported Docling OCR engine '{engine_name}'. "
+                    f"Choose one of: {supported}."
+                ) from exc
+
+            ocr_kwargs = (
+                {"lang": self.ocr_languages} if self.ocr_languages is not None else {}
+            )
+            pipeline_options.ocr_options = engine(**ocr_kwargs)
+
+        return DocumentConverter(
+            format_options={
+                InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
+            }
+        )
 
     def run(
         self, file_path: str | Path, extra_info: Optional[dict] = None, **kwargs

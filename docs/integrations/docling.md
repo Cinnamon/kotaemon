@@ -21,6 +21,22 @@ KH_VLM_ENDPOINT=http://your-vlm-endpoint
 
 If `KH_VLM_ENDPOINT` is not set, Docling will still extract text, tables, and figure metadata, but it will skip generated figure captions.
 
+### Configure offline models and OCR
+
+Docling can use pre-downloaded model artifacts instead of fetching them during
+document ingestion. The OCR engine and its languages can also be selected with
+environment variables:
+
+```env
+KH_DOCLING_ARTIFACTS_PATH=/opt/docling-models
+KH_DOCLING_OCR_ENGINE=tesseract_cli
+KH_DOCLING_OCR_LANGUAGES=eng,fra
+```
+
+Supported OCR engines are `easyocr`, `tesseract`, `tesseract_cli`, and `ocrmac`.
+Install the selected engine and its language data separately. When these settings
+are omitted, Kotaemon keeps Docling's default behavior.
+
 ## Configure the loader
 
 1. Run Kotaemon and open the app UI.

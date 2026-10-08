@@ -35,7 +35,20 @@ azure_reader = AzureAIDocumentIntelligenceLoader(
     credential=str(config("AZURE_DI_CREDENTIAL", default="")),
     cache_dir=getattr(flowsettings, "KH_MARKDOWN_OUTPUT_DIR", None),
 )
-docling_reader = DoclingReader()
+docling_ocr_languages = str(config("KH_DOCLING_OCR_LANGUAGES", default="")).strip()
+docling_reader = DoclingReader(
+    artifacts_path=config("KH_DOCLING_ARTIFACTS_PATH", default=None),
+    ocr_engine=config("KH_DOCLING_OCR_ENGINE", default=None),
+    ocr_languages=(
+        [
+            language.strip()
+            for language in docling_ocr_languages.split(",")
+            if language.strip()
+        ]
+        if docling_ocr_languages
+        else None
+    ),
+)
 adobe_reader.vlm_endpoint = (
     azure_reader.vlm_endpoint
 ) = docling_reader.vlm_endpoint = getattr(flowsettings, "KH_VLM_ENDPOINT", "")
