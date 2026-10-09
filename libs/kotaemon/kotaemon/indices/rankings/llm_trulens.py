@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
@@ -11,6 +12,8 @@ from kotaemon.indices.splitters import TokenSplitter
 from kotaemon.llms import BaseLLM, PromptTemplate
 
 from .llm import LLMReranking
+
+logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT_TEMPLATE = PromptTemplate(
     """You are a RELEVANCE grader; providing the relevance of the given CONTEXT to the given QUESTION.
@@ -43,13 +46,13 @@ USER_PROMPT_TEMPLATE = PromptTemplate(
         RELEVANCE: """
 )  # noqa
 
-PATTERN_INTEGER: re.Pattern = re.compile(r"([+-]?[1-9][0-9]*|0)")
-"""Regex that matches integers."""
+PATTERN_NUMBER: re.Pattern = re.compile(r"[+-]?(?:\d+(?:\.\d+)?|\.\d+)")
+"""Regex that matches integers and decimals."""
 
 MAX_CONTEXT_LEN = 7500
 
 
-def validate_rating(rating) -> int:
+def validate_rating(rating) -> float:
     """Validate a rating is between 0 and 10."""
 
     if not 0 <= rating <= 10:
@@ -58,38 +61,33 @@ def validate_rating(rating) -> int:
     return rating
 
 
-def re_0_10_rating(s: str) -> int:
+def re_0_10_rating(s: str) -> float:
     """Extract a 0-10 rating from a string.
 
-    If the string does not match an integer or matches an integer outside the
-    0-10 range, raises an error instead. If multiple numbers are found within
-    the expected 0-10 range, the smallest is returned.
+    Decimals such as "7.5" are parsed as a single number. If multiple numbers
+    are found within the 0-10 range, the smallest is returned, which handles
+    replies like "Out of 10, I'd say 8".
 
     Args:
         s: String to extract rating from.
 
     Returns:
-        int: Extracted rating.
+        float: Extracted rating.
 
     Raises:
-        ParseError: If no integers between 0 and 10 are found in the string.
+        ValueError: If no number between 0 and 10 is found in the string.
     """
 
-    matches = PATTERN_INTEGER.findall(s)
-    if not matches:
-        raise AssertionError
-
-    vals = set()
-    for match in matches:
+    vals = []
+    for match in PATTERN_NUMBER.findall(s):
         try:
-            vals.add(validate_rating(int(match)))
+            vals.append(float(validate_rating(float(match))))
         except ValueError:
             pass
 
     if not vals:
-        raise AssertionError
+        raise ValueError(f"Could not parse a 0-10 rating from: {s[:100]!r}")
 
-    # Min to handle cases like "The rating is 8 out of 10."
     return min(vals)
 
 
@@ -163,10 +161,16 @@ class LLMTrulensScoring(LLMReranking):
                 results.append(self.llm(messages).text)
 
         # use Boolean parser to extract relevancy output from LLM
-        results = [
-            (r_idx, float(re_0_10_rating(result)) / self.normalize)
-            for r_idx, result in enumerate(results)
-        ]
+        scores = []
+        for r_idx, result in enumerate(results):
+            try:
+                score = re_0_10_rating(result) / self.normalize
+            except ValueError:
+                # an unparsable reply gets the lowest score, not a failed rerank
+                logger.warning("Unparsable relevance rating, scoring 0: %.100r", result)
+                score = 0.0
+            scores.append((r_idx, score))
+        results = scores
         results.sort(key=lambda x: x[1], reverse=True)
 
         for r_idx, score in results:
