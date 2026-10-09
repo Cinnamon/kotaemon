@@ -73,14 +73,18 @@ class DocumentIngestor(BaseComponent):
         - docx, doc
 
     Args:
-        pdf_mode: mode for pdf extraction, one of "normal", "mathpix", "ocr"
+        pdf_mode: mode for pdf extraction, one of "normal", "mathpix", "ocr",
+            "multimodal".
             - normal: parse pdf text
             - mathpix: parse pdf text using mathpix
             - ocr: parse pdf image using flax
+            - multimodal: parse pdf using Adobe PDF Services
+            Any other value raises ValueError.
         doc_parsers: list of document parsers to parse the document
         text_splitter: splitter to split the document into text nodes
         override_file_extractors: override file extractors for specific file extensions
-            The default file extractors are stored in `KH_DEFAULT_FILE_EXTRACTORS`
+            The default file extractors are stored in `KH_DEFAULT_FILE_EXTRACTORS`.
+            An entry for ".pdf" takes precedence over `pdf_mode`.
     """
 
     pdf_mode: str = "normal"  # "normal", "mathpix", "ocr", "multimodal"
@@ -98,17 +102,23 @@ class DocumentIngestor(BaseComponent):
         file_extractors: dict[str, BaseReader] = {
             ext: reader for ext, reader in KH_DEFAULT_FILE_EXTRACTORS.items()
         }
-        for ext, cls in self.override_file_extractors.items():
-            file_extractors[ext] = cls()
-
         if self.pdf_mode == "normal":
             file_extractors[".pdf"] = PDFReader()
         elif self.pdf_mode == "ocr":
             file_extractors[".pdf"] = OCRReader()
         elif self.pdf_mode == "multimodal":
             file_extractors[".pdf"] = AdobeReader()
-        else:
+        elif self.pdf_mode == "mathpix":
             file_extractors[".pdf"] = MathpixPDFReader()
+        else:
+            raise ValueError(
+                f"Unknown pdf_mode {self.pdf_mode!r}, expected one of "
+                "'normal', 'ocr', 'multimodal', 'mathpix'"
+            )
+
+        # explicit overrides win over pdf_mode
+        for ext, cls in self.override_file_extractors.items():
+            file_extractors[ext] = cls()
 
         main_reader = DirectoryReader(
             input_files=input_files,
