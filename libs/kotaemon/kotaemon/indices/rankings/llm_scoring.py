@@ -27,7 +27,7 @@ class LLMScoring(LLMReranking):
                     _prompt = self.prompt_template.populate(
                         question=query, context=doc.get_content()
                     )
-                    futures.append(executor.submit(lambda: self.llm(_prompt)))
+                    futures.append(executor.submit(self.llm, _prompt))
 
                 results = [future.result() for future in futures]
         else:

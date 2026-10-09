@@ -142,12 +142,9 @@ class LLMTrulensScoring(LLMReranking):
                         )
                     )
 
-                    def llm_call():
-                        return self.llm(messages).text
+                    futures.append(executor.submit(self.llm, messages))
 
-                    futures.append(executor.submit(llm_call))
-
-                results = [future.result() for future in futures]
+                results = [future.result().text for future in futures]
         else:
             results = []
             for doc in documents:
