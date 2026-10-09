@@ -32,6 +32,18 @@ def test_html_reader():
     assert len(documents)
 
 
+def test_html_reader_keeps_line_breaks_and_last_char(tmp_path):
+    html_file = tmp_path / "t.html"
+    html_file.write_text(
+        "<p>Hello\nworld caf\u00e9</p>\n<p>last</p>", encoding="utf-8-sig"
+    )
+
+    text = HtmlReader().load_data(html_file)[0].text
+
+    assert "Hello world caf\u00e9" in text
+    assert text.endswith("last")
+
+
 def test_pdf_reader():
     reader = AutoReader("PDFReader")
     dirpath = Path(__file__).parent
