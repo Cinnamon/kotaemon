@@ -379,6 +379,11 @@ This file provides another way to configure your models and credentials.
 
 <!-- end-intro -->
 
+## One-Click Deploy
+
+<a href="https://repocloud.io/details/Kotaemon/"><img src="https://d16t0pc4846x52.cloudfront.net/deploylobe.svg" alt="Deploy on RepoCloud" height="42"></a>
+<a href="https://railway.com/deploy/kotaemon"><img src="https://railway.com/button.svg" alt="Deploy on Railway" height="42"></a>
+
 ## Citation
 
 Please cite this project as
