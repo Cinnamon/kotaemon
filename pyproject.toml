@@ -32,6 +32,13 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+[tool.uv]
+# voyageai>=0.4 declares langchain-text-splitters>=0.3.8, which would pull the
+# whole langchain stack to 1.x. It only uses RecursiveCharacterTextSplitter
+# (present in 0.2.x) for the optional client-side `chunk_fn`, which kotaemon
+# never uses, so keep the splitter on the 0.2 line.
+override-dependencies = ["langchain-text-splitters>=0.2,<0.3"]
+
 [tool.uv.sources]
 kotaemon = { workspace = true }
 ktem = { workspace = true }

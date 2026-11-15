@@ -178,14 +178,14 @@ if VOYAGE_API_KEY:
         "spec": {
             "__type__": "kotaemon.embeddings.VoyageAIEmbeddings",
             "api_key": VOYAGE_API_KEY,
-            "model": config("VOYAGE_EMBEDDINGS_MODEL", default="voyage-3-large"),
+            "model": config("VOYAGE_EMBEDDINGS_MODEL", default="voyage-4"),
         },
         "default": False,
     }
     KH_RERANKINGS["voyageai"] = {
         "spec": {
             "__type__": "kotaemon.rerankings.VoyageAIReranking",
-            "model_name": "rerank-2",
+            "model_name": config("VOYAGE_RERANK_MODEL", default="rerank-3"),
             "api_key": VOYAGE_API_KEY,
         },
         "default": False,

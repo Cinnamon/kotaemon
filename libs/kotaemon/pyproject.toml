@@ -91,7 +91,8 @@ adv = [
     "tabulate",
     "unstructured>=0.15.8,<0.16",
     "wikipedia>=1.4.0,<1.5",
-    "voyageai>=0.3.0",
+    "voyageai>=0.4.0; python_version < '3.13'",
+    "voyageai>=0.3.0; python_version >= '3.13'",
 ]
 dev = [
     "black",
