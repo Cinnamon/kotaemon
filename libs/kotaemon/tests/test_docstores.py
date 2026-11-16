@@ -354,3 +354,56 @@ def test_elastic_document_store(elastic_api):
     assert store.count() == 2, "Document store delete() failed"
 
     elastic_api.assert_called()
+
+
+@pytest.mark.parametrize("store_type", [InMemoryDocumentStore, SimpleFileDocumentStore])
+@pytest.mark.parametrize("ids", [["new", "existing"], ["new", "new"]])
+def test_document_store_rejects_duplicate_batch_without_mutation(
+    tmp_path, store_type, ids
+):
+    store = (
+        store_type(tmp_path) if store_type is SimpleFileDocumentStore else store_type()
+    )
+    store.add(Document(text="original"), ids="existing")
+
+    with pytest.raises(ValueError):
+        store.add([Document(text="first"), Document(text="second")], ids=ids)
+
+    assert store.count() == 1
+    assert store.get("existing")[0].text == "original"
+    if store_type is SimpleFileDocumentStore:
+        assert SimpleFileDocumentStore(tmp_path).count() == store.count()
+
+
+@pytest.mark.parametrize("ids", [["one"], ["one", "two", "three"]])
+@pytest.mark.parametrize("exist_ok", [False, True])
+def test_document_store_rejects_mismatched_ids(ids, exist_ok):
+    store = InMemoryDocumentStore()
+    with pytest.raises(ValueError, match="same length"):
+        store.add(
+            [Document(text="first"), Document(text="second")],
+            ids=ids,
+            exist_ok=exist_ok,
+        )
+    assert store.count() == 0
+
+
+def test_document_store_duplicate_derived_ids_do_not_partially_insert():
+    store = InMemoryDocumentStore()
+    doc = Document(text="same document")
+    with pytest.raises(ValueError):
+        store.add([doc, doc])
+    assert store.count() == 0
+
+
+def test_document_store_exist_ok_keeps_last_document(tmp_path):
+    store = SimpleFileDocumentStore(tmp_path)
+    store.add(Document(text="original"), ids="existing")
+    store.add(
+        [Document(text="first"), Document(text="last")],
+        ids=["existing", "existing"],
+        exist_ok=True,
+    )
+    assert store.count() == 1
+    assert store.get("existing")[0].text == "last"
+    assert SimpleFileDocumentStore(tmp_path).get("existing")[0].text == "last"

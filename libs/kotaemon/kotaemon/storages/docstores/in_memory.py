@@ -27,6 +27,8 @@ class InMemoryDocumentStore(BaseDocumentStore):
                 use existing doc.doc_id
             exist_ok: raise error when duplicate doc-id
                 found in the docstore (default to False)
+
+        Invalid ID counts and disallowed duplicates are rejected before any changes.
         """
         exist_ok: bool = kwargs.pop("exist_ok", False)
 
@@ -36,10 +38,15 @@ class InMemoryDocumentStore(BaseDocumentStore):
             docs = [docs]
         doc_ids = ids if ids else [doc.doc_id for doc in docs]
 
+        if len(doc_ids) != len(docs):
+            raise ValueError("Document IDs and documents must have the same length")
+
+        pending = {}
         for doc_id, doc in zip(doc_ids, docs):
-            if doc_id in self._store and not exist_ok:
+            if not exist_ok and (doc_id in self._store or doc_id in pending):
                 raise ValueError(f"Document with id {doc_id} already exist")
-            self._store[doc_id] = doc
+            pending[doc_id] = doc
+        self._store.update(pending)
 
     def get(self, ids: Union[List[str], str]) -> List[Document]:
         """Get document by id"""
