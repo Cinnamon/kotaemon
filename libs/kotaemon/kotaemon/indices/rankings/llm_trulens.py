@@ -115,7 +115,12 @@ class LLMTrulensScoring(LLMReranking):
         documents: list[Document],
         query: str,
     ) -> list[Document]:
-        """Filter down documents based on their relevance to the query."""
+        """Score and sort documents by relevance to the query.
+
+        Return every document with its ``llm_trulens_score`` metadata, highest
+        score first. This path does not filter documents, so the inherited
+        ``top_k`` fallback is not used.
+        """
         filtered_docs = []
 
         documents = sorted(documents, key=lambda doc: doc.get_content())
