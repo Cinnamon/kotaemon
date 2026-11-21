@@ -5,7 +5,6 @@ import pandas as pd
 import yaml
 from ktem.app import BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
-from theflow.utils.modules import deserialize
 
 from .manager import llms
 
@@ -350,12 +349,14 @@ class LLMManagement(BasePage):
 
             # Parse content & init model
             info = deepcopy(llms.info()[selected_llm_name])
+            model_type = info["spec"]["__type__"]
 
             # Parse content & create dummy embedding
-            spec = yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
+            spec = yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader) or {}
             info["spec"].update(spec)
+            info["spec"]["__type__"] = model_type
 
-            llm = deserialize(info["spec"], safe=False)
+            llm = llms.deserialize(info["spec"])
 
             if llm is None:
                 raise Exception(f"Can not found model: {selected_llm_name}")

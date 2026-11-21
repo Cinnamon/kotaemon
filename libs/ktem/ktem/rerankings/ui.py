@@ -5,7 +5,6 @@ import pandas as pd
 import yaml
 from ktem.app import BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
-from theflow.utils.modules import deserialize
 
 from kotaemon.base import Document
 
@@ -349,12 +348,14 @@ class RerankingManagement(BasePage):
 
             # Parse content & init model
             info = deepcopy(reranking_models_manager.info()[selected_rerank_name])
+            model_type = info["spec"]["__type__"]
 
             # Parse content & create dummy response
-            spec = yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
+            spec = yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader) or {}
             info["spec"].update(spec)
+            info["spec"]["__type__"] = model_type
 
-            rerank = deserialize(info["spec"], safe=False)
+            rerank = reranking_models_manager.deserialize(info["spec"])
 
             if rerank is None:
                 raise Exception(f"Can not found model: {selected_rerank_name}")

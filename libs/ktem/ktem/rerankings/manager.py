@@ -1,5 +1,6 @@
 from typing import Optional, Type
 
+from ktem.utils.vendors import vendor_allowlist
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from theflow.settings import settings as flowsettings
@@ -19,6 +20,7 @@ class RerankingManager:
         self._default: str = ""
         self._vendors: list[Type] = []
 
+        self.load_vendors()
         # populate the pool if empty
         if hasattr(flowsettings, "KH_RERANKINGS"):
             with Session(engine) as sess:
@@ -32,7 +34,6 @@ class RerankingManager:
                     )
 
         self.load()
-        self.load_vendors()
 
     def load(self):
         """Load the model pool from database"""
@@ -42,7 +43,7 @@ class RerankingManager:
             items = sess.execute(stmt)
 
             for (item,) in items:
-                self._models[item.name] = deserialize(item.spec, safe=False)
+                self._models[item.name] = self.deserialize(item.spec)
                 self._info[item.name] = {
                     "name": item.name,
                     "spec": item.spec,
@@ -202,6 +203,18 @@ class RerankingManager:
     def vendors(self) -> dict:
         """Return list of vendors"""
         return {vendor.__qualname__: vendor for vendor in self._vendors}
+
+    def allowed_modules(self) -> dict[str, Type]:
+        """Return allowlist of permitted dotted class paths for deserialization"""
+        return vendor_allowlist(self._vendors)
+
+    def deserialize(self, spec: dict) -> BaseReranking:
+        """Safely deserialize a Reranking specification using the vendor allowlist"""
+        return deserialize(
+            spec,
+            safe=True,
+            allowed_modules=self.allowed_modules(),
+        )
 
 
 reranking_models_manager = RerankingManager()
