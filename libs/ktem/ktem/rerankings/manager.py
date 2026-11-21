@@ -2,6 +2,7 @@ from typing import Optional, Type
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from theflow.base import ParamAttr
 from theflow.settings import settings as flowsettings
 from theflow.utils.modules import deserialize
 
@@ -19,6 +20,7 @@ class RerankingManager:
         self._default: str = ""
         self._vendors: list[Type] = []
 
+        self.load_vendors()
         # populate the pool if empty
         if hasattr(flowsettings, "KH_RERANKINGS"):
             with Session(engine) as sess:
@@ -32,7 +34,6 @@ class RerankingManager:
                     )
 
         self.load()
-        self.load_vendors()
 
     def load(self):
         """Load the model pool from database"""
@@ -42,7 +43,7 @@ class RerankingManager:
             items = sess.execute(stmt)
 
             for (item,) in items:
-                self._models[item.name] = deserialize(item.spec, safe=False)
+                self._models[item.name] = self.deserialize(item.spec)
                 self._info[item.name] = {
                     "name": item.name,
                     "spec": item.spec,
@@ -202,6 +203,23 @@ class RerankingManager:
     def vendors(self) -> dict:
         """Return list of vendors"""
         return {vendor.__qualname__: vendor for vendor in self._vendors}
+
+    def allowed_modules(self) -> dict[str, Type]:
+        """Return allowlist of permitted dotted class paths for deserialization"""
+        allowed: dict[str, Type] = {"theflow.base.ParamAttr": ParamAttr}
+        for vendor in self._vendors:
+            allowed[f"{vendor.__module__}.{vendor.__qualname__}"] = vendor
+            top_pkg = ".".join(vendor.__module__.split(".")[:2])
+            allowed[f"{top_pkg}.{vendor.__qualname__}"] = vendor
+        return allowed
+
+    def deserialize(self, spec: dict) -> BaseReranking:
+        """Safely deserialize a Reranking specification using the vendor allowlist"""
+        return deserialize(
+            spec,
+            safe=True,
+            allowed_modules=self.allowed_modules(),
+        )
 
 
 reranking_models_manager = RerankingManager()

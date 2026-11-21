@@ -5,7 +5,6 @@ import pandas as pd
 import yaml
 from ktem.app import BasePage
 from ktem.utils.file import YAMLNoDateSafeLoader
-from theflow.utils.modules import deserialize
 
 from .manager import embedding_models_manager
 
@@ -350,12 +349,14 @@ class EmbeddingManagement(BasePage):
 
             # Parse content & init model
             info = deepcopy(embedding_models_manager.info()[selected_emb_name])
+            model_type = info["spec"]["__type__"]
 
             # Parse content & create dummy embedding
-            spec = yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader)
+            spec = yaml.load(selected_spec, Loader=YAMLNoDateSafeLoader) or {}
             info["spec"].update(spec)
+            info["spec"]["__type__"] = model_type
 
-            emb = deserialize(info["spec"], safe=False)
+            emb = embedding_models_manager.deserialize(info["spec"])
 
             if emb is None:
                 raise Exception(f"Can not found model: {selected_emb_name}")
