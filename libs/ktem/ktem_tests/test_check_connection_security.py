@@ -191,40 +191,63 @@ def test_embedding_and_reranking_check_connection_block_arbitrary_deserializatio
     assert "Connection failed" in rerank_outputs[-1]
 
 
-def test_manager_allowed_modules_accepts_vendor_and_blocks_arbitrary_classes() -> None:
-    from theflow.base import ParamAttr
+@pytest.fixture
+def chat_package(monkeypatch: pytest.MonkeyPatch):
+    """A vendor defined deep in a package and re-exported by two parents.
+
+    Mirrors kotaemon.llms.chats.langchain_based.LCAnthropicChat, which the
+    default flowsettings store as ``kotaemon.llms.chats.LCAnthropicChat``.
+    """
+    impl = ModuleType("fakevendor.llms.chats.langchain_based")
+    vendor = type("LCAnthropicChat", (_FakeVendor,), {})
+    vendor.__module__ = impl.__name__
+    vendor.__qualname__ = "LCAnthropicChat"
+    impl.LCAnthropicChat = vendor
+    chats = ModuleType("fakevendor.llms.chats")
+    chats.LCAnthropicChat = vendor
+    llms_pkg = ModuleType("fakevendor.llms")
+    llms_pkg.LCAnthropicChat = vendor
+    # Same name, different class: must not become an alias.
+    root = ModuleType("fakevendor")
+    root.LCAnthropicChat = type("LCAnthropicChat", (), {})
+    for module in (root, llms_pkg, chats, impl):
+        monkeypatch.setitem(sys.modules, module.__name__, module)
+    return vendor
+
+
+def test_vendor_allowlist_accepts_every_reexport_of_the_vendor(chat_package) -> None:
+    from ktem.utils.vendors import vendor_allowlist
     from theflow.utils.modules import deserialize
 
-    allowed: dict[str, type] = {"theflow.base.ParamAttr": ParamAttr}
-    for vendor in [_FakeVendor]:
-        allowed[f"{vendor.__module__}.{vendor.__qualname__}"] = vendor
-        top_pkg = ".".join(vendor.__module__.split(".")[:2])
-        allowed[f"{top_pkg}.{vendor.__qualname__}"] = vendor
+    allowed = vendor_allowlist([chat_package])
 
-    valid_short = deserialize(
-        {"__type__": "kotaemon.llms.ChatOpenAI", "model": "gpt-4o"},
-        safe=True,
-        allowed_modules=allowed,
-    )
-    assert isinstance(valid_short, _FakeVendor)
-    assert valid_short.kwargs["model"] == "gpt-4o"
+    for path in (
+        "fakevendor.llms.chats.langchain_based.LCAnthropicChat",
+        "fakevendor.llms.chats.LCAnthropicChat",
+        "fakevendor.llms.LCAnthropicChat",
+    ):
+        model = deserialize(
+            {"__type__": path, "model_name": "claude"},
+            safe=True,
+            allowed_modules=allowed,
+        )
+        assert isinstance(model, chat_package)
+    assert "fakevendor.LCAnthropicChat" not in allowed
 
-    valid_full = deserialize(
-        {"__type__": "kotaemon.llms.chats.openai.ChatOpenAI", "model": "gpt-4o-mini"},
-        safe=True,
-        allowed_modules=allowed,
-    )
-    assert isinstance(valid_full, _FakeVendor)
+
+def test_vendor_allowlist_blocks_nested_arbitrary_classes(chat_package) -> None:
+    from ktem.utils.vendors import vendor_allowlist
+    from theflow.utils.modules import deserialize
 
     with pytest.raises(ValueError, match="is not allowed"):
         deserialize(
             {
-                "__type__": "kotaemon.llms.ChatOpenAI",
+                "__type__": "fakevendor.llms.chats.LCAnthropicChat",
                 "return_value": {
                     "__type__": "subprocess.check_output",
                     "args": ["sh", "-c", "echo PWNED"],
                 },
             },
             safe=True,
-            allowed_modules=allowed,
+            allowed_modules=vendor_allowlist([chat_package]),
         )

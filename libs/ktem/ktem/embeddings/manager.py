@@ -1,8 +1,8 @@
 from typing import Optional, Type
 
+from ktem.utils.vendors import vendor_allowlist
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from theflow.base import ParamAttr
 from theflow.settings import settings as flowsettings
 from theflow.utils.modules import deserialize
 
@@ -225,12 +225,7 @@ class EmbeddingManager:
 
     def allowed_modules(self) -> dict[str, Type]:
         """Return allowlist of permitted dotted class paths for deserialization"""
-        allowed: dict[str, Type] = {"theflow.base.ParamAttr": ParamAttr}
-        for vendor in self._vendors:
-            allowed[f"{vendor.__module__}.{vendor.__qualname__}"] = vendor
-            top_pkg = ".".join(vendor.__module__.split(".")[:2])
-            allowed[f"{top_pkg}.{vendor.__qualname__}"] = vendor
-        return allowed
+        return vendor_allowlist(self._vendors)
 
     def deserialize(self, spec: dict) -> BaseEmbeddings:
         """Safely deserialize an Embedding specification using the vendor allowlist"""
