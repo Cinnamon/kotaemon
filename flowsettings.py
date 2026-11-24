@@ -87,6 +87,7 @@ KH_FILESTORAGE_PATH = str(KH_USER_DATA_DIR / "files")
 KH_WEB_SEARCH_BACKEND = (
     "kotaemon.indices.retrievers.tavily_web_search.WebSearch"
     # "kotaemon.indices.retrievers.jina_web_search.WebSearch"
+    # "kotaemon.indices.retrievers.specstream_web_search.WebSearch"
 )
 
 KH_DOCSTORE = {
