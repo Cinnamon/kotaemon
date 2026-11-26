@@ -8,8 +8,8 @@ Welcome 👋 to the Kotaemon project! We're thrilled that you're interested in c
 
 ### Table of Contents
 
-1. [📖 Code of Conduct](#code-of-conduct)
-2. [🔁 Contributing via Pull Requests](#contributing-via-pull-requests)
+1. [📖 Code of Conduct](#-code-of-conduct)
+2. [🔁 Contributing via Pull Requests](#-contributing-via-pull-requests)
 3. [📥 Opening an Issue](#-opening-an-issue)
 4. [📝 Commit Messages](#-commit-messages)
 5. [🧾 License](#-license)
